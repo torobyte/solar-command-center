@@ -15,6 +15,8 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SitesSiteIdRouteImport } from './routes/sites.$siteId'
+import { Route as ApiPublicIngestRouteImport } from './routes/api/public/ingest'
+import { Route as ApiPublicActivateRouteImport } from './routes/api/public/activate'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -46,6 +48,16 @@ const SitesSiteIdRoute = SitesSiteIdRouteImport.update({
   path: '/sites/$siteId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicIngestRoute = ApiPublicIngestRouteImport.update({
+  id: '/api/public/ingest',
+  path: '/api/public/ingest',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicActivateRoute = ApiPublicActivateRouteImport.update({
+  id: '/api/public/activate',
+  path: '/api/public/activate',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -54,6 +66,8 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/sites/$siteId': typeof SitesSiteIdRoute
+  '/api/public/activate': typeof ApiPublicActivateRoute
+  '/api/public/ingest': typeof ApiPublicIngestRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +76,8 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/sites/$siteId': typeof SitesSiteIdRoute
+  '/api/public/activate': typeof ApiPublicActivateRoute
+  '/api/public/ingest': typeof ApiPublicIngestRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,12 +87,30 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/sites/$siteId': typeof SitesSiteIdRoute
+  '/api/public/activate': typeof ApiPublicActivateRoute
+  '/api/public/ingest': typeof ApiPublicIngestRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/app' | '/login' | '/signup' | '/sites/$siteId'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/app'
+    | '/login'
+    | '/signup'
+    | '/sites/$siteId'
+    | '/api/public/activate'
+    | '/api/public/ingest'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/app' | '/login' | '/signup' | '/sites/$siteId'
+  to:
+    | '/'
+    | '/admin'
+    | '/app'
+    | '/login'
+    | '/signup'
+    | '/sites/$siteId'
+    | '/api/public/activate'
+    | '/api/public/ingest'
   id:
     | '__root__'
     | '/'
@@ -85,6 +119,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/sites/$siteId'
+    | '/api/public/activate'
+    | '/api/public/ingest'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -94,6 +130,8 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
   SitesSiteIdRoute: typeof SitesSiteIdRoute
+  ApiPublicActivateRoute: typeof ApiPublicActivateRoute
+  ApiPublicIngestRoute: typeof ApiPublicIngestRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -140,6 +178,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitesSiteIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/ingest': {
+      id: '/api/public/ingest'
+      path: '/api/public/ingest'
+      fullPath: '/api/public/ingest'
+      preLoaderRoute: typeof ApiPublicIngestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/activate': {
+      id: '/api/public/activate'
+      path: '/api/public/activate'
+      fullPath: '/api/public/activate'
+      preLoaderRoute: typeof ApiPublicActivateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -150,6 +202,8 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
   SitesSiteIdRoute: SitesSiteIdRoute,
+  ApiPublicActivateRoute: ApiPublicActivateRoute,
+  ApiPublicIngestRoute: ApiPublicIngestRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

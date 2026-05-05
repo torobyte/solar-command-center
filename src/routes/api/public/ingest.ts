@@ -34,7 +34,7 @@ export const Route = createFileRoute("/api/public/ingest")({
             return row;
           });
 
-          const { error } = await supabaseAdmin.from("telemetry_samples").insert(rows);
+          const { error } = await supabaseAdmin.from("telemetry_samples").insert(rows as never);
           if (error) return Response.json({ error: error.message }, { status: 500 });
 
           await supabaseAdmin.from("sites").update({
