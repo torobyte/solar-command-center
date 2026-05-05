@@ -14,16 +14,288 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      daily_totals: {
+        Row: {
+          battery_charged_kwh: number
+          battery_discharged_kwh: number
+          day: string
+          grid_exported_kwh: number
+          grid_used_kwh: number
+          id: string
+          load_kwh: number
+          pv_kwh: number
+          site_id: string
+        }
+        Insert: {
+          battery_charged_kwh?: number
+          battery_discharged_kwh?: number
+          day: string
+          grid_exported_kwh?: number
+          grid_used_kwh?: number
+          id?: string
+          load_kwh?: number
+          pv_kwh?: number
+          site_id: string
+        }
+        Update: {
+          battery_charged_kwh?: number
+          battery_discharged_kwh?: number
+          day?: string
+          grid_exported_kwh?: number
+          grid_used_kwh?: number
+          id?: string
+          load_kwh?: number
+          pv_kwh?: number
+          site_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_totals_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      license_codes: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          duration_days: number
+          id: string
+          notes: string | null
+          plan: string
+          redeemed_at: string | null
+          redeemed_by_site: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          duration_days?: number
+          id?: string
+          notes?: string | null
+          plan?: string
+          redeemed_at?: string | null
+          redeemed_by_site?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          duration_days?: number
+          id?: string
+          notes?: string | null
+          plan?: string
+          redeemed_at?: string | null
+          redeemed_by_site?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_codes_redeemed_by_site_fkey"
+            columns: ["redeemed_by_site"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sites: {
+        Row: {
+          created_at: string
+          description: string | null
+          device_token: string
+          hardware_id: string | null
+          id: string
+          inverter_model: string | null
+          inverter_serial: string | null
+          last_seen_at: string | null
+          license_expires_at: string | null
+          name: string
+          owner_id: string
+          plan: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          device_token?: string
+          hardware_id?: string | null
+          id?: string
+          inverter_model?: string | null
+          inverter_serial?: string | null
+          last_seen_at?: string | null
+          license_expires_at?: string | null
+          name: string
+          owner_id: string
+          plan?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          device_token?: string
+          hardware_id?: string | null
+          id?: string
+          inverter_model?: string | null
+          inverter_serial?: string | null
+          last_seen_at?: string | null
+          license_expires_at?: string | null
+          name?: string
+          owner_id?: string
+          plan?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      telemetry_samples: {
+        Row: {
+          ac_output_active_power: number | null
+          ac_output_apparent_power: number | null
+          ac_output_frequency: number | null
+          ac_output_voltage: number | null
+          battery_capacity: number | null
+          battery_charging_current: number | null
+          battery_discharge_current: number | null
+          battery_voltage: number | null
+          bus_voltage: number | null
+          device_status: string | null
+          grid_frequency: number | null
+          grid_voltage: number | null
+          id: number
+          inverter_mode: string | null
+          inverter_temperature: number | null
+          load_percent: number | null
+          pv_input_current: number | null
+          pv_input_power: number | null
+          pv_input_voltage: number | null
+          raw: Json | null
+          recorded_at: string
+          site_id: string
+        }
+        Insert: {
+          ac_output_active_power?: number | null
+          ac_output_apparent_power?: number | null
+          ac_output_frequency?: number | null
+          ac_output_voltage?: number | null
+          battery_capacity?: number | null
+          battery_charging_current?: number | null
+          battery_discharge_current?: number | null
+          battery_voltage?: number | null
+          bus_voltage?: number | null
+          device_status?: string | null
+          grid_frequency?: number | null
+          grid_voltage?: number | null
+          id?: number
+          inverter_mode?: string | null
+          inverter_temperature?: number | null
+          load_percent?: number | null
+          pv_input_current?: number | null
+          pv_input_power?: number | null
+          pv_input_voltage?: number | null
+          raw?: Json | null
+          recorded_at?: string
+          site_id: string
+        }
+        Update: {
+          ac_output_active_power?: number | null
+          ac_output_apparent_power?: number | null
+          ac_output_frequency?: number | null
+          ac_output_voltage?: number | null
+          battery_capacity?: number | null
+          battery_charging_current?: number | null
+          battery_discharge_current?: number | null
+          battery_voltage?: number | null
+          bus_voltage?: number | null
+          device_status?: string | null
+          grid_frequency?: number | null
+          grid_voltage?: number | null
+          id?: number
+          inverter_mode?: string | null
+          inverter_temperature?: number | null
+          load_percent?: number | null
+          pv_input_current?: number | null
+          pv_input_power?: number | null
+          pv_input_voltage?: number | null
+          raw?: Json | null
+          recorded_at?: string
+          site_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telemetry_samples_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "superadmin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +422,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["superadmin", "user"],
+    },
   },
 } as const
