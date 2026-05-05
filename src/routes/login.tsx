@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +25,23 @@ function LoginPage() {
     setLoading(false);
     if (error) return toast.error(error.message);
     navigate({ to: "/app" });
+  }
+
+  async function withGoogle() {
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: `${window.location.origin}/app`,
+    });
+    if (result.error) toast.error(result.error.message);
+    else if (!result.redirected) navigate({ to: "/app" });
+  }
+
+  async function forgot() {
+    if (!email) return toast.error("Enter your email above first");
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) return toast.error(error.message);
+    toast.success("Password reset email sent");
   }
 
   return (
@@ -52,9 +70,19 @@ function LoginPage() {
             <Button type="submit" className="w-full" disabled={loading}>{loading ? "Signing in..." : "Sign in"}</Button>
           </form>
 
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            No account? <Link to="/signup" className="text-accent hover:underline">Create one</Link>
-          </p>
+          <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
+            <div className="h-px flex-1 bg-border" /> OR <div className="h-px flex-1 bg-border" />
+          </div>
+          <Button type="button" variant="outline" className="w-full" onClick={withGoogle}>
+            Continue with Google
+          </Button>
+
+          <div className="mt-4 flex items-center justify-between text-sm">
+            <button type="button" onClick={forgot} className="text-muted-foreground hover:text-foreground">
+              Forgot password?
+            </button>
+            <Link to="/signup" className="text-accent hover:underline">Create account</Link>
+          </div>
         </div>
       </div>
     </div>
