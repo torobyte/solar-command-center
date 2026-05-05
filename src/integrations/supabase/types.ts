@@ -286,6 +286,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      compute_daily_totals: {
+        Args: { _day: string; _site: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -293,6 +297,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      refresh_all_today_totals: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "superadmin" | "user"
