@@ -28,11 +28,11 @@ function LoginPage() {
   }
 
   async function withGoogle() {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/app` },
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: `${window.location.origin}/app`,
     });
-    if (error) toast.error(error.message);
+    if (result.error) toast.error(result.error.message);
+    else if (!result.redirected) navigate({ to: "/app" });
   }
 
   async function forgot() {
