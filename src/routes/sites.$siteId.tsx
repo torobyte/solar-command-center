@@ -1,11 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ProtectedLayout } from "@/components/ProtectedLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Copy, Battery, Sun, Zap, Plug } from "lucide-react";
 import { toast } from "sonner";
+import {
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
+} from "recharts";
+import { format } from "date-fns";
 
 export const Route = createFileRoute("/sites/$siteId")({
   component: () => <ProtectedLayout><SiteDetail /></ProtectedLayout>,
@@ -28,10 +32,17 @@ interface Sample {
   inverter_mode: string | null;
 }
 
+interface DailyTotal {
+  day: string; pv_kwh: number; load_kwh: number;
+  grid_used_kwh: number; battery_charged_kwh: number; battery_discharged_kwh: number;
+}
+
 function SiteDetail() {
   const { siteId } = Route.useParams();
   const [site, setSite] = useState<Site | null>(null);
   const [latest, setLatest] = useState<Sample | null>(null);
+  const [history, setHistory] = useState<Sample[]>([]);
+  const [totals, setTotals] = useState<DailyTotal[]>([]);
 
   async function load() {
     const { data: s } = await supabase.from("sites").select("*").eq("id", siteId).maybeSingle();
@@ -41,8 +52,18 @@ function SiteDetail() {
       .select("recorded_at, ac_output_active_power, pv_input_power, battery_capacity, battery_voltage, grid_voltage, inverter_mode")
       .eq("site_id", siteId)
       .order("recorded_at", { ascending: false })
-      .limit(1);
-    setLatest((t?.[0] as Sample) ?? null);
+      .limit(720); // ~12h at 1/min
+    const rows = (t ?? []).reverse() as Sample[];
+    setHistory(rows);
+    setLatest(rows.length ? rows[rows.length - 1] : null);
+
+    const { data: dt } = await supabase
+      .from("daily_totals")
+      .select("day, pv_kwh, load_kwh, grid_used_kwh, battery_charged_kwh, battery_discharged_kwh")
+      .eq("site_id", siteId)
+      .order("day", { ascending: false })
+      .limit(30);
+    setTotals(((dt ?? []) as DailyTotal[]).reverse());
   }
 
   useEffect(() => {
@@ -50,10 +71,22 @@ function SiteDetail() {
     const channel = supabase
       .channel(`site-${siteId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "telemetry_samples", filter: `site_id=eq.${siteId}` },
-        (payload) => setLatest(payload.new as Sample))
+        (payload) => {
+          const row = payload.new as Sample;
+          setLatest(row);
+          setHistory((h) => [...h.slice(-719), row]);
+        })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [siteId]);
+
+  const chartData = useMemo(() => history.map((r) => ({
+    t: new Date(r.recorded_at).getTime(),
+    pv: Number(r.pv_input_power ?? 0),
+    load: Number(r.ac_output_active_power ?? 0),
+    soc: Number(r.battery_capacity ?? 0),
+    grid: Number(r.grid_voltage ?? 0),
+  })), [history]);
 
   if (!site) return <p className="text-sm text-muted-foreground">Loading…</p>;
 
@@ -96,15 +129,80 @@ function SiteDetail() {
           )}
         </TabsContent>
 
-        <TabsContent value="charts" className="mt-6">
-          <div className="rounded-lg border bg-card p-12 text-center text-sm text-muted-foreground">
-            Charts (load / PV / grid / battery over time) — coming in next iteration.
-          </div>
+        <TabsContent value="charts" className="mt-6 space-y-6">
+          <ChartCard title="Power (W) — last 12h">
+            <AreaChart data={chartData}>
+              <defs>
+                <linearGradient id="gPv" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--solar, 45 100% 50%))" stopOpacity={0.6} />
+                  <stop offset="100%" stopColor="hsl(var(--solar, 45 100% 50%))" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="gLoad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--load, 200 90% 55%))" stopOpacity={0.6} />
+                  <stop offset="100%" stopColor="hsl(var(--load, 200 90% 55%))" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+              <XAxis dataKey="t" tickFormatter={(v) => format(new Date(v), "HH:mm")} fontSize={11} />
+              <YAxis fontSize={11} />
+              <Tooltip labelFormatter={(v) => format(new Date(v as number), "PP HH:mm")} />
+              <Legend />
+              <Area type="monotone" dataKey="pv" name="Solar" stroke="var(--solar)" fill="url(#gPv)" />
+              <Area type="monotone" dataKey="load" name="Load" stroke="var(--load)" fill="url(#gLoad)" />
+            </AreaChart>
+          </ChartCard>
+
+          <ChartCard title="Battery SOC (%) — last 12h">
+            <AreaChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+              <XAxis dataKey="t" tickFormatter={(v) => format(new Date(v), "HH:mm")} fontSize={11} />
+              <YAxis domain={[0, 100]} fontSize={11} />
+              <Tooltip labelFormatter={(v) => format(new Date(v as number), "PP HH:mm")} />
+              <Area type="monotone" dataKey="soc" stroke="var(--battery)" fill="var(--battery)" fillOpacity={0.2} />
+            </AreaChart>
+          </ChartCard>
         </TabsContent>
 
-        <TabsContent value="totals" className="mt-6">
-          <div className="rounded-lg border bg-card p-12 text-center text-sm text-muted-foreground">
-            Daily / monthly energy totals — coming in next iteration.
+        <TabsContent value="totals" className="mt-6 space-y-6">
+          <ChartCard title="Daily energy (kWh)">
+            <AreaChart data={totals}>
+              <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+              <XAxis dataKey="day" fontSize={11} />
+              <YAxis fontSize={11} />
+              <Tooltip />
+              <Legend />
+              <Area type="monotone" dataKey="pv_kwh" name="Solar" stroke="var(--solar)" fill="var(--solar)" fillOpacity={0.2} />
+              <Area type="monotone" dataKey="load_kwh" name="Load" stroke="var(--load)" fill="var(--load)" fillOpacity={0.2} />
+              <Area type="monotone" dataKey="grid_used_kwh" name="Grid" stroke="var(--grid)" fill="var(--grid)" fillOpacity={0.2} />
+            </AreaChart>
+          </ChartCard>
+
+          <div className="overflow-hidden rounded-lg border bg-card">
+            <table className="w-full text-sm">
+              <thead className="border-b bg-muted/50 text-left">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Day</th>
+                  <th className="px-4 py-3 font-medium">PV</th>
+                  <th className="px-4 py-3 font-medium">Load</th>
+                  <th className="px-4 py-3 font-medium">Grid</th>
+                  <th className="px-4 py-3 font-medium">Battery in</th>
+                  <th className="px-4 py-3 font-medium">Battery out</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...totals].reverse().map((d) => (
+                  <tr key={d.day} className="border-b last:border-0">
+                    <td className="px-4 py-3 font-mono text-xs">{d.day}</td>
+                    <td className="px-4 py-3">{d.pv_kwh.toFixed(2)} kWh</td>
+                    <td className="px-4 py-3">{d.load_kwh.toFixed(2)} kWh</td>
+                    <td className="px-4 py-3">{d.grid_used_kwh.toFixed(2)} kWh</td>
+                    <td className="px-4 py-3">{d.battery_charged_kwh.toFixed(2)} kWh</td>
+                    <td className="px-4 py-3">{d.battery_discharged_kwh.toFixed(2)} kWh</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {totals.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">No daily data yet.</p>}
           </div>
         </TabsContent>
 
@@ -126,6 +224,17 @@ function SiteDetail() {
         </TabsContent>
       </Tabs>
     </>
+  );
+}
+
+function ChartCard({ title, children }: { title: string; children: React.ReactElement }) {
+  return (
+    <div className="rounded-lg border bg-card p-4">
+      <h3 className="mb-4 text-sm font-semibold">{title}</h3>
+      <div className="h-64 w-full">
+        <ResponsiveContainer width="100%" height="100%">{children}</ResponsiveContainer>
+      </div>
+    </div>
   );
 }
 
