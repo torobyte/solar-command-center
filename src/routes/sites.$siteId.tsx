@@ -130,7 +130,7 @@ function SiteDetail() {
 }
 
 function MetricCard({ icon: Icon, label, value, unit, tone, sub }: {
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   label: string; value: number; unit: string;
   tone: "solar" | "load" | "grid" | "battery"; sub?: string;
 }) {
