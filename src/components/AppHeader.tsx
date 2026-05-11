@@ -1,12 +1,15 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { Sun, LogOut, Shield, LayoutGrid } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
+import { LangSwitcher } from "@/components/LangSwitcher";
 
 export function AppHeader() {
   const { user, role, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   const onSites = location.pathname.startsWith("/sites") || location.pathname === "/app";
   const onAdmin = location.pathname.startsWith("/admin");
@@ -28,22 +31,28 @@ export function AppHeader() {
           <nav className="flex items-center gap-1">
             <Link to="/app">
               <Button variant={onSites ? "secondary" : "ghost"} size="sm">
-                <LayoutGrid className="mr-2 h-4 w-4" /> Sites
+                <LayoutGrid className="mr-2 h-4 w-4" /> {t("nav.sites")}
               </Button>
             </Link>
             {role === "superadmin" && (
               <Link to="/admin">
                 <Button variant={onAdmin ? "secondary" : "ghost"} size="sm">
-                  <Shield className="mr-2 h-4 w-4" /> Admin
+                  <Shield className="mr-2 h-4 w-4" /> {t("nav.admin")}
                 </Button>
               </Link>
             )}
             <div className="mx-3 h-6 w-px bg-border" />
             <span className="hidden text-sm text-muted-foreground sm:inline">{user.email}</span>
-            <Button variant="ghost" size="sm" onClick={async () => { await signOut(); navigate({ to: "/login" }); }}>
+            <LangSwitcher />
+            <Button variant="ghost" size="sm" title={t("nav.signOut")} onClick={async () => { await signOut(); navigate({ to: "/login" }); }}>
               <LogOut className="h-4 w-4" />
             </Button>
           </nav>
+        )}
+        {!user && (
+          <div className="flex items-center gap-1">
+            <LangSwitcher />
+          </div>
         )}
       </div>
     </header>
