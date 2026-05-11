@@ -4,12 +4,13 @@ import { ProtectedLayout } from "@/components/ProtectedLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Copy, Battery, Sun, Zap, Plug, Cpu, AlertCircle } from "lucide-react";
+import { ArrowLeft, Copy, Battery, Sun, Plug, Cpu, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
 } from "recharts";
 import { format } from "date-fns";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/sites/$siteId")({
   component: () => <ProtectedLayout><SiteDetail /></ProtectedLayout>,
@@ -39,6 +40,7 @@ interface DailyTotal {
 
 function SiteDetail() {
   const { siteId } = Route.useParams();
+  const { t } = useI18n();
   const [site, setSite] = useState<Site | null>(null);
   const [latest, setLatest] = useState<Sample | null>(null);
   const [history, setHistory] = useState<Sample[]>([]);
