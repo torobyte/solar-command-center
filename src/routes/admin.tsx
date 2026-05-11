@@ -18,6 +18,7 @@ import { useAuth } from "@/lib/auth";
 import {
   adminCreateUser, adminSetUserRole, adminDeleteUser,
   adminCreateSite, adminAssignSite, adminDeleteSite, adminRequestRefresh,
+  adminActivateSite, adminRevokeLicense,
 } from "@/lib/admin.functions";
 import { formatDistanceToNow } from "date-fns";
 
