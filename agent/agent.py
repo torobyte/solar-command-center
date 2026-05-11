@@ -300,10 +300,12 @@ def make_app(agent: Agent) -> Flask:
 
     @app.get("/api/state")
     def state():
-        with agent.lock: latest = dict(agent.latest)
+        with agent.lock:
+            latest = dict(agent.latest)
+            license = dict(agent.license)
         cfg = {k: v for k, v in agent.config.items() if k != "device_token"}
         cfg["device_token"] = bool(agent.config.get("device_token"))
-        return jsonify({"latest": latest, "config": cfg})
+        return jsonify({"latest": latest, "config": cfg, "license": license})
 
     @app.post("/api/activate")
     def activate():
