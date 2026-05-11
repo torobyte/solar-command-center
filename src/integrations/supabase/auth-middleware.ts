@@ -66,7 +66,7 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
     if (error || !claimsData) {
       fail('Unauthorized: Invalid token')
     }
-    const claims = claimsData
+    const claims = claimsData ?? fail('Unauthorized: Invalid token')
 
     if (!claims.sub) {
       fail('Unauthorized: No user ID found in token')
