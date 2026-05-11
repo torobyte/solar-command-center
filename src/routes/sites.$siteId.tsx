@@ -4,12 +4,13 @@ import { ProtectedLayout } from "@/components/ProtectedLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Copy, Battery, Sun, Zap, Plug, Cpu, AlertCircle } from "lucide-react";
+import { ArrowLeft, Copy, Battery, Sun, Plug, Cpu, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
 } from "recharts";
 import { format } from "date-fns";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/sites/$siteId")({
   component: () => <ProtectedLayout><SiteDetail /></ProtectedLayout>,
@@ -39,6 +40,7 @@ interface DailyTotal {
 
 function SiteDetail() {
   const { siteId } = Route.useParams();
+  const { t } = useI18n();
   const [site, setSite] = useState<Site | null>(null);
   const [latest, setLatest] = useState<Sample | null>(null);
   const [history, setHistory] = useState<Sample[]>([]);
@@ -234,6 +236,7 @@ function ChartCard({ title, children }: { title: string; children: React.ReactEl
 /* ---------------- Inverter-style dashboard ---------------- */
 
 function DashboardView({ latest }: { latest: Sample | null }) {
+  const { t } = useI18n();
   const pv = Number(latest?.pv_input_power ?? 0);
   const load = Number(latest?.ac_output_active_power ?? 0);
   const battery = Number(latest?.battery_capacity ?? 0);
@@ -241,24 +244,14 @@ function DashboardView({ latest }: { latest: Sample | null }) {
   const gridV = Number(latest?.grid_voltage ?? 0);
   const gridConnected = gridV > 50;
   const mode = latest?.inverter_mode ?? "—";
-  // Approx battery W (charging current * voltage as a fallback)
-  const batteryW = Math.round(batteryV * 0); // placeholder when current not parsed
+  const batteryW = Math.round(batteryV * 0);
   const ratio = (n: number, max: number) => Math.min(1, Math.max(0, n / max));
 
   return (
     <div className="space-y-4">
-      {/* Top: status icon cards */}
       <div className="grid grid-cols-2 gap-3 rounded-xl border bg-card p-4 sm:gap-4 sm:p-6">
-        <IconCard
-          icon={<Cpu className="h-10 w-10 sm:h-12 sm:w-12 text-foreground/70" />}
-          title="Inverter"
-          subtitle={mode}
-        />
-        <IconCard
-          icon={<Sun className="h-10 w-10 sm:h-12 sm:w-12 text-[var(--solar)]" />}
-          title="Solar PV"
-          subtitle={`${(pv / 1000).toFixed(1)} kW`}
-        />
+        <IconCard icon={<Cpu className="h-10 w-10 sm:h-12 sm:w-12 text-foreground/70" />} title={t("site.dash.inverter")} subtitle={mode} />
+        <IconCard icon={<Sun className="h-10 w-10 sm:h-12 sm:w-12 text-[var(--solar)]" />} title={t("site.dash.solar")} subtitle={`${(pv / 1000).toFixed(1)} kW`} />
         <IconCard
           icon={
             <div className="relative">
@@ -268,22 +261,17 @@ function DashboardView({ latest }: { latest: Sample | null }) {
               )}
             </div>
           }
-          title="Grid"
+          title={t("site.dash.grid")}
           subtitle={`${gridV.toFixed(0)} V`}
         />
-        <IconCard
-          icon={<Battery className="h-10 w-10 sm:h-12 sm:w-12 text-[var(--battery)]" />}
-          title="Battery"
-          subtitle={`${battery.toFixed(0)} %`}
-        />
+        <IconCard icon={<Battery className="h-10 w-10 sm:h-12 sm:w-12 text-[var(--battery)]" />} title={t("site.dash.battery")} subtitle={`${battery.toFixed(0)} %`} />
       </div>
 
-      {/* Bottom: gauges */}
       <div className="grid grid-cols-2 gap-3 rounded-xl border bg-card p-4 sm:gap-4 sm:p-6">
-        <Gauge value={`${load.toFixed(0)} W`} label="Load" ratio={ratio(load, 5000)} color="var(--load)" />
-        <Gauge value={`${pv.toFixed(0)} W`} label="Solar PV" ratio={ratio(pv, 5000)} color="var(--solar)" />
-        <Gauge value={`${gridConnected ? load.toFixed(0) : 0} W`} label="Grid" ratio={gridConnected ? ratio(load, 5000) : 0} color="var(--grid)" />
-        <Gauge value={`${batteryW || pv > load ? Math.max(0, pv - load).toFixed(0) : "0"} W`} label="Battery" ratio={ratio(Math.abs(pv - load), 5000)} color="var(--battery)" />
+        <Gauge value={`${load.toFixed(0)} W`} label={t("site.dash.load")} ratio={ratio(load, 5000)} color="var(--load)" />
+        <Gauge value={`${pv.toFixed(0)} W`} label={t("site.dash.solar")} ratio={ratio(pv, 5000)} color="var(--solar)" />
+        <Gauge value={`${gridConnected ? load.toFixed(0) : 0} W`} label={t("site.dash.grid")} ratio={gridConnected ? ratio(load, 5000) : 0} color="var(--grid)" />
+        <Gauge value={`${batteryW || pv > load ? Math.max(0, pv - load).toFixed(0) : "0"} W`} label={t("site.dash.battery")} ratio={ratio(Math.abs(pv - load), 5000)} color="var(--battery)" />
       </div>
     </div>
   );
@@ -375,10 +363,11 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 function CodeBlock({ value }: { value: string }) {
+  const { t } = useI18n();
   return (
     <div className="flex items-center gap-2 rounded-md border bg-muted/50 p-3 font-mono text-xs">
       <code className="flex-1 break-all">{value}</code>
-      <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(value); toast.success("Copied"); }}>
+      <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(value); toast.success(t("common.copied")); }}>
         <Copy className="h-3.5 w-3.5" />
       </Button>
     </div>

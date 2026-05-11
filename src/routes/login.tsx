@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sun } from "lucide-react";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n";
+import { LangSwitcher } from "@/components/LangSwitcher";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -14,6 +16,7 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,16 +39,17 @@ function LoginPage() {
   }
 
   async function forgot() {
-    if (!email) return toast.error("Enter your email above first");
+    if (!email) return toast.error(t("login.forgotEmpty"));
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     if (error) return toast.error(error.message);
-    toast.success("Password reset email sent");
+    toast.success(t("login.resetSent"));
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="absolute right-4 top-4"><LangSwitcher /></div>
       <div className="w-full max-w-sm">
         <Link to="/" className="mb-8 flex items-center justify-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary">
@@ -55,33 +59,33 @@ function LoginPage() {
         </Link>
 
         <div className="rounded-lg border bg-card p-6 shadow-sm">
-          <h1 className="text-xl font-semibold">Sign in</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Welcome back to SolarOps.</p>
+          <h1 className="text-xl font-semibold">{t("login.title")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t("login.subtitle")}</p>
 
           <form onSubmit={onSubmit} className="mt-6 space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t("login.email")}</Label>
               <Input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t("login.password")}</Label>
               <Input id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>{loading ? "Signing in..." : "Sign in"}</Button>
+            <Button type="submit" className="w-full" disabled={loading}>{loading ? t("login.submitting") : t("login.submit")}</Button>
           </form>
 
           <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
-            <div className="h-px flex-1 bg-border" /> OR <div className="h-px flex-1 bg-border" />
+            <div className="h-px flex-1 bg-border" /> {t("login.or")} <div className="h-px flex-1 bg-border" />
           </div>
           <Button type="button" variant="outline" className="w-full" onClick={withGoogle}>
-            Continue with Google
+            {t("login.google")}
           </Button>
 
           <div className="mt-4 flex items-center justify-between text-sm">
             <button type="button" onClick={forgot} className="text-muted-foreground hover:text-foreground">
-              Forgot password?
+              {t("login.forgot")}
             </button>
-            <Link to="/signup" className="text-accent hover:underline">Create account</Link>
+            <Link to="/signup" className="text-accent hover:underline">{t("login.create")}</Link>
           </div>
         </div>
       </div>

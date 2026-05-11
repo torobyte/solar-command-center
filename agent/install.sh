@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # SolarOps agent installer for Raspberry Pi / Orange Pi (Debian/Ubuntu).
 #
-# ┌─ ONE-LINE INSTALL ────────────────────────────────────────────────────────┐
-# │  curl -fsSL https://raw.githubusercontent.com/USUARIO/REPO/main/agent/install.sh | sudo bash
+# ┌─ INSTALACIÓN EN UNA LÍNEA ────────────────────────────────────────────────┐
+# │  curl -fsSL https://raw.githubusercontent.com/torobyte/solar-command-center/main/agent/install.sh | sudo bash
 # └───────────────────────────────────────────────────────────────────────────┘
 #
-# Optional args (positional, en este orden):
+# Argumentos opcionales (posicionales, en este orden):
 #   sudo bash -s -- [DEVICE_TOKEN] [BRANCH]
 #
 # Para repos privados, pasa un Personal Access Token de GitHub:
@@ -13,9 +13,9 @@
 set -euo pipefail
 
 # ---------------------------------------------------------------------------
-# CONFIGURACIÓN — edita REPO_HTTPS con tu repo público de GitHub.
+# CONFIGURACIÓN
 # ---------------------------------------------------------------------------
-REPO_HTTPS="https://github.com/USUARIO/REPO.git"
+REPO_HTTPS="https://github.com/torobyte/solar-command-center.git"
 BRANCH_DEFAULT="main"
 CLOUD_URL="https://project--7cb3041b-eb20-43aa-ba17-b0848cb53051.lovable.app"
 
