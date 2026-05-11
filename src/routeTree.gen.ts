@@ -16,6 +16,7 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SitesSiteIdRouteImport } from './routes/sites.$siteId'
+import { Route as ApiPublicRegisterRouteImport } from './routes/api/public/register'
 import { Route as ApiPublicLicenseStatusRouteImport } from './routes/api/public/license-status'
 import { Route as ApiPublicIngestRouteImport } from './routes/api/public/ingest'
 import { Route as ApiPublicActivateRouteImport } from './routes/api/public/activate'
@@ -55,6 +56,11 @@ const SitesSiteIdRoute = SitesSiteIdRouteImport.update({
   path: '/sites/$siteId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicRegisterRoute = ApiPublicRegisterRouteImport.update({
+  id: '/api/public/register',
+  path: '/api/public/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicLicenseStatusRoute = ApiPublicLicenseStatusRouteImport.update({
   id: '/api/public/license-status',
   path: '/api/public/license-status',
@@ -82,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/api/public/activate': typeof ApiPublicActivateRoute
   '/api/public/ingest': typeof ApiPublicIngestRoute
   '/api/public/license-status': typeof ApiPublicLicenseStatusRoute
+  '/api/public/register': typeof ApiPublicRegisterRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -94,6 +101,7 @@ export interface FileRoutesByTo {
   '/api/public/activate': typeof ApiPublicActivateRoute
   '/api/public/ingest': typeof ApiPublicIngestRoute
   '/api/public/license-status': typeof ApiPublicLicenseStatusRoute
+  '/api/public/register': typeof ApiPublicRegisterRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -107,6 +115,7 @@ export interface FileRoutesById {
   '/api/public/activate': typeof ApiPublicActivateRoute
   '/api/public/ingest': typeof ApiPublicIngestRoute
   '/api/public/license-status': typeof ApiPublicLicenseStatusRoute
+  '/api/public/register': typeof ApiPublicRegisterRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -121,6 +130,7 @@ export interface FileRouteTypes {
     | '/api/public/activate'
     | '/api/public/ingest'
     | '/api/public/license-status'
+    | '/api/public/register'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -133,6 +143,7 @@ export interface FileRouteTypes {
     | '/api/public/activate'
     | '/api/public/ingest'
     | '/api/public/license-status'
+    | '/api/public/register'
   id:
     | '__root__'
     | '/'
@@ -145,6 +156,7 @@ export interface FileRouteTypes {
     | '/api/public/activate'
     | '/api/public/ingest'
     | '/api/public/license-status'
+    | '/api/public/register'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -158,6 +170,7 @@ export interface RootRouteChildren {
   ApiPublicActivateRoute: typeof ApiPublicActivateRoute
   ApiPublicIngestRoute: typeof ApiPublicIngestRoute
   ApiPublicLicenseStatusRoute: typeof ApiPublicLicenseStatusRoute
+  ApiPublicRegisterRoute: typeof ApiPublicRegisterRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -211,6 +224,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitesSiteIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/register': {
+      id: '/api/public/register'
+      path: '/api/public/register'
+      fullPath: '/api/public/register'
+      preLoaderRoute: typeof ApiPublicRegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/license-status': {
       id: '/api/public/license-status'
       path: '/api/public/license-status'
@@ -246,6 +266,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicActivateRoute: ApiPublicActivateRoute,
   ApiPublicIngestRoute: ApiPublicIngestRoute,
   ApiPublicLicenseStatusRoute: ApiPublicLicenseStatusRoute,
+  ApiPublicRegisterRoute: ApiPublicRegisterRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
