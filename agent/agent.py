@@ -187,7 +187,6 @@ class Agent:
                 )
                 if r.status_code != 200:
                     print(f"[agent] push failed {r.status_code}: {r.text[:200]}")
-                    # requeue
                     for s in batch:
                         try: self.pending.put_nowait(s)
                         except queue.Full: break
@@ -196,6 +195,22 @@ class Agent:
                 for s in batch:
                     try: self.pending.put_nowait(s)
                     except queue.Full: break
+
+    def license_loop(self):
+        while True:
+            try:
+                token = self.config.get("device_token")
+                if token:
+                    r = requests.post(
+                        f"{self.config['cloud_url']}/api/public/license-status",
+                        json={"device_token": token}, timeout=10,
+                    )
+                    if r.status_code == 200:
+                        with self.lock:
+                            self.license = r.json()
+            except Exception as e:
+                print(f"[agent] license check error: {e}")
+            time.sleep(60)
 
     def activate(self, code: str, name: str) -> dict:
         r = requests.post(
