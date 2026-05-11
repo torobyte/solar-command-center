@@ -93,10 +93,10 @@ function SitesAdmin() {
   async function load() {
     const { data, error } = await supabase
       .from("sites")
-      .select("id,name,status,plan,inverter_model,owner_id,last_seen_at,force_refresh_at,device_token,profiles!sites_owner_id_fkey(email,full_name)")
+      .select("id,name,status,plan,inverter_model,owner_id,last_seen_at,force_refresh_at,device_token")
       .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
-    setRows((data ?? []) as unknown as SiteRow[]);
+    setRows((data ?? []).map((r) => ({ ...r, profiles: null })) as unknown as SiteRow[]);
   }
   useEffect(() => { load(); }, []);
 
