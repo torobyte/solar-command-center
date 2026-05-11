@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Copy, RefreshCw, Trash2, ShieldCheck, ShieldOff, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
+import { useI18n } from "@/lib/i18n";
 import {
   adminCreateUser, adminSetUserRole, adminDeleteUser,
   adminCreateSite, adminAssignSite, adminDeleteSite, adminRequestRefresh,
@@ -27,17 +28,18 @@ export const Route = createFileRoute("/admin")({
 });
 
 function AdminPanel() {
+  const { t } = useI18n();
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Superadmin</h1>
-        <p className="text-sm text-muted-foreground">Manage all users, sites, and licenses.</p>
+        <h1 className="text-2xl font-bold">{t("admin.title")}</h1>
+        <p className="text-sm text-muted-foreground">{t("admin.subtitle")}</p>
       </div>
       <Tabs defaultValue="sites">
         <TabsList>
-          <TabsTrigger value="sites">Sites</TabsTrigger>
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="licenses">Licenses</TabsTrigger>
+          <TabsTrigger value="sites">{t("admin.tab.sites")}</TabsTrigger>
+          <TabsTrigger value="users">{t("admin.tab.users")}</TabsTrigger>
+          <TabsTrigger value="licenses">{t("admin.tab.licenses")}</TabsTrigger>
         </TabsList>
         <TabsContent value="sites" className="mt-6"><SitesAdmin /></TabsContent>
         <TabsContent value="users" className="mt-6"><UsersAdmin /></TabsContent>
@@ -63,8 +65,6 @@ function useUsers() {
   return { users, reload: load };
 }
 
-/* ----------------------------- Sites Admin ----------------------------- */
-
 interface SiteRow {
   id: string; name: string; status: string; plan: string;
   inverter_model: string | null; owner_id: string;
@@ -74,23 +74,32 @@ interface SiteRow {
   profiles: { email?: string; full_name?: string | null } | null;
 }
 
-function licenseInfo(plan: string, expires: string | null) {
-  if (!expires) return { label: plan, color: "text-muted-foreground", sub: "no license" };
-  const ms = new Date(expires).getTime() - Date.now();
-  if (ms <= 0) return { label: plan, color: "text-destructive", sub: "expired" };
-  const days = Math.ceil(ms / 86_400_000);
-  return { label: plan, color: "text-success", sub: `${days}d left` };
+function useLicenseInfo() {
+  const { t } = useI18n();
+  return (plan: string, expires: string | null) => {
+    if (!expires) return { label: plan, color: "text-muted-foreground", sub: t("lic.none") };
+    const ms = new Date(expires).getTime() - Date.now();
+    if (ms <= 0) return { label: plan, color: "text-destructive", sub: t("lic.expired") };
+    const days = Math.ceil(ms / 86_400_000);
+    return { label: plan, color: "text-success", sub: t("lic.daysLeft", { n: days }) };
+  };
 }
 
-function syncStatus(lastSeen: string | null) {
-  if (!lastSeen) return { label: "never", color: "text-muted-foreground" };
-  const ageMs = Date.now() - new Date(lastSeen).getTime();
-  if (ageMs < 2 * 60_000) return { label: "online", color: "text-success" };
-  if (ageMs < 60 * 60_000) return { label: "stale", color: "text-warning" };
-  return { label: "offline", color: "text-destructive" };
+function useSyncStatus() {
+  const { t } = useI18n();
+  return (lastSeen: string | null) => {
+    if (!lastSeen) return { label: t("sync.never"), color: "text-muted-foreground" };
+    const ageMs = Date.now() - new Date(lastSeen).getTime();
+    if (ageMs < 2 * 60_000) return { label: t("sync.online"), color: "text-success" };
+    if (ageMs < 60 * 60_000) return { label: t("sync.stale"), color: "text-warning" };
+    return { label: t("sync.offline"), color: "text-destructive" };
+  };
 }
 
 function SitesAdmin() {
+  const { t } = useI18n();
+  const licenseInfo = useLicenseInfo();
+  const syncStatus = useSyncStatus();
   const [rows, setRows] = useState<SiteRow[]>([]);
   const { users } = useUsers();
   const createSite = useServerFn(adminCreateSite);
@@ -117,10 +126,10 @@ function SitesAdmin() {
 
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.owner_id) return toast.error("Select an owner");
+    if (!form.owner_id) return toast.error(t("asite.selectOwner"));
     try {
       await createSite({ data: { ...form, description: form.description || null, inverter_model: form.inverter_model || null } });
-      toast.success("Site created");
+      toast.success(t("asite.created"));
       setOpen(false); setForm({ name: "", description: "", inverter_model: "", owner_id: "" });
       load();
     } catch (e) { toast.error((e as Error).message); }
@@ -130,32 +139,32 @@ function SitesAdmin() {
     <>
       <div className="mb-4 flex justify-end">
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" />New site</Button></DialogTrigger>
+          <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" />{t("asite.new")}</Button></DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Register a site / device</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{t("asite.register")}</DialogTitle></DialogHeader>
             <form onSubmit={onCreate} className="space-y-4">
               <div className="space-y-2">
-                <Label>Owner</Label>
+                <Label>{t("asite.owner")}</Label>
                 <Select value={form.owner_id} onValueChange={(v) => setForm({ ...form, owner_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Pick a user" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t("asite.pickUser")} /></SelectTrigger>
                   <SelectContent>
                     {users.map((u) => (<SelectItem key={u.id} value={u.id}>{u.email}</SelectItem>))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Name</Label>
+                <Label>{t("common.name")}</Label>
                 <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required maxLength={120} />
               </div>
               <div className="space-y-2">
-                <Label>Inverter model</Label>
+                <Label>{t("asite.inverterModel")}</Label>
                 <Input value={form.inverter_model} onChange={(e) => setForm({ ...form, inverter_model: e.target.value })} placeholder="e.g. Axpert MKS 5K" />
               </div>
               <div className="space-y-2">
-                <Label>Description</Label>
+                <Label>{t("common.description")}</Label>
                 <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
               </div>
-              <DialogFooter><Button type="submit">Create</Button></DialogFooter>
+              <DialogFooter><Button type="submit">{t("common.create")}</Button></DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
@@ -165,11 +174,11 @@ function SitesAdmin() {
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/50 text-left">
             <tr>
-              <th className="px-4 py-3 font-medium">Site</th>
-              <th className="px-4 py-3 font-medium">Owner</th>
-              <th className="px-4 py-3 font-medium">Sync</th>
-              <th className="px-4 py-3 font-medium">Last license check</th>
-              <th className="px-4 py-3 font-medium">Plan</th>
+              <th className="px-4 py-3 font-medium">{t("asite.col.site")}</th>
+              <th className="px-4 py-3 font-medium">{t("asite.col.owner")}</th>
+              <th className="px-4 py-3 font-medium">{t("asite.col.sync")}</th>
+              <th className="px-4 py-3 font-medium">{t("asite.col.lastCheck")}</th>
+              <th className="px-4 py-3 font-medium">{t("asite.col.plan")}</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
@@ -184,7 +193,7 @@ function SitesAdmin() {
                   </td>
                   <td className="px-4 py-3">
                     <Select value={r.owner_id} onValueChange={async (v) => {
-                      try { await assignSite({ data: { site_id: r.id, owner_id: v } }); toast.success("Reassigned"); load(); }
+                      try { await assignSite({ data: { site_id: r.id, owner_id: v } }); toast.success(t("asite.reassigned")); load(); }
                       catch (e) { toast.error((e as Error).message); }
                     }}>
                       <SelectTrigger className="h-8 w-[220px]"><SelectValue /></SelectTrigger>
@@ -204,7 +213,7 @@ function SitesAdmin() {
                       </div>
                     )}
                     {r.force_refresh_at && (
-                      <div className="text-xs text-warning">refresh requested</div>
+                      <div className="text-xs text-warning">{t("sync.refreshRequested")}</div>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -214,34 +223,34 @@ function SitesAdmin() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
-                      <Button size="sm" variant="ghost" title="Activate / extend license"
+                      <Button size="sm" variant="ghost" title={t("asite.activateTitle")}
                         onClick={() => { setLicCode(""); setLicDlg(r); }}>
                         <KeyRound className="h-3.5 w-3.5" />
                       </Button>
-                      <Button size="sm" variant="ghost" title="Copy device token"
-                        onClick={() => { navigator.clipboard.writeText(r.device_token); toast.success("Token copied"); }}>
+                      <Button size="sm" variant="ghost" title={t("asite.copyToken")}
+                        onClick={() => { navigator.clipboard.writeText(r.device_token); toast.success(t("asite.tokenCopied")); }}>
                         <Copy className="h-3.5 w-3.5" />
                       </Button>
-                      <Button size="sm" variant="ghost" title="Force telemetry refresh"
+                      <Button size="sm" variant="ghost" title={t("asite.forceRefresh")}
                         onClick={async () => {
-                          try { await requestRefresh({ data: { site_id: r.id } }); toast.success("Refresh requested"); load(); }
+                          try { await requestRefresh({ data: { site_id: r.id } }); toast.success(t("asite.refreshRequested")); load(); }
                           catch (e) { toast.error((e as Error).message); }
                         }}>
                         <RefreshCw className="h-3.5 w-3.5" />
                       </Button>
-                      <Button size="sm" variant="ghost" title="Revoke license"
+                      <Button size="sm" variant="ghost" title={t("asite.revoke")}
                         onClick={async () => {
                           if (!r.license_expires_at) return;
-                          if (!confirm(`Revoke license on "${r.name}"?`)) return;
-                          try { await revoke({ data: { site_id: r.id } }); toast.success("Revoked"); load(); }
+                          if (!confirm(t("asite.confirmRevoke", { name: r.name }))) return;
+                          try { await revoke({ data: { site_id: r.id } }); toast.success(t("asite.revoked")); load(); }
                           catch (e) { toast.error((e as Error).message); }
                         }}>
                         <ShieldOff className="h-3.5 w-3.5" />
                       </Button>
-                      <Button size="sm" variant="ghost" title="Delete site"
+                      <Button size="sm" variant="ghost" title={t("asite.delete")}
                         onClick={async () => {
-                          if (!confirm(`Delete site "${r.name}"?`)) return;
-                          try { await deleteSite({ data: { site_id: r.id } }); toast.success("Deleted"); load(); }
+                          if (!confirm(t("asite.confirmDelete", { name: r.name }))) return;
+                          try { await deleteSite({ data: { site_id: r.id } }); toast.success(t("asite.deleted")); load(); }
                           catch (e) { toast.error((e as Error).message); }
                         }}>
                         <Trash2 className="h-3.5 w-3.5" />
@@ -253,45 +262,44 @@ function SitesAdmin() {
             })}
           </tbody>
         </table>
-        {rows.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">No sites yet.</p>}
+        {rows.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">{t("asite.empty")}</p>}
       </div>
 
       <Dialog open={!!licDlg} onOpenChange={(o) => !o && setLicDlg(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Activate license — {licDlg?.name}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("asite.lic.title")} — {licDlg?.name}</DialogTitle></DialogHeader>
           <form onSubmit={async (e) => {
             e.preventDefault();
             if (!licDlg) return;
             try {
               const res = await activate({ data: { site_id: licDlg.id, code: licCode.trim() } });
               const d = new Date(res.expires_at);
-              toast.success(`License active — ${res.plan} until ${d.toLocaleDateString()} ${d.toLocaleTimeString()}`);
+              toast.success(t("asite.lic.success", { plan: res.plan, date: `${d.toLocaleDateString()} ${d.toLocaleTimeString()}` }));
               setLicDlg(null); load();
             } catch (e) { toast.error((e as Error).message); }
           }} className="space-y-4">
             <div className="rounded-md border bg-muted/30 p-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Current plan</span>
+                <span className="text-muted-foreground">{t("asite.lic.currentPlan")}</span>
                 <span className="font-medium">{licDlg?.plan ?? "—"}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Current expiration</span>
+                <span className="text-muted-foreground">{t("asite.lic.currentExp")}</span>
                 <span className="font-medium">
                   {licDlg?.license_expires_at
                     ? new Date(licDlg.license_expires_at).toLocaleString()
-                    : "no active license"}
+                    : t("asite.lic.noActive")}
                 </span>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                If the license is still active, the new code's days will be <b>added on top</b> of the current
-                expiration. Otherwise the duration starts from today.
+                {t("asite.lic.note")}
               </p>
             </div>
             <div className="space-y-2">
-              <Label>License code</Label>
+              <Label>{t("asite.lic.code")}</Label>
               <Input value={licCode} onChange={(e) => setLicCode(e.target.value)} placeholder="XXXXX-XXXXX-XXXXX-XXXXX" required />
             </div>
-            <DialogFooter><Button type="submit">Activate</Button></DialogFooter>
+            <DialogFooter><Button type="submit">{t("asite.lic.activate")}</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
@@ -299,9 +307,8 @@ function SitesAdmin() {
   );
 }
 
-/* ----------------------------- Users Admin ----------------------------- */
-
 function UsersAdmin() {
+  const { t } = useI18n();
   const { users, reload } = useUsers();
   const createUser = useServerFn(adminCreateUser);
   const setRole = useServerFn(adminSetUserRole);
@@ -313,7 +320,7 @@ function UsersAdmin() {
     e.preventDefault();
     try {
       await createUser({ data: form });
-      toast.success("User created");
+      toast.success(t("ausers.created"));
       setOpen(false); setForm({ email: "", password: "", full_name: "", role: "user" });
       reload();
     } catch (e) { toast.error((e as Error).message); }
@@ -323,27 +330,27 @@ function UsersAdmin() {
     <>
       <div className="mb-4 flex justify-end">
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" />New user</Button></DialogTrigger>
+          <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" />{t("ausers.new")}</Button></DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Create a user</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{t("ausers.create")}</DialogTitle></DialogHeader>
             <form onSubmit={onCreate} className="space-y-4">
-              <div className="space-y-2"><Label>Email</Label>
+              <div className="space-y-2"><Label>{t("login.email")}</Label>
                 <Input type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-              <div className="space-y-2"><Label>Password</Label>
+              <div className="space-y-2"><Label>{t("login.password")}</Label>
                 <Input type="password" required minLength={8} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></div>
-              <div className="space-y-2"><Label>Full name</Label>
+              <div className="space-y-2"><Label>{t("signup.fullName")}</Label>
                 <Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
               <div className="space-y-2">
-                <Label>Role</Label>
+                <Label>{t("ausers.role")}</Label>
                 <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as "user" | "superadmin" })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="user">User</SelectItem>
-                    <SelectItem value="superadmin">Superadmin</SelectItem>
+                    <SelectItem value="user">{t("ausers.role.user")}</SelectItem>
+                    <SelectItem value="superadmin">{t("ausers.role.superadmin")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <DialogFooter><Button type="submit">Create</Button></DialogFooter>
+              <DialogFooter><Button type="submit">{t("common.create")}</Button></DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
@@ -353,9 +360,9 @@ function UsersAdmin() {
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/50 text-left">
             <tr>
-              <th className="px-4 py-3 font-medium">Email</th>
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Role</th>
+              <th className="px-4 py-3 font-medium">{t("ausers.col.email")}</th>
+              <th className="px-4 py-3 font-medium">{t("ausers.col.name")}</th>
+              <th className="px-4 py-3 font-medium">{t("ausers.col.role")}</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
@@ -364,24 +371,24 @@ function UsersAdmin() {
               <tr key={u.id} className="border-b last:border-0">
                 <td className="px-4 py-3">{u.email}</td>
                 <td className="px-4 py-3 text-muted-foreground">{u.full_name ?? "—"}</td>
-                <td className="px-4 py-3">{u.isSuperadmin ? "Superadmin" : "User"}</td>
+                <td className="px-4 py-3">{u.isSuperadmin ? t("ausers.role.superadmin") : t("ausers.role.user")}</td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex justify-end gap-1">
                     <Button size="sm" variant="ghost"
-                      title={u.isSuperadmin ? "Demote to user" : "Promote to superadmin"}
+                      title={u.isSuperadmin ? t("ausers.demote") : t("ausers.promote")}
                       onClick={async () => {
                         try {
                           await setRole({ data: { user_id: u.id, role: u.isSuperadmin ? "user" : "superadmin" } });
-                          toast.success("Role updated");
+                          toast.success(t("ausers.roleUpdated"));
                           reload();
                         } catch (e) { toast.error((e as Error).message); }
                       }}>
                       {u.isSuperadmin ? <ShieldOff className="h-3.5 w-3.5" /> : <ShieldCheck className="h-3.5 w-3.5" />}
                     </Button>
-                    <Button size="sm" variant="ghost" title="Delete user"
+                    <Button size="sm" variant="ghost" title={t("ausers.deleteUser")}
                       onClick={async () => {
-                        if (!confirm(`Delete user ${u.email}? This removes their sites too.`)) return;
-                        try { await delUser({ data: { user_id: u.id } }); toast.success("Deleted"); reload(); }
+                        if (!confirm(t("ausers.confirmDelete", { email: u.email }))) return;
+                        try { await delUser({ data: { user_id: u.id } }); toast.success(t("ausers.deleted")); reload(); }
                         catch (e) { toast.error((e as Error).message); }
                       }}>
                       <Trash2 className="h-3.5 w-3.5" />
@@ -392,17 +399,16 @@ function UsersAdmin() {
             ))}
           </tbody>
         </table>
-        {users.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">No users yet.</p>}
+        {users.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">{t("ausers.empty")}</p>}
       </div>
     </>
   );
 }
 
-/* ----------------------------- Licenses (existing) ----------------------------- */
-
 interface License { id: string; code: string; plan: string; duration_days: number; redeemed_at: string | null; notes: string | null; }
 
 function Licenses() {
+  const { t } = useI18n();
   const { user } = useAuth();
   const [rows, setRows] = useState<License[]>([]);
   const [open, setOpen] = useState(false);
@@ -425,7 +431,7 @@ function Licenses() {
       code, plan, duration_days: days, notes: notes || null, created_by: user.id,
     });
     if (error) return toast.error(error.message);
-    toast.success("License generated");
+    toast.success(t("alic.generated"));
     setOpen(false); setNotes("");
     load();
   }
@@ -434,12 +440,12 @@ function Licenses() {
     <>
       <div className="mb-4 flex justify-end">
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" />Generate license</Button></DialogTrigger>
+          <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" />{t("alic.generate")}</Button></DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Generate a license code</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{t("alic.dlgTitle")}</DialogTitle></DialogHeader>
             <form onSubmit={generate} className="space-y-4">
               <div className="space-y-2">
-                <Label>Plan</Label>
+                <Label>{t("alic.plan")}</Label>
                 <Select value={plan} onValueChange={setPlan}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -449,14 +455,14 @@ function Licenses() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Duration (days)</Label>
+                <Label>{t("alic.duration")}</Label>
                 <Input type="number" min={1} value={days} onChange={(e) => setDays(parseInt(e.target.value) || 365)} />
               </div>
               <div className="space-y-2">
-                <Label>Notes</Label>
-                <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Customer name" />
+                <Label>{t("alic.notes")}</Label>
+                <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t("alic.notesPh")} />
               </div>
-              <DialogFooter><Button type="submit">Generate</Button></DialogFooter>
+              <DialogFooter><Button type="submit">{t("common.create")}</Button></DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
@@ -466,11 +472,11 @@ function Licenses() {
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/50 text-left">
             <tr>
-              <th className="px-4 py-3 font-medium">Code</th>
-              <th className="px-4 py-3 font-medium">Plan</th>
-              <th className="px-4 py-3 font-medium">Duration</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Notes</th>
+              <th className="px-4 py-3 font-medium">{t("alic.col.code")}</th>
+              <th className="px-4 py-3 font-medium">{t("alic.plan")}</th>
+              <th className="px-4 py-3 font-medium">{t("alic.col.duration")}</th>
+              <th className="px-4 py-3 font-medium">{t("alic.col.status")}</th>
+              <th className="px-4 py-3 font-medium">{t("alic.col.notes")}</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
@@ -479,15 +485,15 @@ function Licenses() {
               <tr key={r.id} className="border-b last:border-0">
                 <td className="px-4 py-3 font-mono text-xs">{r.code}</td>
                 <td className="px-4 py-3">{r.plan}</td>
-                <td className="px-4 py-3">{r.duration_days} days</td>
+                <td className="px-4 py-3">{r.duration_days} {t("alic.days")}</td>
                 <td className="px-4 py-3">
                   {r.redeemed_at
-                    ? <span className="text-muted-foreground">Redeemed</span>
-                    : <span className="text-success">Available</span>}
+                    ? <span className="text-muted-foreground">{t("alic.redeemed")}</span>
+                    : <span className="text-success">{t("alic.available")}</span>}
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">{r.notes ?? "—"}</td>
                 <td className="px-4 py-3 text-right">
-                  <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(r.code); toast.success("Copied"); }}>
+                  <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(r.code); toast.success(t("common.copied")); }}>
                     <Copy className="h-3.5 w-3.5" />
                   </Button>
                 </td>
@@ -495,7 +501,7 @@ function Licenses() {
             ))}
           </tbody>
         </table>
-        {rows.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">No licenses yet.</p>}
+        {rows.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">{t("alic.empty")}</p>}
       </div>
     </>
   );
