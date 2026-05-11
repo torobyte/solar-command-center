@@ -264,13 +264,29 @@ function SitesAdmin() {
             if (!licDlg) return;
             try {
               const res = await activate({ data: { site_id: licDlg.id, code: licCode.trim() } });
-              toast.success(`Activated • ${res.plan} until ${new Date(res.expires_at).toLocaleDateString()}`);
+              const d = new Date(res.expires_at);
+              toast.success(`License active — ${res.plan} until ${d.toLocaleDateString()} ${d.toLocaleTimeString()}`);
               setLicDlg(null); load();
             } catch (e) { toast.error((e as Error).message); }
           }} className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Current: {licDlg ? licenseInfo(licDlg.plan, licDlg.license_expires_at).sub : ""}
-            </p>
+            <div className="rounded-md border bg-muted/30 p-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Current plan</span>
+                <span className="font-medium">{licDlg?.plan ?? "—"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Current expiration</span>
+                <span className="font-medium">
+                  {licDlg?.license_expires_at
+                    ? new Date(licDlg.license_expires_at).toLocaleString()
+                    : "no active license"}
+                </span>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                If the license is still active, the new code's days will be <b>added on top</b> of the current
+                expiration. Otherwise the duration starts from today.
+              </p>
+            </div>
             <div className="space-y-2">
               <Label>License code</Label>
               <Input value={licCode} onChange={(e) => setLicCode(e.target.value)} placeholder="XXXXX-XXXXX-XXXXX-XXXXX" required />
