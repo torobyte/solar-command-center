@@ -100,10 +100,15 @@ function SitesAdmin() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", inverter_model: "", owner_id: "" });
 
+  const activate = useServerFn(adminActivateSite);
+  const revoke = useServerFn(adminRevokeLicense);
+  const [licDlg, setLicDlg] = useState<SiteRow | null>(null);
+  const [licCode, setLicCode] = useState("");
+
   async function load() {
     const { data, error } = await supabase
       .from("sites")
-      .select("id,name,status,plan,inverter_model,owner_id,last_seen_at,force_refresh_at,device_token")
+      .select("id,name,status,plan,inverter_model,owner_id,last_seen_at,force_refresh_at,device_token,license_expires_at")
       .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
     setRows((data ?? []).map((r) => ({ ...r, profiles: null })) as unknown as SiteRow[]);
