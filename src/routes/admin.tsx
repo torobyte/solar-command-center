@@ -12,7 +12,7 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Copy, RefreshCw, Trash2, ShieldCheck, ShieldOff } from "lucide-react";
+import { Plus, Copy, RefreshCw, Trash2, ShieldCheck, ShieldOff, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import {
