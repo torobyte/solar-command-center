@@ -335,6 +335,7 @@ def main():
 
     threading.Thread(target=agent.poll_loop, daemon=True).start()
     threading.Thread(target=agent.push_loop, daemon=True).start()
+    threading.Thread(target=agent.license_loop, daemon=True).start()
 
     app = make_app(agent)
     app.run(host="0.0.0.0", port=args.port, debug=False, use_reloader=False)
