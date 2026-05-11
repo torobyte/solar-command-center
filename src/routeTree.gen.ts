@@ -16,6 +16,7 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SitesSiteIdRouteImport } from './routes/sites.$siteId'
+import { Route as ApiPublicLicenseStatusRouteImport } from './routes/api/public/license-status'
 import { Route as ApiPublicIngestRouteImport } from './routes/api/public/ingest'
 import { Route as ApiPublicActivateRouteImport } from './routes/api/public/activate'
 
@@ -54,6 +55,11 @@ const SitesSiteIdRoute = SitesSiteIdRouteImport.update({
   path: '/sites/$siteId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicLicenseStatusRoute = ApiPublicLicenseStatusRouteImport.update({
+  id: '/api/public/license-status',
+  path: '/api/public/license-status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicIngestRoute = ApiPublicIngestRouteImport.update({
   id: '/api/public/ingest',
   path: '/api/public/ingest',
@@ -75,6 +81,7 @@ export interface FileRoutesByFullPath {
   '/sites/$siteId': typeof SitesSiteIdRoute
   '/api/public/activate': typeof ApiPublicActivateRoute
   '/api/public/ingest': typeof ApiPublicIngestRoute
+  '/api/public/license-status': typeof ApiPublicLicenseStatusRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -86,6 +93,7 @@ export interface FileRoutesByTo {
   '/sites/$siteId': typeof SitesSiteIdRoute
   '/api/public/activate': typeof ApiPublicActivateRoute
   '/api/public/ingest': typeof ApiPublicIngestRoute
+  '/api/public/license-status': typeof ApiPublicLicenseStatusRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -98,6 +106,7 @@ export interface FileRoutesById {
   '/sites/$siteId': typeof SitesSiteIdRoute
   '/api/public/activate': typeof ApiPublicActivateRoute
   '/api/public/ingest': typeof ApiPublicIngestRoute
+  '/api/public/license-status': typeof ApiPublicLicenseStatusRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,6 +120,7 @@ export interface FileRouteTypes {
     | '/sites/$siteId'
     | '/api/public/activate'
     | '/api/public/ingest'
+    | '/api/public/license-status'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -122,6 +132,7 @@ export interface FileRouteTypes {
     | '/sites/$siteId'
     | '/api/public/activate'
     | '/api/public/ingest'
+    | '/api/public/license-status'
   id:
     | '__root__'
     | '/'
@@ -133,6 +144,7 @@ export interface FileRouteTypes {
     | '/sites/$siteId'
     | '/api/public/activate'
     | '/api/public/ingest'
+    | '/api/public/license-status'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -145,6 +157,7 @@ export interface RootRouteChildren {
   SitesSiteIdRoute: typeof SitesSiteIdRoute
   ApiPublicActivateRoute: typeof ApiPublicActivateRoute
   ApiPublicIngestRoute: typeof ApiPublicIngestRoute
+  ApiPublicLicenseStatusRoute: typeof ApiPublicLicenseStatusRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -198,6 +211,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitesSiteIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/license-status': {
+      id: '/api/public/license-status'
+      path: '/api/public/license-status'
+      fullPath: '/api/public/license-status'
+      preLoaderRoute: typeof ApiPublicLicenseStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/ingest': {
       id: '/api/public/ingest'
       path: '/api/public/ingest'
@@ -225,6 +245,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitesSiteIdRoute: SitesSiteIdRoute,
   ApiPublicActivateRoute: ApiPublicActivateRoute,
   ApiPublicIngestRoute: ApiPublicIngestRoute,
+  ApiPublicLicenseStatusRoute: ApiPublicLicenseStatusRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

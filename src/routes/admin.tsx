@@ -12,12 +12,13 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Copy, RefreshCw, Trash2, ShieldCheck, ShieldOff } from "lucide-react";
+import { Plus, Copy, RefreshCw, Trash2, ShieldCheck, ShieldOff, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import {
   adminCreateUser, adminSetUserRole, adminDeleteUser,
   adminCreateSite, adminAssignSite, adminDeleteSite, adminRequestRefresh,
+  adminActivateSite, adminRevokeLicense,
 } from "@/lib/admin.functions";
 import { formatDistanceToNow } from "date-fns";
 
@@ -68,8 +69,17 @@ interface SiteRow {
   id: string; name: string; status: string; plan: string;
   inverter_model: string | null; owner_id: string;
   last_seen_at: string | null; force_refresh_at: string | null;
+  license_expires_at: string | null;
   device_token: string;
   profiles: { email?: string; full_name?: string | null } | null;
+}
+
+function licenseInfo(plan: string, expires: string | null) {
+  if (!expires) return { label: plan, color: "text-muted-foreground", sub: "no license" };
+  const ms = new Date(expires).getTime() - Date.now();
+  if (ms <= 0) return { label: plan, color: "text-destructive", sub: "expired" };
+  const days = Math.ceil(ms / 86_400_000);
+  return { label: plan, color: "text-success", sub: `${days}d left` };
 }
 
 function syncStatus(lastSeen: string | null) {
@@ -90,10 +100,15 @@ function SitesAdmin() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", inverter_model: "", owner_id: "" });
 
+  const activate = useServerFn(adminActivateSite);
+  const revoke = useServerFn(adminRevokeLicense);
+  const [licDlg, setLicDlg] = useState<SiteRow | null>(null);
+  const [licCode, setLicCode] = useState("");
+
   async function load() {
     const { data, error } = await supabase
       .from("sites")
-      .select("id,name,status,plan,inverter_model,owner_id,last_seen_at,force_refresh_at,device_token")
+      .select("id,name,status,plan,inverter_model,owner_id,last_seen_at,force_refresh_at,device_token,license_expires_at")
       .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
     setRows((data ?? []).map((r) => ({ ...r, profiles: null })) as unknown as SiteRow[]);
@@ -185,9 +200,17 @@ function SitesAdmin() {
                       <div className="text-xs text-warning">refresh requested</div>
                     )}
                   </td>
-                  <td className="px-4 py-3">{r.plan}</td>
+                  <td className="px-4 py-3">
+                    {(() => { const li = licenseInfo(r.plan, r.license_expires_at);
+                      return (<><div className={`font-medium ${li.color}`}>{li.label}</div>
+                        <div className="text-xs text-muted-foreground">{li.sub}</div></>); })()}
+                  </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
+                      <Button size="sm" variant="ghost" title="Activate / extend license"
+                        onClick={() => { setLicCode(""); setLicDlg(r); }}>
+                        <KeyRound className="h-3.5 w-3.5" />
+                      </Button>
                       <Button size="sm" variant="ghost" title="Copy device token"
                         onClick={() => { navigator.clipboard.writeText(r.device_token); toast.success("Token copied"); }}>
                         <Copy className="h-3.5 w-3.5" />
@@ -198,6 +221,15 @@ function SitesAdmin() {
                           catch (e) { toast.error((e as Error).message); }
                         }}>
                         <RefreshCw className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="sm" variant="ghost" title="Revoke license"
+                        onClick={async () => {
+                          if (!r.license_expires_at) return;
+                          if (!confirm(`Revoke license on "${r.name}"?`)) return;
+                          try { await revoke({ data: { site_id: r.id } }); toast.success("Revoked"); load(); }
+                          catch (e) { toast.error((e as Error).message); }
+                        }}>
+                        <ShieldOff className="h-3.5 w-3.5" />
                       </Button>
                       <Button size="sm" variant="ghost" title="Delete site"
                         onClick={async () => {
@@ -216,6 +248,30 @@ function SitesAdmin() {
         </table>
         {rows.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">No sites yet.</p>}
       </div>
+
+      <Dialog open={!!licDlg} onOpenChange={(o) => !o && setLicDlg(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Activate license — {licDlg?.name}</DialogTitle></DialogHeader>
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            if (!licDlg) return;
+            try {
+              const res = await activate({ data: { site_id: licDlg.id, code: licCode.trim() } });
+              toast.success(`Activated • ${res.plan} until ${new Date(res.expires_at).toLocaleDateString()}`);
+              setLicDlg(null); load();
+            } catch (e) { toast.error((e as Error).message); }
+          }} className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Current: {licDlg ? licenseInfo(licDlg.plan, licDlg.license_expires_at).sub : ""}
+            </p>
+            <div className="space-y-2">
+              <Label>License code</Label>
+              <Input value={licCode} onChange={(e) => setLicCode(e.target.value)} placeholder="XXXXX-XXXXX-XXXXX-XXXXX" required />
+            </div>
+            <DialogFooter><Button type="submit">Activate</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

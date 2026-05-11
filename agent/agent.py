@@ -142,6 +142,7 @@ class Agent:
         self.config = load_config()
         self.transport: HidrawTransport | None = None
         self.latest: dict = {}
+        self.license: dict = {}
         self.lock = threading.Lock()
         self.pending: queue.Queue = queue.Queue(maxsize=10000)
 
@@ -187,7 +188,6 @@ class Agent:
                 )
                 if r.status_code != 200:
                     print(f"[agent] push failed {r.status_code}: {r.text[:200]}")
-                    # requeue
                     for s in batch:
                         try: self.pending.put_nowait(s)
                         except queue.Full: break
@@ -196,6 +196,22 @@ class Agent:
                 for s in batch:
                     try: self.pending.put_nowait(s)
                     except queue.Full: break
+
+    def license_loop(self):
+        while True:
+            try:
+                token = self.config.get("device_token")
+                if token:
+                    r = requests.post(
+                        f"{self.config['cloud_url']}/api/public/license-status",
+                        json={"device_token": token}, timeout=10,
+                    )
+                    if r.status_code == 200:
+                        with self.lock:
+                            self.license = r.json()
+            except Exception as e:
+                print(f"[agent] license check error: {e}")
+            time.sleep(60)
 
     def activate(self, code: str, name: str) -> dict:
         r = requests.post(
@@ -252,12 +268,23 @@ button{background:#2563eb;border-color:#2563eb;cursor:pointer}
 <div class="card" id="lcard" style="display:none">
   <h3>Linked to cloud</h3>
   <p>Site: <b id="sname"></b></p>
+  <p>License: <b id="lplan">—</b> <span id="lstate"></span></p>
+  <p style="color:#9ca3af;font-size:12px" id="lexp"></p>
 </div>
 <script>
+function fmtDate(s){ try { return new Date(s).toLocaleDateString(); } catch(_){ return s; } }
 async function tick(){
   const j = await (await fetch('/api/state')).json();
   if (j.config.device_token){ document.getElementById('lcard').style.display='block';
-    document.getElementById('sname').textContent = j.config.site_name || j.config.site_id; }
+    document.getElementById('sname').textContent = j.config.site_name || j.config.site_id;
+    const L = j.license || {};
+    document.getElementById('lplan').textContent = L.plan || '—';
+    const st = document.getElementById('lstate');
+    if (L.license_active) { st.textContent = '• active ('+(L.days_remaining||0)+'d)'; st.style.color='#34d399'; }
+    else if (L.plan) { st.textContent = '• expired'; st.style.color='#f87171'; }
+    else { st.textContent=''; }
+    document.getElementById('lexp').textContent = L.license_expires_at ? 'Expires '+fmtDate(L.license_expires_at) : '';
+  }
   else { document.getElementById('actcard').style.display='block'; }
   const s = j.latest || {};
   document.getElementById('pv').textContent = (s.pv_input_power||0).toFixed(0)+' W';
@@ -284,10 +311,12 @@ def make_app(agent: Agent) -> Flask:
 
     @app.get("/api/state")
     def state():
-        with agent.lock: latest = dict(agent.latest)
+        with agent.lock:
+            latest = dict(agent.latest)
+            license = dict(agent.license)
         cfg = {k: v for k, v in agent.config.items() if k != "device_token"}
         cfg["device_token"] = bool(agent.config.get("device_token"))
-        return jsonify({"latest": latest, "config": cfg})
+        return jsonify({"latest": latest, "config": cfg, "license": license})
 
     @app.post("/api/activate")
     def activate():
@@ -319,6 +348,7 @@ def main():
 
     threading.Thread(target=agent.poll_loop, daemon=True).start()
     threading.Thread(target=agent.push_loop, daemon=True).start()
+    threading.Thread(target=agent.license_loop, daemon=True).start()
 
     app = make_app(agent)
     app.run(host="0.0.0.0", port=args.port, debug=False, use_reloader=False)
