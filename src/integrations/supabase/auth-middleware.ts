@@ -8,7 +8,7 @@ import type { Database } from './types'
 
 export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server(
   async ({ next }) => {
-    const fail = (message: string) => {
+    const fail = (message: string): never => {
       throw new Error(message)
     }
     
