@@ -142,6 +142,7 @@ class Agent:
         self.config = load_config()
         self.transport: HidrawTransport | None = None
         self.latest: dict = {}
+        self.license: dict = {}
         self.lock = threading.Lock()
         self.pending: queue.Queue = queue.Queue(maxsize=10000)
 
