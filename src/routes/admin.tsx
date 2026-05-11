@@ -200,9 +200,17 @@ function SitesAdmin() {
                       <div className="text-xs text-warning">refresh requested</div>
                     )}
                   </td>
-                  <td className="px-4 py-3">{r.plan}</td>
+                  <td className="px-4 py-3">
+                    {(() => { const li = licenseInfo(r.plan, r.license_expires_at);
+                      return (<><div className={`font-medium ${li.color}`}>{li.label}</div>
+                        <div className="text-xs text-muted-foreground">{li.sub}</div></>); })()}
+                  </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
+                      <Button size="sm" variant="ghost" title="Activate / extend license"
+                        onClick={() => { setLicCode(""); setLicDlg(r); }}>
+                        <KeyRound className="h-3.5 w-3.5" />
+                      </Button>
                       <Button size="sm" variant="ghost" title="Copy device token"
                         onClick={() => { navigator.clipboard.writeText(r.device_token); toast.success("Token copied"); }}>
                         <Copy className="h-3.5 w-3.5" />
@@ -213,6 +221,15 @@ function SitesAdmin() {
                           catch (e) { toast.error((e as Error).message); }
                         }}>
                         <RefreshCw className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="sm" variant="ghost" title="Revoke license"
+                        onClick={async () => {
+                          if (!r.license_expires_at) return;
+                          if (!confirm(`Revoke license on "${r.name}"?`)) return;
+                          try { await revoke({ data: { site_id: r.id } }); toast.success("Revoked"); load(); }
+                          catch (e) { toast.error((e as Error).message); }
+                        }}>
+                        <ShieldOff className="h-3.5 w-3.5" />
                       </Button>
                       <Button size="sm" variant="ghost" title="Delete site"
                         onClick={async () => {
