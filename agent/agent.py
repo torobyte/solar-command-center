@@ -206,10 +206,22 @@ class Agent:
                         f"{self.config['cloud_url']}/api/public/license-status",
                         json={"device_token": token}, timeout=10,
                     )
+                    now_iso = datetime.now(timezone.utc).isoformat()
                     if r.status_code == 200:
                         with self.lock:
                             self.license = r.json()
+                            self.license["last_check_at"] = now_iso
+                            self.license["last_check_ok"] = True
+                    else:
+                        with self.lock:
+                            self.license["last_check_at"] = now_iso
+                            self.license["last_check_ok"] = False
+                            self.license["last_check_error"] = f"HTTP {r.status_code}"
             except Exception as e:
+                with self.lock:
+                    self.license["last_check_at"] = datetime.now(timezone.utc).isoformat()
+                    self.license["last_check_ok"] = False
+                    self.license["last_check_error"] = str(e)
                 print(f"[agent] license check error: {e}")
             time.sleep(60)
 
