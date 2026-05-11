@@ -31,11 +31,13 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
       fail('Unauthorized: No request headers available')
     }
 
-    const authHeader = request.headers.get('authorization');
+    const rawAuthHeader = request.headers.get('authorization');
 
-    if (!authHeader) {
+    if (!rawAuthHeader) {
       fail('Unauthorized: No authorization header provided')
     }
+
+    const authHeader = rawAuthHeader
 
     if (!authHeader.startsWith('Bearer ')) {
       fail('Unauthorized: Only Bearer tokens are supported')
@@ -64,19 +66,21 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
     );
 
     const { data, error } = await supabase.auth.getClaims(token);
-    if (error || !data?.claims) {
+    const claims = data?.claims
+
+    if (error || !claims) {
       fail('Unauthorized: Invalid token')
     }
 
-    if (!data.claims.sub) {
+    if (!claims.sub) {
       fail('Unauthorized: No user ID found in token')
     }
 
     return next({
       context: {
         supabase,
-        userId: data.claims.sub,
-        claims: data.claims,
+        userId: claims.sub,
+        claims,
       },
     })
   }
