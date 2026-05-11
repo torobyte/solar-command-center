@@ -61,10 +61,12 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
     );
 
     const { data, error } = await supabase.auth.getClaims(token);
-    if (error || !data?.claims) {
+    const claimsData = data?.claims
+
+    if (error || !claimsData) {
       fail('Unauthorized: Invalid token')
     }
-    const claims = data.claims
+    const claims = claimsData
 
     if (!claims.sub) {
       fail('Unauthorized: No user ID found in token')
