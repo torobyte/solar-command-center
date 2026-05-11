@@ -23,7 +23,7 @@ CLOUD_URL_DEFAULT = "https://project--7cb3041b-eb20-43aa-ba17-b0848cb53051.lovab
 CONFIG_PATH = Path(os.environ.get("SOLAROPS_CONFIG", "/etc/solarops/config.json"))
 DB_PATH = Path(os.environ.get("SOLAROPS_DB", "/var/lib/solarops/state.db"))
 POLL_INTERVAL = 5.0
-PUSH_INTERVAL = 30.0
+PUSH_INTERVAL = 5.0  # push every 5s so the cloud dashboard feels live
 
 
 # ---------- Voltronic protocol ----------
