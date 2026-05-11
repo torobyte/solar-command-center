@@ -11,7 +11,7 @@ async function assertSuperadmin(userId: string) {
     .eq("role", "superadmin")
     .maybeSingle();
   if (error) throw new Error(error.message);
-  if (!data) throw new Response("Forbidden: superadmin only", { status: 403 });
+  if (!data) throw new Error("Forbidden: superadmin only");
 }
 
 export const adminCreateUser = createServerFn({ method: "POST" })
