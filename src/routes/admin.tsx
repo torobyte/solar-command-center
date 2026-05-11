@@ -248,6 +248,30 @@ function SitesAdmin() {
         </table>
         {rows.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">No sites yet.</p>}
       </div>
+
+      <Dialog open={!!licDlg} onOpenChange={(o) => !o && setLicDlg(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Activate license — {licDlg?.name}</DialogTitle></DialogHeader>
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            if (!licDlg) return;
+            try {
+              const res = await activate({ data: { site_id: licDlg.id, code: licCode.trim() } });
+              toast.success(`Activated • ${res.plan} until ${new Date(res.expires_at).toLocaleDateString()}`);
+              setLicDlg(null); load();
+            } catch (e) { toast.error((e as Error).message); }
+          }} className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Current: {licDlg ? licenseInfo(licDlg.plan, licDlg.license_expires_at).sub : ""}
+            </p>
+            <div className="space-y-2">
+              <Label>License code</Label>
+              <Input value={licCode} onChange={(e) => setLicCode(e.target.value)} placeholder="XXXXX-XXXXX-XXXXX-XXXXX" required />
+            </div>
+            <DialogFooter><Button type="submit">Activate</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
