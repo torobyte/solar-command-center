@@ -499,6 +499,7 @@ function Licenses() {
           <thead className="border-b bg-muted/50 text-left">
             <tr>
               <th className="px-4 py-3 font-medium">{t("alic.col.code")}</th>
+              <th className="px-4 py-3 font-medium">{t("alic.owner")}</th>
               <th className="px-4 py-3 font-medium">{t("alic.plan")}</th>
               <th className="px-4 py-3 font-medium">{t("alic.col.duration")}</th>
               <th className="px-4 py-3 font-medium">{t("alic.col.status")}</th>
@@ -510,6 +511,7 @@ function Licenses() {
             {rows.map((r) => (
               <tr key={r.id} className="border-b last:border-0">
                 <td className="px-4 py-3 font-mono text-xs">{r.code}</td>
+                <td className="px-4 py-3">{ownerLabel(r.owner_id)}{r.site_name ? <span className="block text-xs text-muted-foreground">{r.site_name}</span> : null}</td>
                 <td className="px-4 py-3">{r.plan}</td>
                 <td className="px-4 py-3">{r.duration_days} {t("alic.days")}</td>
                 <td className="px-4 py-3">
