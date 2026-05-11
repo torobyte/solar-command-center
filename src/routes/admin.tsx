@@ -456,6 +456,21 @@ function Licenses() {
             <DialogHeader><DialogTitle>{t("alic.dlgTitle")}</DialogTitle></DialogHeader>
             <form onSubmit={generate} className="space-y-4">
               <div className="space-y-2">
+                <Label>{t("alic.owner")}</Label>
+                <Select value={ownerId} onValueChange={setOwnerId}>
+                  <SelectTrigger><SelectValue placeholder={t("alic.ownerPh")} /></SelectTrigger>
+                  <SelectContent>
+                    {users.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>{u.full_name || u.email}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{t("alic.siteName")}</Label>
+                <Input value={siteName} onChange={(e) => setSiteName(e.target.value)} placeholder={t("alic.siteNamePh")} />
+              </div>
+              <div className="space-y-2">
                 <Label>{t("alic.plan")}</Label>
                 <Select value={plan} onValueChange={setPlan}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
