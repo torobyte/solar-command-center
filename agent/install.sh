@@ -150,6 +150,10 @@ id -u solarkiosk &>/dev/null || useradd -m -s /bin/bash solarkiosk
 usermod -aG dialout,video,tty solarkiosk || true
 
 install -d -m 755 /home/solarkiosk/.config/openbox
+SITE_ID=$(jq -r '.site_id // empty' /etc/solarops/config.json 2>/dev/null || echo "")
+KIOSK_URL="${CLOUD_URL}/app"
+if [[ -n "$SITE_ID" ]]; then KIOSK_URL="${CLOUD_URL}/sites/${SITE_ID}"; fi
+
 cat >/home/solarkiosk/.xinitrc <<EOF
 #!/usr/bin/env bash
 xset -dpms
@@ -165,7 +169,7 @@ exec ${CHROMIUM_BIN:-chromium-browser} \\
   --no-first-run \\
   --start-maximized \\
   --check-for-update-interval=31536000 \\
-  --app="${CLOUD_URL}/app"
+  --app="${KIOSK_URL}"
 EOF
 chmod +x /home/solarkiosk/.xinitrc
 chown -R solarkiosk:solarkiosk /home/solarkiosk
