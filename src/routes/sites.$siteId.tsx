@@ -363,10 +363,11 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 function CodeBlock({ value }: { value: string }) {
+  const { t } = useI18n();
   return (
     <div className="flex items-center gap-2 rounded-md border bg-muted/50 p-3 font-mono text-xs">
       <code className="flex-1 break-all">{value}</code>
-      <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(value); toast.success("Copied"); }}>
+      <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(value); toast.success(t("common.copied")); }}>
         <Copy className="h-3.5 w-3.5" />
       </Button>
     </div>
