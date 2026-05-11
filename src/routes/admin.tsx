@@ -69,8 +69,17 @@ interface SiteRow {
   id: string; name: string; status: string; plan: string;
   inverter_model: string | null; owner_id: string;
   last_seen_at: string | null; force_refresh_at: string | null;
+  license_expires_at: string | null;
   device_token: string;
   profiles: { email?: string; full_name?: string | null } | null;
+}
+
+function licenseInfo(plan: string, expires: string | null) {
+  if (!expires) return { label: plan, color: "text-muted-foreground", sub: "no license" };
+  const ms = new Date(expires).getTime() - Date.now();
+  if (ms <= 0) return { label: plan, color: "text-destructive", sub: "expired" };
+  const days = Math.ceil(ms / 86_400_000);
+  return { label: plan, color: "text-success", sub: `${days}d left` };
 }
 
 function syncStatus(lastSeen: string | null) {
