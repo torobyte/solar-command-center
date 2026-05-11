@@ -405,16 +405,19 @@ function UsersAdmin() {
   );
 }
 
-interface License { id: string; code: string; plan: string; duration_days: number; redeemed_at: string | null; notes: string | null; }
+interface License { id: string; code: string; plan: string; duration_days: number; redeemed_at: string | null; notes: string | null; owner_id: string | null; site_name: string | null; }
 
 function Licenses() {
   const { t } = useI18n();
   const { user } = useAuth();
+  const { users } = useUsers();
   const [rows, setRows] = useState<License[]>([]);
   const [open, setOpen] = useState(false);
   const [plan, setPlan] = useState("pro");
   const [days, setDays] = useState(365);
   const [notes, setNotes] = useState("");
+  const [ownerId, setOwnerId] = useState<string>("");
+  const [siteName, setSiteName] = useState("");
 
   async function load() {
     const { data, error } = await supabase.from("license_codes").select("*").order("created_at", { ascending: false });
@@ -426,15 +429,23 @@ function Licenses() {
   async function generate(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
+    if (!ownerId) return toast.error(t("alic.ownerRequired"));
     const code = generateCode();
     const { error } = await supabase.from("license_codes").insert({
       code, plan, duration_days: days, notes: notes || null, created_by: user.id,
+      owner_id: ownerId, site_name: siteName.trim() || null,
     });
     if (error) return toast.error(error.message);
     toast.success(t("alic.generated"));
-    setOpen(false); setNotes("");
+    setOpen(false); setNotes(""); setSiteName(""); setOwnerId("");
     load();
   }
+
+  const ownerLabel = (id: string | null) => {
+    if (!id) return "—";
+    const u = users.find((x) => x.id === id);
+    return u ? (u.full_name || u.email) : id.slice(0, 8);
+  };
 
   return (
     <>
