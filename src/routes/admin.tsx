@@ -27,6 +27,19 @@ export const Route = createFileRoute("/admin")({
   component: () => <ProtectedLayout requireRole="superadmin"><AdminPanel /></ProtectedLayout>,
 });
 
+async function getAuthHeaders() {
+  const { data, error } = await supabase.auth.getSession();
+  const accessToken = data.session?.access_token;
+
+  if (error || !accessToken) {
+    throw new Error("Your session expired. Please sign in again.");
+  }
+
+  return {
+    Authorization: `Bearer ${accessToken}`,
+  };
+}
+
 function AdminPanel() {
   const { t } = useI18n();
   return (
@@ -114,6 +127,14 @@ function SitesAdmin() {
   const [licDlg, setLicDlg] = useState<SiteRow | null>(null);
   const [licCode, setLicCode] = useState("");
 
+  async function runAdminAction<TData, TResult>(
+    action: (opts: { data: TData; headers?: HeadersInit }) => Promise<TResult>,
+    data: TData,
+  ) {
+    const headers = await getAuthHeaders();
+    return action({ data, headers });
+  }
+
   async function load() {
     const { data, error } = await supabase
       .from("sites")
@@ -128,7 +149,7 @@ function SitesAdmin() {
     e.preventDefault();
     if (!form.owner_id) return toast.error(t("asite.selectOwner"));
     try {
-      await createSite({ data: { ...form, description: form.description || null, inverter_model: form.inverter_model || null } });
+      await runAdminAction(createSite, { ...form, description: form.description || null, inverter_model: form.inverter_model || null });
       toast.success(t("asite.created"));
       setOpen(false); setForm({ name: "", description: "", inverter_model: "", owner_id: "" });
       load();
@@ -193,7 +214,7 @@ function SitesAdmin() {
                   </td>
                   <td className="px-4 py-3">
                     <Select value={r.owner_id} onValueChange={async (v) => {
-                      try { await assignSite({ data: { site_id: r.id, owner_id: v } }); toast.success(t("asite.reassigned")); load(); }
+                      try { await runAdminAction(assignSite, { site_id: r.id, owner_id: v }); toast.success(t("asite.reassigned")); load(); }
                       catch (e) { toast.error((e as Error).message); }
                     }}>
                       <SelectTrigger className="h-8 w-[220px]"><SelectValue /></SelectTrigger>
@@ -233,7 +254,7 @@ function SitesAdmin() {
                       </Button>
                       <Button size="sm" variant="ghost" title={t("asite.forceRefresh")}
                         onClick={async () => {
-                          try { await requestRefresh({ data: { site_id: r.id } }); toast.success(t("asite.refreshRequested")); load(); }
+                          try { await runAdminAction(requestRefresh, { site_id: r.id }); toast.success(t("asite.refreshRequested")); load(); }
                           catch (e) { toast.error((e as Error).message); }
                         }}>
                         <RefreshCw className="h-3.5 w-3.5" />
@@ -242,7 +263,7 @@ function SitesAdmin() {
                         onClick={async () => {
                           if (!r.license_expires_at) return;
                           if (!confirm(t("asite.confirmRevoke", { name: r.name }))) return;
-                          try { await revoke({ data: { site_id: r.id } }); toast.success(t("asite.revoked")); load(); }
+                          try { await runAdminAction(revoke, { site_id: r.id }); toast.success(t("asite.revoked")); load(); }
                           catch (e) { toast.error((e as Error).message); }
                         }}>
                         <ShieldOff className="h-3.5 w-3.5" />
@@ -250,7 +271,7 @@ function SitesAdmin() {
                       <Button size="sm" variant="ghost" title={t("asite.delete")}
                         onClick={async () => {
                           if (!confirm(t("asite.confirmDelete", { name: r.name }))) return;
-                          try { await deleteSite({ data: { site_id: r.id } }); toast.success(t("asite.deleted")); load(); }
+                          try { await runAdminAction(deleteSite, { site_id: r.id }); toast.success(t("asite.deleted")); load(); }
                           catch (e) { toast.error((e as Error).message); }
                         }}>
                         <Trash2 className="h-3.5 w-3.5" />
@@ -272,7 +293,7 @@ function SitesAdmin() {
             e.preventDefault();
             if (!licDlg) return;
             try {
-              const res = await activate({ data: { site_id: licDlg.id, code: licCode.trim() } });
+              const res = await runAdminAction(activate, { site_id: licDlg.id, code: licCode.trim() });
               const d = new Date(res.expires_at);
               toast.success(t("asite.lic.success", { plan: res.plan, date: `${d.toLocaleDateString()} ${d.toLocaleTimeString()}` }));
               setLicDlg(null); load();
@@ -316,10 +337,18 @@ function UsersAdmin() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ email: "", password: "", full_name: "", role: "user" as "user" | "superadmin" });
 
+  async function runAdminAction<TData, TResult>(
+    action: (opts: { data: TData; headers?: HeadersInit }) => Promise<TResult>,
+    data: TData,
+  ) {
+    const headers = await getAuthHeaders();
+    return action({ data, headers });
+  }
+
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();
     try {
-      await createUser({ data: form });
+      await runAdminAction(createUser, form);
       toast.success(t("ausers.created"));
       setOpen(false); setForm({ email: "", password: "", full_name: "", role: "user" });
       reload();
@@ -378,7 +407,7 @@ function UsersAdmin() {
                       title={u.isSuperadmin ? t("ausers.demote") : t("ausers.promote")}
                       onClick={async () => {
                         try {
-                          await setRole({ data: { user_id: u.id, role: u.isSuperadmin ? "user" : "superadmin" } });
+                          await runAdminAction(setRole, { user_id: u.id, role: u.isSuperadmin ? "user" : "superadmin" });
                           toast.success(t("ausers.roleUpdated"));
                           reload();
                         } catch (e) { toast.error((e as Error).message); }
@@ -388,7 +417,7 @@ function UsersAdmin() {
                     <Button size="sm" variant="ghost" title={t("ausers.deleteUser")}
                       onClick={async () => {
                         if (!confirm(t("ausers.confirmDelete", { email: u.email }))) return;
-                        try { await delUser({ data: { user_id: u.id } }); toast.success(t("ausers.deleted")); reload(); }
+                        try { await runAdminAction(delUser, { user_id: u.id }); toast.success(t("ausers.deleted")); reload(); }
                         catch (e) { toast.error((e as Error).message); }
                       }}>
                       <Trash2 className="h-3.5 w-3.5" />
