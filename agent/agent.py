@@ -268,12 +268,23 @@ button{background:#2563eb;border-color:#2563eb;cursor:pointer}
 <div class="card" id="lcard" style="display:none">
   <h3>Linked to cloud</h3>
   <p>Site: <b id="sname"></b></p>
+  <p>License: <b id="lplan">—</b> <span id="lstate"></span></p>
+  <p style="color:#9ca3af;font-size:12px" id="lexp"></p>
 </div>
 <script>
+function fmtDate(s){ try { return new Date(s).toLocaleDateString(); } catch(_){ return s; } }
 async function tick(){
   const j = await (await fetch('/api/state')).json();
   if (j.config.device_token){ document.getElementById('lcard').style.display='block';
-    document.getElementById('sname').textContent = j.config.site_name || j.config.site_id; }
+    document.getElementById('sname').textContent = j.config.site_name || j.config.site_id;
+    const L = j.license || {};
+    document.getElementById('lplan').textContent = L.plan || '—';
+    const st = document.getElementById('lstate');
+    if (L.license_active) { st.textContent = '• active ('+(L.days_remaining||0)+'d)'; st.style.color='#34d399'; }
+    else if (L.plan) { st.textContent = '• expired'; st.style.color='#f87171'; }
+    else { st.textContent=''; }
+    document.getElementById('lexp').textContent = L.license_expires_at ? 'Expires '+fmtDate(L.license_expires_at) : '';
+  }
   else { document.getElementById('actcard').style.display='block'; }
   const s = j.latest || {};
   document.getElementById('pv').textContent = (s.pv_input_power||0).toFixed(0)+' W';
