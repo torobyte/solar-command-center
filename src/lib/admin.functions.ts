@@ -141,3 +141,53 @@ export const adminRequestRefresh = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export const adminActivateSite = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      site_id: z.string().uuid(),
+      code: z.string().trim().min(4).max(64),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertSuperadmin(context.userId);
+
+    const { data: lic, error: licErr } = await supabaseAdmin
+      .from("license_codes").select("*").eq("code", data.code).maybeSingle();
+    if (licErr) throw new Error(licErr.message);
+    if (!lic) throw new Error("License code not found");
+    if (lic.redeemed_at) throw new Error("License already redeemed");
+
+    const { data: site, error: siteErr } = await supabaseAdmin
+      .from("sites").select("id,plan,license_expires_at").eq("id", data.site_id).maybeSingle();
+    if (siteErr || !site) throw new Error("Site not found");
+
+    const now = Date.now();
+    const baseMs = site.license_expires_at && new Date(site.license_expires_at).getTime() > now
+      ? new Date(site.license_expires_at).getTime() : now;
+    const expires = new Date(baseMs + lic.duration_days * 86_400_000).toISOString();
+
+    const { error: updErr } = await supabaseAdmin.from("sites").update({
+      plan: lic.plan, license_expires_at: expires, status: "online",
+    }).eq("id", site.id);
+    if (updErr) throw new Error(updErr.message);
+
+    await supabaseAdmin.from("license_codes").update({
+      redeemed_at: new Date().toISOString(), redeemed_by_site: site.id,
+    }).eq("id", lic.id);
+
+    return { plan: lic.plan, expires_at: expires };
+  });
+
+export const adminRevokeLicense = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ site_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertSuperadmin(context.userId);
+    const { error } = await supabaseAdmin.from("sites").update({
+      plan: "trial", license_expires_at: null,
+    }).eq("id", data.site_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
