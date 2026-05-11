@@ -282,9 +282,11 @@ button{background:#2563eb;border-color:#2563eb;cursor:pointer}
   <p>Site: <b id="sname"></b></p>
   <p>License: <b id="lplan">—</b> <span id="lstate"></span></p>
   <p style="color:#9ca3af;font-size:12px" id="lexp"></p>
+  <p style="color:#9ca3af;font-size:12px" id="lcheck"></p>
 </div>
 <script>
 function fmtDate(s){ try { return new Date(s).toLocaleDateString(); } catch(_){ return s; } }
+function fmtDT(s){ try { return new Date(s).toLocaleString(); } catch(_){ return s; } }
 async function tick(){
   const j = await (await fetch('/api/state')).json();
   if (j.config.device_token){ document.getElementById('lcard').style.display='block';
@@ -296,6 +298,12 @@ async function tick(){
     else if (L.plan) { st.textContent = '• expired'; st.style.color='#f87171'; }
     else { st.textContent=''; }
     document.getElementById('lexp').textContent = L.license_expires_at ? 'Expires '+fmtDate(L.license_expires_at) : '';
+    const lc = document.getElementById('lcheck');
+    if (L.last_check_at) {
+      const ok = L.last_check_ok !== false;
+      lc.textContent = (ok ? '✓ Last cloud check: ' : '⚠ Last cloud check failed: ') + fmtDT(L.last_check_at) + (ok ? '' : ' — ' + (L.last_check_error||''));
+      lc.style.color = ok ? '#9ca3af' : '#f87171';
+    } else { lc.textContent = 'Waiting for first cloud check…'; }
   }
   else { document.getElementById('actcard').style.display='block'; }
   const s = j.latest || {};
