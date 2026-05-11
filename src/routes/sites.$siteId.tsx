@@ -4,7 +4,7 @@ import { ProtectedLayout } from "@/components/ProtectedLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Copy, Battery, Sun, Zap, Plug } from "lucide-react";
+import { ArrowLeft, Copy, Battery, Sun, Zap, Plug, Cpu, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
@@ -114,14 +114,7 @@ function SiteDetail() {
         </TabsList>
 
         <TabsContent value="dashboard" className="mt-6">
-          <div className="grid gap-4 md:grid-cols-4">
-            <MetricCard icon={Sun} label="Solar PV" value={latest?.pv_input_power ?? 0} unit="W" tone="solar" />
-            <MetricCard icon={Plug} label="Load" value={latest?.ac_output_active_power ?? 0} unit="W" tone="load" />
-            <MetricCard icon={Zap} label="Grid" value={latest?.grid_voltage ?? 0} unit="V" tone="grid" />
-            <MetricCard icon={Battery} label="Battery" value={latest?.battery_capacity ?? 0} unit="%" tone="battery"
-              sub={latest?.battery_voltage ? `${latest.battery_voltage} V` : undefined} />
-          </div>
-
+          <DashboardView latest={latest} />
           {!latest && (
             <div className="mt-8 rounded-lg border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">
               Waiting for the first telemetry sample from your device…
