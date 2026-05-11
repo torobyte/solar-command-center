@@ -66,9 +66,11 @@ export type Database = {
           duration_days: number
           id: string
           notes: string | null
+          owner_id: string | null
           plan: string
           redeemed_at: string | null
           redeemed_by_site: string | null
+          site_name: string | null
         }
         Insert: {
           code: string
@@ -77,9 +79,11 @@ export type Database = {
           duration_days?: number
           id?: string
           notes?: string | null
+          owner_id?: string | null
           plan?: string
           redeemed_at?: string | null
           redeemed_by_site?: string | null
+          site_name?: string | null
         }
         Update: {
           code?: string
@@ -88,9 +92,11 @@ export type Database = {
           duration_days?: number
           id?: string
           notes?: string | null
+          owner_id?: string | null
           plan?: string
           redeemed_at?: string | null
           redeemed_by_site?: string | null
+          site_name?: string | null
         }
         Relationships: [
           {
