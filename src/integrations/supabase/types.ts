@@ -131,6 +131,7 @@ export type Database = {
           created_at: string
           description: string | null
           device_token: string
+          force_refresh_at: string | null
           hardware_id: string | null
           id: string
           inverter_model: string | null
@@ -147,6 +148,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           device_token?: string
+          force_refresh_at?: string | null
           hardware_id?: string | null
           id?: string
           inverter_model?: string | null
@@ -163,6 +165,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           device_token?: string
+          force_refresh_at?: string | null
           hardware_id?: string | null
           id?: string
           inverter_model?: string | null
