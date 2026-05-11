@@ -168,7 +168,7 @@ function SitesAdmin() {
               <th className="px-4 py-3 font-medium">Site</th>
               <th className="px-4 py-3 font-medium">Owner</th>
               <th className="px-4 py-3 font-medium">Sync</th>
-              <th className="px-4 py-3 font-medium">Last seen</th>
+              <th className="px-4 py-3 font-medium">Last license check</th>
               <th className="px-4 py-3 font-medium">Plan</th>
               <th className="px-4 py-3"></th>
             </tr>
@@ -195,7 +195,14 @@ function SitesAdmin() {
                   </td>
                   <td className={`px-4 py-3 font-medium ${s.color}`}>{s.label}</td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {r.last_seen_at ? formatDistanceToNow(new Date(r.last_seen_at), { addSuffix: true }) : "—"}
+                    <div title={r.last_seen_at ?? ""}>
+                      {r.last_seen_at ? formatDistanceToNow(new Date(r.last_seen_at), { addSuffix: true }) : "—"}
+                    </div>
+                    {r.last_seen_at && (
+                      <div className="text-xs text-muted-foreground/70">
+                        {new Date(r.last_seen_at).toLocaleString()}
+                      </div>
+                    )}
                     {r.force_refresh_at && (
                       <div className="text-xs text-warning">refresh requested</div>
                     )}
