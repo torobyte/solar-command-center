@@ -483,11 +483,25 @@ function Licenses() {
     }));
   }
 
+  async function logAudit(action: string, lic: Pick<License, "id" | "code" | "plan">, reason: string, extra: Record<string, unknown> = {}) {
+    if (!user) return;
+    await supabase.from("license_audit_log").insert({
+      license_id: lic.id,
+      license_code: lic.code,
+      plan: lic.plan,
+      action,
+      performed_by: user.id,
+      performed_by_email: user.email ?? null,
+      reason: reason || null,
+      details: extra,
+    });
+  }
+
   async function generate(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
     const code = generateCode();
-    const { error } = await supabase.from("license_codes").insert({
+    const { data: inserted, error } = await supabase.from("license_codes").insert({
       code,
       plan: form.planSlug,
       duration_days: form.isLifetime ? null : form.days,
@@ -496,26 +510,32 @@ function Licenses() {
       site_name: form.siteName.trim() || null,
       notes: form.notes.trim() || null,
       created_by: user.id,
-    });
+    }).select("id,code,plan").maybeSingle();
     if (error) return toast.error(error.message);
     toast.success(`Licencia creada para ${form.email}`);
+    if (inserted) await logAudit("created", inserted as License, "", { assigned_email: form.email, is_lifetime: form.isLifetime });
     setOpen(false);
     setForm({ email: "", planSlug: "pro", days: 365, isLifetime: false, siteName: "", notes: "" });
     load();
   }
 
-  async function revokeLicense(id: string) {
-    if (!confirm("¿Revocar esta licencia? El código dejará de ser válido.")) return;
+  async function doRevoke(lic: License, reason: string) {
     const { error } = await supabase.from("license_codes")
-      .update({ revoked_at: new Date().toISOString() }).eq("id", id);
+      .update({ revoked_at: new Date().toISOString() }).eq("id", lic.id);
     if (error) return toast.error(error.message);
+    await logAudit("revoked", lic, reason);
     toast.success("Licencia revocada");
     load();
   }
 
-  async function deleteLicense(id: string) {
-    if (!confirm("¿Eliminar permanentemente esta licencia? Esta acción no se puede deshacer.")) return;
-    const { error } = await supabase.from("license_codes").delete().eq("id", id);
+  async function doDelete(lic: License, reason: string) {
+    // Audit FIRST so the record survives even if the row is gone.
+    await logAudit("deleted", lic, reason, {
+      assigned_email: lic.assigned_email,
+      redeemed_at: lic.redeemed_at,
+      revoked_at: lic.revoked_at,
+    });
+    const { error } = await supabase.from("license_codes").delete().eq("id", lic.id);
     if (error) return toast.error(error.message);
     toast.success("Licencia eliminada");
     load();
