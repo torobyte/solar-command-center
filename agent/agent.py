@@ -236,6 +236,17 @@ def save_config(cfg: dict) -> None:
     CONFIG_PATH.write_text(json.dumps(cfg, indent=2))
 
 
+def load_pvcfg() -> dict:
+    if PVCFG_PATH.exists():
+        try: return json.loads(PVCFG_PATH.read_text())
+        except Exception: return {}
+    return {}
+
+def save_pvcfg(cfg: dict) -> None:
+    PVCFG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    PVCFG_PATH.write_text(json.dumps(cfg, indent=2))
+
+
 # ---------- Worker ----------
 class Agent:
     def __init__(self):
