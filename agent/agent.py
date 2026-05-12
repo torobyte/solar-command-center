@@ -227,7 +227,7 @@ def save_config(cfg: dict) -> None:
 class Agent:
     def __init__(self):
         self.config = load_config()
-        self.transport: HidrawTransport | None = None
+        self.transport = None
         self.latest: dict = {}
         self.license: dict = {}
         self.lock = threading.Lock()
@@ -235,8 +235,14 @@ class Agent:
 
     def ensure_transport(self):
         if self.transport: return
-        self.transport = autodetect()
-        if not self.transport:
+        preferred = self.config.get("inverter_port")
+        self.transport = autodetect(preferred=preferred)
+        if self.transport:
+            if self.config.get("inverter_port") != self.transport.path:
+                self.config["inverter_port"] = self.transport.path
+                self.config["inverter_transport"] = self.transport.kind
+                save_config(self.config)
+        else:
             print("[agent] no inverter detected, retrying in 5 s")
 
     def poll_loop(self):
