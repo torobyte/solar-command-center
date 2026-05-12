@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { Plus, CpuIcon, Activity, Sparkles, KeyRound, Copy } from "lucide-react";
+import { Plus, Cpu as CpuIcon, Sparkles, KeyRound, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { TableSkeleton, PageHeaderSkeleton } from "@/components/LoadingStates";
 
