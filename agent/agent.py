@@ -1122,8 +1122,47 @@ def make_app(agent: Agent) -> Flask:
             return jsonify({"ok": True})
         except requests.HTTPError as e:
             return jsonify({"error": e.response.text}), e.response.status_code
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
+    @app.get("/api/pvconfig")
+    def get_pvcfg():
+        return jsonify(load_pvcfg())
+
+    @app.post("/api/pvconfig")
+    def set_pvcfg():
+        body = request.get_json(force=True) or {}
+        # Whitelist of allowed keys (mirrors cloud schema).
+        allowed = {"array_kwp","battery_kwh","panel_count","panel_watts",
+                   "azimuth","tilt","system_losses_pct","latitude","longitude"}
+        cfg = {k: body.get(k) for k in allowed if k in body}
+        save_pvcfg(cfg)
+        return jsonify({"ok": True, "config": cfg})
+
+    @app.get("/manifest.webmanifest")
+    def manifest():
+        return jsonify({
+            "name": "SolarOps Local",
+            "short_name": "SolarOps",
+            "start_url": "/",
+            "scope": "/",
+            "display": "standalone",
+            "background_color": "#0b1220",
+            "theme_color": "#f59e0b",
+            "icons": [
+                {"src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
+            ],
+        })
+
+    @app.get("/icon.svg")
+    def icon():
+        svg = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">'
+               '<rect width="192" height="192" rx="40" fill="#0b1220"/>'
+               '<g fill="#f59e0b"><circle cx="96" cy="96" r="34"/>'
+               '<g stroke="#f59e0b" stroke-width="10" stroke-linecap="round">'
+               '<line x1="96" y1="20" x2="96" y2="48"/><line x1="96" y1="144" x2="96" y2="172"/>'
+               '<line x1="20" y1="96" x2="48" y2="96"/><line x1="144" y1="96" x2="172" y2="96"/>'
+               '<line x1="42" y1="42" x2="62" y2="62"/><line x1="130" y1="130" x2="150" y2="150"/>'
+               '<line x1="42" y1="150" x2="62" y2="130"/><line x1="130" y1="62" x2="150" y2="42"/>'
+               '</g></g></svg>')
+        return app.response_class(svg, mimetype="image/svg+xml")
 
     return app
 
