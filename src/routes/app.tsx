@@ -141,8 +141,8 @@ function SitesIndex() {
           <p className="mt-1 text-sm text-muted-foreground">{t("sites.empty.body")}</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border bg-card">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-lg border bg-card">
+          <table className="w-full min-w-[640px] text-sm">
             <thead className="border-b bg-muted/50 text-left">
               <tr>
                 <th className="px-4 py-3 font-medium">{t("sites.col.name")}</th>
