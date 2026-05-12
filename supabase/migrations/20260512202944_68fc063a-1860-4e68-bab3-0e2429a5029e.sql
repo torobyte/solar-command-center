@@ -1,0 +1,1 @@
+ALTER TABLE public.device_snapshots ADD COLUMN IF NOT EXISTS usb_devices_list jsonb;
