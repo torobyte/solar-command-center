@@ -43,7 +43,7 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "manifest", href: "/api/public/manifest" },
       { rel: "icon", href: "/icon.svg", type: "image/svg+xml" },
     ],
   }),
