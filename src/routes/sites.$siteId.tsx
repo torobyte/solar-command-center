@@ -498,20 +498,34 @@ function formatInverterMode(raw: string | null | undefined): { label: string; co
   return { label: INVERTER_MODE_LABELS[code] ?? `Modo ${code} (desconocido)`, code };
 }
 
-function DashboardView({ latest }: { latest: Sample | null }) {
+const WIDGET_DEFS: WidgetDef[] = [
+  { id: "mode", label: "Modo del inversor" },
+  { id: "icons", label: "Tarjetas resumen" },
+  { id: "rings", label: "Anillos concéntricos" },
+  { id: "gauges", label: "Medidores radiales" },
+  { id: "battery3d", label: "Batería 3D animada" },
+  { id: "solarrays", label: "Sol radiante" },
+  { id: "gridwave", label: "Onda sinusoidal de red" },
+  { id: "flow", label: "Diagrama de flujo de energía" },
+  { id: "forecast", label: "Previsión solar y producción" },
+];
+
+function DashboardView({ latest, siteId, spec: _spec }: { latest: Sample | null; siteId: string; spec: InverterSpec | null }) {
   const { t } = useI18n();
-  const pv = Number(latest?.pv_input_power ?? 0);
+  const { state, persist } = useDashboardLayout(siteId, WIDGET_DEFS);
+  const { config: pv } = usePvConfig(siteId);
+  const pv_W = Number(latest?.pv_input_power ?? 0);
   const load = Number(latest?.ac_output_active_power ?? 0);
   const battery = Number(latest?.battery_capacity ?? 0);
   const batteryV = Number(latest?.battery_voltage ?? 0);
   const gridV = Number(latest?.grid_voltage ?? 0);
   const gridConnected = gridV > 50;
   const mode = formatInverterMode(latest?.inverter_mode);
+  const charging = pv_W > load;
 
-  return (
-    <div className="space-y-4">
-      {/* Modo de uso destacado */}
-      <div className="flex items-center justify-between rounded-xl border bg-card p-4 sm:p-5">
+  const widgets: Record<string, React.ReactNode> = {
+    mode: (
+      <div key="mode" className="flex items-center justify-between rounded-xl border bg-card p-4 sm:p-5 animate-fade-in">
         <div className="flex items-center gap-3">
           <Cpu className="h-8 w-8 text-foreground/70" />
           <div>
@@ -519,37 +533,62 @@ function DashboardView({ latest }: { latest: Sample | null }) {
             <div className="text-lg font-semibold sm:text-xl">{mode.label}</div>
           </div>
         </div>
-        {mode.code && (
-          <span className="rounded-md bg-muted px-2 py-1 font-mono text-xs text-muted-foreground">QMOD: {mode.code}</span>
-        )}
+        {mode.code && <span className="rounded-md bg-muted px-2 py-1 font-mono text-xs text-muted-foreground">QMOD: {mode.code}</span>}
       </div>
-
-      <div className="grid grid-cols-2 gap-3 rounded-xl border bg-card p-4 sm:gap-4 sm:p-6">
+    ),
+    icons: (
+      <div key="icons" className="grid grid-cols-2 gap-3 rounded-xl border bg-card p-4 sm:gap-4 sm:p-6 animate-fade-in">
         <IconCard icon={<Cpu className="h-10 w-10 sm:h-12 sm:w-12 text-foreground/70" />} title={t("site.dash.inverter")} subtitle={mode.label} />
-        <IconCard icon={<Sun className="h-10 w-10 sm:h-12 sm:w-12 text-[var(--solar)]" />} title={t("site.dash.solar")} subtitle={`${(pv / 1000).toFixed(1)} kW`} />
+        <IconCard icon={<Sun className="h-10 w-10 sm:h-12 sm:w-12 text-[var(--solar)]" />} title={t("site.dash.solar")} subtitle={`${(pv_W / 1000).toFixed(1)} kW`} />
         <IconCard
-          icon={
-            <div className="relative">
-              <Plug className="h-10 w-10 sm:h-12 sm:w-12 text-foreground/70" />
-              {!gridConnected && (
-                <AlertCircle className="absolute -bottom-1 -right-1 h-4 w-4 fill-[var(--warning)] text-background" />
-              )}
-            </div>
-          }
-          title={t("site.dash.grid")}
-          subtitle={`${gridV.toFixed(0)} V`}
-        />
+          icon={<div className="relative"><Plug className="h-10 w-10 sm:h-12 sm:w-12 text-foreground/70" />{!gridConnected && <AlertCircle className="absolute -bottom-1 -right-1 h-4 w-4 fill-[var(--warning)] text-background" />}</div>}
+          title={t("site.dash.grid")} subtitle={`${gridV.toFixed(0)} V`} />
         <IconCard icon={<Battery className="h-10 w-10 sm:h-12 sm:w-12 text-[var(--battery)]" />} title={t("site.dash.battery")} subtitle={`${battery.toFixed(0)} %`} />
       </div>
+    ),
+    rings: <ConcentricRings key="rings" pv={pv_W} load={load} soc={battery} pvMax={(pv?.array_kwp ?? 5) * 1000} loadMax={5000} />,
+    gauges: <PowerGauges key="gauges" pv={pv_W} load={load} gridV={gridV} battery={battery} batteryV={batteryV} pvMax={(pv?.array_kwp ?? 5) * 1000} />,
+    battery3d: <Battery3D key="battery3d" soc={battery} voltage={batteryV} charging={charging} />,
+    solarrays: <SolarRays key="solarrays" pv={pv_W} pvMax={(pv?.array_kwp ?? 5) * 1000} />,
+    gridwave: <GridSineWave key="gridwave" voltage={gridV} frequency={50} />,
+    flow: <EnergyFlowDiagram key="flow" pv={pv_W} load={load} gridV={gridV} battery={battery} batteryV={batteryV} />,
+    forecast: (
+      <SolarForecastWidget
+        key="forecast"
+        pvConfig={{ kwp: pv?.array_kwp, lossesPct: pv?.system_losses_pct, batteryKwh: pv?.battery_kwh, lat: pv?.latitude, lon: pv?.longitude }}
+      />
+    ),
+  };
 
-      {/* Animated radial gauges + load bars (SolarAssistant-style) */}
-      <PowerGauges pv={pv} load={load} gridV={gridV} battery={battery} batteryV={batteryV} />
+  // Decide layout cols: heavier widgets in 2-col grid
+  const visible = state.filter((w) => w.visible);
+  const dualCol = new Set(["battery3d", "solarrays", "gridwave"]);
 
-      {/* Energy flow diagram (animated) */}
-      <EnergyFlowDiagram pv={pv} load={load} gridV={gridV} battery={battery} batteryV={batteryV} />
-
-      {/* Solar weather forecast */}
-      <SolarForecastWidget />
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-medium text-muted-foreground">Vista personalizable</h2>
+        <DashboardCustomizer defs={WIDGET_DEFS} state={state} onChange={persist} />
+      </div>
+      {/* Group dual-col widgets side-by-side */}
+      {(() => {
+        const out: React.ReactNode[] = [];
+        let pair: React.ReactNode[] = [];
+        const flushPair = () => {
+          if (pair.length === 0) return;
+          out.push(<div key={`pair-${out.length}`} className="grid gap-4 md:grid-cols-2">{pair}</div>);
+          pair = [];
+        };
+        for (const w of visible) {
+          const node = widgets[w.id];
+          if (!node) continue;
+          if (dualCol.has(w.id)) pair.push(node);
+          else { flushPair(); out.push(node); }
+          if (pair.length === 2) flushPair();
+        }
+        flushPair();
+        return out;
+      })()}
     </div>
   );
 }
