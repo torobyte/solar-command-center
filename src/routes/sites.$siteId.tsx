@@ -450,21 +450,29 @@ function ChartCard({ title, children }: { title: string; children: React.ReactEl
 
 /* ---------------- Inverter-style dashboard ---------------- */
 
+// QMOD codes for Voltronic / Axpert / MPP-Solar inverters.
+// Source: Voltronic protocol manuals (Axpert, PIP-MS, PIP-HS, InfiniSolar).
 const INVERTER_MODE_LABELS: Record<string, string> = {
-  P: "Encendido",
+  P: "Encendido (Power On)",
   S: "Standby",
-  L: "Modo Red",
+  L: "Modo Red (Línea)",
   B: "Modo Batería",
   F: "Fallo",
-  H: "Ahorro de energía",
+  H: "Ahorro de energía (ECO)",
   D: "Apagado",
+  Y: "Bypass",
+  G: "Conectado a red (Grid-tie)",
+  C: "Cargando",
+  E: "ECO",
+  T: "Test / Mantenimiento",
 };
 
-function formatInverterMode(raw: string | null | undefined): string {
-  if (!raw) return "—";
+function formatInverterMode(raw: string | null | undefined): { label: string; code: string } {
+  if (!raw) return { label: "—", code: "" };
   // Keep only the first ASCII letter — strips CRC/replacement chars from old samples.
-  const letter = raw.replace(/[^A-Za-z]/g, "").charAt(0).toUpperCase();
-  return INVERTER_MODE_LABELS[letter] ?? (letter || "—");
+  const code = raw.replace(/[^A-Za-z]/g, "").charAt(0).toUpperCase();
+  if (!code) return { label: "—", code: "" };
+  return { label: INVERTER_MODE_LABELS[code] ?? `Modo ${code} (desconocido)`, code };
 }
 
 function DashboardView({ latest }: { latest: Sample | null }) {
