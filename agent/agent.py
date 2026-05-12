@@ -232,6 +232,8 @@ class Agent:
         self.transport = None
         self.latest: dict = {}
         self.license: dict = {}
+        self.spec: dict = {}
+        self.snapshot: dict = {}
         self.lock = threading.Lock()
         self.pending: queue.Queue = queue.Queue(maxsize=10000)
 
