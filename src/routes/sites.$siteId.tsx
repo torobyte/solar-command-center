@@ -12,6 +12,8 @@ import {
 } from "recharts";
 import { format } from "date-fns";
 import { useI18n } from "@/lib/i18n";
+import { SolarForecastWidget } from "@/components/SolarForecastWidget";
+import { EnergyFlowDiagram } from "@/components/EnergyFlowDiagram";
 
 export const Route = createFileRoute("/sites/$siteId")({
   component: () => <ProtectedLayout><SiteDetail /></ProtectedLayout>,
