@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ProtectedLayout } from "@/components/ProtectedLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Copy, Battery, Sun, Plug, Cpu, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
