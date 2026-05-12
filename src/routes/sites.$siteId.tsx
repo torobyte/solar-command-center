@@ -23,6 +23,18 @@ import { useNotificationWatcher } from "@/lib/notifications";
 import { useAuth } from "@/lib/auth";
 import { BellRing } from "lucide-react";
 import { MobileBottomNav, type SiteTab } from "@/components/MobileBottomNav";
+import { PageHeaderSkeleton, DashboardSkeleton, SectionSkeleton } from "@/components/LoadingStates";
+
+function SiteDetailSkeleton() {
+  return (
+    <>
+      <PageHeaderSkeleton />
+      <div className="space-y-4">
+        <DashboardSkeleton />
+      </div>
+    </>
+  );
+}
 
 export const Route = createFileRoute("/sites/$siteId")({
   component: () => <ProtectedLayout><SiteDetail /></ProtectedLayout>,
@@ -106,7 +118,7 @@ function SiteDetail() {
     grid: Number(r.grid_voltage ?? 0),
   })), [history]);
 
-  if (!site) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (!site) return <SiteDetailSkeleton />;
 
   return (
     <>
