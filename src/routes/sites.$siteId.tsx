@@ -315,15 +315,15 @@ function ConfigurationView({ site }: { site: Site }) {
   }
 
   return (
-    <>
-      <Section title="General">
+    <div className="space-y-5">
+      <Section title="General" icon={Info}>
         <Row label="Site ID" value={site.id} />
         <Row label="Plan" value={site.plan} />
         <Row label="Estado" value={site.status} />
         <Row label="Licencia expira" value={site.license_expires_at ?? "—"} />
       </Section>
 
-      <Section title="Especificación del inversor">
+      <Section title="Especificación del inversor" icon={Cpu}>
         {spec ? (
           <div className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
             <Row label="Driver" value={spec.driver ?? "—"} />
@@ -340,7 +340,7 @@ function ConfigurationView({ site }: { site: Site }) {
             <Row label="Max potencia aparente AC" value={spec.max_ac_output_apparent_power ? `${spec.max_ac_output_apparent_power} VA` : "—"} />
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">Esperando que la Raspberry envíe la especificación del inversor…</p>
+          <SectionSkeleton />
         )}
       </Section>
 
@@ -350,7 +350,7 @@ function ConfigurationView({ site }: { site: Site }) {
         nominalBatteryV={spec?.nominal_battery_voltage ?? null}
       />
 
-      <Section title="Configuración remota del inversor">
+      <Section title="Configuración remota del inversor" icon={SlidersHorizontal}>
         <p className="mb-4 text-sm text-muted-foreground">
           Los cambios se envían a la Raspberry y se aplican al inversor mediante comandos Voltronic.
         </p>
@@ -382,21 +382,21 @@ function ConfigurationView({ site }: { site: Site }) {
           onApply={(n) => sendCommand("set_back_to_grid_voltage", { volts: n })} />
 
         <div className="mt-6">
-          <h4 className="mb-2 text-sm font-semibold">Últimos comandos</h4>
+          <h4 className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><Terminal className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2.2} /> Últimos comandos</h4>
           {commands.length === 0 ? (
             <p className="text-xs text-muted-foreground">Sin comandos enviados todavía.</p>
           ) : (
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               {commands.map((c) => (
-                <div key={c.id} className="flex items-center justify-between rounded border bg-background px-3 py-2 text-xs">
-                  <div className="font-mono">{c.command} {JSON.stringify(c.payload)}</div>
-                  <div className={
-                    c.status === "done" ? "text-success" :
-                    c.status === "failed" ? "text-destructive" :
-                    "text-muted-foreground"
-                  }>
+                <div key={c.id} className="flex items-center justify-between rounded-lg border bg-background px-3 py-2 text-xs">
+                  <div className="font-mono truncate">{c.command} {JSON.stringify(c.payload)}</div>
+                  <span className={`ml-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium ${
+                    c.status === "done" ? "bg-success/15 text-success" :
+                    c.status === "failed" ? "bg-destructive/15 text-destructive" :
+                    "bg-muted text-muted-foreground"
+                  }`}>
                     {c.status}{c.error ? ` — ${c.error}` : ""}
-                  </div>
+                  </span>
                 </div>
               ))}
             </div>
@@ -404,7 +404,7 @@ function ConfigurationView({ site }: { site: Site }) {
         </div>
       </Section>
 
-      <Section title="Estado de red">
+      <Section title="Estado de red" icon={Wifi}>
         {snap ? (
           <div className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
             <Row label="SSID WiFi" value={snap.ssid ?? "—"} />
@@ -414,11 +414,11 @@ function ConfigurationView({ site }: { site: Site }) {
             <Row label="IP pública" value={snap.ip_public ?? "—"} />
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">Esperando datos del dispositivo…</p>
+          <SectionSkeleton />
         )}
       </Section>
 
-      <Section title="Sistema">
+      <Section title="Sistema" icon={HardDrive}>
         {snap ? (
           <>
             <div className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
@@ -435,7 +435,7 @@ function ConfigurationView({ site }: { site: Site }) {
             <div className="mt-4">
               <div className="mb-2 text-sm font-semibold">Detecciones USB</div>
               {snap.usb_devices_list && snap.usb_devices_list.length > 0 ? (
-                <ul className="space-y-1 rounded-md border bg-background p-3 font-mono text-xs">
+                <ul className="space-y-1 rounded-lg border bg-background p-3 font-mono text-xs">
                   {snap.usb_devices_list.map((d, i) => (
                     <li key={i} className="truncate">• {d}</li>
                   ))}
@@ -448,18 +448,18 @@ function ConfigurationView({ site }: { site: Site }) {
             </div>
           </>
         ) : (
-          <p className="text-sm text-muted-foreground">Esperando datos del dispositivo…</p>
+          <SectionSkeleton />
         )}
       </Section>
 
-      <Section title="Instalación del dispositivo">
+      <Section title="Instalación del dispositivo" icon={Download}>
         <p className="mb-3 text-sm text-muted-foreground">
           Ejecuta esto en tu Raspberry Pi para instalar el agente y vincularlo a este sitio:
         </p>
         <CodeBlock value={`curl -fsSL https://solarops.local/install.sh | sudo bash -s -- --token ${site.device_token}`} />
         <p className="mt-2 text-xs text-muted-foreground">El token identifica este dispositivo. No lo compartas.</p>
       </Section>
-    </>
+    </div>
   );
 }
 
