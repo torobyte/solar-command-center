@@ -747,6 +747,151 @@ function fmtMode(raw){
 }
 function row(k,v){return '<div class="row"><span class="k">'+k+'</span><span class="v">'+(v??"—")+'</span></div>'}
 
+/* ---------- Widget customizer ---------- */
+const WIDGETS = [
+  {id:'mode',label:'Modo del inversor'},
+  {id:'icons',label:'Tarjetas resumen'},
+  {id:'rings',label:'Anillos concéntricos'},
+  {id:'power',label:'Potencias en vivo'},
+  {id:'bat3d',label:'Batería 3D animada'},
+  {id:'sun',label:'Sol radiante'},
+  {id:'sine',label:'Onda sinusoidal de red'},
+  {id:'forecast',label:'Previsión solar y producción'},
+];
+const LS_KEY='solarops.widgets.v1';
+function loadLayout(){
+  try{ const w=JSON.parse(localStorage.getItem(LS_KEY)||'null'); if(Array.isArray(w)) {
+    const known=new Set(WIDGETS.map(x=>x.id));
+    const next=w.filter(x=>known.has(x.id));
+    for(const d of WIDGETS) if(!next.find(x=>x.id===d.id)) next.push({id:d.id,visible:true});
+    return next;
+  }}catch(_){}
+  return WIDGETS.map(d=>({id:d.id,visible:true}));
+}
+function saveLayout(L){localStorage.setItem(LS_KEY,JSON.stringify(L));}
+let LAYOUT = loadLayout();
+function renderWidgets(){
+  const host=document.getElementById('widgets'); if(!host) return;
+  host.innerHTML='';
+  for(const w of LAYOUT){
+    if(!w.visible) continue;
+    const tpl=document.getElementById('w-'+w.id);
+    if(tpl) host.appendChild(tpl.content.cloneNode(true));
+  }
+}
+function openCust(){
+  const list=document.getElementById('custList'); list.innerHTML='';
+  LAYOUT.forEach((w,i)=>{
+    const def=WIDGETS.find(d=>d.id===w.id); if(!def) return;
+    const it=document.createElement('div'); it.className='cust-item';
+    it.innerHTML='<div class="arr"><button data-a="up">▲</button><button data-a="dn">▼</button></div><span style="flex:1">'+def.label+'</span><button data-a="tg">'+(w.visible?'👁':'🚫')+'</button>';
+    it.querySelector('[data-a=up]').onclick=()=>{if(i>0){[LAYOUT[i-1],LAYOUT[i]]=[LAYOUT[i],LAYOUT[i-1]];saveLayout(LAYOUT);openCust();renderWidgets();tick();}};
+    it.querySelector('[data-a=dn]').onclick=()=>{if(i<LAYOUT.length-1){[LAYOUT[i+1],LAYOUT[i]]=[LAYOUT[i],LAYOUT[i+1]];saveLayout(LAYOUT);openCust();renderWidgets();tick();}};
+    it.querySelector('[data-a=tg]').onclick=()=>{LAYOUT[i].visible=!LAYOUT[i].visible;saveLayout(LAYOUT);openCust();renderWidgets();tick();};
+    list.appendChild(it);
+  });
+  document.getElementById('custModal').classList.remove('hidden');
+}
+function closeCust(){document.getElementById('custModal').classList.add('hidden');}
+function resetWidgets(){LAYOUT=WIDGETS.map(d=>({id:d.id,visible:true}));saveLayout(LAYOUT);openCust();renderWidgets();tick();}
+
+/* ---------- Visualization helpers ---------- */
+function renderRings(pv,load,soc,pvMax){
+  const svg=document.getElementById('ringsSvg'); if(!svg) return;
+  const data=[{v:pv,m:pvMax,c:'var(--pv)'},{v:load,m:5000,c:'var(--load)'},{v:soc,m:100,c:'var(--bat)'}];
+  let html=''; const cx=100,cy=100,stroke=14,gap=4;
+  data.forEach((r,i)=>{const rad=85-i*(stroke+gap); const C=2*Math.PI*rad; const ratio=Math.min(1,Math.max(0,r.v/r.m));
+    html+='<circle cx="'+cx+'" cy="'+cy+'" r="'+rad+'" fill="none" stroke="'+r.c+'" stroke-opacity=".18" stroke-width="'+stroke+'"/>';
+    html+='<circle cx="'+cx+'" cy="'+cy+'" r="'+rad+'" fill="none" stroke="'+r.c+'" stroke-width="'+stroke+'" stroke-linecap="round" stroke-dasharray="'+C+'" stroke-dashoffset="'+(C*(1-ratio))+'" transform="rotate(-90 '+cx+' '+cy+')" style="transition:stroke-dashoffset .8s"/>';
+  });
+  svg.innerHTML=html;
+}
+function renderSun(pv,pvMax){
+  const g=document.getElementById('sunRays'); if(!g) return;
+  const ratio=Math.min(1,Math.max(0,pv/pvMax)); const len=18+ratio*36;
+  let html=''; for(let i=0;i<12;i++){const a=(i/12)*Math.PI*2; const x1=Math.cos(a)*38,y1=Math.sin(a)*38;const x2=Math.cos(a)*(38+len),y2=Math.sin(a)*(38+len);
+    html+='<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="#f59e0b" stroke-width="4" stroke-linecap="round"/>';
+  }
+  g.innerHTML=html;
+  const t=document.getElementById('sunKw'); if(t) t.textContent=(pv/1000).toFixed(2);
+}
+function renderSine(v){
+  const svg=document.getElementById('sineSvg'); if(!svg) return;
+  const connected=v>50; const color=connected?'#f59e0b':'#9ca3af';
+  if(!connected){svg.innerHTML='<text x="200" y="50" text-anchor="middle" fill="#9ca3af" font-size="13">— sin señal —</text>';return;}
+  let d='M0 45'; for(let i=0;i<=200;i++){const x=(i/200)*800; const y=45-Math.sin((i/200)*Math.PI*8)*30; d+=' L'+x.toFixed(1)+' '+y.toFixed(1);}
+  svg.innerHTML='<g class="anim"><path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="2.5" filter="drop-shadow(0 0 4px '+color+')"/></g>';
+  const sv=document.getElementById('sineV'); if(sv) sv.textContent=v.toFixed(0)+' V';
+  const sh=document.getElementById('sineHz'); if(sh) sh.textContent='50 Hz';
+}
+function renderBat3d(soc,vlt,charging){
+  const liq=document.getElementById('batLiq'); if(!liq) return;
+  const pct=Math.max(0,Math.min(100,soc));
+  const color=pct>60?'#10b981':pct>30?'#f59e0b':'#ef4444';
+  liq.style.height=pct+'%'; liq.style.background=color; liq.style.color=color;
+  document.getElementById('batPctV').textContent=pct.toFixed(0)+'%';
+  document.getElementById('batMode').textContent=charging?'⚡ Cargando':'Descargando';
+  document.getElementById('batVv').textContent=vlt.toFixed(2)+' V';
+}
+
+/* ---------- Solar forecast & production estimate ---------- */
+let _fctCache=null,_fctAt=0;
+async function loadForecast(pvcfg){
+  const lat=pvcfg.latitude, lon=pvcfg.longitude;
+  if(lat==null||lon==null) return null;
+  if(_fctCache && Date.now()-_fctAt<10*60*1000) return _fctCache;
+  try{
+    const u='https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&hourly=shortwave_radiation,temperature_2m,weather_code&daily=weather_code,sunshine_duration,temperature_2m_max,temperature_2m_min&forecast_days=5&timezone=auto';
+    const r=await fetch(u); _fctCache=await r.json(); _fctAt=Date.now(); return _fctCache;
+  }catch(_){return null;}
+}
+function renderForecast(j,pvcfg){
+  const bars=document.getElementById('fctBars'); const daily=document.getElementById('fctDaily'); const city=document.getElementById('fctCity');
+  if(!bars) return;
+  if(!j){bars.innerHTML='<div class="sub" style="grid-column:1/-1">Configura latitud/longitud en Configuración para ver la previsión.</div>'; daily.innerHTML=''; city.textContent=''; return;}
+  city.textContent='Lat '+pvcfg.latitude+' · Lon '+pvcfg.longitude;
+  const now=new Date(); const times=j.hourly.time||[]; const rad=j.hourly.shortwave_radiation||[];
+  const next=[]; for(let i=0;i<times.length && next.length<12;i++){if(new Date(times[i])>=now) next.push({t:times[i],r:rad[i]||0});}
+  const peak=Math.max(1,...next.map(x=>x.r));
+  const kwp=parseFloat(pvcfg.array_kwp)||0; const loss=(parseFloat(pvcfg.system_losses_pct)||14)/100;
+  const totalKwh=kwp?next.reduce((a,h)=>a+kwp*(h.r/1000)*(1-loss),0):0;
+  const pe=document.getElementById('prodEst');
+  if(kwp && pe){pe.classList.remove('hidden'); document.getElementById('prodKwh').textContent=totalKwh.toFixed(2);} else if(pe){pe.classList.add('hidden');}
+  bars.innerHTML=next.map(h=>{const hh=new Date(h.t).getHours(); const ht=Math.max(4,(h.r/peak)*100); const kwh=kwp?(kwp*(h.r/1000)*(1-loss)):0;
+    return '<div class="bar" style="height:'+ht+'%" title="'+Math.round(h.r)+' W/m²">'+(kwh>0?'<small>'+kwh.toFixed(1)+'</small>':'')+'<div style="position:absolute;bottom:-14px;left:0;right:0;text-align:center;font-size:9px;color:#9ca3af">'+hh+'h</div></div>';
+  }).join('');
+  const dt=j.daily.time||[]; const wc=j.daily.weather_code||[]; const sh=j.daily.sunshine_duration||[]; const mx=j.daily.temperature_2m_max||[]; const mn=j.daily.temperature_2m_min||[];
+  daily.innerHTML=dt.slice(0,5).map((d,i)=>{const sun=(sh[i]||0)/3600; const dKwh=kwp?(kwp*sun*0.65*(1-loss)):0;
+    const lab=i===0?'Hoy':new Date(d).toLocaleDateString('es',{weekday:'short'});
+    return '<div class="d"><div style="font-weight:700">'+lab+'</div><div>'+Math.round(mx[i]||0)+'°/'+Math.round(mn[i]||0)+'°</div><div style="color:var(--pv)">'+sun.toFixed(1)+'h ☀</div>'+(kwp?'<strong>'+dKwh.toFixed(1)+' kWh</strong>':'')+'</div>';
+  }).join('');
+}
+
+/* ---------- PV config form ---------- */
+let _pvcfg={};
+async function loadPv(){try{const r=await fetch('/api/pvconfig');_pvcfg=await r.json();}catch(_){_pvcfg={};}
+  ['kwp','bat','n','w','az','tilt','loss','lat','lon'].forEach(k=>{
+    const map={kwp:'array_kwp',bat:'battery_kwh',n:'panel_count',w:'panel_watts',az:'azimuth',tilt:'tilt',loss:'system_losses_pct',lat:'latitude',lon:'longitude'};
+    const el=document.getElementById('pv_'+k); if(el && _pvcfg[map[k]]!=null) el.value=_pvcfg[map[k]];
+  });
+}
+async function savePv(e){e.preventDefault();
+  const map={kwp:'array_kwp',bat:'battery_kwh',n:'panel_count',w:'panel_watts',az:'azimuth',tilt:'tilt',loss:'system_losses_pct',lat:'latitude',lon:'longitude'};
+  const body={};
+  for(const k in map){const el=document.getElementById('pv_'+k); const v=el.value.trim(); body[map[k]]=v?parseFloat(v):null;}
+  await fetch('/api/pvconfig',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  _pvcfg=body; _fctCache=null; alert('Guardado'); tick();
+}
+function autoFromInv(){
+  fetch('/api/state').then(r=>r.json()).then(j=>{
+    const sp=j.spec||{};
+    const k=document.getElementById('pv_kwp'); if(!k.value && sp.max_ac_output_power) k.value=(sp.max_ac_output_power/1000).toFixed(2);
+    const b=document.getElementById('pv_bat'); if(!b.value && sp.nominal_battery_voltage) b.value=(sp.nominal_battery_voltage*100/1000).toFixed(1);
+  });
+}
+
+renderWidgets(); loadPv();
+
 document.querySelectorAll('.tab').forEach(b=>{
   b.onclick = ()=>{
     document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
