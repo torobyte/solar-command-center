@@ -12,7 +12,7 @@ Features:
 """
 from __future__ import annotations
 
-import argparse, glob, json, os, queue, sqlite3, threading, time
+import argparse, glob, json, os, queue, shutil, socket, sqlite3, subprocess, threading, time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -24,6 +24,8 @@ CONFIG_PATH = Path(os.environ.get("SOLAROPS_CONFIG", "/etc/solarops/config.json"
 DB_PATH = Path(os.environ.get("SOLAROPS_DB", "/var/lib/solarops/state.db"))
 POLL_INTERVAL = 5.0
 PUSH_INTERVAL = 5.0  # push every 5s so the cloud dashboard feels live
+SNAPSHOT_INTERVAL = 60.0  # send specs/network/system snapshot every 60s
+AGENT_VERSION = "0.4.0"
 
 
 # ---------- Voltronic protocol ----------
