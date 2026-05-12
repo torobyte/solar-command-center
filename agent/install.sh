@@ -151,8 +151,9 @@ usermod -aG dialout,video,tty solarkiosk || true
 
 install -d -m 755 /home/solarkiosk/.config/openbox
 SITE_ID=$(jq -r '.site_id // empty' /etc/solarops/config.json 2>/dev/null || echo "")
-KIOSK_URL="${CLOUD_URL}/app"
-if [[ -n "$SITE_ID" ]]; then KIOSK_URL="${CLOUD_URL}/sites/${SITE_ID}"; fi
+# El kiosko apunta SIEMPRE a la UI local (http://localhost) — funciona aunque
+# no haya internet. La UI local se sincroniza con la nube en segundo plano.
+KIOSK_URL="http://localhost/"
 
 cat >/home/solarkiosk/.xinitrc <<EOF
 #!/usr/bin/env bash

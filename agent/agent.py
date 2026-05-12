@@ -250,100 +250,158 @@ def hardware_id() -> str:
 
 
 # ---------- LAN web UI ----------
-PAGE = """<!doctype html><html><head><meta charset="utf-8"><title>SolarOps local</title>
-<style>body{font-family:-apple-system,sans-serif;background:#0b0f1a;color:#e5e7eb;margin:0;padding:24px}
-.card{background:#111827;border:1px solid #1f2937;border-radius:12px;padding:20px;margin-bottom:16px}
-.metric{display:inline-block;margin-right:32px}
-.metric .v{font-size:32px;font-weight:700}
-.metric .l{font-size:12px;color:#9ca3af;text-transform:uppercase}
-input,button{padding:8px 12px;border-radius:6px;border:1px solid #374151;background:#0b0f1a;color:#e5e7eb}
-button{background:#2563eb;border-color:#2563eb;cursor:pointer}
-</style></head><body>
-<h1>SolarOps — Local</h1>
-<div class="card">
-  <div class="metric"><div class="l">Solar PV</div><div class="v" id="pv">—</div></div>
-  <div class="metric"><div class="l">Load</div><div class="v" id="load">—</div></div>
-  <div class="metric"><div class="l">Battery</div><div class="v" id="bat">—</div></div>
-  <div class="metric"><div class="l">Grid</div><div class="v" id="grid">—</div></div>
-  <div class="metric"><div class="l">Mode</div><div class="v" id="mode">—</div></div>
+PAGE = """<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SolarOps</title>
+<style>
+:root{--bg:#fbf8f1;--fg:#0b1220;--muted:#6b7280;--card:#fffdf7;--border:#ece6d6;
+  --pv:#f59e0b;--bat:#10b981;--grid:#f59e0b;--inv:#0b1220;--danger:#ef4444}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;
+  background:var(--bg);color:var(--fg);padding:32px;min-height:100vh}
+.wrap{max-width:1280px;margin:0 auto}
+.back{color:var(--muted);text-decoration:none;font-size:14px;display:inline-flex;gap:6px;align-items:center;margin-bottom:16px}
+h1{font-size:32px;font-weight:800;margin:0 0 4px}
+.sub{color:var(--muted);font-size:14px;margin-bottom:24px}
+.tabs{display:inline-flex;gap:4px;background:#f1ece0;border-radius:10px;padding:4px;margin-bottom:24px}
+.tab{padding:8px 16px;border-radius:8px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;border:none;background:transparent}
+.tab.active{background:#fff;color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:20px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.tile{background:#faf6ec;border:1px solid var(--border);border-radius:14px;padding:18px;display:flex;align-items:center;gap:16px}
+.icon{width:56px;height:56px;border-radius:12px;background:#f3ecda;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;position:relative}
+.icon.pv{color:var(--pv)} .icon.bat{color:var(--bat)} .icon.grid{color:var(--grid)} .icon.inv{color:var(--inv)}
+.tile .label{font-size:16px;font-weight:700}
+.tile .val{font-size:14px;color:var(--muted);margin-top:2px}
+.warn{position:absolute;bottom:-2px;right:-2px;width:18px;height:18px;background:var(--pv);border-radius:50%;color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;border:2px solid var(--card)}
+.big{text-align:center;padding:48px 20px}
+.big .v{font-size:56px;font-weight:800;letter-spacing:-1px}
+.big .l{color:var(--muted);font-size:14px;margin-top:6px}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.dot.online{background:var(--bat)} .dot.offline{background:var(--danger)}
+.banner{background:#fef3c7;border:1px solid #fde68a;color:#92400e;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:16px}
+form{display:flex;gap:8px;flex-wrap:wrap}
+input{padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:#fff;color:var(--fg);font-size:14px;flex:1;min-width:200px}
+button{padding:10px 18px;border-radius:10px;border:none;background:var(--fg);color:#fff;cursor:pointer;font-weight:600;font-size:14px}
+.muted{color:var(--muted);font-size:12px;margin-top:8px}
+@media(max-width:640px){.grid{grid-template-columns:1fr}body{padding:16px}h1{font-size:24px}}
+</style></head><body><div class="wrap">
+
+<div id="banner" class="banner" style="display:none"></div>
+
+<div id="app" style="display:none">
+  <a class="back" href="#" onclick="return false">← <span data-t="back">Sitio local</span></a>
+  <h1 id="sname">—</h1>
+  <div class="sub"><span id="invStatus">—</span> · <span class="status"><span id="dot" class="dot"></span><span id="connStatus">—</span></span></div>
+
+  <div class="tabs">
+    <button class="tab active">Dashboard</button>
+  </div>
+
+  <div class="panel">
+    <div class="grid">
+      <div class="tile"><div class="icon inv">🖥️<span id="invWarn" class="warn" style="display:none">!</span></div>
+        <div><div class="label">Inversor</div><div class="val" id="invMode">—</div></div></div>
+      <div class="tile"><div class="icon pv">☀️</div>
+        <div><div class="label">Solar PV</div><div class="val" id="pvKw">0.0 kW</div></div></div>
+      <div class="tile"><div class="icon grid">🔌<span id="gridWarn" class="warn" style="display:none">!</span></div>
+        <div><div class="label">Red</div><div class="val" id="gridV">0 V</div></div></div>
+      <div class="tile"><div class="icon bat">🔋</div>
+        <div><div class="label">Batería</div><div class="val" id="batPct">0 %</div></div></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="grid">
+      <div class="big"><div class="v" id="loadW">0 W</div><div class="l">Carga</div></div>
+      <div class="big"><div class="v" id="pvW">0 W</div><div class="l">Solar PV</div></div>
+      <div class="big"><div class="v" id="gridW">0 W</div><div class="l">Red</div></div>
+      <div class="big"><div class="v" id="batW">0 W</div><div class="l">Batería</div></div>
+    </div>
+  </div>
 </div>
-<div class="card" id="actcard" style="display:none">
-  <h3>Activate license</h3>
-  <p>Paste the license code your administrator gave you and a name for this site.</p>
+
+<div id="actcard" class="panel" style="display:none">
+  <h1>Activar dispositivo</h1>
+  <p class="sub">Pega el código de licencia que te entregó el administrador y elige un nombre para este sitio.</p>
   <form onsubmit="act(event)">
-    <input id="name" placeholder="Site name" required>
+    <input id="name" placeholder="Nombre del sitio" required>
     <input id="code" placeholder="XXXXX-XXXXX-XXXXX-XXXXX" required>
-    <button>Activate</button>
+    <button>Activar</button>
   </form>
-  <p id="msg" style="color:#f87171"></p>
+  <p id="msg" style="color:var(--danger)"></p>
 </div>
-<div class="card" id="lcard" style="display:none">
-  <h3>Linked to cloud</h3>
-  <p>Site: <b id="sname"></b></p>
-  <p>License: <b id="lplan">—</b> <span id="lstate"></span></p>
-  <p style="color:#9ca3af;font-size:12px" id="lexp"></p>
-  <p style="color:#9ca3af;font-size:12px" id="lcheck"></p>
-</div>
+
 <script>
-function fmtDate(s){ try { return new Date(s).toLocaleDateString(); } catch(_){ return s; } }
-function fmtDT(s){ try { return new Date(s).toLocaleString(); } catch(_){ return s; } }
-async function tick(){
-  const j = await (await fetch('/api/state')).json();
-  if (j.config.device_token){ document.getElementById('lcard').style.display='block';
-    document.getElementById('sname').textContent = j.config.site_name || j.config.site_id;
-    const L = j.license || {};
-    document.getElementById('lplan').textContent = L.plan || '—';
-    const st = document.getElementById('lstate');
-    if (L.license_active) { st.textContent = '• active ('+(L.days_remaining||0)+'d)'; st.style.color='#34d399'; }
-    else if (L.plan) { st.textContent = '• expired'; st.style.color='#f87171'; }
-    else { st.textContent=''; }
-    document.getElementById('lexp').textContent = L.license_expires_at ? 'Expires '+fmtDate(L.license_expires_at) : '';
-    const lc = document.getElementById('lcheck');
-    if (L.last_check_at) {
-      const ok = L.last_check_ok !== false;
-      lc.textContent = (ok ? '✓ Last cloud check: ' : '⚠ Last cloud check failed: ') + fmtDT(L.last_check_at) + (ok ? '' : ' — ' + (L.last_check_error||''));
-      lc.style.color = ok ? '#9ca3af' : '#f87171';
-    } else { lc.textContent = 'Waiting for first cloud check…'; }
-  }
-  else { document.getElementById('actcard').style.display='block'; }
-  const s = j.latest || {};
-  document.getElementById('pv').textContent = (s.pv_input_power||0).toFixed(0)+' W';
-  document.getElementById('load').textContent = (s.ac_output_active_power||0).toFixed(0)+' W';
-  document.getElementById('bat').textContent = (s.battery_capacity||0).toFixed(0)+' %';
-  document.getElementById('grid').textContent = (s.grid_voltage||0).toFixed(0)+' V';
-  document.getElementById('mode').textContent = s.inverter_mode || '—';
+function fmtDate(s){try{return new Date(s).toLocaleDateString()}catch(_){return s}}
+function fmtDT(s){try{return new Date(s).toLocaleString()}catch(_){return s}}
+let onlineCloud = false;
+async function pingCloud(url){
+  try{const r=await fetch(url+'/api/public/license-status',{method:'OPTIONS',mode:'no-cors'});return true}catch(_){return false}
 }
-async function act(e){ e.preventDefault();
+async function tick(){
+  let j;
+  try{ j = await (await fetch('/api/state')).json(); }catch(_){return}
+  const cfg = j.config||{};
+  if(!cfg.device_token){
+    document.getElementById('actcard').style.display='block';
+    document.getElementById('app').style.display='none';
+    return;
+  }
+  document.getElementById('actcard').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('sname').textContent = cfg.site_name || cfg.site_id || 'Sitio local';
+
+  const L = j.license||{};
+  const cloudOk = L.last_check_ok !== false && !!L.last_check_at;
+  document.getElementById('dot').className = 'dot ' + (cloudOk?'online':'offline');
+  document.getElementById('connStatus').textContent = cloudOk ? 'sincronizado con la nube' : 'modo offline (sin conexión a la nube)';
+
+  const banner = document.getElementById('banner');
+  if(L.plan && !L.license_active){
+    banner.style.display='block';
+    banner.textContent = 'Licencia expirada. Contacta al administrador.';
+  } else if(L.plan==='trial' && (L.days_remaining||0) <= 7){
+    banner.style.display='block';
+    banner.textContent = 'Trial: '+(L.days_remaining||0)+' días restantes.';
+  } else { banner.style.display='none'; }
+
+  const s = j.latest||{};
+  const hasData = Object.keys(s).length>0;
+  document.getElementById('invStatus').textContent = hasData ? 'Inversor conectado' : 'Inversor no detectado aún';
+  document.getElementById('invWarn').style.display = hasData?'none':'flex';
+  document.getElementById('invMode').textContent = s.inverter_mode || '—';
+  document.getElementById('pvKw').textContent = ((s.pv_input_power||0)/1000).toFixed(1)+' kW';
+  document.getElementById('gridV').textContent = (s.grid_voltage||0).toFixed(0)+' V';
+  document.getElementById('gridWarn').style.display = (s.grid_voltage||0)>0?'none':'flex';
+  document.getElementById('batPct').textContent = (s.battery_capacity||0).toFixed(0)+' %';
+  document.getElementById('loadW').textContent = (s.ac_output_active_power||0).toFixed(0)+' W';
+  document.getElementById('pvW').textContent = (s.pv_input_power||0).toFixed(0)+' W';
+  const gw = (s.grid_voltage||0) > 0 ? (s.ac_output_active_power||0) : 0;
+  document.getElementById('gridW').textContent = gw.toFixed(0)+' W';
+  const bw = (s.battery_voltage||0) * (s.battery_discharge_current||0) - (s.battery_voltage||0)*(s.battery_charging_current||0);
+  document.getElementById('batW').textContent = Math.abs(bw).toFixed(0)+' W';
+}
+async function act(e){e.preventDefault();
   const r = await fetch('/api/activate',{method:'POST',headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({code:document.getElementById('code').value, name:document.getElementById('name').value})});
+    body:JSON.stringify({code:document.getElementById('code').value,name:document.getElementById('name').value})});
   const j = await r.json();
-  if (!r.ok) document.getElementById('msg').textContent = j.error || 'Activation failed';
+  if(!r.ok) document.getElementById('msg').textContent = j.error || 'Activación fallida';
   else location.reload();
 }
 setInterval(tick,2000); tick();
-</script></body></html>"""
+</script></div></body></html>"""
 
 def make_app(agent: Agent) -> Flask:
     app = Flask(__name__)
 
     @app.get("/")
     def index():
-        # Si el dispositivo ya está enlazado, mostramos EXACTAMENTE la misma
-        # interfaz de la plataforma web (la del panel del sitio en la nube).
-        # Así el kiosko/LAN ven la misma UI que el usuario en su navegador.
-        token = agent.config.get("device_token")
-        site_id = agent.config.get("site_id")
-        cloud = agent.config.get("cloud_url", CLOUD_URL_DEFAULT).rstrip("/")
-        if token and site_id:
-            return redirect(f"{cloud}/sites/{site_id}", code=302)
-        if token:
-            return redirect(f"{cloud}/app", code=302)
-        # Sin licencia todavía → pantalla local de activación.
-        return render_template_string(PAGE)
-
-    @app.get("/local")
-    def local_legacy():
-        # Mantén accesible la antigua UI local por si no hay internet.
+        # Servimos siempre la UI local — visualmente idéntica al panel de la
+        # plataforma web. Funciona sin internet (lee la caché local del
+        # agente) y se sincroniza con la nube en segundo plano cuando hay
+        # conexión.
         return render_template_string(PAGE)
 
     @app.get("/api/state")
