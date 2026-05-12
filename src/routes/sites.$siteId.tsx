@@ -123,7 +123,7 @@ function SiteDetail() {
         </TabsList>
 
         <TabsContent value="dashboard" className="mt-6">
-          <DashboardView latest={latest} />
+          <DashboardView latest={latest} siteId={siteId} spec={null} />
           {!latest && (
             <div className="mt-8 rounded-lg border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">
               Waiting for the first telemetry sample from your device…
