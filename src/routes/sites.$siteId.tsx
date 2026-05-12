@@ -226,6 +226,7 @@ interface DeviceSnapshot {
   ip_public: string | null; internet_up: boolean | null;
   cpu_temp_c: number | null; storage_used_pct: number | null;
   storage_total_gb: number | null; usb_devices: number | null;
+  usb_devices_list: string[] | null;
   board_model: string | null; agent_version: string | null;
   voltage_dips: number | null; updated_at: string;
 }
