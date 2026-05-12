@@ -45,26 +45,17 @@ export function applyBrandingToDOM(b: Branding) {
   if (typeof document === "undefined") return;
   const r = document.documentElement.style;
   const set = (k: string, v: string) => r.setProperty(k, v);
-  set("--background", hexToOklch(b.background_color));
-  set("--foreground", hexToOklch(b.foreground_color));
-  set("--card", hexToOklch(b.card_color));
-  set("--card-foreground", hexToOklch(b.foreground_color));
-  set("--popover", hexToOklch(b.card_color));
-  set("--popover-foreground", hexToOklch(b.foreground_color));
+  // Only override BRAND tokens (color/typography/shape).
+  // Theme-surface tokens (background/foreground/card/border/muted/secondary)
+  // are intentionally NOT set inline here so the light/dark class on <html>
+  // can switch them. Inline styles would otherwise override the .dark cascade.
   set("--primary", hexToOklch(b.primary_color));
   set("--primary-foreground", hexToOklch(b.primary_foreground));
-  set("--secondary", hexToOklch(b.muted_color));
-  set("--secondary-foreground", hexToOklch(b.foreground_color));
-  set("--muted", hexToOklch(b.muted_color));
-  set("--muted-foreground", hexToOklch(b.foreground_color));
   set("--accent", hexToOklch(b.accent_color));
   set("--accent-foreground", hexToOklch(b.primary_foreground));
   set("--destructive", hexToOklch(b.destructive_color));
-  set("--destructive-foreground", hexToOklch(b.primary_foreground));
   set("--success", hexToOklch(b.success_color));
   set("--warning", hexToOklch(b.warning_color));
-  set("--border", hexToOklch(b.border_color));
-  set("--input", hexToOklch(b.border_color));
   set("--ring", hexToOklch(b.primary_color));
   set("--radius", b.radius);
   set("--font-display", b.font_display);
