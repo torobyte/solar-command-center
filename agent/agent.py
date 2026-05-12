@@ -487,81 +487,146 @@ def collect_device_snapshot() -> dict:
 
 
 # ---------- LAN web UI ----------
-PAGE = """<!doctype html><html lang="es"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>SolarOps</title>
 <style>
 :root{--bg:#fbf8f1;--fg:#0b1220;--muted:#6b7280;--card:#fffdf7;--border:#ece6d6;
-  --pv:#f59e0b;--bat:#10b981;--grid:#f59e0b;--inv:#0b1220;--danger:#ef4444}
+  --pv:#f59e0b;--bat:#10b981;--grid:#f59e0b;--inv:#0b1220;--danger:#ef4444;--load:#3b82f6}
 *{box-sizing:border-box}
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;
-  background:var(--bg);color:var(--fg);padding:32px;min-height:100vh}
+html,body{margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;
+  background:var(--bg);color:var(--fg);padding:16px;min-height:100vh}
 .wrap{max-width:1280px;margin:0 auto}
-.back{color:var(--muted);text-decoration:none;font-size:14px;display:inline-flex;gap:6px;align-items:center;margin-bottom:16px}
-h1{font-size:32px;font-weight:800;margin:0 0 4px}
-.sub{color:var(--muted);font-size:14px;margin-bottom:24px}
-.tabs{display:inline-flex;gap:4px;background:#f1ece0;border-radius:10px;padding:4px;margin-bottom:24px}
-.tab{padding:8px 16px;border-radius:8px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;border:none;background:transparent}
+h1{font-size:22px;font-weight:800;margin:0 0 4px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+.tabs{display:flex;gap:4px;background:#f1ece0;border-radius:10px;padding:4px;margin-bottom:16px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tab{padding:8px 14px;border-radius:8px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border:none;background:transparent;white-space:nowrap;flex-shrink:0}
 .tab.active{background:#fff;color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.06)}
-.panel{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:20px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.tile{background:#faf6ec;border:1px solid var(--border);border-radius:14px;padding:18px;display:flex;align-items:center;gap:16px}
-.icon{width:56px;height:56px;border-radius:12px;background:#f3ecda;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;position:relative}
-.icon.pv{color:var(--pv)} .icon.bat{color:var(--bat)} .icon.grid{color:var(--grid)} .icon.inv{color:var(--inv)}
-.tile .label{font-size:16px;font-weight:700}
-.tile .val{font-size:14px;color:var(--muted);margin-top:2px}
-.warn{position:absolute;bottom:-2px;right:-2px;width:18px;height:18px;background:var(--pv);border-radius:50%;color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;border:2px solid var(--card)}
-.big{text-align:center;padding:48px 20px}
-.big .v{font-size:56px;font-weight:800;letter-spacing:-1px}
-.big .l{color:var(--muted);font-size:14px;margin-top:6px}
-.status{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px}
+.panel h3{margin:0 0 12px;font-size:14px;font-weight:700}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.grid4{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.tile{background:#faf6ec;border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px}
+.icon{width:44px;height:44px;border-radius:10px;background:#f3ecda;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;position:relative}
+.tile .label{font-size:14px;font-weight:700}
+.tile .val{font-size:13px;color:var(--muted);margin-top:2px}
+.warn{position:absolute;bottom:-2px;right:-2px;width:16px;height:16px;background:var(--pv);border-radius:50%;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;border:2px solid var(--card)}
+.big{text-align:center;padding:18px 8px;background:#faf6ec;border:1px solid var(--border);border-radius:12px}
+.big .v{font-size:28px;font-weight:800;letter-spacing:-0.5px}
+.big .l{color:var(--muted);font-size:12px;margin-top:4px}
+.row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;gap:8px}
+.row:last-child{border-bottom:0}
+.row .k{color:var(--muted)}
+.row .v{font-weight:600;text-align:right;word-break:break-all}
+.modecard{display:flex;justify-content:space-between;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px}
+.modecard .l{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.modecard .v{font-size:18px;font-weight:700;margin-top:2px}
+.code{background:#eee;padding:3px 8px;border-radius:6px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted)}
+.usblist{background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;max-height:200px;overflow:auto}
+.usblist div{padding:3px 0}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
 .dot.online{background:var(--bat)} .dot.offline{background:var(--danger)}
-.banner{background:#fef3c7;border:1px solid #fde68a;color:#92400e;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:16px}
-form{display:flex;gap:8px;flex-wrap:wrap}
-input{padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:#fff;color:var(--fg);font-size:14px;flex:1;min-width:200px}
+.banner{background:#fef3c7;border:1px solid #fde68a;color:#92400e;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:14px}
+form{display:flex;flex-direction:column;gap:8px}
+input,select{padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:#fff;color:var(--fg);font-size:14px;width:100%}
 button{padding:10px 18px;border-radius:10px;border:none;background:var(--fg);color:#fff;cursor:pointer;font-weight:600;font-size:14px}
-.muted{color:var(--muted);font-size:12px;margin-top:8px}
-@media(max-width:640px){.grid{grid-template-columns:1fr}body{padding:16px}h1{font-size:24px}}
+.totalcard{text-align:center;padding:16px;background:#faf6ec;border:1px solid var(--border);border-radius:12px}
+.totalcard .v{font-size:24px;font-weight:800}
+.totalcard .l{font-size:12px;color:var(--muted);margin-top:4px}
+svg.chart{width:100%;height:200px;background:#fff;border:1px solid var(--border);border-radius:10px}
+.hidden{display:none!important}
+@media(min-width:720px){
+  body{padding:32px}
+  h1{font-size:28px}
+  .grid4{grid-template-columns:repeat(4,1fr)}
+  .big{padding:32px 20px} .big .v{font-size:42px}
+  .modecard .v{font-size:22px}
+}
 </style></head><body><div class="wrap">
 
-<div id="banner" class="banner" style="display:none"></div>
+<div id="banner" class="banner hidden"></div>
 
-<div id="app" style="display:none">
-  <a class="back" href="#" onclick="return false">← <span data-t="back">Sitio local</span></a>
+<div id="app" class="hidden">
   <h1 id="sname">—</h1>
   <div class="sub"><span id="invStatus">—</span> · <span class="status"><span id="dot" class="dot"></span><span id="connStatus">—</span></span></div>
 
   <div class="tabs">
-    <button class="tab active">Dashboard</button>
+    <button class="tab active" data-tab="dashboard">Dashboard</button>
+    <button class="tab" data-tab="charts">Gráficos</button>
+    <button class="tab" data-tab="totals">Totales</button>
+    <button class="tab" data-tab="config">Configuración</button>
   </div>
 
-  <div class="panel">
-    <div class="grid">
-      <div class="tile"><div class="icon inv">🖥️<span id="invWarn" class="warn" style="display:none">!</span></div>
-        <div><div class="label">Inversor</div><div class="val" id="invMode">—</div></div></div>
-      <div class="tile"><div class="icon pv">☀️</div>
-        <div><div class="label">Solar PV</div><div class="val" id="pvKw">0.0 kW</div></div></div>
-      <div class="tile"><div class="icon grid">🔌<span id="gridWarn" class="warn" style="display:none">!</span></div>
-        <div><div class="label">Red</div><div class="val" id="gridV">0 V</div></div></div>
-      <div class="tile"><div class="icon bat">🔋</div>
-        <div><div class="label">Batería</div><div class="val" id="batPct">0 %</div></div></div>
+  <!-- Dashboard -->
+  <section id="tab-dashboard">
+    <div class="modecard">
+      <div>
+        <div class="l">Modo de uso del inversor</div>
+        <div class="v" id="modeLabel">—</div>
+      </div>
+      <span class="code" id="modeCode">QMOD: —</span>
     </div>
-  </div>
+    <div class="panel">
+      <div class="grid4">
+        <div class="tile"><div class="icon">🖥️<span id="invWarn" class="warn hidden">!</span></div>
+          <div><div class="label">Inversor</div><div class="val" id="invMode">—</div></div></div>
+        <div class="tile"><div class="icon" style="color:var(--pv)">☀️</div>
+          <div><div class="label">Solar PV</div><div class="val" id="pvKw">0.0 kW</div></div></div>
+        <div class="tile"><div class="icon" style="color:var(--grid)">🔌<span id="gridWarn" class="warn hidden">!</span></div>
+          <div><div class="label">Red</div><div class="val" id="gridV">0 V</div></div></div>
+        <div class="tile"><div class="icon" style="color:var(--bat)">🔋</div>
+          <div><div class="label">Batería</div><div class="val" id="batPct">0 %</div></div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="grid4">
+        <div class="big"><div class="v" id="loadW">0 W</div><div class="l">Carga</div></div>
+        <div class="big"><div class="v" id="pvW">0 W</div><div class="l">Solar PV</div></div>
+        <div class="big"><div class="v" id="gridW">0 W</div><div class="l">Red</div></div>
+        <div class="big"><div class="v" id="batW">0 W</div><div class="l">Batería</div></div>
+      </div>
+    </div>
+  </section>
 
-  <div class="panel">
-    <div class="grid">
-      <div class="big"><div class="v" id="loadW">0 W</div><div class="l">Carga</div></div>
-      <div class="big"><div class="v" id="pvW">0 W</div><div class="l">Solar PV</div></div>
-      <div class="big"><div class="v" id="gridW">0 W</div><div class="l">Red</div></div>
-      <div class="big"><div class="v" id="batW">0 W</div><div class="l">Batería</div></div>
+  <!-- Charts -->
+  <section id="tab-charts" class="hidden">
+    <div class="panel"><h3>Potencia Solar PV (W)</h3><svg class="chart" id="chPv"></svg></div>
+    <div class="panel"><h3>Carga AC (W)</h3><svg class="chart" id="chLoad"></svg></div>
+    <div class="panel"><h3>Estado de carga batería (%)</h3><svg class="chart" id="chSoc"></svg></div>
+  </section>
+
+  <!-- Totals -->
+  <section id="tab-totals" class="hidden">
+    <div class="panel"><h3>Hoy (en vivo, calculado localmente)</h3>
+      <div class="grid4">
+        <div class="totalcard"><div class="v" id="tPv">0</div><div class="l">PV (kWh)</div></div>
+        <div class="totalcard"><div class="v" id="tLoad">0</div><div class="l">Carga (kWh)</div></div>
+        <div class="totalcard"><div class="v" id="tGrid">0</div><div class="l">Red usada (kWh)</div></div>
+        <div class="totalcard"><div class="v" id="tBatChg">0</div><div class="l">Batería cargada (kWh)</div></div>
+      </div>
     </div>
-  </div>
+    <div class="panel">
+      <p class="sub" style="margin:0">Para totales históricos de varios días, abre el panel en la nube cuando tengas conexión.</p>
+    </div>
+  </section>
+
+  <!-- Configuration -->
+  <section id="tab-config" class="hidden">
+    <div class="panel"><h3>Especificación del inversor</h3><div id="specRows"></div></div>
+    <div class="panel"><h3>Estado de red</h3><div id="netRows"></div></div>
+    <div class="panel"><h3>Sistema</h3><div id="sysRows"></div></div>
+    <div class="panel">
+      <h3>Detecciones USB</h3>
+      <div id="usbList" class="usblist">—</div>
+    </div>
+  </section>
 </div>
 
-<div id="actcard" class="panel" style="display:none">
+<div id="actcard" class="panel hidden">
   <h1>Activar dispositivo</h1>
-  <p class="sub">Pega el código de licencia que te entregó el administrador y elige un nombre para este sitio.</p>
+  <p class="sub">Pega el código de licencia y elige un nombre para este sitio.</p>
   <form onsubmit="act(event)">
     <input id="name" placeholder="Nombre del sitio" required>
     <input id="code" placeholder="XXXXX-XXXXX-XXXXX-XXXXX" required>
@@ -571,47 +636,86 @@ button{padding:10px 18px;border-radius:10px;border:none;background:var(--fg);col
 </div>
 
 <script>
-function fmtDate(s){try{return new Date(s).toLocaleDateString()}catch(_){return s}}
-function fmtDT(s){try{return new Date(s).toLocaleString()}catch(_){return s}}
-let onlineCloud = false;
-async function pingCloud(url){
-  try{const r=await fetch(url+'/api/public/license-status',{method:'OPTIONS',mode:'no-cors'});return true}catch(_){return false}
+const QMOD = {P:"Encendido (Power On)",S:"Standby",L:"Modo Red (Línea)",B:"Modo Batería",
+  F:"Fallo",H:"Ahorro de energía (ECO)",D:"Apagado",Y:"Bypass",G:"Conectado a red (Grid-tie)",
+  C:"Cargando",E:"ECO",T:"Test / Mantenimiento"};
+function fmtMode(raw){
+  if(!raw) return {label:"—",code:""};
+  const c = String(raw).replace(/[^A-Za-z]/g,"").charAt(0).toUpperCase();
+  if(!c) return {label:"—",code:""};
+  return {label: QMOD[c] || ("Modo "+c+" (desconocido)"), code:c};
 }
+function row(k,v){return '<div class="row"><span class="k">'+k+'</span><span class="v">'+(v??"—")+'</span></div>'}
+
+document.querySelectorAll('.tab').forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    ['dashboard','charts','totals','config'].forEach(t=>{
+      document.getElementById('tab-'+t).classList.toggle('hidden', t!==b.dataset.tab);
+    });
+  };
+});
+
+function drawChart(svg, points, color){
+  const el = document.getElementById(svg);
+  if(!el) return;
+  el.innerHTML = "";
+  const W = el.clientWidth || 600, H = 200, P = 8;
+  if(!points || points.length < 2){
+    el.innerHTML = '<text x="'+W/2+'" y="'+H/2+'" text-anchor="middle" fill="#9ca3af" font-size="13" font-family="sans-serif">Sin datos suficientes todavía</text>';
+    return;
+  }
+  const vals = points.map(p=>Number(p)||0);
+  const max = Math.max(1, ...vals), min = Math.min(0, ...vals);
+  const sx = (W - 2*P) / (points.length - 1);
+  const sy = (H - 2*P) / Math.max(1, max - min);
+  let d = "";
+  vals.forEach((v,i)=>{
+    const x = P + i*sx, y = H - P - (v - min)*sy;
+    d += (i===0?"M":"L") + x.toFixed(1) + " " + y.toFixed(1) + " ";
+  });
+  el.innerHTML = '<path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="2" stroke-linejoin="round"/>';
+}
+
 async function tick(){
   let j;
   try{ j = await (await fetch('/api/state')).json(); }catch(_){return}
   const cfg = j.config||{};
   if(!cfg.device_token){
-    document.getElementById('actcard').style.display='block';
-    document.getElementById('app').style.display='none';
+    document.getElementById('actcard').classList.remove('hidden');
+    document.getElementById('app').classList.add('hidden');
     return;
   }
-  document.getElementById('actcard').style.display='none';
-  document.getElementById('app').style.display='block';
+  document.getElementById('actcard').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
   document.getElementById('sname').textContent = cfg.site_name || cfg.site_id || 'Sitio local';
 
   const L = j.license||{};
   const cloudOk = L.last_check_ok !== false && !!L.last_check_at;
   document.getElementById('dot').className = 'dot ' + (cloudOk?'online':'offline');
-  document.getElementById('connStatus').textContent = cloudOk ? 'sincronizado con la nube' : 'modo offline (sin conexión a la nube)';
+  document.getElementById('connStatus').textContent = cloudOk ? 'sincronizado con la nube' : 'modo offline';
 
   const banner = document.getElementById('banner');
-  if(L.plan && !L.license_active){
-    banner.style.display='block';
+  if(L.plan && L.license_active===false){
+    banner.classList.remove('hidden');
     banner.textContent = 'Licencia expirada. Contacta al administrador.';
   } else if(L.plan==='trial' && (L.days_remaining||0) <= 7){
-    banner.style.display='block';
+    banner.classList.remove('hidden');
     banner.textContent = 'Trial: '+(L.days_remaining||0)+' días restantes.';
-  } else { banner.style.display='none'; }
+  } else { banner.classList.add('hidden'); }
 
   const s = j.latest||{};
   const hasData = Object.keys(s).length>0;
   document.getElementById('invStatus').textContent = hasData ? 'Inversor conectado' : 'Inversor no detectado aún';
-  document.getElementById('invWarn').style.display = hasData?'none':'flex';
-  document.getElementById('invMode').textContent = s.inverter_mode || '—';
+  document.getElementById('invWarn').classList.toggle('hidden', hasData);
+  const m = fmtMode(s.inverter_mode);
+  document.getElementById('modeLabel').textContent = m.label;
+  document.getElementById('modeCode').textContent = 'QMOD: ' + (m.code || '—');
+  document.getElementById('invMode').textContent = m.label;
   document.getElementById('pvKw').textContent = ((s.pv_input_power||0)/1000).toFixed(1)+' kW';
   document.getElementById('gridV').textContent = (s.grid_voltage||0).toFixed(0)+' V';
-  document.getElementById('gridWarn').style.display = (s.grid_voltage||0)>0?'none':'flex';
+  document.getElementById('gridWarn').classList.toggle('hidden', (s.grid_voltage||0)>0);
   document.getElementById('batPct').textContent = (s.battery_capacity||0).toFixed(0)+' %';
   document.getElementById('loadW').textContent = (s.ac_output_active_power||0).toFixed(0)+' W';
   document.getElementById('pvW').textContent = (s.pv_input_power||0).toFixed(0)+' W';
@@ -619,6 +723,41 @@ async function tick(){
   document.getElementById('gridW').textContent = gw.toFixed(0)+' W';
   const bw = (s.battery_voltage||0) * (s.battery_discharge_current||0) - (s.battery_voltage||0)*(s.battery_charging_current||0);
   document.getElementById('batW').textContent = Math.abs(bw).toFixed(0)+' W';
+
+  // Charts
+  const h = j.history||[];
+  drawChart('chPv',   h.map(p=>p.pv),   '#f59e0b');
+  drawChart('chLoad', h.map(p=>p.load), '#3b82f6');
+  drawChart('chSoc',  h.map(p=>p.soc),  '#10b981');
+
+  // Totals
+  const T = j.totals_today||{};
+  document.getElementById('tPv').textContent     = (T.pv_kwh||0).toFixed(2);
+  document.getElementById('tLoad').textContent   = (T.load_kwh||0).toFixed(2);
+  document.getElementById('tGrid').textContent   = (T.grid_used_kwh||0).toFixed(2);
+  document.getElementById('tBatChg').textContent = (T.battery_charged_kwh||0).toFixed(2);
+
+  // Configuration
+  const sp = j.spec||{}, sn = j.snapshot||{};
+  document.getElementById('specRows').innerHTML =
+    row('Driver', sp.driver) + row('Modelo', sp.model_name) + row('Serie', sp.serial_number) +
+    row('Firmware', sp.firmware) + row('Voltaje nominal batería', sp.nominal_battery_voltage?sp.nominal_battery_voltage+' V':null) +
+    row('Voltaje AC esperado', sp.expected_ac_input_voltage?sp.expected_ac_input_voltage+' V':null) +
+    row('Max AC entrada', sp.max_ac_input_current?sp.max_ac_input_current+' A':null) +
+    row('Max AC salida', sp.max_ac_output_current?sp.max_ac_output_current+' A':null) +
+    row('Max potencia AC', sp.max_ac_output_power?sp.max_ac_output_power+' W':null);
+  document.getElementById('netRows').innerHTML =
+    row('SSID WiFi', sn.ssid) + row('Internet', sn.internet_up?'Conectado':'Desconectado') +
+    row('IP Ethernet', sn.ip_eth) + row('IP WiFi', sn.ip_wlan) + row('IP pública', sn.ip_public);
+  document.getElementById('sysRows').innerHTML =
+    row('Modelo de placa', sn.board_model) + row('Versión del agente', sn.agent_version) +
+    row('Temperatura CPU', sn.cpu_temp_c?sn.cpu_temp_c.toFixed(1)+' °C':null) +
+    row('Almacenamiento', (sn.storage_used_pct!=null && sn.storage_total_gb)?sn.storage_used_pct.toFixed(0)+'% de '+sn.storage_total_gb.toFixed(0)+' GB':null) +
+    row('Dispositivos USB', sn.usb_devices);
+  const usbs = sn.usb_devices_list||[];
+  document.getElementById('usbList').innerHTML = usbs.length
+    ? usbs.map(d=>'<div>• '+d.replace(/[<>]/g,'')+'</div>').join('')
+    : '<div style="color:#9ca3af">Sin dispositivos USB detectados</div>';
 }
 async function act(e){e.preventDefault();
   const r = await fetch('/api/activate',{method:'POST',headers:{'Content-Type':'application/json'},
