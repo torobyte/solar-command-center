@@ -51,6 +51,8 @@ def encode(cmd: str) -> bytes:
 
 # ---------- Transports ----------
 class HidrawTransport:
+    kind = "hidraw"
+
     def __init__(self, path: str):
         self.path = path
         self.fd = os.open(path, os.O_RDWR | os.O_NONBLOCK)
@@ -83,18 +85,103 @@ class HidrawTransport:
         except Exception: pass
 
 
-def autodetect() -> HidrawTransport | None:
-    """Try every /dev/hidraw* and return the first that answers QPIRI."""
-    for path in sorted(glob.glob("/dev/hidraw*")):
+class SerialTransport:
+    """RS232 / RS485-USB / UART transport (pyserial). Used for inverters
+    that expose a serial port instead of HID (e.g. RS485 adapters, Pi UART)."""
+    kind = "serial"
+
+    def __init__(self, path: str, baud: int = 2400):
+        import serial  # lazy import — only required if a serial port exists
+        self.path = path
+        self.baud = baud
+        self.ser = serial.Serial(path, baud, timeout=2.0, write_timeout=2.0)
+
+    def send(self, cmd: str) -> str:
+        payload = encode(cmd)
+        try: self.ser.reset_input_buffer()
+        except Exception: pass
+        self.ser.write(payload)
+        deadline = time.time() + 2.0
+        buf = b""
+        while time.time() < deadline:
+            chunk = self.ser.read(64)
+            if chunk:
+                buf += chunk
+                if b"\r" in buf: break
+            else:
+                time.sleep(0.02)
+        text = buf.split(b"\r", 1)[0].decode("ascii", errors="replace")
+        if text.startswith("("): text = text[1:]
+        if len(text) > 3: text = text[:-2]
+        return text
+
+    def close(self):
+        try: self.ser.close()
+        except Exception: pass
+
+
+def _looks_like_qpiri(reply: str) -> bool:
+    """Voltronic QPIRI replies with ~20+ space-separated numeric fields."""
+    if not reply or " " not in reply: return False
+    parts = reply.split()
+    if len(parts) < 10: return False
+    numeric = sum(1 for p in parts[:10] if p.replace(".", "", 1).replace("-", "", 1).isdigit())
+    return numeric >= 6
+
+
+def _try_open(path: str):
+    """Open the right transport for `path` and return it, or None on failure."""
+    try:
+        if "hidraw" in path:
+            return HidrawTransport(path)
+        # Serial: try common Voltronic baud rates (2400 default, 9600 some MPP-Solar)
+        for baud in (2400, 9600):
+            try: return SerialTransport(path, baud=baud)
+            except Exception: continue
+        return None
+    except (PermissionError, FileNotFoundError, OSError):
+        return None
+
+
+def _candidate_ports(preferred: str | None = None) -> list[str]:
+    """All plausible inverter ports, in priority order.
+
+    Order: last-known-good port first, then HID (most common for Axpert
+    USB), then USB-serial adapters (RS485/RS232), then on-board UARTs.
+    """
+    seen, out = set(), []
+    def add(p):
+        if p and p not in seen and os.path.exists(p):
+            seen.add(p); out.append(p)
+    add(preferred)
+    for pat in ("/dev/hidraw*", "/dev/ttyUSB*", "/dev/ttyACM*",
+                "/dev/ttyAMA*", "/dev/ttyS*", "/dev/serial/by-id/*"):
+        for p in sorted(glob.glob(pat)): add(p)
+    return out
+
+
+def autodetect(preferred: str | None = None):
+    """Probe every candidate port (USB-HID + RS485/RS232 + UART) and return
+    the first transport that returns a valid QPIRI reply. Tries the
+    last-known-good port first to avoid re-scanning every restart."""
+    candidates = _candidate_ports(preferred)
+    if not candidates:
+        print("[agent] no candidate ports found (no /dev/hidraw* or /dev/tty*)")
+        return None
+    print(f"[agent] probing {len(candidates)} port(s): {', '.join(candidates)}")
+    for path in candidates:
+        t = _try_open(path)
+        if not t: continue
         try:
-            t = HidrawTransport(path)
             reply = t.send("QPIRI")
-            if reply and " " in reply:
-                print(f"[agent] inverter detected on {path}")
+            if _looks_like_qpiri(reply):
+                print(f"[agent] ✓ inverter detected on {path} ({t.kind})")
                 return t
-            t.close()
-        except (PermissionError, FileNotFoundError, OSError):
-            continue
+            print(f"[agent]   {path}: no valid QPIRI reply")
+        except Exception as e:
+            print(f"[agent]   {path}: {e}")
+        t.close()
+    print("[agent] no inverter responded — will retry")
     return None
 
 
@@ -140,7 +227,7 @@ def save_config(cfg: dict) -> None:
 class Agent:
     def __init__(self):
         self.config = load_config()
-        self.transport: HidrawTransport | None = None
+        self.transport = None
         self.latest: dict = {}
         self.license: dict = {}
         self.lock = threading.Lock()
@@ -148,8 +235,14 @@ class Agent:
 
     def ensure_transport(self):
         if self.transport: return
-        self.transport = autodetect()
-        if not self.transport:
+        preferred = self.config.get("inverter_port")
+        self.transport = autodetect(preferred=preferred)
+        if self.transport:
+            if self.config.get("inverter_port") != self.transport.path:
+                self.config["inverter_port"] = self.transport.path
+                self.config["inverter_transport"] = self.transport.kind
+                save_config(self.config)
+        else:
             print("[agent] no inverter detected, retrying in 5 s")
 
     def poll_loop(self):
