@@ -260,7 +260,11 @@ class Agent:
                     sample = parse_qpigs(qpigs)
                     sample["inverter_mode"] = qmod
                     sample["recorded_at"] = datetime.now(timezone.utc).isoformat()
-                    with self.lock: self.latest = sample
+                    with self.lock:
+                        self.latest = sample
+                        self.history.append(sample)
+                        # Keep ~12h at 5s = 8640 samples; cap at 2000 to limit memory.
+                        if len(self.history) > 2000: self.history = self.history[-2000:]
                     try: self.pending.put_nowait(sample)
                     except queue.Full: pass
             except Exception as e:
