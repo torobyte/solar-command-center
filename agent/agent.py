@@ -25,7 +25,7 @@ DB_PATH = Path(os.environ.get("SOLAROPS_DB", "/var/lib/solarops/state.db"))
 POLL_INTERVAL = 5.0
 PUSH_INTERVAL = 5.0  # push every 5s so the cloud dashboard feels live
 SNAPSHOT_INTERVAL = 60.0  # send specs/network/system snapshot every 60s
-AGENT_VERSION = "0.5.0"
+AGENT_VERSION = "0.6.0"
 PVCFG_PATH = Path(os.environ.get("SOLAROPS_PVCFG", "/etc/solarops/pv.json"))
 
 def load_pvcfg() -> dict:
@@ -234,6 +234,17 @@ def load_config() -> dict:
 def save_config(cfg: dict) -> None:
     CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     CONFIG_PATH.write_text(json.dumps(cfg, indent=2))
+
+
+def load_pvcfg() -> dict:
+    if PVCFG_PATH.exists():
+        try: return json.loads(PVCFG_PATH.read_text())
+        except Exception: return {}
+    return {}
+
+def save_pvcfg(cfg: dict) -> None:
+    PVCFG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    PVCFG_PATH.write_text(json.dumps(cfg, indent=2))
 
 
 # ---------- Worker ----------
@@ -501,6 +512,9 @@ def collect_device_snapshot() -> dict:
 PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>SolarOps</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#f59e0b">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
 <style>
 :root{--bg:#fbf8f1;--fg:#0b1220;--muted:#6b7280;--card:#fffdf7;--border:#ece6d6;
   --pv:#f59e0b;--bat:#10b981;--grid:#f59e0b;--inv:#0b1220;--danger:#ef4444;--load:#3b82f6}
@@ -1111,8 +1125,47 @@ def make_app(agent: Agent) -> Flask:
             return jsonify({"ok": True})
         except requests.HTTPError as e:
             return jsonify({"error": e.response.text}), e.response.status_code
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
+    @app.get("/api/pvconfig")
+    def get_pvcfg():
+        return jsonify(load_pvcfg())
+
+    @app.post("/api/pvconfig")
+    def set_pvcfg():
+        body = request.get_json(force=True) or {}
+        # Whitelist of allowed keys (mirrors cloud schema).
+        allowed = {"array_kwp","battery_kwh","panel_count","panel_watts",
+                   "azimuth","tilt","system_losses_pct","latitude","longitude"}
+        cfg = {k: body.get(k) for k in allowed if k in body}
+        save_pvcfg(cfg)
+        return jsonify({"ok": True, "config": cfg})
+
+    @app.get("/manifest.webmanifest")
+    def manifest():
+        return jsonify({
+            "name": "SolarOps Local",
+            "short_name": "SolarOps",
+            "start_url": "/",
+            "scope": "/",
+            "display": "standalone",
+            "background_color": "#0b1220",
+            "theme_color": "#f59e0b",
+            "icons": [
+                {"src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
+            ],
+        })
+
+    @app.get("/icon.svg")
+    def icon():
+        svg = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">'
+               '<rect width="192" height="192" rx="40" fill="#0b1220"/>'
+               '<g fill="#f59e0b"><circle cx="96" cy="96" r="34"/>'
+               '<g stroke="#f59e0b" stroke-width="10" stroke-linecap="round">'
+               '<line x1="96" y1="20" x2="96" y2="48"/><line x1="96" y1="144" x2="96" y2="172"/>'
+               '<line x1="20" y1="96" x2="48" y2="96"/><line x1="144" y1="96" x2="172" y2="96"/>'
+               '<line x1="42" y1="42" x2="62" y2="62"/><line x1="130" y1="130" x2="150" y2="150"/>'
+               '<line x1="42" y1="150" x2="62" y2="130"/><line x1="130" y1="62" x2="150" y2="42"/>'
+               '</g></g></svg>')
+        return app.response_class(svg, mimetype="image/svg+xml")
 
     return app
 
