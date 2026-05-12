@@ -18,6 +18,10 @@ import { PowerGauges } from "@/components/PowerGauges";
 import { Battery3D, SolarRays, GridSineWave, ConcentricRings } from "@/components/AdvancedVisuals";
 import { DashboardCustomizer, useDashboardLayout, type WidgetDef } from "@/components/DashboardCustomizer";
 import { PvSystemConfigCard, usePvConfig } from "@/components/PvSystemConfig";
+import { NotificationsConfig } from "@/components/NotificationsConfig";
+import { useNotificationWatcher } from "@/lib/notifications";
+import { useAuth } from "@/lib/auth";
+import { Bell } from "lucide-react";
 
 export const Route = createFileRoute("/sites/$siteId")({
   component: () => <ProtectedLayout><SiteDetail /></ProtectedLayout>,
