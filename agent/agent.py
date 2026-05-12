@@ -320,6 +320,56 @@ class Agent:
                 print(f"[agent] license check error: {e}")
             time.sleep(60)
 
+    def snapshot_loop(self):
+        """Periodically push device snapshot (network/system/USB) and inverter
+        spec (QPIRI/QID/QVFW) to the cloud so the Configuration tab fills in."""
+        while True:
+            try:
+                token = self.config.get("device_token")
+                if token:
+                    payload: dict = {"device": collect_device_snapshot()}
+                    if self.transport:
+                        spec: dict = {}
+                        try:
+                            qpiri = self.transport.send("QPIRI")
+                            parts = qpiri.split()
+                            if len(parts) >= 10:
+                                # Best-effort QPIRI mapping (varies by model).
+                                def fnum(i): 
+                                    try: return float(parts[i])
+                                    except (ValueError, IndexError): return None
+                                spec.update({
+                                    "expected_ac_input_voltage": fnum(0),
+                                    "max_ac_input_current": fnum(2),
+                                    "nominal_battery_voltage": fnum(4),
+                                    "max_ac_output_current": fnum(7),
+                                    "max_ac_output_apparent_power": fnum(8),
+                                    "max_ac_output_power": fnum(9),
+                                })
+                        except Exception: pass
+                        try:
+                            serial = self.transport.send("QID").strip()
+                            if serial: spec["serial_number"] = serial
+                        except Exception: pass
+                        try:
+                            fw = self.transport.send("QVFW").replace("VERFW:", "").strip()
+                            if fw: spec["firmware"] = fw
+                        except Exception: pass
+                        spec["driver"] = f"voltronic-{self.transport.kind}"
+                        with self.lock:
+                            self.spec = spec
+                        if spec: payload["spec"] = spec
+                    r = requests.post(
+                        f"{self.config['cloud_url']}/api/public/snapshot",
+                        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                        data=json.dumps(payload), timeout=15,
+                    )
+                    if r.status_code != 200:
+                        print(f"[agent] snapshot push {r.status_code}: {r.text[:200]}")
+            except Exception as e:
+                print(f"[agent] snapshot error: {e}")
+            time.sleep(SNAPSHOT_INTERVAL)
+
     def activate(self, code: str, name: str) -> dict:
         r = requests.post(
             f"{self.config['cloud_url']}/api/public/activate",
