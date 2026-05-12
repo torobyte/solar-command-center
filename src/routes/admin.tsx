@@ -451,25 +451,42 @@ interface License {
 function Licenses() {
   const { user } = useAuth();
   const [rows, setRows] = useState<License[]>([]);
+  const [plans, setPlans] = useState<Array<{ slug: string; name: string; duration_days: number | null; is_lifetime: boolean }>>([]);
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<"all" | "pending" | "redeemed" | "revoked">("all");
   const [search, setSearch] = useState("");
-  const [form, setForm] = useState({ email: "", plan: "pro", days: 365, siteName: "", notes: "" });
+  const [form, setForm] = useState({ email: "", planSlug: "pro", days: 365, isLifetime: false, siteName: "", notes: "" });
 
   async function load() {
-    const { data, error } = await supabase
-      .from("license_codes").select("*").order("created_at", { ascending: false });
+    const [{ data, error }, { data: pl }] = await Promise.all([
+      supabase.from("license_codes").select("*").order("created_at", { ascending: false }),
+      supabase.from("plans").select("slug,name,duration_days,is_lifetime,active").eq("active", true).order("sort_order"),
+    ]);
     if (error) toast.error(error.message);
     setRows((data ?? []) as License[]);
+    setPlans((pl ?? []) as typeof plans);
   }
   useEffect(() => { load(); }, []);
+
+  function pickPlan(slug: string) {
+    const p = plans.find((x) => x.slug === slug);
+    setForm((f) => ({
+      ...f,
+      planSlug: slug,
+      isLifetime: !!p?.is_lifetime,
+      days: p?.duration_days ?? f.days,
+    }));
+  }
 
   async function generate(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
     const code = generateCode();
     const { error } = await supabase.from("license_codes").insert({
-      code, plan: form.plan, duration_days: form.days,
+      code,
+      plan: form.planSlug,
+      duration_days: form.isLifetime ? null : form.days,
+      is_lifetime: form.isLifetime,
       assigned_email: form.email.trim().toLowerCase(),
       site_name: form.siteName.trim() || null,
       notes: form.notes.trim() || null,
@@ -478,7 +495,7 @@ function Licenses() {
     if (error) return toast.error(error.message);
     toast.success(`Licencia creada para ${form.email}`);
     setOpen(false);
-    setForm({ email: "", plan: "pro", days: 365, siteName: "", notes: "" });
+    setForm({ email: "", planSlug: "pro", days: 365, isLifetime: false, siteName: "", notes: "" });
     load();
   }
 
@@ -488,6 +505,14 @@ function Licenses() {
       .update({ revoked_at: new Date().toISOString() }).eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Licencia revocada");
+    load();
+  }
+
+  async function deleteLicense(id: string) {
+    if (!confirm("¿Eliminar permanentemente esta licencia? Esta acción no se puede deshacer.")) return;
+    const { error } = await supabase.from("license_codes").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Licencia eliminada");
     load();
   }
 
