@@ -226,6 +226,7 @@ interface DeviceSnapshot {
   ip_public: string | null; internet_up: boolean | null;
   cpu_temp_c: number | null; storage_used_pct: number | null;
   storage_total_gb: number | null; usb_devices: number | null;
+  usb_devices_list: string[] | null;
   board_model: string | null; agent_version: string | null;
   voltage_dips: number | null; updated_at: string;
 }
@@ -376,17 +377,33 @@ function ConfigurationView({ site }: { site: Site }) {
 
       <Section title="Sistema">
         {snap ? (
-          <div className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
-            <Row label="Modelo de placa" value={snap.board_model ?? "—"} />
-            <Row label="Versión del agente" value={snap.agent_version ?? "—"} />
-            <Row label="Temperatura CPU" value={snap.cpu_temp_c ? `${snap.cpu_temp_c.toFixed(1)} °C` : "—"} />
-            <Row label="Almacenamiento" value={
-              snap.storage_total_gb && snap.storage_used_pct != null
-                ? `${snap.storage_used_pct.toFixed(0)}% de ${snap.storage_total_gb.toFixed(0)} GB`
-                : "—"} />
-            <Row label="Dispositivos USB" value={snap.usb_devices?.toString() ?? "—"} />
-            <Row label="Caídas de voltaje USB" value={snap.voltage_dips?.toString() ?? "0"} />
-          </div>
+          <>
+            <div className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
+              <Row label="Modelo de placa" value={snap.board_model ?? "—"} />
+              <Row label="Versión del agente" value={snap.agent_version ?? "—"} />
+              <Row label="Temperatura CPU" value={snap.cpu_temp_c ? `${snap.cpu_temp_c.toFixed(1)} °C` : "—"} />
+              <Row label="Almacenamiento" value={
+                snap.storage_total_gb && snap.storage_used_pct != null
+                  ? `${snap.storage_used_pct.toFixed(0)}% de ${snap.storage_total_gb.toFixed(0)} GB`
+                  : "—"} />
+              <Row label="Dispositivos USB" value={snap.usb_devices?.toString() ?? "—"} />
+              <Row label="Caídas de voltaje USB" value={snap.voltage_dips?.toString() ?? "0"} />
+            </div>
+            <div className="mt-4">
+              <div className="mb-2 text-sm font-semibold">Detecciones USB</div>
+              {snap.usb_devices_list && snap.usb_devices_list.length > 0 ? (
+                <ul className="space-y-1 rounded-md border bg-background p-3 font-mono text-xs">
+                  {snap.usb_devices_list.map((d, i) => (
+                    <li key={i} className="truncate">• {d}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Sin dispositivos USB detectados o el agente aún no envía la lista (actualiza a la última versión).
+                </p>
+              )}
+            </div>
+          </>
         ) : (
           <p className="text-sm text-muted-foreground">Esperando datos del dispositivo…</p>
         )}
@@ -450,21 +467,29 @@ function ChartCard({ title, children }: { title: string; children: React.ReactEl
 
 /* ---------------- Inverter-style dashboard ---------------- */
 
+// QMOD codes for Voltronic / Axpert / MPP-Solar inverters.
+// Source: Voltronic protocol manuals (Axpert, PIP-MS, PIP-HS, InfiniSolar).
 const INVERTER_MODE_LABELS: Record<string, string> = {
-  P: "Encendido",
+  P: "Encendido (Power On)",
   S: "Standby",
-  L: "Modo Red",
+  L: "Modo Red (Línea)",
   B: "Modo Batería",
   F: "Fallo",
-  H: "Ahorro de energía",
+  H: "Ahorro de energía (ECO)",
   D: "Apagado",
+  Y: "Bypass",
+  G: "Conectado a red (Grid-tie)",
+  C: "Cargando",
+  E: "ECO",
+  T: "Test / Mantenimiento",
 };
 
-function formatInverterMode(raw: string | null | undefined): string {
-  if (!raw) return "—";
+function formatInverterMode(raw: string | null | undefined): { label: string; code: string } {
+  if (!raw) return { label: "—", code: "" };
   // Keep only the first ASCII letter — strips CRC/replacement chars from old samples.
-  const letter = raw.replace(/[^A-Za-z]/g, "").charAt(0).toUpperCase();
-  return INVERTER_MODE_LABELS[letter] ?? (letter || "—");
+  const code = raw.replace(/[^A-Za-z]/g, "").charAt(0).toUpperCase();
+  if (!code) return { label: "—", code: "" };
+  return { label: INVERTER_MODE_LABELS[code] ?? `Modo ${code} (desconocido)`, code };
 }
 
 function DashboardView({ latest }: { latest: Sample | null }) {
@@ -481,8 +506,22 @@ function DashboardView({ latest }: { latest: Sample | null }) {
 
   return (
     <div className="space-y-4">
+      {/* Modo de uso destacado */}
+      <div className="flex items-center justify-between rounded-xl border bg-card p-4 sm:p-5">
+        <div className="flex items-center gap-3">
+          <Cpu className="h-8 w-8 text-foreground/70" />
+          <div>
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">Modo de uso del inversor</div>
+            <div className="text-lg font-semibold sm:text-xl">{mode.label}</div>
+          </div>
+        </div>
+        {mode.code && (
+          <span className="rounded-md bg-muted px-2 py-1 font-mono text-xs text-muted-foreground">QMOD: {mode.code}</span>
+        )}
+      </div>
+
       <div className="grid grid-cols-2 gap-3 rounded-xl border bg-card p-4 sm:gap-4 sm:p-6">
-        <IconCard icon={<Cpu className="h-10 w-10 sm:h-12 sm:w-12 text-foreground/70" />} title={t("site.dash.inverter")} subtitle={mode} />
+        <IconCard icon={<Cpu className="h-10 w-10 sm:h-12 sm:w-12 text-foreground/70" />} title={t("site.dash.inverter")} subtitle={mode.label} />
         <IconCard icon={<Sun className="h-10 w-10 sm:h-12 sm:w-12 text-[var(--solar)]" />} title={t("site.dash.solar")} subtitle={`${(pv / 1000).toFixed(1)} kW`} />
         <IconCard
           icon={

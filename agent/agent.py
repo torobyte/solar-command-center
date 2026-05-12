@@ -12,7 +12,7 @@ Features:
 """
 from __future__ import annotations
 
-import argparse, glob, json, os, queue, sqlite3, threading, time
+import argparse, glob, json, os, queue, shutil, socket, sqlite3, subprocess, threading, time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -24,6 +24,8 @@ CONFIG_PATH = Path(os.environ.get("SOLAROPS_CONFIG", "/etc/solarops/config.json"
 DB_PATH = Path(os.environ.get("SOLAROPS_DB", "/var/lib/solarops/state.db"))
 POLL_INTERVAL = 5.0
 PUSH_INTERVAL = 5.0  # push every 5s so the cloud dashboard feels live
+SNAPSHOT_INTERVAL = 60.0  # send specs/network/system snapshot every 60s
+AGENT_VERSION = "0.4.0"
 
 
 # ---------- Voltronic protocol ----------
@@ -230,6 +232,9 @@ class Agent:
         self.transport = None
         self.latest: dict = {}
         self.license: dict = {}
+        self.spec: dict = {}
+        self.snapshot: dict = {}
+        self.history: list[dict] = []  # last ~12h of samples for local charts
         self.lock = threading.Lock()
         self.pending: queue.Queue = queue.Queue(maxsize=10000)
 
@@ -255,7 +260,11 @@ class Agent:
                     sample = parse_qpigs(qpigs)
                     sample["inverter_mode"] = qmod
                     sample["recorded_at"] = datetime.now(timezone.utc).isoformat()
-                    with self.lock: self.latest = sample
+                    with self.lock:
+                        self.latest = sample
+                        self.history.append(sample)
+                        # Keep ~12h at 5s = 8640 samples; cap at 2000 to limit memory.
+                        if len(self.history) > 2000: self.history = self.history[-2000:]
                     try: self.pending.put_nowait(sample)
                     except queue.Full: pass
             except Exception as e:
@@ -318,6 +327,58 @@ class Agent:
                 print(f"[agent] license check error: {e}")
             time.sleep(60)
 
+    def snapshot_loop(self):
+        """Periodically push device snapshot (network/system/USB) and inverter
+        spec (QPIRI/QID/QVFW) to the cloud so the Configuration tab fills in."""
+        while True:
+            try:
+                # Always collect locally so the LAN UI can show snapshot/spec
+                # even before activation or while offline.
+                snap = collect_device_snapshot()
+                with self.lock: self.snapshot = snap
+                spec: dict = {}
+                if self.transport:
+                    try:
+                        qpiri = self.transport.send("QPIRI")
+                        parts = qpiri.split()
+                        if len(parts) >= 10:
+                            def fnum(i):
+                                try: return float(parts[i])
+                                except (ValueError, IndexError): return None
+                            spec.update({
+                                "expected_ac_input_voltage": fnum(0),
+                                "max_ac_input_current": fnum(2),
+                                "nominal_battery_voltage": fnum(4),
+                                "max_ac_output_current": fnum(7),
+                                "max_ac_output_apparent_power": fnum(8),
+                                "max_ac_output_power": fnum(9),
+                            })
+                    except Exception: pass
+                    try:
+                        serial = self.transport.send("QID").strip()
+                        if serial: spec["serial_number"] = serial
+                    except Exception: pass
+                    try:
+                        fw = self.transport.send("QVFW").replace("VERFW:", "").strip()
+                        if fw: spec["firmware"] = fw
+                    except Exception: pass
+                    spec["driver"] = f"voltronic-{self.transport.kind}"
+                    with self.lock: self.spec = spec
+                token = self.config.get("device_token")
+                if token:
+                    payload: dict = {"device": snap}
+                    if spec: payload["spec"] = spec
+                    r = requests.post(
+                        f"{self.config['cloud_url']}/api/public/snapshot",
+                        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                        data=json.dumps(payload), timeout=15,
+                    )
+                    if r.status_code != 200:
+                        print(f"[agent] snapshot push {r.status_code}: {r.text[:200]}")
+            except Exception as e:
+                print(f"[agent] snapshot error: {e}")
+            time.sleep(SNAPSHOT_INTERVAL)
+
     def activate(self, code: str, name: str) -> dict:
         r = requests.post(
             f"{self.config['cloud_url']}/api/public/activate",
@@ -342,82 +403,230 @@ def hardware_id() -> str:
     return "unknown"
 
 
+# ---------- System / network / USB introspection ----------
+def _run(cmd: list[str], timeout: float = 3.0) -> str:
+    try:
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout).stdout
+    except Exception:
+        return ""
+
+def list_usb_devices() -> list[str]:
+    """Return human-readable list of USB devices using lsusb (or /sys fallback)."""
+    out = _run(["lsusb"])
+    if out.strip():
+        return [ln.strip() for ln in out.splitlines() if ln.strip()]
+    # Fallback: read /sys/bus/usb/devices
+    devs = []
+    for p in sorted(glob.glob("/sys/bus/usb/devices/*/product")):
+        try:
+            name = Path(p).read_text().strip()
+            vendor = Path(p).with_name("manufacturer")
+            v = vendor.read_text().strip() if vendor.exists() else ""
+            devs.append(f"{v} {name}".strip())
+        except Exception: continue
+    return devs
+
+def get_ip(iface: str) -> str | None:
+    out = _run(["ip", "-4", "-o", "addr", "show", iface])
+    for ln in out.splitlines():
+        parts = ln.split()
+        if "inet" in parts:
+            i = parts.index("inet")
+            if i + 1 < len(parts): return parts[i + 1].split("/")[0]
+    return None
+
+def get_ssid() -> str | None:
+    out = _run(["iwgetid", "-r"]).strip()
+    return out or None
+
+def get_public_ip() -> str | None:
+    try:
+        return requests.get("https://api.ipify.org", timeout=3).text.strip() or None
+    except Exception: return None
+
+def internet_up() -> bool:
+    try:
+        s = socket.create_connection(("1.1.1.1", 53), timeout=2); s.close(); return True
+    except Exception: return False
+
+def cpu_temp_c() -> float | None:
+    try:
+        v = Path("/sys/class/thermal/thermal_zone0/temp").read_text().strip()
+        return round(int(v) / 1000.0, 1)
+    except Exception: return None
+
+def storage_info() -> tuple[float | None, float | None]:
+    try:
+        s = shutil.disk_usage("/")
+        return round(s.used * 100 / s.total, 1), round(s.total / 1e9, 1)
+    except Exception: return None, None
+
+def board_model() -> str | None:
+    for p in ("/sys/firmware/devicetree/base/model", "/proc/device-tree/model"):
+        try: return Path(p).read_text().strip("\x00\n ")
+        except Exception: continue
+    return None
+
+def collect_device_snapshot() -> dict:
+    used_pct, total_gb = storage_info()
+    usbs = list_usb_devices()
+    return {
+        "ssid": get_ssid(),
+        "ip_eth": get_ip("eth0"),
+        "ip_wlan": get_ip("wlan0"),
+        "ip_public": get_public_ip(),
+        "internet_up": internet_up(),
+        "cpu_temp_c": cpu_temp_c(),
+        "storage_used_pct": used_pct,
+        "storage_total_gb": total_gb,
+        "usb_devices": len(usbs),
+        "usb_devices_list": usbs,
+        "board_model": board_model(),
+        "agent_version": AGENT_VERSION,
+    }
+
+
 # ---------- LAN web UI ----------
-PAGE = """<!doctype html><html lang="es"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>SolarOps</title>
 <style>
 :root{--bg:#fbf8f1;--fg:#0b1220;--muted:#6b7280;--card:#fffdf7;--border:#ece6d6;
-  --pv:#f59e0b;--bat:#10b981;--grid:#f59e0b;--inv:#0b1220;--danger:#ef4444}
+  --pv:#f59e0b;--bat:#10b981;--grid:#f59e0b;--inv:#0b1220;--danger:#ef4444;--load:#3b82f6}
 *{box-sizing:border-box}
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;
-  background:var(--bg);color:var(--fg);padding:32px;min-height:100vh}
+html,body{margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;
+  background:var(--bg);color:var(--fg);padding:16px;min-height:100vh}
 .wrap{max-width:1280px;margin:0 auto}
-.back{color:var(--muted);text-decoration:none;font-size:14px;display:inline-flex;gap:6px;align-items:center;margin-bottom:16px}
-h1{font-size:32px;font-weight:800;margin:0 0 4px}
-.sub{color:var(--muted);font-size:14px;margin-bottom:24px}
-.tabs{display:inline-flex;gap:4px;background:#f1ece0;border-radius:10px;padding:4px;margin-bottom:24px}
-.tab{padding:8px 16px;border-radius:8px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;border:none;background:transparent}
+h1{font-size:22px;font-weight:800;margin:0 0 4px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+.tabs{display:flex;gap:4px;background:#f1ece0;border-radius:10px;padding:4px;margin-bottom:16px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tab{padding:8px 14px;border-radius:8px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border:none;background:transparent;white-space:nowrap;flex-shrink:0}
 .tab.active{background:#fff;color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.06)}
-.panel{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:20px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.tile{background:#faf6ec;border:1px solid var(--border);border-radius:14px;padding:18px;display:flex;align-items:center;gap:16px}
-.icon{width:56px;height:56px;border-radius:12px;background:#f3ecda;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;position:relative}
-.icon.pv{color:var(--pv)} .icon.bat{color:var(--bat)} .icon.grid{color:var(--grid)} .icon.inv{color:var(--inv)}
-.tile .label{font-size:16px;font-weight:700}
-.tile .val{font-size:14px;color:var(--muted);margin-top:2px}
-.warn{position:absolute;bottom:-2px;right:-2px;width:18px;height:18px;background:var(--pv);border-radius:50%;color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;border:2px solid var(--card)}
-.big{text-align:center;padding:48px 20px}
-.big .v{font-size:56px;font-weight:800;letter-spacing:-1px}
-.big .l{color:var(--muted);font-size:14px;margin-top:6px}
-.status{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px}
+.panel h3{margin:0 0 12px;font-size:14px;font-weight:700}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.grid4{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.tile{background:#faf6ec;border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px}
+.icon{width:44px;height:44px;border-radius:10px;background:#f3ecda;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;position:relative}
+.tile .label{font-size:14px;font-weight:700}
+.tile .val{font-size:13px;color:var(--muted);margin-top:2px}
+.warn{position:absolute;bottom:-2px;right:-2px;width:16px;height:16px;background:var(--pv);border-radius:50%;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;border:2px solid var(--card)}
+.big{text-align:center;padding:18px 8px;background:#faf6ec;border:1px solid var(--border);border-radius:12px}
+.big .v{font-size:28px;font-weight:800;letter-spacing:-0.5px}
+.big .l{color:var(--muted);font-size:12px;margin-top:4px}
+.row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;gap:8px}
+.row:last-child{border-bottom:0}
+.row .k{color:var(--muted)}
+.row .v{font-weight:600;text-align:right;word-break:break-all}
+.modecard{display:flex;justify-content:space-between;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px}
+.modecard .l{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.modecard .v{font-size:18px;font-weight:700;margin-top:2px}
+.code{background:#eee;padding:3px 8px;border-radius:6px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted)}
+.usblist{background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;max-height:200px;overflow:auto}
+.usblist div{padding:3px 0}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
 .dot.online{background:var(--bat)} .dot.offline{background:var(--danger)}
-.banner{background:#fef3c7;border:1px solid #fde68a;color:#92400e;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:16px}
-form{display:flex;gap:8px;flex-wrap:wrap}
-input{padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:#fff;color:var(--fg);font-size:14px;flex:1;min-width:200px}
+.banner{background:#fef3c7;border:1px solid #fde68a;color:#92400e;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:14px}
+form{display:flex;flex-direction:column;gap:8px}
+input,select{padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:#fff;color:var(--fg);font-size:14px;width:100%}
 button{padding:10px 18px;border-radius:10px;border:none;background:var(--fg);color:#fff;cursor:pointer;font-weight:600;font-size:14px}
-.muted{color:var(--muted);font-size:12px;margin-top:8px}
-@media(max-width:640px){.grid{grid-template-columns:1fr}body{padding:16px}h1{font-size:24px}}
+.totalcard{text-align:center;padding:16px;background:#faf6ec;border:1px solid var(--border);border-radius:12px}
+.totalcard .v{font-size:24px;font-weight:800}
+.totalcard .l{font-size:12px;color:var(--muted);margin-top:4px}
+svg.chart{width:100%;height:200px;background:#fff;border:1px solid var(--border);border-radius:10px}
+.hidden{display:none!important}
+@media(min-width:720px){
+  body{padding:32px}
+  h1{font-size:28px}
+  .grid4{grid-template-columns:repeat(4,1fr)}
+  .big{padding:32px 20px} .big .v{font-size:42px}
+  .modecard .v{font-size:22px}
+}
 </style></head><body><div class="wrap">
 
-<div id="banner" class="banner" style="display:none"></div>
+<div id="banner" class="banner hidden"></div>
 
-<div id="app" style="display:none">
-  <a class="back" href="#" onclick="return false">← <span data-t="back">Sitio local</span></a>
+<div id="app" class="hidden">
   <h1 id="sname">—</h1>
   <div class="sub"><span id="invStatus">—</span> · <span class="status"><span id="dot" class="dot"></span><span id="connStatus">—</span></span></div>
 
   <div class="tabs">
-    <button class="tab active">Dashboard</button>
+    <button class="tab active" data-tab="dashboard">Dashboard</button>
+    <button class="tab" data-tab="charts">Gráficos</button>
+    <button class="tab" data-tab="totals">Totales</button>
+    <button class="tab" data-tab="config">Configuración</button>
   </div>
 
-  <div class="panel">
-    <div class="grid">
-      <div class="tile"><div class="icon inv">🖥️<span id="invWarn" class="warn" style="display:none">!</span></div>
-        <div><div class="label">Inversor</div><div class="val" id="invMode">—</div></div></div>
-      <div class="tile"><div class="icon pv">☀️</div>
-        <div><div class="label">Solar PV</div><div class="val" id="pvKw">0.0 kW</div></div></div>
-      <div class="tile"><div class="icon grid">🔌<span id="gridWarn" class="warn" style="display:none">!</span></div>
-        <div><div class="label">Red</div><div class="val" id="gridV">0 V</div></div></div>
-      <div class="tile"><div class="icon bat">🔋</div>
-        <div><div class="label">Batería</div><div class="val" id="batPct">0 %</div></div></div>
+  <!-- Dashboard -->
+  <section id="tab-dashboard">
+    <div class="modecard">
+      <div>
+        <div class="l">Modo de uso del inversor</div>
+        <div class="v" id="modeLabel">—</div>
+      </div>
+      <span class="code" id="modeCode">QMOD: —</span>
     </div>
-  </div>
+    <div class="panel">
+      <div class="grid4">
+        <div class="tile"><div class="icon">🖥️<span id="invWarn" class="warn hidden">!</span></div>
+          <div><div class="label">Inversor</div><div class="val" id="invMode">—</div></div></div>
+        <div class="tile"><div class="icon" style="color:var(--pv)">☀️</div>
+          <div><div class="label">Solar PV</div><div class="val" id="pvKw">0.0 kW</div></div></div>
+        <div class="tile"><div class="icon" style="color:var(--grid)">🔌<span id="gridWarn" class="warn hidden">!</span></div>
+          <div><div class="label">Red</div><div class="val" id="gridV">0 V</div></div></div>
+        <div class="tile"><div class="icon" style="color:var(--bat)">🔋</div>
+          <div><div class="label">Batería</div><div class="val" id="batPct">0 %</div></div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="grid4">
+        <div class="big"><div class="v" id="loadW">0 W</div><div class="l">Carga</div></div>
+        <div class="big"><div class="v" id="pvW">0 W</div><div class="l">Solar PV</div></div>
+        <div class="big"><div class="v" id="gridW">0 W</div><div class="l">Red</div></div>
+        <div class="big"><div class="v" id="batW">0 W</div><div class="l">Batería</div></div>
+      </div>
+    </div>
+  </section>
 
-  <div class="panel">
-    <div class="grid">
-      <div class="big"><div class="v" id="loadW">0 W</div><div class="l">Carga</div></div>
-      <div class="big"><div class="v" id="pvW">0 W</div><div class="l">Solar PV</div></div>
-      <div class="big"><div class="v" id="gridW">0 W</div><div class="l">Red</div></div>
-      <div class="big"><div class="v" id="batW">0 W</div><div class="l">Batería</div></div>
+  <!-- Charts -->
+  <section id="tab-charts" class="hidden">
+    <div class="panel"><h3>Potencia Solar PV (W)</h3><svg class="chart" id="chPv"></svg></div>
+    <div class="panel"><h3>Carga AC (W)</h3><svg class="chart" id="chLoad"></svg></div>
+    <div class="panel"><h3>Estado de carga batería (%)</h3><svg class="chart" id="chSoc"></svg></div>
+  </section>
+
+  <!-- Totals -->
+  <section id="tab-totals" class="hidden">
+    <div class="panel"><h3>Hoy (en vivo, calculado localmente)</h3>
+      <div class="grid4">
+        <div class="totalcard"><div class="v" id="tPv">0</div><div class="l">PV (kWh)</div></div>
+        <div class="totalcard"><div class="v" id="tLoad">0</div><div class="l">Carga (kWh)</div></div>
+        <div class="totalcard"><div class="v" id="tGrid">0</div><div class="l">Red usada (kWh)</div></div>
+        <div class="totalcard"><div class="v" id="tBatChg">0</div><div class="l">Batería cargada (kWh)</div></div>
+      </div>
     </div>
-  </div>
+    <div class="panel">
+      <p class="sub" style="margin:0">Para totales históricos de varios días, abre el panel en la nube cuando tengas conexión.</p>
+    </div>
+  </section>
+
+  <!-- Configuration -->
+  <section id="tab-config" class="hidden">
+    <div class="panel"><h3>Especificación del inversor</h3><div id="specRows"></div></div>
+    <div class="panel"><h3>Estado de red</h3><div id="netRows"></div></div>
+    <div class="panel"><h3>Sistema</h3><div id="sysRows"></div></div>
+    <div class="panel">
+      <h3>Detecciones USB</h3>
+      <div id="usbList" class="usblist">—</div>
+    </div>
+  </section>
 </div>
 
-<div id="actcard" class="panel" style="display:none">
+<div id="actcard" class="panel hidden">
   <h1>Activar dispositivo</h1>
-  <p class="sub">Pega el código de licencia que te entregó el administrador y elige un nombre para este sitio.</p>
+  <p class="sub">Pega el código de licencia y elige un nombre para este sitio.</p>
   <form onsubmit="act(event)">
     <input id="name" placeholder="Nombre del sitio" required>
     <input id="code" placeholder="XXXXX-XXXXX-XXXXX-XXXXX" required>
@@ -427,47 +636,86 @@ button{padding:10px 18px;border-radius:10px;border:none;background:var(--fg);col
 </div>
 
 <script>
-function fmtDate(s){try{return new Date(s).toLocaleDateString()}catch(_){return s}}
-function fmtDT(s){try{return new Date(s).toLocaleString()}catch(_){return s}}
-let onlineCloud = false;
-async function pingCloud(url){
-  try{const r=await fetch(url+'/api/public/license-status',{method:'OPTIONS',mode:'no-cors'});return true}catch(_){return false}
+const QMOD = {P:"Encendido (Power On)",S:"Standby",L:"Modo Red (Línea)",B:"Modo Batería",
+  F:"Fallo",H:"Ahorro de energía (ECO)",D:"Apagado",Y:"Bypass",G:"Conectado a red (Grid-tie)",
+  C:"Cargando",E:"ECO",T:"Test / Mantenimiento"};
+function fmtMode(raw){
+  if(!raw) return {label:"—",code:""};
+  const c = String(raw).replace(/[^A-Za-z]/g,"").charAt(0).toUpperCase();
+  if(!c) return {label:"—",code:""};
+  return {label: QMOD[c] || ("Modo "+c+" (desconocido)"), code:c};
 }
+function row(k,v){return '<div class="row"><span class="k">'+k+'</span><span class="v">'+(v??"—")+'</span></div>'}
+
+document.querySelectorAll('.tab').forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    ['dashboard','charts','totals','config'].forEach(t=>{
+      document.getElementById('tab-'+t).classList.toggle('hidden', t!==b.dataset.tab);
+    });
+  };
+});
+
+function drawChart(svg, points, color){
+  const el = document.getElementById(svg);
+  if(!el) return;
+  el.innerHTML = "";
+  const W = el.clientWidth || 600, H = 200, P = 8;
+  if(!points || points.length < 2){
+    el.innerHTML = '<text x="'+W/2+'" y="'+H/2+'" text-anchor="middle" fill="#9ca3af" font-size="13" font-family="sans-serif">Sin datos suficientes todavía</text>';
+    return;
+  }
+  const vals = points.map(p=>Number(p)||0);
+  const max = Math.max(1, ...vals), min = Math.min(0, ...vals);
+  const sx = (W - 2*P) / (points.length - 1);
+  const sy = (H - 2*P) / Math.max(1, max - min);
+  let d = "";
+  vals.forEach((v,i)=>{
+    const x = P + i*sx, y = H - P - (v - min)*sy;
+    d += (i===0?"M":"L") + x.toFixed(1) + " " + y.toFixed(1) + " ";
+  });
+  el.innerHTML = '<path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="2" stroke-linejoin="round"/>';
+}
+
 async function tick(){
   let j;
   try{ j = await (await fetch('/api/state')).json(); }catch(_){return}
   const cfg = j.config||{};
   if(!cfg.device_token){
-    document.getElementById('actcard').style.display='block';
-    document.getElementById('app').style.display='none';
+    document.getElementById('actcard').classList.remove('hidden');
+    document.getElementById('app').classList.add('hidden');
     return;
   }
-  document.getElementById('actcard').style.display='none';
-  document.getElementById('app').style.display='block';
+  document.getElementById('actcard').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
   document.getElementById('sname').textContent = cfg.site_name || cfg.site_id || 'Sitio local';
 
   const L = j.license||{};
   const cloudOk = L.last_check_ok !== false && !!L.last_check_at;
   document.getElementById('dot').className = 'dot ' + (cloudOk?'online':'offline');
-  document.getElementById('connStatus').textContent = cloudOk ? 'sincronizado con la nube' : 'modo offline (sin conexión a la nube)';
+  document.getElementById('connStatus').textContent = cloudOk ? 'sincronizado con la nube' : 'modo offline';
 
   const banner = document.getElementById('banner');
-  if(L.plan && !L.license_active){
-    banner.style.display='block';
+  if(L.plan && L.license_active===false){
+    banner.classList.remove('hidden');
     banner.textContent = 'Licencia expirada. Contacta al administrador.';
   } else if(L.plan==='trial' && (L.days_remaining||0) <= 7){
-    banner.style.display='block';
+    banner.classList.remove('hidden');
     banner.textContent = 'Trial: '+(L.days_remaining||0)+' días restantes.';
-  } else { banner.style.display='none'; }
+  } else { banner.classList.add('hidden'); }
 
   const s = j.latest||{};
   const hasData = Object.keys(s).length>0;
   document.getElementById('invStatus').textContent = hasData ? 'Inversor conectado' : 'Inversor no detectado aún';
-  document.getElementById('invWarn').style.display = hasData?'none':'flex';
-  document.getElementById('invMode').textContent = s.inverter_mode || '—';
+  document.getElementById('invWarn').classList.toggle('hidden', hasData);
+  const m = fmtMode(s.inverter_mode);
+  document.getElementById('modeLabel').textContent = m.label;
+  document.getElementById('modeCode').textContent = 'QMOD: ' + (m.code || '—');
+  document.getElementById('invMode').textContent = m.label;
   document.getElementById('pvKw').textContent = ((s.pv_input_power||0)/1000).toFixed(1)+' kW';
   document.getElementById('gridV').textContent = (s.grid_voltage||0).toFixed(0)+' V';
-  document.getElementById('gridWarn').style.display = (s.grid_voltage||0)>0?'none':'flex';
+  document.getElementById('gridWarn').classList.toggle('hidden', (s.grid_voltage||0)>0);
   document.getElementById('batPct').textContent = (s.battery_capacity||0).toFixed(0)+' %';
   document.getElementById('loadW').textContent = (s.ac_output_active_power||0).toFixed(0)+' W';
   document.getElementById('pvW').textContent = (s.pv_input_power||0).toFixed(0)+' W';
@@ -475,6 +723,41 @@ async function tick(){
   document.getElementById('gridW').textContent = gw.toFixed(0)+' W';
   const bw = (s.battery_voltage||0) * (s.battery_discharge_current||0) - (s.battery_voltage||0)*(s.battery_charging_current||0);
   document.getElementById('batW').textContent = Math.abs(bw).toFixed(0)+' W';
+
+  // Charts
+  const h = j.history||[];
+  drawChart('chPv',   h.map(p=>p.pv),   '#f59e0b');
+  drawChart('chLoad', h.map(p=>p.load), '#3b82f6');
+  drawChart('chSoc',  h.map(p=>p.soc),  '#10b981');
+
+  // Totals
+  const T = j.totals_today||{};
+  document.getElementById('tPv').textContent     = (T.pv_kwh||0).toFixed(2);
+  document.getElementById('tLoad').textContent   = (T.load_kwh||0).toFixed(2);
+  document.getElementById('tGrid').textContent   = (T.grid_used_kwh||0).toFixed(2);
+  document.getElementById('tBatChg').textContent = (T.battery_charged_kwh||0).toFixed(2);
+
+  // Configuration
+  const sp = j.spec||{}, sn = j.snapshot||{};
+  document.getElementById('specRows').innerHTML =
+    row('Driver', sp.driver) + row('Modelo', sp.model_name) + row('Serie', sp.serial_number) +
+    row('Firmware', sp.firmware) + row('Voltaje nominal batería', sp.nominal_battery_voltage?sp.nominal_battery_voltage+' V':null) +
+    row('Voltaje AC esperado', sp.expected_ac_input_voltage?sp.expected_ac_input_voltage+' V':null) +
+    row('Max AC entrada', sp.max_ac_input_current?sp.max_ac_input_current+' A':null) +
+    row('Max AC salida', sp.max_ac_output_current?sp.max_ac_output_current+' A':null) +
+    row('Max potencia AC', sp.max_ac_output_power?sp.max_ac_output_power+' W':null);
+  document.getElementById('netRows').innerHTML =
+    row('SSID WiFi', sn.ssid) + row('Internet', sn.internet_up?'Conectado':'Desconectado') +
+    row('IP Ethernet', sn.ip_eth) + row('IP WiFi', sn.ip_wlan) + row('IP pública', sn.ip_public);
+  document.getElementById('sysRows').innerHTML =
+    row('Modelo de placa', sn.board_model) + row('Versión del agente', sn.agent_version) +
+    row('Temperatura CPU', sn.cpu_temp_c?sn.cpu_temp_c.toFixed(1)+' °C':null) +
+    row('Almacenamiento', (sn.storage_used_pct!=null && sn.storage_total_gb)?sn.storage_used_pct.toFixed(0)+'% de '+sn.storage_total_gb.toFixed(0)+' GB':null) +
+    row('Dispositivos USB', sn.usb_devices);
+  const usbs = sn.usb_devices_list||[];
+  document.getElementById('usbList').innerHTML = usbs.length
+    ? usbs.map(d=>'<div>• '+d.replace(/[<>]/g,'')+'</div>').join('')
+    : '<div style="color:#9ca3af">Sin dispositivos USB detectados</div>';
 }
 async function act(e){e.preventDefault();
   const r = await fetch('/api/activate',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -485,6 +768,37 @@ async function act(e){e.preventDefault();
 }
 setInterval(tick,2000); tick();
 </script></div></body></html>"""
+
+def compute_today_totals(samples: list[dict]) -> dict:
+    """Trapezoidal kWh from a list of samples (each has recorded_at + powers)."""
+    if len(samples) < 2:
+        return {"pv_kwh": 0, "load_kwh": 0, "grid_used_kwh": 0,
+                "battery_charged_kwh": 0, "battery_discharged_kwh": 0}
+    def parse(s): 
+        try: return datetime.fromisoformat(s.replace("Z","+00:00"))
+        except Exception: return None
+    pv = load = grid = bchg = bdis = 0.0
+    for a, b in zip(samples, samples[1:]):
+        ta, tb = parse(a.get("recorded_at","")), parse(b.get("recorded_at",""))
+        if not ta or not tb: continue
+        h = (tb - ta).total_seconds() / 3600.0
+        if h <= 0 or h > 0.5: continue  # skip gaps > 30min
+        def avg(k): return (float(a.get(k) or 0) + float(b.get(k) or 0)) / 2.0
+        pv   += avg("pv_input_power") * h
+        load += avg("ac_output_active_power") * h
+        if avg("grid_voltage") > 50:
+            grid += avg("ac_output_active_power") * h
+        bv = avg("battery_voltage")
+        bchg += max(0.0, avg("battery_charging_current")) * bv * h
+        bdis += max(0.0, avg("battery_discharge_current")) * bv * h
+    return {
+        "pv_kwh": round(pv/1000, 3),
+        "load_kwh": round(load/1000, 3),
+        "grid_used_kwh": round(grid/1000, 3),
+        "battery_charged_kwh": round(bchg/1000, 3),
+        "battery_discharged_kwh": round(bdis/1000, 3),
+    }
+
 
 def make_app(agent: Agent) -> Flask:
     app = Flask(__name__)
@@ -502,9 +816,32 @@ def make_app(agent: Agent) -> Flask:
         with agent.lock:
             latest = dict(agent.latest)
             license = dict(agent.license)
+            snapshot = dict(agent.snapshot)
+            spec = dict(agent.spec)
+            # Downsample history for the chart: keep ~120 points max.
+            hist = list(agent.history)
+        if len(hist) > 120:
+            step = max(1, len(hist) // 120)
+            hist = hist[::step]
+        # Compute today's totals from history (rough trapezoidal).
+        today = datetime.now(timezone.utc).date().isoformat()
+        today_samples = [s for s in agent.history if str(s.get("recorded_at","")).startswith(today)]
+        totals = compute_today_totals(today_samples)
         cfg = {k: v for k, v in agent.config.items() if k != "device_token"}
         cfg["device_token"] = bool(agent.config.get("device_token"))
-        return jsonify({"latest": latest, "config": cfg, "license": license})
+        return jsonify({
+            "latest": latest, "config": cfg, "license": license,
+            "snapshot": snapshot, "spec": spec,
+            "history": [
+                {"t": s.get("recorded_at"),
+                 "pv": s.get("pv_input_power"),
+                 "load": s.get("ac_output_active_power"),
+                 "soc": s.get("battery_capacity"),
+                 "grid": s.get("grid_voltage")}
+                for s in hist
+            ],
+            "totals_today": totals,
+        })
 
     @app.post("/api/activate")
     def activate():
@@ -537,6 +874,7 @@ def main():
     threading.Thread(target=agent.poll_loop, daemon=True).start()
     threading.Thread(target=agent.push_loop, daemon=True).start()
     threading.Thread(target=agent.license_loop, daemon=True).start()
+    threading.Thread(target=agent.snapshot_loop, daemon=True).start()
 
     app = make_app(agent)
     app.run(host="0.0.0.0", port=args.port, debug=False, use_reloader=False)

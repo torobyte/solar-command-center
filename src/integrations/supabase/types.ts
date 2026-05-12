@@ -116,6 +116,7 @@ export type Database = {
           storage_used_pct: number | null
           updated_at: string
           usb_devices: number | null
+          usb_devices_list: Json | null
           voltage_dips: number | null
         }
         Insert: {
@@ -133,6 +134,7 @@ export type Database = {
           storage_used_pct?: number | null
           updated_at?: string
           usb_devices?: number | null
+          usb_devices_list?: Json | null
           voltage_dips?: number | null
         }
         Update: {
@@ -150,6 +152,7 @@ export type Database = {
           storage_used_pct?: number | null
           updated_at?: string
           usb_devices?: number | null
+          usb_devices_list?: Json | null
           voltage_dips?: number | null
         }
         Relationships: []
