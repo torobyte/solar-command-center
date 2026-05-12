@@ -110,9 +110,10 @@ class SerialTransport:
                 if b"\r" in buf: break
             else:
                 time.sleep(0.02)
-        text = buf.split(b"\r", 1)[0].decode("ascii", errors="replace")
-        if text.startswith("("): text = text[1:]
-        if len(text) > 3: text = text[:-2]
+        raw = buf.split(b"\r", 1)[0]
+        if raw.startswith(b"("): raw = raw[1:]
+        if len(raw) >= 2: raw = raw[:-2]
+        return raw.decode("ascii", errors="replace").strip()
         return text
 
     def close(self):
