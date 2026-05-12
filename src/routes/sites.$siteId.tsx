@@ -313,6 +313,12 @@ function ConfigurationView({ site }: { site: Site }) {
         )}
       </Section>
 
+      <PvSystemConfigCard
+        siteId={site.id}
+        maxAcOutputPower={spec?.max_ac_output_power ?? null}
+        nominalBatteryV={spec?.nominal_battery_voltage ?? null}
+      />
+
       <Section title="Configuración remota del inversor">
         <p className="mb-4 text-sm text-muted-foreground">
           Los cambios se envían a la Raspberry y se aplican al inversor mediante comandos Voltronic.
