@@ -24,6 +24,8 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { BrandingAdmin } from "@/components/admin/BrandingAdmin";
 import { PlansAdmin } from "@/components/admin/PlansAdmin";
+import { LicenseAuditLog } from "@/components/admin/LicenseAuditLog";
+import { ConfirmDestructiveDialog } from "@/components/ConfirmDestructiveDialog";
 
 export const Route = createFileRoute("/admin")({
   component: () => <ProtectedLayout requireRole="superadmin"><AdminPanel /></ProtectedLayout>,
