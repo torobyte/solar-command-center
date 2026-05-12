@@ -546,6 +546,12 @@ function DashboardView({ latest }: { latest: Sample | null }) {
         <Gauge value={`${gridConnected ? load.toFixed(0) : 0} W`} label={t("site.dash.grid")} ratio={gridConnected ? ratio(load, 5000) : 0} color="var(--grid)" />
         <Gauge value={`${batteryW || pv > load ? Math.max(0, pv - load).toFixed(0) : "0"} W`} label={t("site.dash.battery")} ratio={ratio(Math.abs(pv - load), 5000)} color="var(--battery)" />
       </div>
+
+      {/* Energy flow diagram (animated) */}
+      <EnergyFlowDiagram pv={pv} load={load} gridV={gridV} battery={battery} batteryV={batteryV} />
+
+      {/* Solar weather forecast */}
+      <SolarForecastWidget />
     </div>
   );
 }
