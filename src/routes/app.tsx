@@ -13,8 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { Plus, Cpu, Activity } from "lucide-react";
+import { Plus, CpuIcon, Activity, Sparkles, KeyRound, Copy } from "lucide-react";
 import { toast } from "sonner";
+import { TableSkeleton, PageHeaderSkeleton } from "@/components/LoadingStates";
 
 export const Route = createFileRoute("/app")({
   component: () => <ProtectedLayout><SitesIndex /></ProtectedLayout>,
@@ -70,18 +71,27 @@ function SitesIndex() {
     load();
   }
 
+  if (loading) {
+    return (
+      <>
+        <PageHeaderSkeleton />
+        <TableSkeleton rows={4} cols={5} />
+      </>
+    );
+  }
+
   return (
     <>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex items-center justify-between animate-fade-up">
         <div>
-          <h1 className="text-2xl font-bold">{t("sites.title")}</h1>
-          <p className="text-sm text-muted-foreground">{t("sites.subtitle")}</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t("sites.title")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t("sites.subtitle")}</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" />{t("sites.new")}</Button>
+            <Button className="rounded-full shadow-glow"><Plus className="mr-1.5 h-4 w-4" strokeWidth={2.4} />{t("sites.new")}</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="rounded-2xl">
             <DialogHeader>
               <DialogTitle>{t("sites.newDialog.title")}</DialogTitle>
               <DialogDescription>{t("sites.newDialog.desc")}</DialogDescription>
@@ -96,7 +106,7 @@ function SitesIndex() {
                 <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} />
               </div>
               <DialogFooter>
-                <Button type="submit">{t("common.create")}</Button>
+                <Button type="submit" className="rounded-full">{t("common.create")}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -107,23 +117,31 @@ function SitesIndex() {
         const pending = licenses.filter((l) => !l.redeemed_at && !l.revoked_at);
         if (pending.length === 0) return null;
         return (
-          <div className="mb-6 rounded-lg border border-success/30 bg-success/5 p-5">
-            <h3 className="mb-2 font-semibold">Tienes {pending.length} licencia{pending.length > 1 ? "s" : ""} lista{pending.length > 1 ? "s" : ""} para activar</h3>
+          <div className="mb-6 overflow-hidden rounded-2xl border border-success/30 bg-gradient-to-br from-success/10 via-success/5 to-transparent p-5 animate-fade-up">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-success/15 text-success">
+                <Sparkles className="h-4 w-4" strokeWidth={2.4} />
+              </div>
+              <h3 className="font-semibold">Tienes {pending.length} licencia{pending.length > 1 ? "s" : ""} lista{pending.length > 1 ? "s" : ""} para activar</h3>
+            </div>
             <p className="mb-3 text-sm text-muted-foreground">
               Instala el agente en tu Raspberry Pi y, en su pantalla local, ingresa uno de estos códigos:
             </p>
             <div className="space-y-2">
               {pending.map((l) => (
-                <div key={l.id} className="flex items-center justify-between rounded-md border bg-background p-3">
-                  <div>
-                    <div className="font-mono text-sm">{l.code}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {l.plan} · {l.duration_days} días{l.site_name ? ` · ${l.site_name}` : ""}
+                <div key={l.id} className="flex items-center justify-between rounded-xl border bg-background/80 p-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <KeyRound className="h-4 w-4 shrink-0 text-accent" strokeWidth={2.2} />
+                    <div className="min-w-0">
+                      <div className="font-mono text-sm truncate">{l.code}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {l.plan} · {l.duration_days} días{l.site_name ? ` · ${l.site_name}` : ""}
+                      </div>
                     </div>
                   </div>
-                  <Button size="sm" variant="outline"
+                  <Button size="sm" variant="outline" className="rounded-full"
                     onClick={() => { navigator.clipboard.writeText(l.code); toast.success("Código copiado"); }}>
-                    Copiar
+                    <Copy className="mr-1 h-3.5 w-3.5" strokeWidth={2.2} /> Copiar
                   </Button>
                 </div>
               ))}
@@ -132,11 +150,11 @@ function SitesIndex() {
         );
       })()}
 
-      {loading ? (
-        <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
-      ) : sites.length === 0 ? (
-        <div className="rounded-lg border border-dashed bg-card p-12 text-center">
-          <Cpu className="mx-auto h-10 w-10 text-muted-foreground" />
+      {sites.length === 0 ? (
+        <div className="rounded-2xl border border-dashed bg-card p-12 text-center animate-fade-up">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 text-accent">
+            <CpuIcon className="h-7 w-7" strokeWidth={2.2} />
+          </div>
           <h3 className="mt-4 font-semibold">{t("sites.empty.title")}</h3>
           <p className="mt-1 text-sm text-muted-foreground">{t("sites.empty.body")}</p>
         </div>
