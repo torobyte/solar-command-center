@@ -216,6 +216,14 @@ function SiteDetail() {
           </div>
         </TabsContent>
 
+        <TabsContent value="notifications" className="mt-6">
+          {user ? (
+            <NotificationsConfig siteId={siteId} userId={user.id} />
+          ) : (
+            <p className="text-sm text-muted-foreground">Inicia sesión para configurar alertas.</p>
+          )}
+        </TabsContent>
+
         <TabsContent value="config" className="mt-6 space-y-6">
           <ConfigurationView site={site} />
         </TabsContent>
