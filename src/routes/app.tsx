@@ -103,6 +103,35 @@ function SitesIndex() {
         </Dialog>
       </div>
 
+      {(() => {
+        const pending = licenses.filter((l) => !l.redeemed_at && !l.revoked_at);
+        if (pending.length === 0) return null;
+        return (
+          <div className="mb-6 rounded-lg border border-success/30 bg-success/5 p-5">
+            <h3 className="mb-2 font-semibold">Tienes {pending.length} licencia{pending.length > 1 ? "s" : ""} lista{pending.length > 1 ? "s" : ""} para activar</h3>
+            <p className="mb-3 text-sm text-muted-foreground">
+              Instala el agente en tu Raspberry Pi y, en su pantalla local, ingresa uno de estos códigos:
+            </p>
+            <div className="space-y-2">
+              {pending.map((l) => (
+                <div key={l.id} className="flex items-center justify-between rounded-md border bg-background p-3">
+                  <div>
+                    <div className="font-mono text-sm">{l.code}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {l.plan} · {l.duration_days} días{l.site_name ? ` · ${l.site_name}` : ""}
+                    </div>
+                  </div>
+                  <Button size="sm" variant="outline"
+                    onClick={() => { navigator.clipboard.writeText(l.code); toast.success("Código copiado"); }}>
+                    Copiar
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {loading ? (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       ) : sites.length === 0 ? (
