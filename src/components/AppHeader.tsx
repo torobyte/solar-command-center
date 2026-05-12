@@ -56,6 +56,7 @@ export function AppHeader() {
               <div className="mx-3 h-6 w-px bg-border" />
               <span className="hidden text-sm text-muted-foreground lg:inline">{user.email}</span>
               <LangSwitcher />
+              <ThemeToggle />
               <Button variant="ghost" size="sm" title={t("nav.signOut")} onClick={async () => { await signOut(); navigate({ to: "/login" }); }}>
                 <LogOut className="h-4 w-4" />
               </Button>
@@ -63,6 +64,7 @@ export function AppHeader() {
 
             {/* Mobile nav */}
             <div className="flex items-center gap-1 md:hidden">
+              <ThemeToggle />
               <LangSwitcher />
               <Sheet open={open} onOpenChange={setOpen}>
                 <SheetTrigger asChild>
