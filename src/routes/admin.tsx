@@ -53,14 +53,16 @@ function AdminPanel() {
         <p className="text-sm text-muted-foreground">{t("admin.subtitle")}</p>
       </div>
       <Tabs defaultValue="sites">
-        <TabsList>
-          <TabsTrigger value="sites">{t("admin.tab.sites")}</TabsTrigger>
-          <TabsTrigger value="users">{t("admin.tab.users")}</TabsTrigger>
-          <TabsTrigger value="licenses">{t("admin.tab.licenses")}</TabsTrigger>
-          <TabsTrigger value="audit">Auditoría</TabsTrigger>
-          <TabsTrigger value="plans">Planes</TabsTrigger>
-          <TabsTrigger value="branding">Branding & PWA</TabsTrigger>
-        </TabsList>
+        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+          <TabsList className="w-max">
+            <TabsTrigger value="sites">{t("admin.tab.sites")}</TabsTrigger>
+            <TabsTrigger value="users">{t("admin.tab.users")}</TabsTrigger>
+            <TabsTrigger value="licenses">{t("admin.tab.licenses")}</TabsTrigger>
+            <TabsTrigger value="audit">Auditoría</TabsTrigger>
+            <TabsTrigger value="plans">Planes</TabsTrigger>
+            <TabsTrigger value="branding">Branding & PWA</TabsTrigger>
+          </TabsList>
+        </div>
         <TabsContent value="sites" className="mt-6"><SitesAdmin /></TabsContent>
         <TabsContent value="users" className="mt-6"><UsersAdmin /></TabsContent>
         <TabsContent value="licenses" className="mt-6"><Licenses /></TabsContent>
@@ -201,8 +203,8 @@ function SitesAdmin() {
         </Dialog>
       </div>
 
-      <div className="overflow-hidden rounded-lg border bg-card">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-lg border bg-card">
+        <table className="w-full min-w-[900px] text-sm">
           <thead className="border-b bg-muted/50 text-left">
             <tr>
               <th className="px-4 py-3 font-medium">{t("asite.col.site")}</th>
