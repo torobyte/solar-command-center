@@ -504,8 +504,6 @@ function DashboardView({ latest }: { latest: Sample | null }) {
   const gridV = Number(latest?.grid_voltage ?? 0);
   const gridConnected = gridV > 50;
   const mode = formatInverterMode(latest?.inverter_mode);
-  const batteryW = Math.round(batteryV * 0);
-  const ratio = (n: number, max: number) => Math.min(1, Math.max(0, n / max));
 
   return (
     <div className="space-y-4">
