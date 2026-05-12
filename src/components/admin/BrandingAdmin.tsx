@@ -193,3 +193,30 @@ function Field({ label, children, className }: { label: string; children: React.
     </div>
   );
 }
+
+function FontPicker({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const isCustom = !GOOGLE_FONTS.includes(value as (typeof GOOGLE_FONTS)[number]);
+  return (
+    <Field label={label}>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr]">
+        <Select value={isCustom ? "__custom__" : value} onValueChange={(v) => onChange(v === "__custom__" ? value : v)}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent className="max-h-80">
+            {GOOGLE_FONTS.map((f) => (
+              <SelectItem key={f} value={f}>
+                <span style={{ fontFamily: f }}>{f}</span>
+              </SelectItem>
+            ))}
+            <SelectItem value="__custom__">Personalizada…</SelectItem>
+          </SelectContent>
+        </Select>
+        <Input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Inter"
+          className="font-mono text-sm"
+        />
+      </div>
+    </Field>
+  );
+}
