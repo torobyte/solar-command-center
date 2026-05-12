@@ -377,17 +377,33 @@ function ConfigurationView({ site }: { site: Site }) {
 
       <Section title="Sistema">
         {snap ? (
-          <div className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
-            <Row label="Modelo de placa" value={snap.board_model ?? "—"} />
-            <Row label="Versión del agente" value={snap.agent_version ?? "—"} />
-            <Row label="Temperatura CPU" value={snap.cpu_temp_c ? `${snap.cpu_temp_c.toFixed(1)} °C` : "—"} />
-            <Row label="Almacenamiento" value={
-              snap.storage_total_gb && snap.storage_used_pct != null
-                ? `${snap.storage_used_pct.toFixed(0)}% de ${snap.storage_total_gb.toFixed(0)} GB`
-                : "—"} />
-            <Row label="Dispositivos USB" value={snap.usb_devices?.toString() ?? "—"} />
-            <Row label="Caídas de voltaje USB" value={snap.voltage_dips?.toString() ?? "0"} />
-          </div>
+          <>
+            <div className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
+              <Row label="Modelo de placa" value={snap.board_model ?? "—"} />
+              <Row label="Versión del agente" value={snap.agent_version ?? "—"} />
+              <Row label="Temperatura CPU" value={snap.cpu_temp_c ? `${snap.cpu_temp_c.toFixed(1)} °C` : "—"} />
+              <Row label="Almacenamiento" value={
+                snap.storage_total_gb && snap.storage_used_pct != null
+                  ? `${snap.storage_used_pct.toFixed(0)}% de ${snap.storage_total_gb.toFixed(0)} GB`
+                  : "—"} />
+              <Row label="Dispositivos USB" value={snap.usb_devices?.toString() ?? "—"} />
+              <Row label="Caídas de voltaje USB" value={snap.voltage_dips?.toString() ?? "0"} />
+            </div>
+            <div className="mt-4">
+              <div className="mb-2 text-sm font-semibold">Detecciones USB</div>
+              {snap.usb_devices_list && snap.usb_devices_list.length > 0 ? (
+                <ul className="space-y-1 rounded-md border bg-background p-3 font-mono text-xs">
+                  {snap.usb_devices_list.map((d, i) => (
+                    <li key={i} className="truncate">• {d}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Sin dispositivos USB detectados o el agente aún no envía la lista (actualiza a la última versión).
+                </p>
+              )}
+            </div>
+          </>
         ) : (
           <p className="text-sm text-muted-foreground">Esperando datos del dispositivo…</p>
         )}
