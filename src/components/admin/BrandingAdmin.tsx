@@ -105,15 +105,27 @@ export function BrandingAdmin() {
         </TabsContent>
 
         <TabsContent value="typography" className="mt-6 space-y-4">
-          <Field label="Fuente de display (titulares)">
-            <Input value={b.font_display} onChange={(e) => update("font_display", e.target.value)} placeholder="Inter, sans-serif" />
-          </Field>
-          <Field label="Fuente del cuerpo">
-            <Input value={b.font_body} onChange={(e) => update("font_body", e.target.value)} placeholder="Inter, sans-serif" />
-          </Field>
+          <FontPicker
+            label="Fuente de display (titulares)"
+            value={b.font_display}
+            onChange={(v) => { ensureGoogleFont(v); update("font_display", v); }}
+          />
+          <FontPicker
+            label="Fuente del cuerpo"
+            value={b.font_body}
+            onChange={(v) => { ensureGoogleFont(v); update("font_body", v); }}
+          />
+          <div className="rounded-lg border bg-card p-4">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Vista previa</p>
+            <p className="mt-2 text-3xl font-bold" style={{ fontFamily: b.font_display }}>
+              The quick brown fox · 1234567890
+            </p>
+            <p className="mt-1 text-sm" style={{ fontFamily: b.font_body }}>
+              Texto de cuerpo: monitorea tu inversor solar en tiempo real con SolarOps.
+            </p>
+          </div>
           <p className="text-xs text-muted-foreground">
-            Indica una fuente del sistema o ya cargada en el sitio (ej. Inter, "SF Pro Display").
-            Para fuentes custom, agrega el &lt;link&gt; correspondiente al sitio.
+            Las fuentes de Google se cargan automáticamente. Para usar otra, escribe su nombre en "Personalizada".
           </p>
         </TabsContent>
 
