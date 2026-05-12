@@ -332,42 +332,42 @@ class Agent:
         spec (QPIRI/QID/QVFW) to the cloud so the Configuration tab fills in."""
         while True:
             try:
+                # Always collect locally so the LAN UI can show snapshot/spec
+                # even before activation or while offline.
+                snap = collect_device_snapshot()
+                with self.lock: self.snapshot = snap
+                spec: dict = {}
+                if self.transport:
+                    try:
+                        qpiri = self.transport.send("QPIRI")
+                        parts = qpiri.split()
+                        if len(parts) >= 10:
+                            def fnum(i):
+                                try: return float(parts[i])
+                                except (ValueError, IndexError): return None
+                            spec.update({
+                                "expected_ac_input_voltage": fnum(0),
+                                "max_ac_input_current": fnum(2),
+                                "nominal_battery_voltage": fnum(4),
+                                "max_ac_output_current": fnum(7),
+                                "max_ac_output_apparent_power": fnum(8),
+                                "max_ac_output_power": fnum(9),
+                            })
+                    except Exception: pass
+                    try:
+                        serial = self.transport.send("QID").strip()
+                        if serial: spec["serial_number"] = serial
+                    except Exception: pass
+                    try:
+                        fw = self.transport.send("QVFW").replace("VERFW:", "").strip()
+                        if fw: spec["firmware"] = fw
+                    except Exception: pass
+                    spec["driver"] = f"voltronic-{self.transport.kind}"
+                    with self.lock: self.spec = spec
                 token = self.config.get("device_token")
                 if token:
-                    snap = collect_device_snapshot()
-                    with self.lock: self.snapshot = snap
                     payload: dict = {"device": snap}
-                    if self.transport:
-                        spec: dict = {}
-                        try:
-                            qpiri = self.transport.send("QPIRI")
-                            parts = qpiri.split()
-                            if len(parts) >= 10:
-                                # Best-effort QPIRI mapping (varies by model).
-                                def fnum(i): 
-                                    try: return float(parts[i])
-                                    except (ValueError, IndexError): return None
-                                spec.update({
-                                    "expected_ac_input_voltage": fnum(0),
-                                    "max_ac_input_current": fnum(2),
-                                    "nominal_battery_voltage": fnum(4),
-                                    "max_ac_output_current": fnum(7),
-                                    "max_ac_output_apparent_power": fnum(8),
-                                    "max_ac_output_power": fnum(9),
-                                })
-                        except Exception: pass
-                        try:
-                            serial = self.transport.send("QID").strip()
-                            if serial: spec["serial_number"] = serial
-                        except Exception: pass
-                        try:
-                            fw = self.transport.send("QVFW").replace("VERFW:", "").strip()
-                            if fw: spec["firmware"] = fw
-                        except Exception: pass
-                        spec["driver"] = f"voltronic-{self.transport.kind}"
-                        with self.lock:
-                            self.spec = spec
-                        if spec: payload["spec"] = spec
+                    if spec: payload["spec"] = spec
                     r = requests.post(
                         f"{self.config['cloud_url']}/api/public/snapshot",
                         headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
