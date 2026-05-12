@@ -126,6 +126,7 @@ function SiteDetail() {
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="charts">Charts</TabsTrigger>
           <TabsTrigger value="totals">Totals</TabsTrigger>
+          <TabsTrigger value="notifications"><Bell className="mr-1 h-3.5 w-3.5" /> Alertas</TabsTrigger>
           <TabsTrigger value="config">Configuration</TabsTrigger>
         </TabsList>
 
