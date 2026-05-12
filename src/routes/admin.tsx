@@ -55,10 +55,14 @@ function AdminPanel() {
           <TabsTrigger value="sites">{t("admin.tab.sites")}</TabsTrigger>
           <TabsTrigger value="users">{t("admin.tab.users")}</TabsTrigger>
           <TabsTrigger value="licenses">{t("admin.tab.licenses")}</TabsTrigger>
+          <TabsTrigger value="plans">Planes</TabsTrigger>
+          <TabsTrigger value="branding">Branding & PWA</TabsTrigger>
         </TabsList>
         <TabsContent value="sites" className="mt-6"><SitesAdmin /></TabsContent>
         <TabsContent value="users" className="mt-6"><UsersAdmin /></TabsContent>
         <TabsContent value="licenses" className="mt-6"><Licenses /></TabsContent>
+        <TabsContent value="plans" className="mt-6"><PlansAdmin /></TabsContent>
+        <TabsContent value="branding" className="mt-6"><BrandingAdmin /></TabsContent>
       </Tabs>
     </>
   );
