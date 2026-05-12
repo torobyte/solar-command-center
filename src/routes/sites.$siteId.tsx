@@ -15,6 +15,9 @@ import { useI18n } from "@/lib/i18n";
 import { SolarForecastWidget } from "@/components/SolarForecastWidget";
 import { EnergyFlowDiagram } from "@/components/EnergyFlowDiagram";
 import { PowerGauges } from "@/components/PowerGauges";
+import { Battery3D, SolarRays, GridSineWave, ConcentricRings } from "@/components/AdvancedVisuals";
+import { DashboardCustomizer, useDashboardLayout, type WidgetDef } from "@/components/DashboardCustomizer";
+import { PvSystemConfigCard, usePvConfig } from "@/components/PvSystemConfig";
 
 export const Route = createFileRoute("/sites/$siteId")({
   component: () => <ProtectedLayout><SiteDetail /></ProtectedLayout>,
@@ -120,7 +123,7 @@ function SiteDetail() {
         </TabsList>
 
         <TabsContent value="dashboard" className="mt-6">
-          <DashboardView latest={latest} />
+          <DashboardView latest={latest} siteId={siteId} spec={null} />
           {!latest && (
             <div className="mt-8 rounded-lg border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">
               Waiting for the first telemetry sample from your device…
@@ -310,6 +313,12 @@ function ConfigurationView({ site }: { site: Site }) {
         )}
       </Section>
 
+      <PvSystemConfigCard
+        siteId={site.id}
+        maxAcOutputPower={spec?.max_ac_output_power ?? null}
+        nominalBatteryV={spec?.nominal_battery_voltage ?? null}
+      />
+
       <Section title="Configuración remota del inversor">
         <p className="mb-4 text-sm text-muted-foreground">
           Los cambios se envían a la Raspberry y se aplican al inversor mediante comandos Voltronic.
@@ -495,20 +504,34 @@ function formatInverterMode(raw: string | null | undefined): { label: string; co
   return { label: INVERTER_MODE_LABELS[code] ?? `Modo ${code} (desconocido)`, code };
 }
 
-function DashboardView({ latest }: { latest: Sample | null }) {
+const WIDGET_DEFS: WidgetDef[] = [
+  { id: "mode", label: "Modo del inversor" },
+  { id: "icons", label: "Tarjetas resumen" },
+  { id: "rings", label: "Anillos concéntricos" },
+  { id: "gauges", label: "Medidores radiales" },
+  { id: "battery3d", label: "Batería 3D animada" },
+  { id: "solarrays", label: "Sol radiante" },
+  { id: "gridwave", label: "Onda sinusoidal de red" },
+  { id: "flow", label: "Diagrama de flujo de energía" },
+  { id: "forecast", label: "Previsión solar y producción" },
+];
+
+function DashboardView({ latest, siteId, spec: _spec }: { latest: Sample | null; siteId: string; spec: InverterSpec | null }) {
   const { t } = useI18n();
-  const pv = Number(latest?.pv_input_power ?? 0);
+  const { state, persist } = useDashboardLayout(siteId, WIDGET_DEFS);
+  const { config: pv } = usePvConfig(siteId);
+  const pv_W = Number(latest?.pv_input_power ?? 0);
   const load = Number(latest?.ac_output_active_power ?? 0);
   const battery = Number(latest?.battery_capacity ?? 0);
   const batteryV = Number(latest?.battery_voltage ?? 0);
   const gridV = Number(latest?.grid_voltage ?? 0);
   const gridConnected = gridV > 50;
   const mode = formatInverterMode(latest?.inverter_mode);
+  const charging = pv_W > load;
 
-  return (
-    <div className="space-y-4">
-      {/* Modo de uso destacado */}
-      <div className="flex items-center justify-between rounded-xl border bg-card p-4 sm:p-5">
+  const widgets: Record<string, React.ReactNode> = {
+    mode: (
+      <div key="mode" className="flex items-center justify-between rounded-xl border bg-card p-4 sm:p-5 animate-fade-in">
         <div className="flex items-center gap-3">
           <Cpu className="h-8 w-8 text-foreground/70" />
           <div>
@@ -516,37 +539,62 @@ function DashboardView({ latest }: { latest: Sample | null }) {
             <div className="text-lg font-semibold sm:text-xl">{mode.label}</div>
           </div>
         </div>
-        {mode.code && (
-          <span className="rounded-md bg-muted px-2 py-1 font-mono text-xs text-muted-foreground">QMOD: {mode.code}</span>
-        )}
+        {mode.code && <span className="rounded-md bg-muted px-2 py-1 font-mono text-xs text-muted-foreground">QMOD: {mode.code}</span>}
       </div>
-
-      <div className="grid grid-cols-2 gap-3 rounded-xl border bg-card p-4 sm:gap-4 sm:p-6">
+    ),
+    icons: (
+      <div key="icons" className="grid grid-cols-2 gap-3 rounded-xl border bg-card p-4 sm:gap-4 sm:p-6 animate-fade-in">
         <IconCard icon={<Cpu className="h-10 w-10 sm:h-12 sm:w-12 text-foreground/70" />} title={t("site.dash.inverter")} subtitle={mode.label} />
-        <IconCard icon={<Sun className="h-10 w-10 sm:h-12 sm:w-12 text-[var(--solar)]" />} title={t("site.dash.solar")} subtitle={`${(pv / 1000).toFixed(1)} kW`} />
+        <IconCard icon={<Sun className="h-10 w-10 sm:h-12 sm:w-12 text-[var(--solar)]" />} title={t("site.dash.solar")} subtitle={`${(pv_W / 1000).toFixed(1)} kW`} />
         <IconCard
-          icon={
-            <div className="relative">
-              <Plug className="h-10 w-10 sm:h-12 sm:w-12 text-foreground/70" />
-              {!gridConnected && (
-                <AlertCircle className="absolute -bottom-1 -right-1 h-4 w-4 fill-[var(--warning)] text-background" />
-              )}
-            </div>
-          }
-          title={t("site.dash.grid")}
-          subtitle={`${gridV.toFixed(0)} V`}
-        />
+          icon={<div className="relative"><Plug className="h-10 w-10 sm:h-12 sm:w-12 text-foreground/70" />{!gridConnected && <AlertCircle className="absolute -bottom-1 -right-1 h-4 w-4 fill-[var(--warning)] text-background" />}</div>}
+          title={t("site.dash.grid")} subtitle={`${gridV.toFixed(0)} V`} />
         <IconCard icon={<Battery className="h-10 w-10 sm:h-12 sm:w-12 text-[var(--battery)]" />} title={t("site.dash.battery")} subtitle={`${battery.toFixed(0)} %`} />
       </div>
+    ),
+    rings: <ConcentricRings key="rings" pv={pv_W} load={load} soc={battery} pvMax={(pv?.array_kwp ?? 5) * 1000} loadMax={5000} />,
+    gauges: <PowerGauges key="gauges" pv={pv_W} load={load} gridV={gridV} battery={battery} batteryV={batteryV} pvMax={(pv?.array_kwp ?? 5) * 1000} />,
+    battery3d: <Battery3D key="battery3d" soc={battery} voltage={batteryV} charging={charging} />,
+    solarrays: <SolarRays key="solarrays" pv={pv_W} pvMax={(pv?.array_kwp ?? 5) * 1000} />,
+    gridwave: <GridSineWave key="gridwave" voltage={gridV} frequency={50} />,
+    flow: <EnergyFlowDiagram key="flow" pv={pv_W} load={load} gridV={gridV} battery={battery} batteryV={batteryV} />,
+    forecast: (
+      <SolarForecastWidget
+        key="forecast"
+        pvConfig={{ kwp: pv?.array_kwp, lossesPct: pv?.system_losses_pct, batteryKwh: pv?.battery_kwh, lat: pv?.latitude, lon: pv?.longitude }}
+      />
+    ),
+  };
 
-      {/* Animated radial gauges + load bars (SolarAssistant-style) */}
-      <PowerGauges pv={pv} load={load} gridV={gridV} battery={battery} batteryV={batteryV} />
+  // Decide layout cols: heavier widgets in 2-col grid
+  const visible = state.filter((w) => w.visible);
+  const dualCol = new Set(["battery3d", "solarrays", "gridwave"]);
 
-      {/* Energy flow diagram (animated) */}
-      <EnergyFlowDiagram pv={pv} load={load} gridV={gridV} battery={battery} batteryV={batteryV} />
-
-      {/* Solar weather forecast */}
-      <SolarForecastWidget />
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-medium text-muted-foreground">Vista personalizable</h2>
+        <DashboardCustomizer defs={WIDGET_DEFS} state={state} onChange={persist} />
+      </div>
+      {/* Group dual-col widgets side-by-side */}
+      {(() => {
+        const out: React.ReactNode[] = [];
+        let pair: React.ReactNode[] = [];
+        const flushPair = () => {
+          if (pair.length === 0) return;
+          out.push(<div key={`pair-${out.length}`} className="grid gap-4 md:grid-cols-2">{pair}</div>);
+          pair = [];
+        };
+        for (const w of visible) {
+          const node = widgets[w.id];
+          if (!node) continue;
+          if (dualCol.has(w.id)) pair.push(node);
+          else { flushPair(); out.push(node); }
+          if (pair.length === 2) flushPair();
+        }
+        flushPair();
+        return out;
+      })()}
     </div>
   );
 }
@@ -561,59 +609,6 @@ function IconCard({ icon, title, subtitle }: { icon: React.ReactNode; title: str
         <div className="text-sm font-semibold sm:text-base">{title}</div>
         <div className="truncate text-xs text-muted-foreground sm:text-sm">{subtitle}</div>
       </div>
-    </div>
-  );
-}
-
-function Gauge({ value, label, ratio, color }: { value: string; label: string; ratio: number; color: string }) {
-  // Semicircle gauge: 180° arc
-  const r = 70;
-  const cx = 80, cy = 80;
-  const startAngle = Math.PI; // 180°
-  const sweep = Math.PI;       // 180°
-  const a = startAngle + sweep * ratio;
-  const x1 = cx + r * Math.cos(startAngle), y1 = cy + r * Math.sin(startAngle);
-  const x2 = cx + r * Math.cos(a), y2 = cy + r * Math.sin(a);
-  const largeArc = sweep * ratio > Math.PI ? 1 : 0;
-  return (
-    <div className="flex flex-col items-center justify-center rounded-lg border bg-background p-3 sm:p-4">
-      <svg viewBox="0 0 160 95" className="w-full max-w-[180px]">
-        {/* background arc */}
-        <path
-          d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
-          fill="none" stroke="hsl(var(--muted))" strokeWidth="14" strokeLinecap="round"
-          className="opacity-40"
-        />
-        {/* value arc */}
-        {ratio > 0 && (
-          <path
-            d={`M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`}
-            fill="none" stroke={color} strokeWidth="14" strokeLinecap="round"
-          />
-        )}
-        <text x="80" y="70" textAnchor="middle" className="fill-foreground" fontSize="20" fontWeight="700">{value}</text>
-        <text x="80" y="88" textAnchor="middle" className="fill-muted-foreground" fontSize="11">{label}</text>
-      </svg>
-    </div>
-  );
-}
-
-function MetricCard({ icon: Icon, label, value, unit, tone, sub }: {
-  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
-  label: string; value: number; unit: string;
-  tone: "solar" | "load" | "grid" | "battery"; sub?: string;
-}) {
-  const colorVar = `var(--${tone})`;
-  return (
-    <div className="rounded-lg border bg-card p-5 shadow-sm">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Icon className="h-4 w-4" style={{ color: colorVar }} />
-        {label}
-      </div>
-      <div className="mt-2 text-3xl font-bold tracking-tight">
-        {Number(value).toFixed(0)} <span className="text-base font-normal text-muted-foreground">{unit}</span>
-      </div>
-      {sub && <div className="mt-1 text-xs text-muted-foreground">{sub}</div>}
     </div>
   );
 }

@@ -42,7 +42,24 @@ function weatherLabel(code: number): string {
   return "—";
 }
 
-export function SolarForecastWidget() {
+export interface ForecastPvConfig {
+  kwp?: number | null;
+  lossesPct?: number | null;
+  batteryKwh?: number | null;
+  lat?: number | null;
+  lon?: number | null;
+}
+
+/** Estimate produced kWh from radiation Wh/m² using PVWatts-style formula:
+ *  E = kWp * (H / 1000) * (1 - losses)
+ *  H is plane-of-array radiation in Wh/m². For a hourly W/m² value, hourly Wh/m² ≈ W/m² * 1h.
+ */
+function estimateKwh(radWhPerM2: number, kwp: number, lossesPct: number): number {
+  const losses = Math.max(0, Math.min(50, lossesPct)) / 100;
+  return Math.max(0, kwp * (radWhPerM2 / 1000) * (1 - losses));
+}
+
+export function SolarForecastWidget({ pvConfig }: { pvConfig?: ForecastPvConfig } = {}) {
   const [data, setData] = useState<ForecastData | null>(null);
   const [coords, setCoords] = useState<Coords | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,6 +71,13 @@ export function SolarForecastWidget() {
   const debounceRef = useRef<number | null>(null);
 
   useEffect(() => {
+    // PV config coords take precedence
+    if (pvConfig?.lat != null && pvConfig?.lon != null) {
+      const c: Coords = { lat: pvConfig.lat, lon: pvConfig.lon };
+      setCoords(c);
+      void loadForecast(c);
+      return;
+    }
     const cached = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
     if (cached) {
       try {
@@ -65,7 +89,7 @@ export function SolarForecastWidget() {
     }
     void detectAndLoad();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [pvConfig?.lat, pvConfig?.lon]);
 
   async function detectAndLoad() {
     setLoading(true);
@@ -277,25 +301,60 @@ export function SolarForecastWidget() {
         </div>
       )}
 
-      {/* Hourly radiation bars */}
+      {/* Production estimate (requires PV config) */}
+      {pvConfig?.kwp ? (() => {
+        const kwp = pvConfig.kwp!;
+        const losses = pvConfig.lossesPct ?? 14;
+        const next12kwh = data.hourly.reduce((acc, h) => acc + estimateKwh(h.radiation, kwp, losses), 0);
+        const batteryKwh = pvConfig.batteryKwh ?? 0;
+        const batteryFillH = batteryKwh > 0 ? batteryKwh / Math.max(0.01, next12kwh / 12) : 0;
+        return (
+          <div className="mb-4 rounded-lg border bg-gradient-to-br from-[var(--solar)]/10 to-transparent p-3">
+            <div className="mb-1 flex items-center justify-between">
+              <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Producción estimada (próximas 12 h)
+              </div>
+              <div className="text-[10px] text-muted-foreground">{kwp} kWp · {losses}% pérdidas</div>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <div className="text-3xl font-bold text-[var(--solar)] tabular-nums">{next12kwh.toFixed(2)}</div>
+              <div className="text-sm text-muted-foreground">kWh</div>
+              {batteryKwh > 0 && batteryFillH > 0 && (
+                <div className="ml-auto text-[11px] text-muted-foreground">
+                  ≈ {batteryFillH.toFixed(1)} h para llenar batería de {batteryKwh} kWh
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })() : null}
+
+      {/* Hourly radiation bars (with production overlay) */}
       <div className="mb-4">
         <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Próximas 12 h — radiación solar
+          Próximas 12 h — radiación solar{pvConfig?.kwp ? " y producción estimada" : ""}
         </div>
-        <div className="flex h-24 items-end gap-1.5">
+        <div className="flex h-28 items-end gap-1.5">
           {data.hourly.map((h, i) => {
             const height = (h.radiation / peak) * 100;
             const hour = new Date(h.time).getHours();
+            const kwh = pvConfig?.kwp ? estimateKwh(h.radiation, pvConfig.kwp, pvConfig.lossesPct ?? 14) : 0;
             return (
               <div key={h.time} className="flex flex-1 flex-col items-center gap-1">
                 <div
-                  className="w-full rounded-t bg-gradient-to-t from-[var(--solar)] to-[var(--accent)] transition-all"
+                  className="relative w-full rounded-t bg-gradient-to-t from-[var(--solar)] to-[var(--accent)] transition-all"
                   style={{
                     height: `${Math.max(4, height)}%`,
                     animation: `growUp 0.6s ease-out ${i * 40}ms both`,
                   }}
-                  title={`${Math.round(h.radiation)} W/m² · ${Math.round(h.temperature)}°`}
-                />
+                  title={`${Math.round(h.radiation)} W/m² · ${Math.round(h.temperature)}°${kwh ? ` · ${kwh.toFixed(2)} kWh` : ""}`}
+                >
+                  {kwh > 0 && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-[8px] font-semibold text-[var(--solar)]">
+                      {kwh.toFixed(1)}
+                    </div>
+                  )}
+                </div>
                 <div className="text-[10px] text-muted-foreground">{hour}h</div>
               </div>
             );
@@ -305,20 +364,29 @@ export function SolarForecastWidget() {
 
       {/* Daily summary */}
       <div className="grid grid-cols-5 gap-2 border-t pt-3">
-        {data.daily.slice(0, 5).map((d, i) => (
-          <div
-            key={d.date}
-            className="flex flex-col items-center gap-1 rounded-lg p-2 text-center transition-colors hover:bg-muted/50"
-            style={{ animation: `fade-in 0.4s ease-out ${i * 80}ms both` }}
-          >
-            <div className="text-[10px] font-medium uppercase text-muted-foreground">
-              {i === 0 ? "Hoy" : new Date(d.date).toLocaleDateString("es", { weekday: "short" })}
+        {data.daily.slice(0, 5).map((d, i) => {
+          // Daily kWh estimate: sunshine hours × kWp × (1 - losses) × ~0.65 capacity factor during sun
+          const dailyKwh = pvConfig?.kwp
+            ? pvConfig.kwp * d.sunshineHours * 0.65 * (1 - (pvConfig.lossesPct ?? 14) / 100)
+            : null;
+          return (
+            <div
+              key={d.date}
+              className="flex flex-col items-center gap-1 rounded-lg p-2 text-center transition-colors hover:bg-muted/50"
+              style={{ animation: `fade-in 0.4s ease-out ${i * 80}ms both` }}
+            >
+              <div className="text-[10px] font-medium uppercase text-muted-foreground">
+                {i === 0 ? "Hoy" : new Date(d.date).toLocaleDateString("es", { weekday: "short" })}
+              </div>
+              {weatherIcon(d.weatherCode)}
+              <div className="text-xs font-semibold">{Math.round(d.max)}°<span className="text-muted-foreground"> / {Math.round(d.min)}°</span></div>
+              <div className="text-[10px] text-[var(--solar)]">{d.sunshineHours.toFixed(1)} h ☀</div>
+              {dailyKwh != null && (
+                <div className="text-[10px] font-bold text-[var(--accent)]">{dailyKwh.toFixed(1)} kWh</div>
+              )}
             </div>
-            {weatherIcon(d.weatherCode)}
-            <div className="text-xs font-semibold">{Math.round(d.max)}°<span className="text-muted-foreground"> / {Math.round(d.min)}°</span></div>
-            <div className="text-[10px] text-[var(--solar)]">{d.sunshineHours.toFixed(1)} h ☀</div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <style>{`
