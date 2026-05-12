@@ -52,7 +52,7 @@ export const Route = createFileRoute("/api/public/push-dispatch")({
               { data: payloadData, options: { ttl: 3600, urgency: ev.severity === "critical" ? "high" : "normal" } },
               subscription, vapid,
             );
-            const res = await fetch(subscription.endpoint, init);
+            const res = await fetch(subscription.endpoint, init as unknown as RequestInit);
             if (res.status === 404 || res.status === 410) {
               await supabaseAdmin.from("push_subscriptions").delete().eq("id", s.id);
               removed++;
