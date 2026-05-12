@@ -489,8 +489,22 @@ function DashboardView({ latest }: { latest: Sample | null }) {
 
   return (
     <div className="space-y-4">
+      {/* Modo de uso destacado */}
+      <div className="flex items-center justify-between rounded-xl border bg-card p-4 sm:p-5">
+        <div className="flex items-center gap-3">
+          <Cpu className="h-8 w-8 text-foreground/70" />
+          <div>
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">Modo de uso del inversor</div>
+            <div className="text-lg font-semibold sm:text-xl">{mode.label}</div>
+          </div>
+        </div>
+        {mode.code && (
+          <span className="rounded-md bg-muted px-2 py-1 font-mono text-xs text-muted-foreground">QMOD: {mode.code}</span>
+        )}
+      </div>
+
       <div className="grid grid-cols-2 gap-3 rounded-xl border bg-card p-4 sm:gap-4 sm:p-6">
-        <IconCard icon={<Cpu className="h-10 w-10 sm:h-12 sm:w-12 text-foreground/70" />} title={t("site.dash.inverter")} subtitle={mode} />
+        <IconCard icon={<Cpu className="h-10 w-10 sm:h-12 sm:w-12 text-foreground/70" />} title={t("site.dash.inverter")} subtitle={mode.label} />
         <IconCard icon={<Sun className="h-10 w-10 sm:h-12 sm:w-12 text-[var(--solar)]" />} title={t("site.dash.solar")} subtitle={`${(pv / 1000).toFixed(1)} kW`} />
         <IconCard
           icon={
