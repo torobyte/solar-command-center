@@ -18,6 +18,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as SitesSiteIdRouteImport } from './routes/sites.$siteId'
 import { Route as ApiPublicSnapshotRouteImport } from './routes/api/public/snapshot'
 import { Route as ApiPublicRegisterRouteImport } from './routes/api/public/register'
+import { Route as ApiPublicManifestRouteImport } from './routes/api/public/manifest'
 import { Route as ApiPublicLicenseStatusRouteImport } from './routes/api/public/license-status'
 import { Route as ApiPublicIngestRouteImport } from './routes/api/public/ingest'
 import { Route as ApiPublicCommandsRouteImport } from './routes/api/public/commands'
@@ -68,6 +69,11 @@ const ApiPublicRegisterRoute = ApiPublicRegisterRouteImport.update({
   path: '/api/public/register',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicManifestRoute = ApiPublicManifestRouteImport.update({
+  id: '/api/public/manifest',
+  path: '/api/public/manifest',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicLicenseStatusRoute = ApiPublicLicenseStatusRouteImport.update({
   id: '/api/public/license-status',
   path: '/api/public/license-status',
@@ -101,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/api/public/commands': typeof ApiPublicCommandsRoute
   '/api/public/ingest': typeof ApiPublicIngestRoute
   '/api/public/license-status': typeof ApiPublicLicenseStatusRoute
+  '/api/public/manifest': typeof ApiPublicManifestRoute
   '/api/public/register': typeof ApiPublicRegisterRoute
   '/api/public/snapshot': typeof ApiPublicSnapshotRoute
 }
@@ -116,6 +123,7 @@ export interface FileRoutesByTo {
   '/api/public/commands': typeof ApiPublicCommandsRoute
   '/api/public/ingest': typeof ApiPublicIngestRoute
   '/api/public/license-status': typeof ApiPublicLicenseStatusRoute
+  '/api/public/manifest': typeof ApiPublicManifestRoute
   '/api/public/register': typeof ApiPublicRegisterRoute
   '/api/public/snapshot': typeof ApiPublicSnapshotRoute
 }
@@ -132,6 +140,7 @@ export interface FileRoutesById {
   '/api/public/commands': typeof ApiPublicCommandsRoute
   '/api/public/ingest': typeof ApiPublicIngestRoute
   '/api/public/license-status': typeof ApiPublicLicenseStatusRoute
+  '/api/public/manifest': typeof ApiPublicManifestRoute
   '/api/public/register': typeof ApiPublicRegisterRoute
   '/api/public/snapshot': typeof ApiPublicSnapshotRoute
 }
@@ -149,6 +158,7 @@ export interface FileRouteTypes {
     | '/api/public/commands'
     | '/api/public/ingest'
     | '/api/public/license-status'
+    | '/api/public/manifest'
     | '/api/public/register'
     | '/api/public/snapshot'
   fileRoutesByTo: FileRoutesByTo
@@ -164,6 +174,7 @@ export interface FileRouteTypes {
     | '/api/public/commands'
     | '/api/public/ingest'
     | '/api/public/license-status'
+    | '/api/public/manifest'
     | '/api/public/register'
     | '/api/public/snapshot'
   id:
@@ -179,6 +190,7 @@ export interface FileRouteTypes {
     | '/api/public/commands'
     | '/api/public/ingest'
     | '/api/public/license-status'
+    | '/api/public/manifest'
     | '/api/public/register'
     | '/api/public/snapshot'
   fileRoutesById: FileRoutesById
@@ -195,6 +207,7 @@ export interface RootRouteChildren {
   ApiPublicCommandsRoute: typeof ApiPublicCommandsRoute
   ApiPublicIngestRoute: typeof ApiPublicIngestRoute
   ApiPublicLicenseStatusRoute: typeof ApiPublicLicenseStatusRoute
+  ApiPublicManifestRoute: typeof ApiPublicManifestRoute
   ApiPublicRegisterRoute: typeof ApiPublicRegisterRoute
   ApiPublicSnapshotRoute: typeof ApiPublicSnapshotRoute
 }
@@ -264,6 +277,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicRegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/manifest': {
+      id: '/api/public/manifest'
+      path: '/api/public/manifest'
+      fullPath: '/api/public/manifest'
+      preLoaderRoute: typeof ApiPublicManifestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/license-status': {
       id: '/api/public/license-status'
       path: '/api/public/license-status'
@@ -307,6 +327,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCommandsRoute: ApiPublicCommandsRoute,
   ApiPublicIngestRoute: ApiPublicIngestRoute,
   ApiPublicLicenseStatusRoute: ApiPublicLicenseStatusRoute,
+  ApiPublicManifestRoute: ApiPublicManifestRoute,
   ApiPublicRegisterRoute: ApiPublicRegisterRoute,
   ApiPublicSnapshotRoute: ApiPublicSnapshotRoute,
 }
