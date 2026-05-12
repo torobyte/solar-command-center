@@ -493,7 +493,7 @@ function Licenses() {
       performed_by: user.id,
       performed_by_email: user.email ?? null,
       reason: reason || null,
-      details: extra,
+      details: extra as never,
     });
   }
 
