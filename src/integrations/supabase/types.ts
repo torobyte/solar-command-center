@@ -58,6 +58,30 @@ export type Database = {
           },
         ]
       }
+      dashboard_layouts: {
+        Row: {
+          id: string
+          site_id: string
+          updated_at: string
+          user_id: string
+          widgets: Json
+        }
+        Insert: {
+          id?: string
+          site_id: string
+          updated_at?: string
+          user_id: string
+          widgets?: Json
+        }
+        Update: {
+          id?: string
+          site_id?: string
+          updated_at?: string
+          user_id?: string
+          widgets?: Json
+        }
+        Relationships: []
+      }
       device_commands: {
         Row: {
           acked_at: string | null
@@ -290,6 +314,48 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pv_system_config: {
+        Row: {
+          array_kwp: number | null
+          azimuth: number | null
+          battery_kwh: number | null
+          latitude: number | null
+          longitude: number | null
+          panel_count: number | null
+          panel_watts: number | null
+          site_id: string
+          system_losses_pct: number | null
+          tilt: number | null
+          updated_at: string
+        }
+        Insert: {
+          array_kwp?: number | null
+          azimuth?: number | null
+          battery_kwh?: number | null
+          latitude?: number | null
+          longitude?: number | null
+          panel_count?: number | null
+          panel_watts?: number | null
+          site_id: string
+          system_losses_pct?: number | null
+          tilt?: number | null
+          updated_at?: string
+        }
+        Update: {
+          array_kwp?: number | null
+          azimuth?: number | null
+          battery_kwh?: number | null
+          latitude?: number | null
+          longitude?: number | null
+          panel_count?: number | null
+          panel_watts?: number | null
+          site_id?: string
+          system_losses_pct?: number | null
+          tilt?: number | null
           updated_at?: string
         }
         Relationships: []
