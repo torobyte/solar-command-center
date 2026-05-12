@@ -397,8 +397,8 @@ function UsersAdmin() {
         </Dialog>
       </div>
 
-      <div className="overflow-hidden rounded-lg border bg-card">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-lg border bg-card">
+        <table className="w-full min-w-[720px] text-sm">
           <thead className="border-b bg-muted/50 text-left">
             <tr>
               <th className="px-4 py-3 font-medium">{t("ausers.col.email")}</th>
@@ -634,8 +634,8 @@ function Licenses() {
         </Dialog>
       </div>
 
-      <div className="overflow-hidden rounded-lg border bg-card">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-lg border bg-card">
+        <table className="w-full min-w-[900px] text-sm">
           <thead className="border-b bg-muted/50 text-left">
             <tr>
               <th className="px-4 py-3 font-medium">Código</th>
