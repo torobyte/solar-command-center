@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Copy, Battery, Sun, Plug, Cpu, AlertCircle } from "lucide-react";
+import { ArrowLeft, Copy, Battery, Sun, Plug, Cpu, AlertCircle, LayoutDashboard, LineChart, Calculator, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
@@ -21,7 +21,7 @@ import { PvSystemConfigCard, usePvConfig } from "@/components/PvSystemConfig";
 import { NotificationsConfig } from "@/components/NotificationsConfig";
 import { useNotificationWatcher } from "@/lib/notifications";
 import { useAuth } from "@/lib/auth";
-import { Bell } from "lucide-react";
+import { BellRing } from "lucide-react";
 import { MobileBottomNav, type SiteTab } from "@/components/MobileBottomNav";
 
 export const Route = createFileRoute("/sites/$siteId")({
@@ -110,26 +110,26 @@ function SiteDetail() {
 
   return (
     <>
-      <Link to="/app" className="mb-4 inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="mr-1 h-4 w-4" /> Back to sites
+      <Link to="/app" className="group mb-4 inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/60 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-muted/60">
+        <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" strokeWidth={2.4} /> Back to sites
       </Link>
 
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex items-center justify-between animate-fade-up">
         <div>
-          <h1 className="text-2xl font-bold">{site.name}</h1>
-          <p className="text-sm text-muted-foreground">
-            {site.inverter_model ?? "Inverter not yet detected"} · {site.status}
+          <h1 className="text-3xl font-bold tracking-tight">{site.name}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {site.inverter_model ?? "Inverter not yet detected"} · <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${site.status === "online" ? "bg-success/15 text-success" : site.status === "offline" ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground"}`}>● {site.status}</span>
           </p>
         </div>
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as SiteTab)} className="pb-24 md:pb-0">
-        <TabsList className="hidden md:inline-flex">
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="charts">Charts</TabsTrigger>
-          <TabsTrigger value="totals">Totals</TabsTrigger>
-          <TabsTrigger value="notifications"><Bell className="mr-1 h-3.5 w-3.5" /> Alertas</TabsTrigger>
-          <TabsTrigger value="config">Configuration</TabsTrigger>
+        <TabsList className="hidden h-11 rounded-full bg-muted/60 p-1 md:inline-flex">
+          <TabsTrigger value="dashboard" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><LayoutDashboard className="h-3.5 w-3.5" strokeWidth={2.2} />Dashboard</TabsTrigger>
+          <TabsTrigger value="charts" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><LineChart className="h-3.5 w-3.5" strokeWidth={2.2} />Charts</TabsTrigger>
+          <TabsTrigger value="totals" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Calculator className="h-3.5 w-3.5" strokeWidth={2.2} />Totals</TabsTrigger>
+          <TabsTrigger value="notifications" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><BellRing className="h-3.5 w-3.5" strokeWidth={2.2} />Alertas</TabsTrigger>
+          <TabsTrigger value="config" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Settings2 className="h-3.5 w-3.5" strokeWidth={2.2} />Configuration</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard" className="mt-6">
