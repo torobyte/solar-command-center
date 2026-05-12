@@ -334,7 +334,9 @@ class Agent:
             try:
                 token = self.config.get("device_token")
                 if token:
-                    payload: dict = {"device": collect_device_snapshot()}
+                    snap = collect_device_snapshot()
+                    with self.lock: self.snapshot = snap
+                    payload: dict = {"device": snap}
                     if self.transport:
                         spec: dict = {}
                         try:
