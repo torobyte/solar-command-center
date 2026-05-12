@@ -441,7 +441,8 @@ function UsersAdmin() {
 }
 
 interface License {
-  id: string; code: string; plan: string; duration_days: number;
+  id: string; code: string; plan: string; duration_days: number | null;
+  is_lifetime?: boolean;
   redeemed_at: string | null; revoked_at: string | null;
   notes: string | null; assigned_email: string | null;
   assigned_user_id: string | null; site_name: string | null;
