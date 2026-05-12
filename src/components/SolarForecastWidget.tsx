@@ -42,7 +42,24 @@ function weatherLabel(code: number): string {
   return "—";
 }
 
-export function SolarForecastWidget() {
+export interface ForecastPvConfig {
+  kwp?: number | null;
+  lossesPct?: number | null;
+  batteryKwh?: number | null;
+  lat?: number | null;
+  lon?: number | null;
+}
+
+/** Estimate produced kWh from radiation Wh/m² using PVWatts-style formula:
+ *  E = kWp * (H / 1000) * (1 - losses)
+ *  H is plane-of-array radiation in Wh/m². For a hourly W/m² value, hourly Wh/m² ≈ W/m² * 1h.
+ */
+function estimateKwh(radWhPerM2: number, kwp: number, lossesPct: number): number {
+  const losses = Math.max(0, Math.min(50, lossesPct)) / 100;
+  return Math.max(0, kwp * (radWhPerM2 / 1000) * (1 - losses));
+}
+
+export function SolarForecastWidget({ pvConfig }: { pvConfig?: ForecastPvConfig } = {}) {
   const [data, setData] = useState<ForecastData | null>(null);
   const [coords, setCoords] = useState<Coords | null>(null);
   const [loading, setLoading] = useState(true);
