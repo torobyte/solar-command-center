@@ -61,6 +61,8 @@ export function applyBrandingToDOM(b: Branding) {
   set("--font-display", b.font_display);
   set("--font-body", b.font_body);
   document.body.style.fontFamily = b.font_body;
+  ensureGoogleFont(b.font_display);
+  ensureGoogleFont(b.font_body);
   // Title + favicon
   if (b.site_name) document.title = b.site_name;
   if (b.favicon_url) {
