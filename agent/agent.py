@@ -969,6 +969,18 @@ async function tick(){
   const bw = (s.battery_voltage||0) * (s.battery_discharge_current||0) - (s.battery_voltage||0)*(s.battery_charging_current||0);
   document.getElementById('batW').textContent = Math.abs(bw).toFixed(0)+' W';
 
+  // Advanced widgets
+  const pvMax = (parseFloat(_pvcfg.array_kwp)||5)*1000;
+  const pvW = s.pv_input_power||0, loadW = s.ac_output_active_power||0;
+  const charging = (s.battery_charging_current||0) > (s.battery_discharge_current||0);
+  renderRings(pvW, loadW, s.battery_capacity||0, pvMax);
+  renderSun(pvW, pvMax);
+  renderSine(s.grid_voltage||0);
+  renderBat3d(s.battery_capacity||0, s.battery_voltage||0, charging);
+  if(document.getElementById('rPv')){document.getElementById('rPv').textContent=Math.round(pvW)+' W';document.getElementById('rLoad').textContent=Math.round(loadW)+' W';document.getElementById('rSoc').textContent=Math.round(s.battery_capacity||0)+' %';}
+  // Forecast (async, cached)
+  if(document.getElementById('fctBars')){loadForecast(_pvcfg).then(fc=>renderForecast(fc,_pvcfg));}
+
   // Charts
   const h = j.history||[];
   drawChart('chPv',   h.map(p=>p.pv),   '#f59e0b');
