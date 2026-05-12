@@ -2,6 +2,7 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/r
 import { AuthProvider } from "@/lib/auth";
 import { I18nProvider } from "@/lib/i18n";
 import { BrandingProvider } from "@/lib/branding";
+import { ThemeProvider } from "@/lib/theme";
 import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
