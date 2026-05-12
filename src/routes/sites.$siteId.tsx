@@ -189,8 +189,8 @@ function SiteDetail() {
             </AreaChart>
           </ChartCard>
 
-          <div className="overflow-hidden rounded-lg border bg-card">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto rounded-lg border bg-card">
+            <table className="w-full min-w-[640px] text-sm">
               <thead className="border-b bg-muted/50 text-left">
                 <tr>
                   <th className="px-4 py-3 font-medium">Day</th>
@@ -457,13 +457,13 @@ function SettingControl({ label, options, onApply }: {
 }) {
   const [val, setVal] = useState(options[0].v);
   return (
-    <div className="mb-3 flex items-center gap-3">
-      <Label className="w-64 text-sm">{label}</Label>
+    <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+      <Label className="text-sm sm:w-64">{label}</Label>
       <select value={val} onChange={(e) => setVal(e.target.value)}
         className="flex-1 rounded-md border bg-background px-3 py-2 text-sm">
         {options.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
       </select>
-      <Button size="sm" onClick={() => onApply(val)}>Aplicar</Button>
+      <Button size="sm" onClick={() => onApply(val)} className="sm:w-auto">Aplicar</Button>
     </div>
   );
 }
@@ -474,12 +474,12 @@ function NumberControl({ label, min, max, step, defaultValue, onApply }: {
 }) {
   const [val, setVal] = useState(defaultValue);
   return (
-    <div className="mb-3 flex items-center gap-3">
-      <Label className="w-64 text-sm">{label}</Label>
+    <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+      <Label className="text-sm sm:w-64">{label}</Label>
       <input type="number" min={min} max={max} step={step} value={val}
         onChange={(e) => setVal(parseFloat(e.target.value) || defaultValue)}
         className="flex-1 rounded-md border bg-background px-3 py-2 text-sm" />
-      <Button size="sm" onClick={() => onApply(val)}>Aplicar</Button>
+      <Button size="sm" onClick={() => onApply(val)} className="sm:w-auto">Aplicar</Button>
     </div>
   );
 }
@@ -634,7 +634,7 @@ function IconCard({ icon, title, subtitle }: { icon: React.ReactNode; title: str
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border bg-card p-6">
+    <div className="rounded-lg border bg-card p-4 sm:p-6">
       <h3 className="mb-4 font-semibold">{title}</h3>
       <div className="space-y-2">{children}</div>
     </div>
@@ -643,9 +643,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between text-sm">
+    <div className="flex flex-col gap-0.5 text-sm sm:flex-row sm:justify-between sm:gap-2">
       <span className="text-muted-foreground">{label}</span>
-      <span className="font-mono">{value}</span>
+      <span className="font-mono break-all sm:text-right">{value}</span>
     </div>
   );
 }
