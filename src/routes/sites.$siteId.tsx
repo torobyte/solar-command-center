@@ -52,10 +52,13 @@ interface DailyTotal {
 function SiteDetail() {
   const { siteId } = Route.useParams();
   const { t } = useI18n();
+  const { user } = useAuth();
   const [site, setSite] = useState<Site | null>(null);
   const [latest, setLatest] = useState<Sample | null>(null);
   const [history, setHistory] = useState<Sample[]>([]);
   const [totals, setTotals] = useState<DailyTotal[]>([]);
+
+  useNotificationWatcher(siteId, user?.id);
 
   async function load() {
     const { data: s } = await supabase.from("sites").select("*").eq("id", siteId).maybeSingle();
