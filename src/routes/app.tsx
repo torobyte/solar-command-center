@@ -13,8 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { Plus, Cpu, Activity } from "lucide-react";
+import { Plus, Cpu as CpuIcon, Sparkles, KeyRound, Copy } from "lucide-react";
 import { toast } from "sonner";
+import { TableSkeleton, PageHeaderSkeleton } from "@/components/LoadingStates";
 
 export const Route = createFileRoute("/app")({
   component: () => <ProtectedLayout><SitesIndex /></ProtectedLayout>,
@@ -70,18 +71,27 @@ function SitesIndex() {
     load();
   }
 
+  if (loading) {
+    return (
+      <>
+        <PageHeaderSkeleton />
+        <TableSkeleton rows={4} cols={5} />
+      </>
+    );
+  }
+
   return (
     <>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex items-center justify-between animate-fade-up">
         <div>
-          <h1 className="text-2xl font-bold">{t("sites.title")}</h1>
-          <p className="text-sm text-muted-foreground">{t("sites.subtitle")}</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t("sites.title")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t("sites.subtitle")}</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" />{t("sites.new")}</Button>
+            <Button className="rounded-full shadow-glow"><Plus className="mr-1.5 h-4 w-4" strokeWidth={2.4} />{t("sites.new")}</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="rounded-2xl">
             <DialogHeader>
               <DialogTitle>{t("sites.newDialog.title")}</DialogTitle>
               <DialogDescription>{t("sites.newDialog.desc")}</DialogDescription>
@@ -96,7 +106,7 @@ function SitesIndex() {
                 <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} />
               </div>
               <DialogFooter>
-                <Button type="submit">{t("common.create")}</Button>
+                <Button type="submit" className="rounded-full">{t("common.create")}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -107,23 +117,31 @@ function SitesIndex() {
         const pending = licenses.filter((l) => !l.redeemed_at && !l.revoked_at);
         if (pending.length === 0) return null;
         return (
-          <div className="mb-6 rounded-lg border border-success/30 bg-success/5 p-5">
-            <h3 className="mb-2 font-semibold">Tienes {pending.length} licencia{pending.length > 1 ? "s" : ""} lista{pending.length > 1 ? "s" : ""} para activar</h3>
+          <div className="mb-6 overflow-hidden rounded-2xl border border-success/30 bg-gradient-to-br from-success/10 via-success/5 to-transparent p-5 animate-fade-up">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-success/15 text-success">
+                <Sparkles className="h-4 w-4" strokeWidth={2.4} />
+              </div>
+              <h3 className="font-semibold">Tienes {pending.length} licencia{pending.length > 1 ? "s" : ""} lista{pending.length > 1 ? "s" : ""} para activar</h3>
+            </div>
             <p className="mb-3 text-sm text-muted-foreground">
               Instala el agente en tu Raspberry Pi y, en su pantalla local, ingresa uno de estos códigos:
             </p>
             <div className="space-y-2">
               {pending.map((l) => (
-                <div key={l.id} className="flex items-center justify-between rounded-md border bg-background p-3">
-                  <div>
-                    <div className="font-mono text-sm">{l.code}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {l.plan} · {l.duration_days} días{l.site_name ? ` · ${l.site_name}` : ""}
+                <div key={l.id} className="flex items-center justify-between rounded-xl border bg-background/80 p-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <KeyRound className="h-4 w-4 shrink-0 text-accent" strokeWidth={2.2} />
+                    <div className="min-w-0">
+                      <div className="font-mono text-sm truncate">{l.code}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {l.plan} · {l.duration_days} días{l.site_name ? ` · ${l.site_name}` : ""}
+                      </div>
                     </div>
                   </div>
-                  <Button size="sm" variant="outline"
+                  <Button size="sm" variant="outline" className="rounded-full"
                     onClick={() => { navigator.clipboard.writeText(l.code); toast.success("Código copiado"); }}>
-                    Copiar
+                    <Copy className="mr-1 h-3.5 w-3.5" strokeWidth={2.2} /> Copiar
                   </Button>
                 </div>
               ))}
@@ -132,57 +150,63 @@ function SitesIndex() {
         );
       })()}
 
-      {loading ? (
-        <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
-      ) : sites.length === 0 ? (
-        <div className="rounded-lg border border-dashed bg-card p-12 text-center">
-          <Cpu className="mx-auto h-10 w-10 text-muted-foreground" />
+      {sites.length === 0 ? (
+        <div className="rounded-2xl border border-dashed bg-card p-12 text-center animate-fade-up">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 text-accent">
+            <CpuIcon className="h-7 w-7" strokeWidth={2.2} />
+          </div>
           <h3 className="mt-4 font-semibold">{t("sites.empty.title")}</h3>
           <p className="mt-1 text-sm text-muted-foreground">{t("sites.empty.body")}</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border bg-card">
-          <table className="w-full min-w-[640px] text-sm">
-            <thead className="border-b bg-muted/50 text-left">
-              <tr>
-                <th className="px-4 py-3 font-medium">{t("sites.col.name")}</th>
-                <th className="px-4 py-3 font-medium">{t("sites.col.inverter")}</th>
-                <th className="px-4 py-3 font-medium">{t("sites.col.plan")}</th>
-                <th className="px-4 py-3 font-medium">{t("sites.col.status")}</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {sites.map((s) => {
-                const statusKey = s.status === "online" ? "sync.online" : s.status === "offline" ? "sync.offline" : `sync.${s.status}`;
-                const statusLabel = s.status === "online" || s.status === "offline" || s.status === "stale" || s.status === "never" ? t(statusKey) : s.status;
-                return (
-                  <tr key={s.id} className="border-b last:border-0 hover:bg-muted/30">
-                    <td className="px-4 py-3">
-                      <div className="font-medium">{s.name}</div>
-                      {s.description && <div className="text-xs text-muted-foreground">{s.description}</div>}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">{s.inverter_model ?? "—"}</td>
-                    <td className="px-4 py-3"><Badge variant="outline">{s.plan}</Badge></td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs ${
-                        s.status === "online" ? "bg-success/15 text-success" :
-                        s.status === "offline" ? "bg-destructive/15 text-destructive" :
-                        "bg-muted text-muted-foreground"
-                      }`}>
-                        <Activity className="h-3 w-3" /> {statusLabel}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Link to="/sites/$siteId" params={{ siteId: s.id }}>
-                        <Button variant="outline" size="sm">{t("sites.view")}</Button>
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="overflow-hidden rounded-2xl border bg-card shadow-card animate-fade-up">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-3 font-medium">{t("sites.col.name")}</th>
+                  <th className="px-4 py-3 font-medium">{t("sites.col.inverter")}</th>
+                  <th className="px-4 py-3 font-medium">{t("sites.col.plan")}</th>
+                  <th className="px-4 py-3 font-medium">{t("sites.col.status")}</th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {sites.map((s) => {
+                  const statusKey = s.status === "online" ? "sync.online" : s.status === "offline" ? "sync.offline" : `sync.${s.status}`;
+                  const statusLabel = s.status === "online" || s.status === "offline" || s.status === "stale" || s.status === "never" ? t(statusKey) : s.status;
+                  return (
+                    <tr key={s.id} className="border-b last:border-0 transition-colors hover:bg-muted/40">
+                      <td className="px-4 py-3">
+                        <div className="font-medium">{s.name}</div>
+                        {s.description && <div className="text-xs text-muted-foreground">{s.description}</div>}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">{s.inverter_model ?? "—"}</td>
+                      <td className="px-4 py-3"><Badge variant="outline" className="rounded-full">{s.plan}</Badge></td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          s.status === "online" ? "bg-success/15 text-success" :
+                          s.status === "offline" ? "bg-destructive/15 text-destructive" :
+                          "bg-muted text-muted-foreground"
+                        }`}>
+                          <span className={`relative flex h-1.5 w-1.5`}>
+                            {s.status === "online" && <span className="absolute inset-0 animate-ping rounded-full bg-success opacity-60" />}
+                            <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${s.status === "online" ? "bg-success" : s.status === "offline" ? "bg-destructive" : "bg-muted-foreground"}`} />
+                          </span>
+                          {statusLabel}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Link to="/sites/$siteId" params={{ siteId: s.id }}>
+                          <Button variant="outline" size="sm" className="rounded-full">{t("sites.view")}</Button>
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </>
