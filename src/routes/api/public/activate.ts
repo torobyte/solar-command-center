@@ -74,7 +74,11 @@ export const Route = createFileRoute("/api/public/activate")({
             .from("sites").select("*").eq("id", siteId).maybeSingle();
           if (siteErr || !site) return Response.json({ error: "site not found" }, { status: 404 });
 
-          const expires = new Date(Date.now() + lic.duration_days * 86_400_000).toISOString();
+          const isLifetime = (lic as { is_lifetime?: boolean }).is_lifetime === true;
+          const days = lic.duration_days ?? 0;
+          const expires = isLifetime
+            ? new Date("9999-12-31T00:00:00Z").toISOString()
+            : new Date(Date.now() + days * 86_400_000).toISOString();
           await supabaseAdmin.from("sites").update({
             plan: lic.plan, license_expires_at: expires, status: "online",
             hardware_id: body.hardware_id ?? site.hardware_id,
