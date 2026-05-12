@@ -24,6 +24,8 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { BrandingAdmin } from "@/components/admin/BrandingAdmin";
 import { PlansAdmin } from "@/components/admin/PlansAdmin";
+import { LicenseAuditLog } from "@/components/admin/LicenseAuditLog";
+import { ConfirmDestructiveDialog } from "@/components/ConfirmDestructiveDialog";
 
 export const Route = createFileRoute("/admin")({
   component: () => <ProtectedLayout requireRole="superadmin"><AdminPanel /></ProtectedLayout>,
@@ -55,12 +57,14 @@ function AdminPanel() {
           <TabsTrigger value="sites">{t("admin.tab.sites")}</TabsTrigger>
           <TabsTrigger value="users">{t("admin.tab.users")}</TabsTrigger>
           <TabsTrigger value="licenses">{t("admin.tab.licenses")}</TabsTrigger>
+          <TabsTrigger value="audit">Auditoría</TabsTrigger>
           <TabsTrigger value="plans">Planes</TabsTrigger>
           <TabsTrigger value="branding">Branding & PWA</TabsTrigger>
         </TabsList>
         <TabsContent value="sites" className="mt-6"><SitesAdmin /></TabsContent>
         <TabsContent value="users" className="mt-6"><UsersAdmin /></TabsContent>
         <TabsContent value="licenses" className="mt-6"><Licenses /></TabsContent>
+        <TabsContent value="audit" className="mt-6"><LicenseAuditLog /></TabsContent>
         <TabsContent value="plans" className="mt-6"><PlansAdmin /></TabsContent>
         <TabsContent value="branding" className="mt-6"><BrandingAdmin /></TabsContent>
       </Tabs>
@@ -457,6 +461,8 @@ function Licenses() {
   const [filter, setFilter] = useState<"all" | "pending" | "redeemed" | "revoked">("all");
   const [search, setSearch] = useState("");
   const [form, setForm] = useState({ email: "", planSlug: "pro", days: 365, isLifetime: false, siteName: "", notes: "" });
+  const [confirmDel, setConfirmDel] = useState<License | null>(null);
+  const [confirmRev, setConfirmRev] = useState<License | null>(null);
 
   async function load() {
     const [{ data, error }, { data: pl }] = await Promise.all([
@@ -479,11 +485,25 @@ function Licenses() {
     }));
   }
 
+  async function logAudit(action: string, lic: Pick<License, "id" | "code" | "plan">, reason: string, extra: Record<string, unknown> = {}) {
+    if (!user) return;
+    await supabase.from("license_audit_log").insert({
+      license_id: lic.id,
+      license_code: lic.code,
+      plan: lic.plan,
+      action,
+      performed_by: user.id,
+      performed_by_email: user.email ?? null,
+      reason: reason || null,
+      details: extra as never,
+    });
+  }
+
   async function generate(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
     const code = generateCode();
-    const { error } = await supabase.from("license_codes").insert({
+    const { data: inserted, error } = await supabase.from("license_codes").insert({
       code,
       plan: form.planSlug,
       duration_days: form.isLifetime ? null : form.days,
@@ -492,26 +512,32 @@ function Licenses() {
       site_name: form.siteName.trim() || null,
       notes: form.notes.trim() || null,
       created_by: user.id,
-    });
+    }).select("id,code,plan").maybeSingle();
     if (error) return toast.error(error.message);
     toast.success(`Licencia creada para ${form.email}`);
+    if (inserted) await logAudit("created", inserted as License, "", { assigned_email: form.email, is_lifetime: form.isLifetime });
     setOpen(false);
     setForm({ email: "", planSlug: "pro", days: 365, isLifetime: false, siteName: "", notes: "" });
     load();
   }
 
-  async function revokeLicense(id: string) {
-    if (!confirm("¿Revocar esta licencia? El código dejará de ser válido.")) return;
+  async function doRevoke(lic: License, reason: string) {
     const { error } = await supabase.from("license_codes")
-      .update({ revoked_at: new Date().toISOString() }).eq("id", id);
+      .update({ revoked_at: new Date().toISOString() }).eq("id", lic.id);
     if (error) return toast.error(error.message);
+    await logAudit("revoked", lic, reason);
     toast.success("Licencia revocada");
     load();
   }
 
-  async function deleteLicense(id: string) {
-    if (!confirm("¿Eliminar permanentemente esta licencia? Esta acción no se puede deshacer.")) return;
-    const { error } = await supabase.from("license_codes").delete().eq("id", id);
+  async function doDelete(lic: License, reason: string) {
+    // Audit FIRST so the record survives even if the row is gone.
+    await logAudit("deleted", lic, reason, {
+      assigned_email: lic.assigned_email,
+      redeemed_at: lic.redeemed_at,
+      revoked_at: lic.revoked_at,
+    });
+    const { error } = await supabase.from("license_codes").delete().eq("id", lic.id);
     if (error) return toast.error(error.message);
     toast.success("Licencia eliminada");
     load();
@@ -649,12 +675,12 @@ function Licenses() {
                       </Button>
                       {!r.redeemed_at && !r.revoked_at && (
                         <Button size="sm" variant="ghost" title="Revocar"
-                          onClick={() => revokeLicense(r.id)}>
+                          onClick={() => setConfirmRev(r)}>
                           <ShieldOff className="h-3.5 w-3.5" />
                         </Button>
                       )}
                       <Button size="sm" variant="ghost" title="Eliminar licencia"
-                        onClick={() => deleteLicense(r.id)}>
+                        onClick={() => setConfirmDel(r)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -668,6 +694,31 @@ function Licenses() {
           <p className="p-8 text-center text-sm text-muted-foreground">Sin licencias.</p>
         )}
       </div>
+
+      <ConfirmDestructiveDialog
+        open={!!confirmRev}
+        onOpenChange={(o) => !o && setConfirmRev(null)}
+        title="Revocar licencia"
+        description={`Esta acción inhabilita el código ${confirmRev?.code ?? ""} de forma inmediata. Queda registrada en auditoría.`}
+        expectedText="REVOCAR"
+        confirmLabel="Revocar licencia"
+        destructive={false}
+        requireReason
+        onConfirm={async (reason) => { if (confirmRev) await doRevoke(confirmRev, reason); }}
+      />
+
+      <ConfirmDestructiveDialog
+        open={!!confirmDel}
+        onOpenChange={(o) => !o && setConfirmDel(null)}
+        title="Eliminar licencia permanentemente"
+        description="Vas a eliminar definitivamente la licencia. El historial de auditoría se conserva. Para confirmar, escribe el código completo."
+        expectedText={confirmDel?.code ?? ""}
+        expectedLabel={`el código (${confirmDel?.code ?? ""})`}
+        confirmLabel="Eliminar definitivamente"
+        destructive
+        requireReason
+        onConfirm={async (reason) => { if (confirmDel) await doDelete(confirmDel, reason); }}
+      />
     </>
   );
 }
