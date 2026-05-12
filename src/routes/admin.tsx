@@ -563,24 +563,31 @@ function Licenses() {
                   si no, se vinculará automáticamente cuando se registre.
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Plan</Label>
-                  <Select value={form.plan} onValueChange={(v) => setForm({ ...form, plan: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="trial">Trial</SelectItem>
-                      <SelectItem value="pro">Pro</SelectItem>
-                      <SelectItem value="enterprise">Enterprise</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label>Plan</Label>
+                <Select value={form.planSlug} onValueChange={pickPlan}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {plans.map((p) => (
+                      <SelectItem key={p.slug} value={p.slug}>
+                        {p.name} {p.is_lifetime ? "(de por vida)" : `(${p.duration_days}d)`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {!form.isLifetime && (
                 <div className="space-y-2">
                   <Label>Duración (días)</Label>
                   <Input type="number" min={1} value={form.days}
                     onChange={(e) => setForm({ ...form, days: parseInt(e.target.value) || 365 })} />
                 </div>
-              </div>
+              )}
+              {form.isLifetime && (
+                <div className="rounded-md border border-success/40 bg-success/10 p-3 text-xs text-success">
+                  Licencia <strong>de por vida</strong> — sin fecha de expiración.
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>Nombre del sitio (opcional)</Label>
                 <Input value={form.siteName}
