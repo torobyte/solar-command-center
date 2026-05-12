@@ -22,14 +22,32 @@ export const Route = createFileRoute("/api/public/activate")({
             .from("license_codes").select("*").eq("code", body.code).maybeSingle();
           if (licErr || !lic) return Response.json({ error: "invalid code" }, { status: 404 });
           if (lic.redeemed_at) return Response.json({ error: "already redeemed" }, { status: 409 });
+          if ((lic as { revoked_at?: string | null }).revoked_at) {
+            return Response.json({ error: "license revoked" }, { status: 410 });
+          }
+
+          // The license is bound to a user via assigned_email. The DB trigger
+          // resolves it to assigned_user_id either at license creation (if the
+          // user already had an account) or at signup (if they registered later).
+          // If neither happened, the user hasn't created an account yet — refuse
+          // activation and tell them to sign up with the assigned email first.
+          const assignedUserId =
+            (lic as { assigned_user_id?: string | null }).assigned_user_id
+            ?? lic.owner_id
+            ?? lic.created_by;
+          const assignedEmail = (lic as { assigned_email?: string | null }).assigned_email ?? null;
 
           // Resolve / create the target site.
           let siteId = body.site_id ?? null;
           if (!siteId) {
-            const ownerId = lic.owner_id ?? lic.created_by;
+            const ownerId = assignedUserId;
             if (!ownerId) {
               return Response.json(
-                { error: "this license is not assigned to a user; ask your administrator to re-issue it" },
+                {
+                  error: assignedEmail
+                    ? `this license is reserved for ${assignedEmail} — please create an account with that email first`
+                    : "this license is not assigned to a user; ask your administrator to re-issue it",
+                },
                 { status: 400 },
               );
             }
