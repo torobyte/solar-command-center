@@ -234,6 +234,7 @@ class Agent:
         self.license: dict = {}
         self.spec: dict = {}
         self.snapshot: dict = {}
+        self.history: list[dict] = []  # last ~12h of samples for local charts
         self.lock = threading.Lock()
         self.pending: queue.Queue = queue.Queue(maxsize=10000)
 
