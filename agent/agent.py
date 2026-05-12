@@ -398,22 +398,10 @@ def make_app(agent: Agent) -> Flask:
 
     @app.get("/")
     def index():
-        # Si el dispositivo ya está enlazado, mostramos EXACTAMENTE la misma
-        # interfaz de la plataforma web (la del panel del sitio en la nube).
-        # Así el kiosko/LAN ven la misma UI que el usuario en su navegador.
-        token = agent.config.get("device_token")
-        site_id = agent.config.get("site_id")
-        cloud = agent.config.get("cloud_url", CLOUD_URL_DEFAULT).rstrip("/")
-        if token and site_id:
-            return redirect(f"{cloud}/sites/{site_id}", code=302)
-        if token:
-            return redirect(f"{cloud}/app", code=302)
-        # Sin licencia todavía → pantalla local de activación.
-        return render_template_string(PAGE)
-
-    @app.get("/local")
-    def local_legacy():
-        # Mantén accesible la antigua UI local por si no hay internet.
+        # Servimos siempre la UI local — visualmente idéntica al panel de la
+        # plataforma web. Funciona sin internet (lee la caché local del
+        # agente) y se sincroniza con la nube en segundo plano cuando hay
+        # conexión.
         return render_template_string(PAGE)
 
     @app.get("/api/state")
