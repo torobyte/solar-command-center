@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { useI18n } from "@/lib/i18n";
 import { SolarForecastWidget } from "@/components/SolarForecastWidget";
 import { EnergyFlowDiagram } from "@/components/EnergyFlowDiagram";
+import { PowerGauges } from "@/components/PowerGauges";
 
 export const Route = createFileRoute("/sites/$siteId")({
   component: () => <ProtectedLayout><SiteDetail /></ProtectedLayout>,
@@ -540,12 +541,8 @@ function DashboardView({ latest }: { latest: Sample | null }) {
         <IconCard icon={<Battery className="h-10 w-10 sm:h-12 sm:w-12 text-[var(--battery)]" />} title={t("site.dash.battery")} subtitle={`${battery.toFixed(0)} %`} />
       </div>
 
-      <div className="grid grid-cols-2 gap-3 rounded-xl border bg-card p-4 sm:gap-4 sm:p-6">
-        <Gauge value={`${load.toFixed(0)} W`} label={t("site.dash.load")} ratio={ratio(load, 5000)} color="var(--load)" />
-        <Gauge value={`${pv.toFixed(0)} W`} label={t("site.dash.solar")} ratio={ratio(pv, 5000)} color="var(--solar)" />
-        <Gauge value={`${gridConnected ? load.toFixed(0) : 0} W`} label={t("site.dash.grid")} ratio={gridConnected ? ratio(load, 5000) : 0} color="var(--grid)" />
-        <Gauge value={`${batteryW || pv > load ? Math.max(0, pv - load).toFixed(0) : "0"} W`} label={t("site.dash.battery")} ratio={ratio(Math.abs(pv - load), 5000)} color="var(--battery)" />
-      </div>
+      {/* Animated radial gauges + load bars (SolarAssistant-style) */}
+      <PowerGauges pv={pv} load={load} gridV={gridV} battery={battery} batteryV={batteryV} />
 
       {/* Energy flow diagram (animated) */}
       <EnergyFlowDiagram pv={pv} load={load} gridV={gridV} battery={battery} batteryV={batteryV} />
