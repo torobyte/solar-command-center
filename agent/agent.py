@@ -114,7 +114,6 @@ class SerialTransport:
         if raw.startswith(b"("): raw = raw[1:]
         if len(raw) >= 2: raw = raw[:-2]
         return raw.decode("ascii", errors="replace").strip()
-        return text
 
     def close(self):
         try: self.ser.close()
