@@ -630,6 +630,37 @@ async function act(e){e.preventDefault();
 setInterval(tick,2000); tick();
 </script></div></body></html>"""
 
+def compute_today_totals(samples: list[dict]) -> dict:
+    """Trapezoidal kWh from a list of samples (each has recorded_at + powers)."""
+    if len(samples) < 2:
+        return {"pv_kwh": 0, "load_kwh": 0, "grid_used_kwh": 0,
+                "battery_charged_kwh": 0, "battery_discharged_kwh": 0}
+    def parse(s): 
+        try: return datetime.fromisoformat(s.replace("Z","+00:00"))
+        except Exception: return None
+    pv = load = grid = bchg = bdis = 0.0
+    for a, b in zip(samples, samples[1:]):
+        ta, tb = parse(a.get("recorded_at","")), parse(b.get("recorded_at",""))
+        if not ta or not tb: continue
+        h = (tb - ta).total_seconds() / 3600.0
+        if h <= 0 or h > 0.5: continue  # skip gaps > 30min
+        def avg(k): return (float(a.get(k) or 0) + float(b.get(k) or 0)) / 2.0
+        pv   += avg("pv_input_power") * h
+        load += avg("ac_output_active_power") * h
+        if avg("grid_voltage") > 50:
+            grid += avg("ac_output_active_power") * h
+        bv = avg("battery_voltage")
+        bchg += max(0.0, avg("battery_charging_current")) * bv * h
+        bdis += max(0.0, avg("battery_discharge_current")) * bv * h
+    return {
+        "pv_kwh": round(pv/1000, 3),
+        "load_kwh": round(load/1000, 3),
+        "grid_used_kwh": round(grid/1000, 3),
+        "battery_charged_kwh": round(bchg/1000, 3),
+        "battery_discharged_kwh": round(bdis/1000, 3),
+    }
+
+
 def make_app(agent: Agent) -> Flask:
     app = Flask(__name__)
 
