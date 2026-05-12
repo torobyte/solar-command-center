@@ -613,59 +613,6 @@ function IconCard({ icon, title, subtitle }: { icon: React.ReactNode; title: str
   );
 }
 
-function Gauge({ value, label, ratio, color }: { value: string; label: string; ratio: number; color: string }) {
-  // Semicircle gauge: 180° arc
-  const r = 70;
-  const cx = 80, cy = 80;
-  const startAngle = Math.PI; // 180°
-  const sweep = Math.PI;       // 180°
-  const a = startAngle + sweep * ratio;
-  const x1 = cx + r * Math.cos(startAngle), y1 = cy + r * Math.sin(startAngle);
-  const x2 = cx + r * Math.cos(a), y2 = cy + r * Math.sin(a);
-  const largeArc = sweep * ratio > Math.PI ? 1 : 0;
-  return (
-    <div className="flex flex-col items-center justify-center rounded-lg border bg-background p-3 sm:p-4">
-      <svg viewBox="0 0 160 95" className="w-full max-w-[180px]">
-        {/* background arc */}
-        <path
-          d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
-          fill="none" stroke="hsl(var(--muted))" strokeWidth="14" strokeLinecap="round"
-          className="opacity-40"
-        />
-        {/* value arc */}
-        {ratio > 0 && (
-          <path
-            d={`M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`}
-            fill="none" stroke={color} strokeWidth="14" strokeLinecap="round"
-          />
-        )}
-        <text x="80" y="70" textAnchor="middle" className="fill-foreground" fontSize="20" fontWeight="700">{value}</text>
-        <text x="80" y="88" textAnchor="middle" className="fill-muted-foreground" fontSize="11">{label}</text>
-      </svg>
-    </div>
-  );
-}
-
-function MetricCard({ icon: Icon, label, value, unit, tone, sub }: {
-  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
-  label: string; value: number; unit: string;
-  tone: "solar" | "load" | "grid" | "battery"; sub?: string;
-}) {
-  const colorVar = `var(--${tone})`;
-  return (
-    <div className="rounded-lg border bg-card p-5 shadow-sm">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Icon className="h-4 w-4" style={{ color: colorVar }} />
-        {label}
-      </div>
-      <div className="mt-2 text-3xl font-bold tracking-tight">
-        {Number(value).toFixed(0)} <span className="text-base font-normal text-muted-foreground">{unit}</span>
-      </div>
-      {sub && <div className="mt-1 text-xs text-muted-foreground">{sub}</div>}
-    </div>
-  );
-}
-
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-lg border bg-card p-6">
