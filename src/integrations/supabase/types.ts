@@ -328,6 +328,45 @@ export type Database = {
         }
         Relationships: []
       }
+      license_audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json
+          id: string
+          license_code: string | null
+          license_id: string | null
+          performed_by: string | null
+          performed_by_email: string | null
+          plan: string | null
+          reason: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json
+          id?: string
+          license_code?: string | null
+          license_id?: string | null
+          performed_by?: string | null
+          performed_by_email?: string | null
+          plan?: string | null
+          reason?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          license_code?: string | null
+          license_id?: string | null
+          performed_by?: string | null
+          performed_by_email?: string | null
+          plan?: string | null
+          reason?: string | null
+        }
+        Relationships: []
+      }
       license_codes: {
         Row: {
           assigned_email: string | null
