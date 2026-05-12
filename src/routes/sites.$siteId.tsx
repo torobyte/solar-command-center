@@ -270,7 +270,7 @@ function ConfigurationView({ site }: { site: Site }) {
   async function sendCommand(command: string, payload: Record<string, unknown>) {
     if (!user) return;
     const { error } = await supabase.from("device_commands").insert({
-      site_id: site.id, command, payload, created_by: user.id,
+      site_id: site.id, command, payload: payload as never, created_by: user.id,
     });
     if (error) toast.error(error.message);
     else toast.success("Comando encolado — la Raspberry lo aplicará en breve");
@@ -450,6 +450,23 @@ function ChartCard({ title, children }: { title: string; children: React.ReactEl
 
 /* ---------------- Inverter-style dashboard ---------------- */
 
+const INVERTER_MODE_LABELS: Record<string, string> = {
+  P: "Encendido",
+  S: "Standby",
+  L: "Modo Red",
+  B: "Modo Batería",
+  F: "Fallo",
+  H: "Ahorro de energía",
+  D: "Apagado",
+};
+
+function formatInverterMode(raw: string | null | undefined): string {
+  if (!raw) return "—";
+  // Keep only the first ASCII letter — strips CRC/replacement chars from old samples.
+  const letter = raw.replace(/[^A-Za-z]/g, "").charAt(0).toUpperCase();
+  return INVERTER_MODE_LABELS[letter] ?? (letter || "—");
+}
+
 function DashboardView({ latest }: { latest: Sample | null }) {
   const { t } = useI18n();
   const pv = Number(latest?.pv_input_power ?? 0);
@@ -458,7 +475,7 @@ function DashboardView({ latest }: { latest: Sample | null }) {
   const batteryV = Number(latest?.battery_voltage ?? 0);
   const gridV = Number(latest?.grid_voltage ?? 0);
   const gridConnected = gridV > 50;
-  const mode = latest?.inverter_mode ?? "—";
+  const mode = formatInverterMode(latest?.inverter_mode);
   const batteryW = Math.round(batteryV * 0);
   const ratio = (n: number, max: number) => Math.min(1, Math.max(0, n / max));
 

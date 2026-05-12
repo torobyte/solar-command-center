@@ -74,11 +74,11 @@ class HidrawTransport:
                     if b"\r" in buf: break
             except BlockingIOError:
                 time.sleep(0.05)
-        text = buf.split(b"\r", 1)[0].decode("ascii", errors="replace")
-        if text.startswith("("): text = text[1:]
-        # Strip CRC (last 2 bytes if present).
-        if len(text) > 3: text = text[:-2]
-        return text
+        raw = buf.split(b"\r", 1)[0]
+        # Strip leading '(' and trailing 2-byte CRC, then decode.
+        if raw.startswith(b"("): raw = raw[1:]
+        if len(raw) >= 2: raw = raw[:-2]
+        return raw.decode("ascii", errors="replace").strip()
 
     def close(self):
         try: os.close(self.fd)
@@ -110,10 +110,10 @@ class SerialTransport:
                 if b"\r" in buf: break
             else:
                 time.sleep(0.02)
-        text = buf.split(b"\r", 1)[0].decode("ascii", errors="replace")
-        if text.startswith("("): text = text[1:]
-        if len(text) > 3: text = text[:-2]
-        return text
+        raw = buf.split(b"\r", 1)[0]
+        if raw.startswith(b"("): raw = raw[1:]
+        if len(raw) >= 2: raw = raw[:-2]
+        return raw.decode("ascii", errors="replace").strip()
 
     def close(self):
         try: self.ser.close()
