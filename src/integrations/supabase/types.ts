@@ -58,8 +58,160 @@ export type Database = {
           },
         ]
       }
+      device_commands: {
+        Row: {
+          acked_at: string | null
+          command: string
+          created_at: string
+          created_by: string | null
+          error: string | null
+          id: string
+          payload: Json
+          result: Json | null
+          sent_at: string | null
+          site_id: string
+          status: string
+        }
+        Insert: {
+          acked_at?: string | null
+          command: string
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          id?: string
+          payload?: Json
+          result?: Json | null
+          sent_at?: string | null
+          site_id: string
+          status?: string
+        }
+        Update: {
+          acked_at?: string | null
+          command?: string
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          id?: string
+          payload?: Json
+          result?: Json | null
+          sent_at?: string | null
+          site_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      device_snapshots: {
+        Row: {
+          agent_version: string | null
+          board_model: string | null
+          cpu_temp_c: number | null
+          internet_up: boolean | null
+          ip_eth: string | null
+          ip_public: string | null
+          ip_wlan: string | null
+          raw: Json | null
+          site_id: string
+          ssid: string | null
+          storage_total_gb: number | null
+          storage_used_pct: number | null
+          updated_at: string
+          usb_devices: number | null
+          voltage_dips: number | null
+        }
+        Insert: {
+          agent_version?: string | null
+          board_model?: string | null
+          cpu_temp_c?: number | null
+          internet_up?: boolean | null
+          ip_eth?: string | null
+          ip_public?: string | null
+          ip_wlan?: string | null
+          raw?: Json | null
+          site_id: string
+          ssid?: string | null
+          storage_total_gb?: number | null
+          storage_used_pct?: number | null
+          updated_at?: string
+          usb_devices?: number | null
+          voltage_dips?: number | null
+        }
+        Update: {
+          agent_version?: string | null
+          board_model?: string | null
+          cpu_temp_c?: number | null
+          internet_up?: boolean | null
+          ip_eth?: string | null
+          ip_public?: string | null
+          ip_wlan?: string | null
+          raw?: Json | null
+          site_id?: string
+          ssid?: string | null
+          storage_total_gb?: number | null
+          storage_used_pct?: number | null
+          updated_at?: string
+          usb_devices?: number | null
+          voltage_dips?: number | null
+        }
+        Relationships: []
+      }
+      inverter_specs: {
+        Row: {
+          driver: string | null
+          expected_ac_input_voltage: number | null
+          firmware: string | null
+          machine_type: string | null
+          max_ac_input_current: number | null
+          max_ac_output_apparent_power: number | null
+          max_ac_output_current: number | null
+          max_ac_output_power: number | null
+          model_name: string | null
+          nominal_battery_voltage: number | null
+          raw: Json | null
+          serial_number: string | null
+          site_id: string
+          topology: string | null
+          updated_at: string
+        }
+        Insert: {
+          driver?: string | null
+          expected_ac_input_voltage?: number | null
+          firmware?: string | null
+          machine_type?: string | null
+          max_ac_input_current?: number | null
+          max_ac_output_apparent_power?: number | null
+          max_ac_output_current?: number | null
+          max_ac_output_power?: number | null
+          model_name?: string | null
+          nominal_battery_voltage?: number | null
+          raw?: Json | null
+          serial_number?: string | null
+          site_id: string
+          topology?: string | null
+          updated_at?: string
+        }
+        Update: {
+          driver?: string | null
+          expected_ac_input_voltage?: number | null
+          firmware?: string | null
+          machine_type?: string | null
+          max_ac_input_current?: number | null
+          max_ac_output_apparent_power?: number | null
+          max_ac_output_current?: number | null
+          max_ac_output_power?: number | null
+          model_name?: string | null
+          nominal_battery_voltage?: number | null
+          raw?: Json | null
+          serial_number?: string | null
+          site_id?: string
+          topology?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       license_codes: {
         Row: {
+          assigned_email: string | null
+          assigned_user_id: string | null
           code: string
           created_at: string
           created_by: string | null
@@ -70,9 +222,12 @@ export type Database = {
           plan: string
           redeemed_at: string | null
           redeemed_by_site: string | null
+          revoked_at: string | null
           site_name: string | null
         }
         Insert: {
+          assigned_email?: string | null
+          assigned_user_id?: string | null
           code: string
           created_at?: string
           created_by?: string | null
@@ -83,9 +238,12 @@ export type Database = {
           plan?: string
           redeemed_at?: string | null
           redeemed_by_site?: string | null
+          revoked_at?: string | null
           site_name?: string | null
         }
         Update: {
+          assigned_email?: string | null
+          assigned_user_id?: string | null
           code?: string
           created_at?: string
           created_by?: string | null
@@ -96,6 +254,7 @@ export type Database = {
           plan?: string
           redeemed_at?: string | null
           redeemed_by_site?: string | null
+          revoked_at?: string | null
           site_name?: string | null
         }
         Relationships: [
