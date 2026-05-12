@@ -614,33 +614,50 @@ svg.chart{width:100%;height:200px;background:#fff;border:1px solid var(--border)
 
   <!-- Dashboard -->
   <section id="tab-dashboard">
-    <div class="modecard">
-      <div>
-        <div class="l">Modo de uso del inversor</div>
-        <div class="v" id="modeLabel">—</div>
-      </div>
-      <span class="code" id="modeCode">QMOD: —</span>
+    <div class="cust-bar">
+      <span class="status"><span class="dot online"></span>Vista personalizable</span>
+      <button class="cust-btn" onclick="openCust()">⚙ Personalizar widgets</button>
     </div>
-    <div class="panel">
-      <div class="grid4">
-        <div class="tile"><div class="icon">🖥️<span id="invWarn" class="warn hidden">!</span></div>
-          <div><div class="label">Inversor</div><div class="val" id="invMode">—</div></div></div>
-        <div class="tile"><div class="icon" style="color:var(--pv)">☀️</div>
-          <div><div class="label">Solar PV</div><div class="val" id="pvKw">0.0 kW</div></div></div>
-        <div class="tile"><div class="icon" style="color:var(--grid)">🔌<span id="gridWarn" class="warn hidden">!</span></div>
-          <div><div class="label">Red</div><div class="val" id="gridV">0 V</div></div></div>
-        <div class="tile"><div class="icon" style="color:var(--bat)">🔋</div>
-          <div><div class="label">Batería</div><div class="val" id="batPct">0 %</div></div></div>
-      </div>
-    </div>
-    <div class="panel">
-      <div class="grid4">
-        <div class="big"><div class="v" id="loadW">0 W</div><div class="l">Carga</div></div>
-        <div class="big"><div class="v" id="pvW">0 W</div><div class="l">Solar PV</div></div>
-        <div class="big"><div class="v" id="gridW">0 W</div><div class="l">Red</div></div>
-        <div class="big"><div class="v" id="batW">0 W</div><div class="l">Batería</div></div>
-      </div>
-    </div>
+    <div id="widgets"></div>
+    <!-- Templates (rendered by JS into #widgets in chosen order) -->
+    <template id="w-mode"><div class="modecard"><div><div class="l">Modo de uso del inversor</div><div class="v" id="modeLabel">—</div></div><span class="code" id="modeCode">QMOD: —</span></div></template>
+    <template id="w-icons"><div class="panel"><div class="grid4">
+      <div class="tile"><div class="icon">🖥️<span id="invWarn" class="warn hidden">!</span></div><div><div class="label">Inversor</div><div class="val" id="invMode">—</div></div></div>
+      <div class="tile"><div class="icon" style="color:var(--pv)">☀️</div><div><div class="label">Solar PV</div><div class="val" id="pvKw">0.0 kW</div></div></div>
+      <div class="tile"><div class="icon" style="color:var(--grid)">🔌<span id="gridWarn" class="warn hidden">!</span></div><div><div class="label">Red</div><div class="val" id="gridV">0 V</div></div></div>
+      <div class="tile"><div class="icon" style="color:var(--bat)">🔋</div><div><div class="label">Batería</div><div class="val" id="batPct">0 %</div></div></div>
+    </div></div></template>
+    <template id="w-power"><div class="panel"><div class="grid4">
+      <div class="big"><div class="v" id="loadW">0 W</div><div class="l">Carga</div></div>
+      <div class="big"><div class="v" id="pvW">0 W</div><div class="l">Solar PV</div></div>
+      <div class="big"><div class="v" id="gridW">0 W</div><div class="l">Red</div></div>
+      <div class="big"><div class="v" id="batW">0 W</div><div class="l">Batería</div></div>
+    </div></div></template>
+    <template id="w-rings"><div class="panel"><h3>Anillos de actividad</h3><div class="rings">
+      <svg viewBox="0 0 200 200" id="ringsSvg"></svg>
+      <div><div class="ringlabel"><span class="swatch" style="background:var(--pv)"></span>Solar <strong id="rPv" style="margin-left:auto">0 W</strong></div>
+      <div class="ringlabel"><span class="swatch" style="background:var(--load)"></span>Consumo <strong id="rLoad" style="margin-left:auto">0 W</strong></div>
+      <div class="ringlabel"><span class="swatch" style="background:var(--bat)"></span>Batería <strong id="rSoc" style="margin-left:auto">0 %</strong></div></div>
+    </div></div></template>
+    <template id="w-bat3d"><div class="panel"><h3>🔋 Batería</h3><div style="display:flex;align-items:center;gap:20px;justify-content:center">
+      <div class="bat3d"><div class="term"></div><div class="body"><div class="liq" id="batLiq" style="height:0%;background:var(--bat);color:var(--bat)"><svg class="wv" viewBox="0 0 200 12" preserveAspectRatio="none"><path d="M0 6 Q25 0 50 6 T100 6 T150 6 T200 6 V12 H0 Z" fill="currentColor"/></svg></div><div class="pct" id="batPctV">0%</div></div></div>
+      <div style="font-size:13px"><div id="batMode" style="font-weight:700;color:var(--bat)">—</div><div style="color:var(--muted);margin-top:4px">Voltaje: <strong id="batVv">0.0 V</strong></div></div>
+    </div></div></template>
+    <template id="w-sun"><div class="panel"><h3>☀️ Producción Solar</h3><div class="sunwrap"><svg viewBox="-100 -100 200 200">
+      <circle class="halo" r="44" fill="var(--pv)" opacity=".25"/>
+      <g class="rays" id="sunRays"></g>
+      <circle r="34" fill="#fbbf24" stroke="#f59e0b" stroke-width="2"/>
+      <text id="sunKw" text-anchor="middle" y="3" font-size="18" font-weight="800" fill="#7c2d12">0.0</text>
+      <text text-anchor="middle" y="20" font-size="9" fill="#7c2d12">kW</text>
+    </svg></div></div></template>
+    <template id="w-sine"><div class="panel"><h3>🔌 Red Eléctrica</h3><div class="sine"><svg id="sineSvg" viewBox="0 0 400 90" preserveAspectRatio="none"></svg></div>
+      <div class="grid2" style="margin-top:10px"><div class="big" style="padding:10px"><div class="v" id="sineV" style="font-size:20px">0 V</div><div class="l">Voltaje</div></div><div class="big" style="padding:10px"><div class="v" id="sineHz" style="font-size:20px">— Hz</div><div class="l">Frecuencia</div></div></div></div></template>
+    <template id="w-forecast"><div class="panel"><h3>🌤 Previsión solar y producción</h3>
+      <div id="prodEst" class="prodest hidden"><div class="l" style="font-size:11px;text-transform:uppercase;color:var(--muted)">Producción estimada (próximas 12h)</div><div class="v"><span id="prodKwh">0</span> <span style="font-size:14px;color:var(--muted)">kWh</span></div></div>
+      <div id="fctCity" class="sub" style="margin:0">—</div>
+      <div class="fct" id="fctBars"></div>
+      <div class="daily" id="fctDaily"></div>
+    </div></template>
   </section>
 
   <!-- Charts -->
@@ -667,6 +684,22 @@ svg.chart{width:100%;height:200px;background:#fff;border:1px solid var(--border)
 
   <!-- Configuration -->
   <section id="tab-config" class="hidden">
+    <div class="panel"><h3>☀️ Sistema fotovoltaico</h3>
+      <p class="sub">Datos del array, batería y ubicación. Se usan para estimar la producción solar.</p>
+      <form onsubmit="savePv(event)" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <label style="font-size:12px">Potencia array (kWp)<input id="pv_kwp" type="number" step="0.01" placeholder="ej. 5.20"></label>
+        <label style="font-size:12px">Capacidad batería (kWh)<input id="pv_bat" type="number" step="0.1" placeholder="ej. 4.8"></label>
+        <label style="font-size:12px">Nº paneles<input id="pv_n" type="number"></label>
+        <label style="font-size:12px">W por panel<input id="pv_w" type="number"></label>
+        <label style="font-size:12px">Azimut (°)<input id="pv_az" type="number" placeholder="180"></label>
+        <label style="font-size:12px">Inclinación (°)<input id="pv_tilt" type="number" placeholder="30"></label>
+        <label style="font-size:12px">Pérdidas (%)<input id="pv_loss" type="number" placeholder="14"></label>
+        <label style="font-size:12px">&nbsp;<button type="button" onclick="autoFromInv()" class="cust-btn" style="width:100%">⚡ Auto desde inversor</button></label>
+        <label style="font-size:12px">Latitud<input id="pv_lat" type="number" step="0.0001"></label>
+        <label style="font-size:12px">Longitud<input id="pv_lon" type="number" step="0.0001"></label>
+        <button style="grid-column:1/-1">Guardar configuración</button>
+      </form>
+    </div>
     <div class="panel"><h3>Especificación del inversor</h3><div id="specRows"></div></div>
     <div class="panel"><h3>Estado de red</h3><div id="netRows"></div></div>
     <div class="panel"><h3>Sistema</h3><div id="sysRows"></div></div>
@@ -675,6 +708,20 @@ svg.chart{width:100%;height:200px;background:#fff;border:1px solid var(--border)
       <div id="usbList" class="usblist">—</div>
     </div>
   </section>
+</div>
+
+<!-- Customizer modal -->
+<div id="custModal" class="cust-modal hidden" onclick="if(event.target===this)closeCust()">
+  <div class="cust-card">
+    <h3 style="margin:0 0 10px">Widgets del dashboard</h3>
+    <p class="sub" style="margin-bottom:12px">Activa, oculta y reordena. Se guarda en este dispositivo.</p>
+    <div id="custList"></div>
+    <div style="display:flex;justify-content:space-between;margin-top:12px">
+      <button class="cust-btn" onclick="resetWidgets()">↺ Reiniciar</button>
+      <button onclick="closeCust()">Listo</button>
+    </div>
+  </div>
+</div>
 </div>
 
 <div id="actcard" class="panel hidden">
