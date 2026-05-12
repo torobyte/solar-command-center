@@ -344,6 +344,89 @@ def hardware_id() -> str:
     return "unknown"
 
 
+# ---------- System / network / USB introspection ----------
+def _run(cmd: list[str], timeout: float = 3.0) -> str:
+    try:
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout).stdout
+    except Exception:
+        return ""
+
+def list_usb_devices() -> list[str]:
+    """Return human-readable list of USB devices using lsusb (or /sys fallback)."""
+    out = _run(["lsusb"])
+    if out.strip():
+        return [ln.strip() for ln in out.splitlines() if ln.strip()]
+    # Fallback: read /sys/bus/usb/devices
+    devs = []
+    for p in sorted(glob.glob("/sys/bus/usb/devices/*/product")):
+        try:
+            name = Path(p).read_text().strip()
+            vendor = Path(p).with_name("manufacturer")
+            v = vendor.read_text().strip() if vendor.exists() else ""
+            devs.append(f"{v} {name}".strip())
+        except Exception: continue
+    return devs
+
+def get_ip(iface: str) -> str | None:
+    out = _run(["ip", "-4", "-o", "addr", "show", iface])
+    for ln in out.splitlines():
+        parts = ln.split()
+        if "inet" in parts:
+            i = parts.index("inet")
+            if i + 1 < len(parts): return parts[i + 1].split("/")[0]
+    return None
+
+def get_ssid() -> str | None:
+    out = _run(["iwgetid", "-r"]).strip()
+    return out or None
+
+def get_public_ip() -> str | None:
+    try:
+        return requests.get("https://api.ipify.org", timeout=3).text.strip() or None
+    except Exception: return None
+
+def internet_up() -> bool:
+    try:
+        s = socket.create_connection(("1.1.1.1", 53), timeout=2); s.close(); return True
+    except Exception: return False
+
+def cpu_temp_c() -> float | None:
+    try:
+        v = Path("/sys/class/thermal/thermal_zone0/temp").read_text().strip()
+        return round(int(v) / 1000.0, 1)
+    except Exception: return None
+
+def storage_info() -> tuple[float | None, float | None]:
+    try:
+        s = shutil.disk_usage("/")
+        return round(s.used * 100 / s.total, 1), round(s.total / 1e9, 1)
+    except Exception: return None, None
+
+def board_model() -> str | None:
+    for p in ("/sys/firmware/devicetree/base/model", "/proc/device-tree/model"):
+        try: return Path(p).read_text().strip("\x00\n ")
+        except Exception: continue
+    return None
+
+def collect_device_snapshot() -> dict:
+    used_pct, total_gb = storage_info()
+    usbs = list_usb_devices()
+    return {
+        "ssid": get_ssid(),
+        "ip_eth": get_ip("eth0"),
+        "ip_wlan": get_ip("wlan0"),
+        "ip_public": get_public_ip(),
+        "internet_up": internet_up(),
+        "cpu_temp_c": cpu_temp_c(),
+        "storage_used_pct": used_pct,
+        "storage_total_gb": total_gb,
+        "usb_devices": len(usbs),
+        "usb_devices_list": usbs,
+        "board_model": board_model(),
+        "agent_version": AGENT_VERSION,
+    }
+
+
 # ---------- LAN web UI ----------
 PAGE = """<!doctype html><html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
