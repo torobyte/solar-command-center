@@ -49,12 +49,16 @@ install -m 755 "$REPO_DIR/agent/update.sh" /opt/solarops/update.sh
 
 echo "▶ [3/8] Instalando dependencias Python…"
 python3 -m venv /opt/solarops/venv
-/opt/solarops/venv/bin/pip install --quiet --upgrade flask requests
+/opt/solarops/venv/bin/pip install --quiet --upgrade flask requests pyserial
 
-echo "▶ [4/8] Configurando permisos USB del inversor…"
+echo "▶ [4/8] Configurando permisos USB/RS485 del inversor…"
 cat >/etc/udev/rules.d/99-solarops.rules <<'EOF'
+# Voltronic / Axpert HID
 SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0665", ATTRS{idProduct}=="5161", MODE="0660", GROUP="dialout"
 KERNEL=="hidraw*", MODE="0660", GROUP="dialout"
+# Adaptadores USB-Serie / RS485 (CH340, FTDI, CP210x, PL2303)
+KERNEL=="ttyUSB*", MODE="0660", GROUP="dialout"
+KERNEL=="ttyACM*", MODE="0660", GROUP="dialout"
 EOF
 udevadm control --reload-rules || true
 udevadm trigger || true
