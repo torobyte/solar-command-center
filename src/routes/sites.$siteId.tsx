@@ -644,10 +644,17 @@ function IconCard({ icon, title, subtitle }: { icon: React.ReactNode; title: str
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children, icon: Icon }: { title: string; children: React.ReactNode; icon?: typeof Cpu }) {
   return (
-    <div className="rounded-lg border bg-card p-4 sm:p-6">
-      <h3 className="mb-4 font-semibold">{title}</h3>
+    <div className="rounded-2xl border bg-card p-5 sm:p-6 shadow-card animate-fade-up">
+      <div className="mb-4 flex items-center gap-2.5">
+        {Icon && (
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-accent/20 to-accent/5 text-accent ring-1 ring-accent/20">
+            <Icon className="h-4 w-4" strokeWidth={2.2} />
+          </div>
+        )}
+        <h3 className="font-semibold tracking-tight">{title}</h3>
+      </div>
       <div className="space-y-2">{children}</div>
     </div>
   );
