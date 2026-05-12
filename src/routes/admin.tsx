@@ -629,7 +629,11 @@ function Licenses() {
                     {r.site_name && <div className="text-xs text-muted-foreground">{r.site_name}</div>}
                   </td>
                   <td className="px-4 py-3">{r.plan}</td>
-                  <td className="px-4 py-3">{r.duration_days} días</td>
+                  <td className="px-4 py-3">
+                    {(r as License & { is_lifetime?: boolean }).is_lifetime
+                      ? <span className="text-success">De por vida</span>
+                      : `${r.duration_days ?? 0} días`}
+                  </td>
                   <td className={`px-4 py-3 font-medium ${st.cls}`}>{st.label}</td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">
                     {r.assigned_user_id
@@ -648,6 +652,10 @@ function Licenses() {
                           <ShieldOff className="h-3.5 w-3.5" />
                         </Button>
                       )}
+                      <Button size="sm" variant="ghost" title="Eliminar licencia"
+                        onClick={() => deleteLicense(r.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   </td>
                 </tr>
