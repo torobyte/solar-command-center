@@ -22,6 +22,8 @@ import {
   adminActivateSite, adminRevokeLicense,
 } from "@/lib/admin.functions";
 import { formatDistanceToNow } from "date-fns";
+import { BrandingAdmin } from "@/components/admin/BrandingAdmin";
+import { PlansAdmin } from "@/components/admin/PlansAdmin";
 
 export const Route = createFileRoute("/admin")({
   component: () => <ProtectedLayout requireRole="superadmin"><AdminPanel /></ProtectedLayout>,
