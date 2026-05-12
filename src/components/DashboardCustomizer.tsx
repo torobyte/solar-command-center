@@ -26,7 +26,7 @@ export function useDashboardLayout(siteId: string, defaults: WidgetDef[]) {
       if (user) {
         const { data } = await supabase.from("dashboard_layouts")
           .select("widgets").eq("user_id", user.id).eq("site_id", siteId).maybeSingle();
-        if (data?.widgets) next = data.widgets as WidgetState[];
+        if (data?.widgets) next = data.widgets as unknown as WidgetState[];
       }
       if (!next && local) { try { next = JSON.parse(local); } catch { /* ignore */ } }
       if (next) {
