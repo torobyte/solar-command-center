@@ -270,7 +270,7 @@ function ConfigurationView({ site }: { site: Site }) {
   async function sendCommand(command: string, payload: Record<string, unknown>) {
     if (!user) return;
     const { error } = await supabase.from("device_commands").insert({
-      site_id: site.id, command, payload, created_by: user.id,
+      site_id: site.id, command, payload: payload as never, created_by: user.id,
     });
     if (error) toast.error(error.message);
     else toast.success("Comando encolado — la Raspberry lo aplicará en breve");
