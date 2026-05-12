@@ -548,6 +548,48 @@ button{padding:10px 18px;border-radius:10px;border:none;background:var(--fg);col
 .totalcard .l{font-size:12px;color:var(--muted);margin-top:4px}
 svg.chart{width:100%;height:200px;background:#fff;border:1px solid var(--border);border-radius:10px}
 .hidden{display:none!important}
+/* Battery 3D */
+.bat3d{position:relative;width:90px;height:160px;margin:0 auto}
+.bat3d .term{position:absolute;left:50%;top:0;transform:translateX(-50%);width:32px;height:8px;border-radius:4px 4px 0 0;background:#9ca3af}
+.bat3d .body{position:absolute;left:0;right:0;top:8px;bottom:0;border:2px solid #9ca3af;border-radius:14px;overflow:hidden;background:#f3f4f6}
+.bat3d .liq{position:absolute;left:0;right:0;bottom:0;transition:height .8s ease;box-shadow:0 0 20px currentColor}
+.bat3d .pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#0b1220}
+@keyframes wave{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.bat3d .wv{position:absolute;left:0;top:-6px;width:200%;height:12px;animation:wave 4s linear infinite;opacity:.7}
+/* Sun rays */
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:.2;transform:scale(1)}50%{opacity:.45;transform:scale(1.1)}}
+.sunwrap{display:flex;justify-content:center;padding:8px}
+.sunwrap svg{width:160px;height:160px}
+.sunwrap .rays{transform-origin:center;animation:spin 30s linear infinite}
+.sunwrap .halo{transform-origin:center;animation:pulse 3s ease-in-out infinite}
+/* Sine wave */
+@keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-200px)}}
+.sine{height:90px;background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;position:relative}
+.sine svg{position:absolute;inset:0;width:100%;height:100%}
+.sine .anim{animation:scroll 1.2s linear infinite}
+/* Concentric rings */
+.rings{display:flex;align-items:center;gap:18px;justify-content:center}
+.rings svg{width:180px;height:180px}
+.ringlabel{display:flex;align-items:center;gap:6px;font-size:12px;margin:4px 0}
+.ringlabel .swatch{width:10px;height:10px;border-radius:50%}
+/* Forecast widget */
+.fct{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;height:80px;align-items:end;margin-top:10px}
+.fct .bar{background:linear-gradient(180deg,#fde68a,var(--pv));border-radius:4px 4px 0 0;position:relative;min-height:4px}
+.fct .bar small{position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:8px;color:var(--pv);font-weight:700;white-space:nowrap}
+.daily{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:10px;border-top:1px solid var(--border);padding-top:10px}
+.daily .d{text-align:center;padding:6px;border-radius:8px;font-size:11px}
+.daily .d strong{display:block;color:var(--pv)}
+.prodest{background:linear-gradient(135deg,#fff7ed,transparent);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px}
+.prodest .v{font-size:28px;font-weight:800;color:var(--pv)}
+/* Customizer */
+.cust-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.cust-btn{padding:6px 12px;font-size:12px;background:#fff;color:var(--fg);border:1px solid var(--border)}
+.cust-modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.cust-card{background:var(--card);border-radius:14px;padding:16px;width:100%;max-width:420px;max-height:80vh;overflow:auto}
+.cust-item{display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;background:#fff;font-size:13px}
+.cust-item .arr{display:flex;flex-direction:column;gap:2px}
+.cust-item .arr button{padding:0 6px;font-size:11px;background:#f3ecda;color:var(--fg);border:none;border-radius:4px}
 @media(min-width:720px){
   body{padding:32px}
   h1{font-size:28px}
