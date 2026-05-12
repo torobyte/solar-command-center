@@ -221,64 +221,80 @@ function RuleRow({ rule, onChange, onDelete }: { rule: NotificationRule; onChang
   const ops = isNumeric ? NUMERIC_OPS : TEXT_OPS;
   return (
     <div className="rounded-lg border bg-card p-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <Switch checked={rule.enabled} onCheckedChange={(v) => onChange({ enabled: v })} />
+      <div className="flex items-start gap-2">
+        <Switch checked={rule.enabled} onCheckedChange={(v) => onChange({ enabled: v })} className="mt-1.5" />
         <Input
           value={rule.name}
           onChange={(e) => onChange({ name: e.target.value })}
-          className="h-8 max-w-[200px] text-sm font-medium"
+          className="h-9 flex-1 text-sm font-medium"
         />
-        <Select value={rule.metric} onValueChange={(v) => {
-          const m = METRIC_OPTIONS.find((x) => x.value === v);
-          const num = m?.numeric !== false;
-          onChange({ metric: v, operator: num ? ">" : "==" });
-        }}>
-          <SelectTrigger className="h-8 w-[200px] text-sm"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {METRIC_OPTIONS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={rule.operator} onValueChange={(v) => onChange({ operator: v as Operator })}>
-          <SelectTrigger className="h-8 w-[140px] text-sm"><SelectValue /></SelectTrigger>
-          <SelectContent>{ops.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-        </Select>
-        {isNumeric ? (
-          <Input
-            type="number" inputMode="decimal" step="any"
-            className="h-8 w-24 text-sm"
-            value={rule.threshold ?? ""}
-            onChange={(e) => onChange({ threshold: e.target.value === "" ? null : Number(e.target.value) })}
-          />
-        ) : (
-          <Input
-            className="h-8 w-28 text-sm font-mono"
-            value={rule.threshold_text ?? ""}
-            placeholder="B / G / S"
-            onChange={(e) => onChange({ threshold_text: e.target.value })}
-          />
-        )}
-        {meta?.unit && <span className="text-xs text-muted-foreground">{meta.unit}</span>}
-        <Select value={rule.severity} onValueChange={(v) => onChange({ severity: v as Severity })}>
-          <SelectTrigger className="h-8 w-[140px] text-sm"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {(["info", "warning", "critical"] as Severity[]).map((s) => (
-              <SelectItem key={s} value={s}>{SEV_META[s].label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <div className="flex items-center gap-1">
-          <Label className="text-xs text-muted-foreground">Cooldown</Label>
-          <Input
-            type="number" min={1}
-            className="h-8 w-16 text-sm"
-            value={rule.cooldown_minutes}
-            onChange={(e) => onChange({ cooldown_minutes: Math.max(1, Number(e.target.value) || 1) })}
-          />
-          <span className="text-xs text-muted-foreground">min</span>
-        </div>
-        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive ml-auto" onClick={onDelete}>
+        <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0 text-destructive" onClick={onDelete}>
           <Trash2 className="h-4 w-4" />
         </Button>
+      </div>
+      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="space-y-1">
+          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Métrica</Label>
+          <Select value={rule.metric} onValueChange={(v) => {
+            const m = METRIC_OPTIONS.find((x) => x.value === v);
+            const num = m?.numeric !== false;
+            onChange({ metric: v, operator: num ? ">" : "==" });
+          }}>
+            <SelectTrigger className="h-9 w-full text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {METRIC_OPTIONS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Operador</Label>
+          <Select value={rule.operator} onValueChange={(v) => onChange({ operator: v as Operator })}>
+            <SelectTrigger className="h-9 w-full text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>{ops.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Umbral{meta?.unit ? ` (${meta.unit})` : ""}
+          </Label>
+          {isNumeric ? (
+            <Input
+              type="number" inputMode="decimal" step="any"
+              className="h-9 w-full text-sm"
+              value={rule.threshold ?? ""}
+              onChange={(e) => onChange({ threshold: e.target.value === "" ? null : Number(e.target.value) })}
+            />
+          ) : (
+            <Input
+              className="h-9 w-full text-sm font-mono"
+              value={rule.threshold_text ?? ""}
+              placeholder="B / G / S"
+              onChange={(e) => onChange({ threshold_text: e.target.value })}
+            />
+          )}
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1">
+            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Severidad</Label>
+            <Select value={rule.severity} onValueChange={(v) => onChange({ severity: v as Severity })}>
+              <SelectTrigger className="h-9 w-full text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {(["info", "warning", "critical"] as Severity[]).map((s) => (
+                  <SelectItem key={s} value={s}>{SEV_META[s].label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Cooldown (min)</Label>
+            <Input
+              type="number" min={1}
+              className="h-9 w-full text-sm"
+              value={rule.cooldown_minutes}
+              onChange={(e) => onChange({ cooldown_minutes: Math.max(1, Number(e.target.value) || 1) })}
+            />
+          </div>
+        </div>
       </div>
       {rule.last_triggered_at && (
         <p className="mt-2 text-xs text-muted-foreground">Último disparo: {new Date(rule.last_triggered_at).toLocaleString()}</p>
