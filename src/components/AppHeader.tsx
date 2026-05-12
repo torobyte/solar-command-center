@@ -96,6 +96,7 @@ export function AppHeader() {
         )}
         {!user && (
           <div className="flex items-center gap-1">
+            <ThemeToggle />
             <LangSwitcher />
           </div>
         )}
