@@ -14,6 +14,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SitesSiteIdRouteImport } from './routes/sites.$siteId'
 import { Route as ApiPublicSnapshotRouteImport } from './routes/api/public/snapshot'
@@ -48,6 +49,11 @@ const AppRoute = AppRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -103,6 +109,7 @@ const ApiPublicActivateRoute = ApiPublicActivateRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
   '/app': typeof AppRoute
   '/login': typeof LoginRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
   '/app': typeof AppRoute
   '/login': typeof LoginRoute
@@ -138,6 +146,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
   '/app': typeof AppRoute
   '/login': typeof LoginRoute
@@ -157,6 +166,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/account'
     | '/admin'
     | '/app'
     | '/login'
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/account'
     | '/admin'
     | '/app'
     | '/login'
@@ -191,6 +202,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/account'
     | '/admin'
     | '/app'
     | '/login'
@@ -209,6 +221,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccountRoute: typeof AccountRoute
   AdminRoute: typeof AdminRoute
   AppRoute: typeof AppRoute
   LoginRoute: typeof LoginRoute
@@ -260,6 +273,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -337,6 +357,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccountRoute: AccountRoute,
   AdminRoute: AdminRoute,
   AppRoute: AppRoute,
   LoginRoute: LoginRoute,

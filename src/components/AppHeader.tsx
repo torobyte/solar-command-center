@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { Sun, LogOut, Shield, LayoutGrid, Menu } from "lucide-react";
+import { Sun, LogOut, Shield, LayoutGrid, Menu, User as UserIcon } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
@@ -23,6 +23,11 @@ export function AppHeader() {
       <Link to="/app" onClick={() => setOpen(false)}>
         <Button variant={onSites ? "secondary" : "ghost"} size="sm" className="w-full justify-start sm:w-auto sm:justify-center">
           <LayoutGrid className="mr-2 h-4 w-4" /> {t("nav.sites")}
+        </Button>
+      </Link>
+      <Link to="/account" onClick={() => setOpen(false)}>
+        <Button variant={location.pathname.startsWith("/account") ? "secondary" : "ghost"} size="sm" className="w-full justify-start sm:w-auto sm:justify-center">
+          <UserIcon className="mr-2 h-4 w-4" /> Mi cuenta
         </Button>
       </Link>
       {role === "superadmin" && (
