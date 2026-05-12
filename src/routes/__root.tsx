@@ -1,6 +1,7 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { AuthProvider } from "@/lib/auth";
 import { I18nProvider } from "@/lib/i18n";
+import { BrandingProvider } from "@/lib/branding";
 import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
@@ -42,7 +43,7 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "manifest", href: "/api/public/manifest" },
       { rel: "icon", href: "/icon.svg", type: "image/svg+xml" },
     ],
   }),
@@ -66,10 +67,12 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   return (
     <I18nProvider>
-      <AuthProvider>
-        <Outlet />
-        <Toaster richColors position="top-right" />
-      </AuthProvider>
+      <BrandingProvider>
+        <AuthProvider>
+          <Outlet />
+          <Toaster richColors position="top-right" />
+        </AuthProvider>
+      </BrandingProvider>
     </I18nProvider>
   );
 }

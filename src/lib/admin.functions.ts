@@ -164,9 +164,12 @@ export const adminActivateSite = createServerFn({ method: "POST" })
     if (siteErr || !site) throw new Error("Site not found");
 
     const now = Date.now();
+    const isLifetime = (lic as { is_lifetime?: boolean }).is_lifetime === true;
     const baseMs = site.license_expires_at && new Date(site.license_expires_at).getTime() > now
       ? new Date(site.license_expires_at).getTime() : now;
-    const expires = new Date(baseMs + lic.duration_days * 86_400_000).toISOString();
+    const expires = isLifetime
+      ? new Date("9999-12-31T00:00:00Z").toISOString()
+      : new Date(baseMs + (lic.duration_days ?? 0) * 86_400_000).toISOString();
 
     const { error: updErr } = await supabaseAdmin.from("sites").update({
       plan: lic.plan, license_expires_at: expires, status: "online",

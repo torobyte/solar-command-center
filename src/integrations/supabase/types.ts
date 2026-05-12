@@ -14,6 +14,99 @@ export type Database = {
   }
   public: {
     Tables: {
+      branding_settings: {
+        Row: {
+          accent_color: string | null
+          background_color: string | null
+          border_color: string | null
+          card_color: string | null
+          destructive_color: string | null
+          favicon_url: string | null
+          font_body: string | null
+          font_display: string | null
+          foreground_color: string | null
+          key: string
+          logo_url: string | null
+          muted_color: string | null
+          primary_color: string | null
+          primary_foreground: string | null
+          pwa_background_color: string | null
+          pwa_description: string | null
+          pwa_display: string | null
+          pwa_icon_192: string | null
+          pwa_icon_512: string | null
+          pwa_name: string | null
+          pwa_short_name: string | null
+          pwa_theme_color: string | null
+          radius: string | null
+          site_name: string
+          success_color: string | null
+          tagline: string | null
+          updated_at: string
+          warning_color: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          background_color?: string | null
+          border_color?: string | null
+          card_color?: string | null
+          destructive_color?: string | null
+          favicon_url?: string | null
+          font_body?: string | null
+          font_display?: string | null
+          foreground_color?: string | null
+          key?: string
+          logo_url?: string | null
+          muted_color?: string | null
+          primary_color?: string | null
+          primary_foreground?: string | null
+          pwa_background_color?: string | null
+          pwa_description?: string | null
+          pwa_display?: string | null
+          pwa_icon_192?: string | null
+          pwa_icon_512?: string | null
+          pwa_name?: string | null
+          pwa_short_name?: string | null
+          pwa_theme_color?: string | null
+          radius?: string | null
+          site_name?: string
+          success_color?: string | null
+          tagline?: string | null
+          updated_at?: string
+          warning_color?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          background_color?: string | null
+          border_color?: string | null
+          card_color?: string | null
+          destructive_color?: string | null
+          favicon_url?: string | null
+          font_body?: string | null
+          font_display?: string | null
+          foreground_color?: string | null
+          key?: string
+          logo_url?: string | null
+          muted_color?: string | null
+          primary_color?: string | null
+          primary_foreground?: string | null
+          pwa_background_color?: string | null
+          pwa_description?: string | null
+          pwa_display?: string | null
+          pwa_icon_192?: string | null
+          pwa_icon_512?: string | null
+          pwa_name?: string | null
+          pwa_short_name?: string | null
+          pwa_theme_color?: string | null
+          radius?: string | null
+          site_name?: string
+          success_color?: string | null
+          tagline?: string | null
+          updated_at?: string
+          warning_color?: string | null
+        }
+        Relationships: []
+      }
       daily_totals: {
         Row: {
           battery_charged_kwh: number
@@ -242,8 +335,9 @@ export type Database = {
           code: string
           created_at: string
           created_by: string | null
-          duration_days: number
+          duration_days: number | null
           id: string
+          is_lifetime: boolean
           notes: string | null
           owner_id: string | null
           plan: string
@@ -258,8 +352,9 @@ export type Database = {
           code: string
           created_at?: string
           created_by?: string | null
-          duration_days?: number
+          duration_days?: number | null
           id?: string
+          is_lifetime?: boolean
           notes?: string | null
           owner_id?: string | null
           plan?: string
@@ -274,8 +369,9 @@ export type Database = {
           code?: string
           created_at?: string
           created_by?: string | null
-          duration_days?: number
+          duration_days?: number | null
           id?: string
+          is_lifetime?: boolean
           notes?: string | null
           owner_id?: string | null
           plan?: string
@@ -293,6 +389,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      plans: {
+        Row: {
+          active: boolean
+          created_at: string
+          currency: string
+          description: string | null
+          duration_days: number | null
+          features: Json
+          id: string
+          is_lifetime: boolean
+          name: string
+          price_cents: number
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          currency?: string
+          description?: string | null
+          duration_days?: number | null
+          features?: Json
+          id?: string
+          is_lifetime?: boolean
+          name: string
+          price_cents?: number
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          currency?: string
+          description?: string | null
+          duration_days?: number | null
+          features?: Json
+          id?: string
+          is_lifetime?: boolean
+          name?: string
+          price_cents?: number
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
