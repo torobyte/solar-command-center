@@ -1,0 +1,13 @@
+{
+  "name": "SolarOps",
+  "short_name": "SolarOps",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#f59e0b",
+  "description": "Monitor and manage Voltronic / Axpert solar inverters from anywhere.",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
