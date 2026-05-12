@@ -646,9 +646,32 @@ def make_app(agent: Agent) -> Flask:
         with agent.lock:
             latest = dict(agent.latest)
             license = dict(agent.license)
+            snapshot = dict(agent.snapshot)
+            spec = dict(agent.spec)
+            # Downsample history for the chart: keep ~120 points max.
+            hist = list(agent.history)
+        if len(hist) > 120:
+            step = max(1, len(hist) // 120)
+            hist = hist[::step]
+        # Compute today's totals from history (rough trapezoidal).
+        today = datetime.now(timezone.utc).date().isoformat()
+        today_samples = [s for s in agent.history if str(s.get("recorded_at","")).startswith(today)]
+        totals = compute_today_totals(today_samples)
         cfg = {k: v for k, v in agent.config.items() if k != "device_token"}
         cfg["device_token"] = bool(agent.config.get("device_token"))
-        return jsonify({"latest": latest, "config": cfg, "license": license})
+        return jsonify({
+            "latest": latest, "config": cfg, "license": license,
+            "snapshot": snapshot, "spec": spec,
+            "history": [
+                {"t": s.get("recorded_at"),
+                 "pv": s.get("pv_input_power"),
+                 "load": s.get("ac_output_active_power"),
+                 "soc": s.get("battery_capacity"),
+                 "grid": s.get("grid_voltage")}
+                for s in hist
+            ],
+            "totals_today": totals,
+        })
 
     @app.post("/api/activate")
     def activate():
