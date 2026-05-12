@@ -461,6 +461,8 @@ function Licenses() {
   const [filter, setFilter] = useState<"all" | "pending" | "redeemed" | "revoked">("all");
   const [search, setSearch] = useState("");
   const [form, setForm] = useState({ email: "", planSlug: "pro", days: 365, isLifetime: false, siteName: "", notes: "" });
+  const [confirmDel, setConfirmDel] = useState<License | null>(null);
+  const [confirmRev, setConfirmRev] = useState<License | null>(null);
 
   async function load() {
     const [{ data, error }, { data: pl }] = await Promise.all([
