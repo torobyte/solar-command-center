@@ -7,12 +7,13 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bell, BellOff, Plus, Trash2, AlertTriangle, AlertCircle, Info } from "lucide-react";
+import { Bell, BellOff, Plus, Trash2, AlertTriangle, AlertCircle, Info, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import {
   ensureNotificationPermission, METRIC_OPTIONS,
   type NotificationRule, type NotificationEvent, type Operator, type Severity,
 } from "@/lib/notifications";
+import { isPushSupported, subscribeToPush, unsubscribeFromPush, registerServiceWorker } from "@/lib/push";
 
 const NUMERIC_OPS: { value: Operator; label: string }[] = [
   { value: "<", label: "Menor que" },
@@ -41,18 +42,37 @@ export function NotificationsConfig({ siteId, userId }: { siteId: string; userId
     typeof window !== "undefined" && "Notification" in window ? Notification.permission : "denied"
   );
   const [loading, setLoading] = useState(true);
+  const [pushOn, setPushOn] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
 
   async function load() {
     setLoading(true);
-    const [r, e] = await Promise.all([
+    const [r, e, ps] = await Promise.all([
       (supabase as any).from("notification_rules").select("*").eq("site_id", siteId).eq("user_id", userId).order("created_at", { ascending: false }),
       (supabase as any).from("notification_events").select("*").eq("site_id", siteId).eq("user_id", userId).order("created_at", { ascending: false }).limit(20),
+      (supabase as any).from("push_subscriptions").select("id").eq("user_id", userId).limit(1),
     ]);
     setRules((r.data ?? []) as NotificationRule[]);
     setEvents((e.data ?? []) as NotificationEvent[]);
+    setPushOn((ps.data?.length ?? 0) > 0);
     setLoading(false);
   }
-  useEffect(() => { load(); }, [siteId, userId]);
+  useEffect(() => { load(); registerServiceWorker(); }, [siteId, userId]);
+
+  async function togglePush() {
+    setPushBusy(true);
+    try {
+      if (pushOn) {
+        await unsubscribeFromPush(userId);
+        setPushOn(false);
+        toast.success("Notificaciones push desactivadas");
+      } else {
+        const ok = await subscribeToPush(userId);
+        if (ok) { setPushOn(true); toast.success("Push activado: recibirás alertas con la app cerrada"); }
+        else toast.error("No se pudo activar push (permisos o navegador no soportado)");
+      }
+    } finally { setPushBusy(false); }
+  }
 
   async function requestPerm() {
     const p = await ensureNotificationPermission();
@@ -116,12 +136,18 @@ export function NotificationsConfig({ siteId, userId }: { siteId: string; userId
               Recibe avisos del navegador / PWA cuando la batería, la red o el inversor cumplan condiciones.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {permission === "granted" ? (
               <Badge variant="secondary" className="gap-1"><Bell className="h-3 w-3" /> Permitidas</Badge>
             ) : (
               <Button size="sm" onClick={requestPerm}>
                 <BellOff className="mr-2 h-4 w-4" /> Activar permisos
+              </Button>
+            )}
+            {isPushSupported() && (
+              <Button size="sm" variant={pushOn ? "secondary" : "default"} onClick={togglePush} disabled={pushBusy}>
+                <Smartphone className="mr-2 h-4 w-4" />
+                {pushOn ? "Push activo (app cerrada)" : "Activar push en background"}
               </Button>
             )}
             <Button size="sm" variant="outline" onClick={testNotification}>Probar</Button>

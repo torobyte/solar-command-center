@@ -22,6 +22,7 @@ import { NotificationsConfig } from "@/components/NotificationsConfig";
 import { useNotificationWatcher } from "@/lib/notifications";
 import { useAuth } from "@/lib/auth";
 import { Bell } from "lucide-react";
+import { MobileBottomNav, type SiteTab } from "@/components/MobileBottomNav";
 
 export const Route = createFileRoute("/sites/$siteId")({
   component: () => <ProtectedLayout><SiteDetail /></ProtectedLayout>,
@@ -57,6 +58,7 @@ function SiteDetail() {
   const [latest, setLatest] = useState<Sample | null>(null);
   const [history, setHistory] = useState<Sample[]>([]);
   const [totals, setTotals] = useState<DailyTotal[]>([]);
+  const [tab, setTab] = useState<SiteTab>("dashboard");
 
   useNotificationWatcher(siteId, user?.id);
 
@@ -121,8 +123,8 @@ function SiteDetail() {
         </div>
       </div>
 
-      <Tabs defaultValue="dashboard">
-        <TabsList>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as SiteTab)} className="pb-24 md:pb-0">
+        <TabsList className="hidden md:inline-flex">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="charts">Charts</TabsTrigger>
           <TabsTrigger value="totals">Totals</TabsTrigger>
@@ -228,6 +230,7 @@ function SiteDetail() {
           <ConfigurationView site={site} />
         </TabsContent>
       </Tabs>
+      <MobileBottomNav value={tab} onChange={setTab} />
     </>
   );
 }
