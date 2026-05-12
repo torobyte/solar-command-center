@@ -450,6 +450,23 @@ function ChartCard({ title, children }: { title: string; children: React.ReactEl
 
 /* ---------------- Inverter-style dashboard ---------------- */
 
+const INVERTER_MODE_LABELS: Record<string, string> = {
+  P: "Encendido",
+  S: "Standby",
+  L: "Modo Red",
+  B: "Modo Batería",
+  F: "Fallo",
+  H: "Ahorro de energía",
+  D: "Apagado",
+};
+
+function formatInverterMode(raw: string | null | undefined): string {
+  if (!raw) return "—";
+  // Keep only the first ASCII letter — strips CRC/replacement chars from old samples.
+  const letter = raw.replace(/[^A-Za-z]/g, "").charAt(0).toUpperCase();
+  return INVERTER_MODE_LABELS[letter] ?? (letter || "—");
+}
+
 function DashboardView({ latest }: { latest: Sample | null }) {
   const { t } = useI18n();
   const pv = Number(latest?.pv_input_power ?? 0);
