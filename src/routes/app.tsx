@@ -26,10 +26,17 @@ interface Site {
   last_seen_at: string | null; license_expires_at: string | null;
 }
 
+interface MyLicense {
+  id: string; code: string; plan: string; duration_days: number;
+  assigned_email: string | null; site_name: string | null;
+  redeemed_at: string | null; revoked_at: string | null;
+}
+
 function SitesIndex() {
   const { user } = useAuth();
   const { t } = useI18n();
   const [sites, setSites] = useState<Site[]>([]);
+  const [licenses, setLicenses] = useState<MyLicense[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -37,10 +44,15 @@ function SitesIndex() {
 
   async function load() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("sites").select("*").order("created_at", { ascending: false });
+    const [{ data: s, error }, { data: lic }] = await Promise.all([
+      supabase.from("sites").select("*").order("created_at", { ascending: false }),
+      supabase.from("license_codes")
+        .select("id,code,plan,duration_days,assigned_email,site_name,redeemed_at,revoked_at")
+        .order("created_at", { ascending: false }),
+    ]);
     if (error) toast.error(error.message);
-    setSites((data ?? []) as Site[]);
+    setSites((s ?? []) as Site[]);
+    setLicenses((lic ?? []) as MyLicense[]);
     setLoading(false);
   }
 
