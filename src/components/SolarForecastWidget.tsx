@@ -71,6 +71,13 @@ export function SolarForecastWidget({ pvConfig }: { pvConfig?: ForecastPvConfig 
   const debounceRef = useRef<number | null>(null);
 
   useEffect(() => {
+    // PV config coords take precedence
+    if (pvConfig?.lat != null && pvConfig?.lon != null) {
+      const c: Coords = { lat: pvConfig.lat, lon: pvConfig.lon };
+      setCoords(c);
+      void loadForecast(c);
+      return;
+    }
     const cached = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
     if (cached) {
       try {
@@ -82,7 +89,7 @@ export function SolarForecastWidget({ pvConfig }: { pvConfig?: ForecastPvConfig 
     }
     void detectAndLoad();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [pvConfig?.lat, pvConfig?.lon]);
 
   async function detectAndLoad() {
     setLoading(true);
