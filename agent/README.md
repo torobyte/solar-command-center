@@ -57,12 +57,23 @@ ejecuta `git pull` cada hora. Si hay cambios, reinicia el agente.
 
 ## Control manual
 
+> El servicio se llama **`solarops`** (no `solarops-agent`). El instalador crea
+> `/etc/systemd/system/solarops.service`.
+
 ```bash
 sudo systemctl status solarops
 sudo journalctl -u solarops -f
 sudo systemctl restart solarops
 sudo systemctl list-timers solarops-update
 ```
+
+## Forzar actualización inmediata
+
+```bash
+sudo bash /opt/solarops/update.sh
+sudo systemctl restart solarops
+```
+
 
 ## Repositorios privados
 
