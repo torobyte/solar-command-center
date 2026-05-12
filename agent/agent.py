@@ -512,6 +512,9 @@ def collect_device_snapshot() -> dict:
 PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>SolarOps</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#f59e0b">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
 <style>
 :root{--bg:#fbf8f1;--fg:#0b1220;--muted:#6b7280;--card:#fffdf7;--border:#ece6d6;
   --pv:#f59e0b;--bat:#10b981;--grid:#f59e0b;--inv:#0b1220;--danger:#ef4444;--load:#3b82f6}
