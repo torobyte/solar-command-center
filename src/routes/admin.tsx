@@ -434,22 +434,25 @@ function UsersAdmin() {
   );
 }
 
-interface License { id: string; code: string; plan: string; duration_days: number; redeemed_at: string | null; notes: string | null; owner_id: string | null; site_name: string | null; }
+interface License {
+  id: string; code: string; plan: string; duration_days: number;
+  redeemed_at: string | null; revoked_at: string | null;
+  notes: string | null; assigned_email: string | null;
+  assigned_user_id: string | null; site_name: string | null;
+  redeemed_by_site: string | null; created_at: string;
+}
 
 function Licenses() {
-  const { t } = useI18n();
   const { user } = useAuth();
-  const { users } = useUsers();
   const [rows, setRows] = useState<License[]>([]);
   const [open, setOpen] = useState(false);
-  const [plan, setPlan] = useState("pro");
-  const [days, setDays] = useState(365);
-  const [notes, setNotes] = useState("");
-  const [ownerId, setOwnerId] = useState<string>("");
-  const [siteName, setSiteName] = useState("");
+  const [filter, setFilter] = useState<"all" | "pending" | "redeemed" | "revoked">("all");
+  const [search, setSearch] = useState("");
+  const [form, setForm] = useState({ email: "", plan: "pro", days: 365, siteName: "", notes: "" });
 
   async function load() {
-    const { data, error } = await supabase.from("license_codes").select("*").order("created_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("license_codes").select("*").order("created_at", { ascending: false });
     if (error) toast.error(error.message);
     setRows((data ?? []) as License[]);
   }
@@ -458,66 +461,107 @@ function Licenses() {
   async function generate(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
-    if (!ownerId) return toast.error(t("alic.ownerRequired"));
     const code = generateCode();
     const { error } = await supabase.from("license_codes").insert({
-      code, plan, duration_days: days, notes: notes || null, created_by: user.id,
-      owner_id: ownerId, site_name: siteName.trim() || null,
+      code, plan: form.plan, duration_days: form.days,
+      assigned_email: form.email.trim().toLowerCase(),
+      site_name: form.siteName.trim() || null,
+      notes: form.notes.trim() || null,
+      created_by: user.id,
     });
     if (error) return toast.error(error.message);
-    toast.success(t("alic.generated"));
-    setOpen(false); setNotes(""); setSiteName(""); setOwnerId("");
+    toast.success(`Licencia creada para ${form.email}`);
+    setOpen(false);
+    setForm({ email: "", plan: "pro", days: 365, siteName: "", notes: "" });
     load();
   }
 
-  const ownerLabel = (id: string | null) => {
-    if (!id) return "—";
-    const u = users.find((x) => x.id === id);
-    return u ? (u.full_name || u.email) : id.slice(0, 8);
-  };
+  async function revokeLicense(id: string) {
+    if (!confirm("¿Revocar esta licencia? El código dejará de ser válido.")) return;
+    const { error } = await supabase.from("license_codes")
+      .update({ revoked_at: new Date().toISOString() }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Licencia revocada");
+    load();
+  }
+
+  function statusOf(r: License): { label: string; cls: string; key: typeof filter } {
+    if (r.revoked_at) return { label: "Revocada", cls: "text-destructive", key: "revoked" };
+    if (r.redeemed_at) return { label: "Canjeada", cls: "text-muted-foreground", key: "redeemed" };
+    return { label: "Pendiente", cls: "text-success", key: "pending" };
+  }
+
+  const filtered = rows.filter((r) => {
+    if (filter !== "all" && statusOf(r).key !== filter) return false;
+    if (search && !r.assigned_email?.toLowerCase().includes(search.toLowerCase()) &&
+        !r.code.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
 
   return (
     <>
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Input
+            placeholder="Buscar por email o código…"
+            value={search} onChange={(e) => setSearch(e.target.value)}
+            className="h-9 w-64"
+          />
+          <Select value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
+            <SelectTrigger className="h-9 w-[160px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="pending">Pendientes</SelectItem>
+              <SelectItem value="redeemed">Canjeadas</SelectItem>
+              <SelectItem value="revoked">Revocadas</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" />{t("alic.generate")}</Button></DialogTrigger>
+          <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" />Nueva licencia</Button></DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>{t("alic.dlgTitle")}</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>Generar licencia para un usuario</DialogTitle></DialogHeader>
             <form onSubmit={generate} className="space-y-4">
               <div className="space-y-2">
-                <Label>{t("alic.owner")}</Label>
-                <Select value={ownerId} onValueChange={setOwnerId}>
-                  <SelectTrigger><SelectValue placeholder={t("alic.ownerPh")} /></SelectTrigger>
-                  <SelectContent>
-                    {users.map((u) => (
-                      <SelectItem key={u.id} value={u.id}>{u.full_name || u.email}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Email del cliente</Label>
+                <Input type="email" required value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  placeholder="cliente@ejemplo.com" />
+                <p className="text-xs text-muted-foreground">
+                  La licencia queda reservada para este email. Si ya tiene cuenta, se vincula al instante;
+                  si no, se vinculará automáticamente cuando se registre.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Plan</Label>
+                  <Select value={form.plan} onValueChange={(v) => setForm({ ...form, plan: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="trial">Trial</SelectItem>
+                      <SelectItem value="pro">Pro</SelectItem>
+                      <SelectItem value="enterprise">Enterprise</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Duración (días)</Label>
+                  <Input type="number" min={1} value={form.days}
+                    onChange={(e) => setForm({ ...form, days: parseInt(e.target.value) || 365 })} />
+                </div>
               </div>
               <div className="space-y-2">
-                <Label>{t("alic.siteName")}</Label>
-                <Input value={siteName} onChange={(e) => setSiteName(e.target.value)} placeholder={t("alic.siteNamePh")} />
+                <Label>Nombre del sitio (opcional)</Label>
+                <Input value={form.siteName}
+                  onChange={(e) => setForm({ ...form, siteName: e.target.value })}
+                  placeholder="Casa Brian" />
               </div>
               <div className="space-y-2">
-                <Label>{t("alic.plan")}</Label>
-                <Select value={plan} onValueChange={setPlan}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="trial">Trial</SelectItem>
-                    <SelectItem value="pro">Pro</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Notas internas</Label>
+                <Input value={form.notes}
+                  onChange={(e) => setForm({ ...form, notes: e.target.value })} />
               </div>
-              <div className="space-y-2">
-                <Label>{t("alic.duration")}</Label>
-                <Input type="number" min={1} value={days} onChange={(e) => setDays(parseInt(e.target.value) || 365)} />
-              </div>
-              <div className="space-y-2">
-                <Label>{t("alic.notes")}</Label>
-                <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t("alic.notesPh")} />
-              </div>
-              <DialogFooter><Button type="submit">{t("common.create")}</Button></DialogFooter>
+              <DialogFooter><Button type="submit">Generar código</Button></DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
@@ -527,38 +571,55 @@ function Licenses() {
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/50 text-left">
             <tr>
-              <th className="px-4 py-3 font-medium">{t("alic.col.code")}</th>
-              <th className="px-4 py-3 font-medium">{t("alic.owner")}</th>
-              <th className="px-4 py-3 font-medium">{t("alic.plan")}</th>
-              <th className="px-4 py-3 font-medium">{t("alic.col.duration")}</th>
-              <th className="px-4 py-3 font-medium">{t("alic.col.status")}</th>
-              <th className="px-4 py-3 font-medium">{t("alic.col.notes")}</th>
+              <th className="px-4 py-3 font-medium">Código</th>
+              <th className="px-4 py-3 font-medium">Email asignado</th>
+              <th className="px-4 py-3 font-medium">Plan</th>
+              <th className="px-4 py-3 font-medium">Duración</th>
+              <th className="px-4 py-3 font-medium">Estado</th>
+              <th className="px-4 py-3 font-medium">Vínculo</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
-              <tr key={r.id} className="border-b last:border-0">
-                <td className="px-4 py-3 font-mono text-xs">{r.code}</td>
-                <td className="px-4 py-3">{ownerLabel(r.owner_id)}{r.site_name ? <span className="block text-xs text-muted-foreground">{r.site_name}</span> : null}</td>
-                <td className="px-4 py-3">{r.plan}</td>
-                <td className="px-4 py-3">{r.duration_days} {t("alic.days")}</td>
-                <td className="px-4 py-3">
-                  {r.redeemed_at
-                    ? <span className="text-muted-foreground">{t("alic.redeemed")}</span>
-                    : <span className="text-success">{t("alic.available")}</span>}
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">{r.notes ?? "—"}</td>
-                <td className="px-4 py-3 text-right">
-                  <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(r.code); toast.success(t("common.copied")); }}>
-                    <Copy className="h-3.5 w-3.5" />
-                  </Button>
-                </td>
-              </tr>
-            ))}
+            {filtered.map((r) => {
+              const st = statusOf(r);
+              return (
+                <tr key={r.id} className="border-b last:border-0">
+                  <td className="px-4 py-3 font-mono text-xs">{r.code}</td>
+                  <td className="px-4 py-3">
+                    <div>{r.assigned_email ?? "—"}</div>
+                    {r.site_name && <div className="text-xs text-muted-foreground">{r.site_name}</div>}
+                  </td>
+                  <td className="px-4 py-3">{r.plan}</td>
+                  <td className="px-4 py-3">{r.duration_days} días</td>
+                  <td className={`px-4 py-3 font-medium ${st.cls}`}>{st.label}</td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">
+                    {r.assigned_user_id
+                      ? <span className="text-success">✓ Cuenta vinculada</span>
+                      : <span>Esperando registro</span>}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button size="sm" variant="ghost" title="Copiar código"
+                        onClick={() => { navigator.clipboard.writeText(r.code); toast.success("Copiado"); }}>
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                      {!r.redeemed_at && !r.revoked_at && (
+                        <Button size="sm" variant="ghost" title="Revocar"
+                          onClick={() => revokeLicense(r.id)}>
+                          <ShieldOff className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
-        {rows.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">{t("alic.empty")}</p>}
+        {filtered.length === 0 && (
+          <p className="p-8 text-center text-sm text-muted-foreground">Sin licencias.</p>
+        )}
       </div>
     </>
   );
@@ -568,3 +629,4 @@ function generateCode() {
   const seg = () => Math.random().toString(36).slice(2, 7).toUpperCase();
   return `${seg()}-${seg()}-${seg()}-${seg()}`;
 }
+

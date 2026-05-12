@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ProtectedLayout } from "@/components/ProtectedLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Copy, Battery, Sun, Plug, Cpu, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -202,25 +203,239 @@ function SiteDetail() {
         </TabsContent>
 
         <TabsContent value="config" className="mt-6 space-y-6">
-          <Section title="General">
-            <Row label="Site ID" value={site.id} />
-            <Row label="Status" value={site.status} />
-            <Row label="Plan" value={site.plan} />
-            <Row label="License expires" value={site.license_expires_at ?? "—"} />
-          </Section>
-
-          <Section title="Device installation">
-            <p className="mb-3 text-sm text-muted-foreground">
-              Run this on your Raspberry Pi or Orange Pi to install the SolarOps agent and pair it with this site:
-            </p>
-            <CodeBlock value={`curl -fsSL https://solarops.local/install.sh | sudo bash -s -- --token ${site.device_token}`} />
-            <p className="mt-2 text-xs text-muted-foreground">Keep this token secret. It identifies your device.</p>
-          </Section>
+          <ConfigurationView site={site} />
         </TabsContent>
       </Tabs>
     </>
   );
 }
+
+/* ---------------- Configuration tab ---------------- */
+
+interface InverterSpec {
+  driver: string | null; model_name: string | null; serial_number: string | null;
+  firmware: string | null; topology: string | null; machine_type: string | null;
+  nominal_battery_voltage: number | null; expected_ac_input_voltage: number | null;
+  max_ac_input_current: number | null; max_ac_output_current: number | null;
+  max_ac_output_power: number | null; max_ac_output_apparent_power: number | null;
+  updated_at: string;
+}
+
+interface DeviceSnapshot {
+  ssid: string | null; ip_eth: string | null; ip_wlan: string | null;
+  ip_public: string | null; internet_up: boolean | null;
+  cpu_temp_c: number | null; storage_used_pct: number | null;
+  storage_total_gb: number | null; usb_devices: number | null;
+  board_model: string | null; agent_version: string | null;
+  voltage_dips: number | null; updated_at: string;
+}
+
+interface DeviceCommand {
+  id: string; command: string; payload: Record<string, unknown>;
+  status: string; result: unknown; error: string | null;
+  created_at: string; sent_at: string | null; acked_at: string | null;
+}
+
+function ConfigurationView({ site }: { site: Site }) {
+  const [spec, setSpec] = useState<InverterSpec | null>(null);
+  const [snap, setSnap] = useState<DeviceSnapshot | null>(null);
+  const [commands, setCommands] = useState<DeviceCommand[]>([]);
+  const [user, setUser] = useState<{ id: string; email: string | null } | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) setUser({ id: data.user.id, email: data.user.email ?? null });
+    });
+    refresh();
+    const ch = supabase.channel(`cfg-${site.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "inverter_specs", filter: `site_id=eq.${site.id}` }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "device_snapshots", filter: `site_id=eq.${site.id}` }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "device_commands", filter: `site_id=eq.${site.id}` }, refresh)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [site.id]);
+
+  async function refresh() {
+    const [{ data: sp }, { data: sn }, { data: cm }] = await Promise.all([
+      supabase.from("inverter_specs").select("*").eq("site_id", site.id).maybeSingle(),
+      supabase.from("device_snapshots").select("*").eq("site_id", site.id).maybeSingle(),
+      supabase.from("device_commands").select("*").eq("site_id", site.id).order("created_at", { ascending: false }).limit(10),
+    ]);
+    setSpec(sp as InverterSpec | null);
+    setSnap(sn as DeviceSnapshot | null);
+    setCommands((cm ?? []) as DeviceCommand[]);
+  }
+
+  async function sendCommand(command: string, payload: Record<string, unknown>) {
+    if (!user) return;
+    const { error } = await supabase.from("device_commands").insert({
+      site_id: site.id, command, payload, created_by: user.id,
+    });
+    if (error) toast.error(error.message);
+    else toast.success("Comando encolado — la Raspberry lo aplicará en breve");
+  }
+
+  return (
+    <>
+      <Section title="General">
+        <Row label="Site ID" value={site.id} />
+        <Row label="Plan" value={site.plan} />
+        <Row label="Estado" value={site.status} />
+        <Row label="Licencia expira" value={site.license_expires_at ?? "—"} />
+      </Section>
+
+      <Section title="Especificación del inversor">
+        {spec ? (
+          <div className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
+            <Row label="Driver" value={spec.driver ?? "—"} />
+            <Row label="Modelo" value={spec.model_name ?? "—"} />
+            <Row label="Número de serie" value={spec.serial_number ?? "—"} />
+            <Row label="Firmware" value={spec.firmware ?? "—"} />
+            <Row label="Topología" value={spec.topology ?? "—"} />
+            <Row label="Tipo de máquina" value={spec.machine_type ?? "—"} />
+            <Row label="Voltaje nominal batería" value={spec.nominal_battery_voltage ? `${spec.nominal_battery_voltage} V` : "—"} />
+            <Row label="Voltaje AC esperado" value={spec.expected_ac_input_voltage ? `${spec.expected_ac_input_voltage} V` : "—"} />
+            <Row label="Max corriente AC entrada" value={spec.max_ac_input_current ? `${spec.max_ac_input_current} A` : "—"} />
+            <Row label="Max corriente AC salida" value={spec.max_ac_output_current ? `${spec.max_ac_output_current} A` : "—"} />
+            <Row label="Max potencia AC salida" value={spec.max_ac_output_power ? `${spec.max_ac_output_power} W` : "—"} />
+            <Row label="Max potencia aparente AC" value={spec.max_ac_output_apparent_power ? `${spec.max_ac_output_apparent_power} VA` : "—"} />
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Esperando que la Raspberry envíe la especificación del inversor…</p>
+        )}
+      </Section>
+
+      <Section title="Configuración remota del inversor">
+        <p className="mb-4 text-sm text-muted-foreground">
+          Los cambios se envían a la Raspberry y se aplican al inversor mediante comandos Voltronic.
+        </p>
+        <SettingControl label="Prioridad de salida (POP)"
+          options={[
+            { v: "00", l: "Utility first" },
+            { v: "01", l: "Solar first" },
+            { v: "02", l: "SBU (Solar→Batería→Utility)" },
+          ]}
+          onApply={(v) => sendCommand("set_output_priority", { value: v })} />
+        <SettingControl label="Prioridad de carga (PCP)"
+          options={[
+            { v: "00", l: "Utility first" },
+            { v: "01", l: "Solar first" },
+            { v: "02", l: "Solar y Utility" },
+            { v: "03", l: "Solo Solar" },
+          ]}
+          onApply={(v) => sendCommand("set_charger_priority", { value: v })} />
+        <SettingControl label="Rango voltaje AC entrada"
+          options={[{ v: "appliance", l: "Appliance (170–280 V)" }, { v: "ups", l: "UPS (90–280 V)" }]}
+          onApply={(v) => sendCommand("set_input_range", { value: v })} />
+        <NumberControl label="Corriente máx. de carga (A)" min={10} max={100} step={10} defaultValue={40}
+          onApply={(n) => sendCommand("set_max_charge_current", { amps: n })} />
+        <NumberControl label="Corriente máx. carga AC (A)" min={2} max={30} step={2} defaultValue={20}
+          onApply={(n) => sendCommand("set_max_ac_charge_current", { amps: n })} />
+        <NumberControl label="Voltaje volver a batería (V)" min={44} max={51} step={0.1} defaultValue={48}
+          onApply={(n) => sendCommand("set_back_to_battery_voltage", { volts: n })} />
+        <NumberControl label="Voltaje a red (V)" min={44} max={51} step={0.1} defaultValue={47}
+          onApply={(n) => sendCommand("set_back_to_grid_voltage", { volts: n })} />
+
+        <div className="mt-6">
+          <h4 className="mb-2 text-sm font-semibold">Últimos comandos</h4>
+          {commands.length === 0 ? (
+            <p className="text-xs text-muted-foreground">Sin comandos enviados todavía.</p>
+          ) : (
+            <div className="space-y-1">
+              {commands.map((c) => (
+                <div key={c.id} className="flex items-center justify-between rounded border bg-background px-3 py-2 text-xs">
+                  <div className="font-mono">{c.command} {JSON.stringify(c.payload)}</div>
+                  <div className={
+                    c.status === "done" ? "text-success" :
+                    c.status === "failed" ? "text-destructive" :
+                    "text-muted-foreground"
+                  }>
+                    {c.status}{c.error ? ` — ${c.error}` : ""}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Section>
+
+      <Section title="Estado de red">
+        {snap ? (
+          <div className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
+            <Row label="SSID WiFi" value={snap.ssid ?? "—"} />
+            <Row label="Internet" value={snap.internet_up ? "Conectado" : "Desconectado"} />
+            <Row label="IP Ethernet" value={snap.ip_eth ?? "—"} />
+            <Row label="IP WiFi" value={snap.ip_wlan ?? "—"} />
+            <Row label="IP pública" value={snap.ip_public ?? "—"} />
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Esperando datos del dispositivo…</p>
+        )}
+      </Section>
+
+      <Section title="Sistema">
+        {snap ? (
+          <div className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
+            <Row label="Modelo de placa" value={snap.board_model ?? "—"} />
+            <Row label="Versión del agente" value={snap.agent_version ?? "—"} />
+            <Row label="Temperatura CPU" value={snap.cpu_temp_c ? `${snap.cpu_temp_c.toFixed(1)} °C` : "—"} />
+            <Row label="Almacenamiento" value={
+              snap.storage_total_gb && snap.storage_used_pct != null
+                ? `${snap.storage_used_pct.toFixed(0)}% de ${snap.storage_total_gb.toFixed(0)} GB`
+                : "—"} />
+            <Row label="Dispositivos USB" value={snap.usb_devices?.toString() ?? "—"} />
+            <Row label="Caídas de voltaje USB" value={snap.voltage_dips?.toString() ?? "0"} />
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Esperando datos del dispositivo…</p>
+        )}
+      </Section>
+
+      <Section title="Instalación del dispositivo">
+        <p className="mb-3 text-sm text-muted-foreground">
+          Ejecuta esto en tu Raspberry Pi para instalar el agente y vincularlo a este sitio:
+        </p>
+        <CodeBlock value={`curl -fsSL https://solarops.local/install.sh | sudo bash -s -- --token ${site.device_token}`} />
+        <p className="mt-2 text-xs text-muted-foreground">El token identifica este dispositivo. No lo compartas.</p>
+      </Section>
+    </>
+  );
+}
+
+function SettingControl({ label, options, onApply }: {
+  label: string; options: Array<{ v: string; l: string }>;
+  onApply: (v: string) => void;
+}) {
+  const [val, setVal] = useState(options[0].v);
+  return (
+    <div className="mb-3 flex items-center gap-3">
+      <Label className="w-64 text-sm">{label}</Label>
+      <select value={val} onChange={(e) => setVal(e.target.value)}
+        className="flex-1 rounded-md border bg-background px-3 py-2 text-sm">
+        {options.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
+      </select>
+      <Button size="sm" onClick={() => onApply(val)}>Aplicar</Button>
+    </div>
+  );
+}
+
+function NumberControl({ label, min, max, step, defaultValue, onApply }: {
+  label: string; min: number; max: number; step: number; defaultValue: number;
+  onApply: (n: number) => void;
+}) {
+  const [val, setVal] = useState(defaultValue);
+  return (
+    <div className="mb-3 flex items-center gap-3">
+      <Label className="w-64 text-sm">{label}</Label>
+      <input type="number" min={min} max={max} step={step} value={val}
+        onChange={(e) => setVal(parseFloat(e.target.value) || defaultValue)}
+        className="flex-1 rounded-md border bg-background px-3 py-2 text-sm" />
+      <Button size="sm" onClick={() => onApply(val)}>Aplicar</Button>
+    </div>
+  );
+}
+
 
 function ChartCard({ title, children }: { title: string; children: React.ReactElement }) {
   return (
