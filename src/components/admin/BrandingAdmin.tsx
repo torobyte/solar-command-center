@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { applyBrandingToDOM, useBranding, type Branding } from "@/lib/branding";
+import { applyBrandingToDOM, ensureGoogleFont, GOOGLE_FONTS, useBranding, type Branding } from "@/lib/branding";
 import { Save, RotateCcw } from "lucide-react";
 
 const COLOR_FIELDS: { key: keyof Branding; label: string }[] = [
@@ -105,15 +105,27 @@ export function BrandingAdmin() {
         </TabsContent>
 
         <TabsContent value="typography" className="mt-6 space-y-4">
-          <Field label="Fuente de display (titulares)">
-            <Input value={b.font_display} onChange={(e) => update("font_display", e.target.value)} placeholder="Inter, sans-serif" />
-          </Field>
-          <Field label="Fuente del cuerpo">
-            <Input value={b.font_body} onChange={(e) => update("font_body", e.target.value)} placeholder="Inter, sans-serif" />
-          </Field>
+          <FontPicker
+            label="Fuente de display (titulares)"
+            value={b.font_display}
+            onChange={(v) => { ensureGoogleFont(v); update("font_display", v); }}
+          />
+          <FontPicker
+            label="Fuente del cuerpo"
+            value={b.font_body}
+            onChange={(v) => { ensureGoogleFont(v); update("font_body", v); }}
+          />
+          <div className="rounded-lg border bg-card p-4">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Vista previa</p>
+            <p className="mt-2 text-3xl font-bold" style={{ fontFamily: b.font_display }}>
+              The quick brown fox · 1234567890
+            </p>
+            <p className="mt-1 text-sm" style={{ fontFamily: b.font_body }}>
+              Texto de cuerpo: monitorea tu inversor solar en tiempo real con SolarOps.
+            </p>
+          </div>
           <p className="text-xs text-muted-foreground">
-            Indica una fuente del sistema o ya cargada en el sitio (ej. Inter, "SF Pro Display").
-            Para fuentes custom, agrega el &lt;link&gt; correspondiente al sitio.
+            Las fuentes de Google se cargan automáticamente. Para usar otra, escribe su nombre en "Personalizada".
           </p>
         </TabsContent>
 
@@ -179,5 +191,32 @@ function Field({ label, children, className }: { label: string; children: React.
       <Label>{label}</Label>
       {children}
     </div>
+  );
+}
+
+function FontPicker({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const isCustom = !GOOGLE_FONTS.includes(value as (typeof GOOGLE_FONTS)[number]);
+  return (
+    <Field label={label}>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr]">
+        <Select value={isCustom ? "__custom__" : value} onValueChange={(v) => onChange(v === "__custom__" ? value : v)}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent className="max-h-80">
+            {GOOGLE_FONTS.map((f) => (
+              <SelectItem key={f} value={f}>
+                <span style={{ fontFamily: f }}>{f}</span>
+              </SelectItem>
+            ))}
+            <SelectItem value="__custom__">Personalizada…</SelectItem>
+          </SelectContent>
+        </Select>
+        <Input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Inter"
+          className="font-mono text-sm"
+        />
+      </div>
+    </Field>
   );
 }

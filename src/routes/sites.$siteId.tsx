@@ -18,6 +18,10 @@ import { PowerGauges } from "@/components/PowerGauges";
 import { Battery3D, SolarRays, GridSineWave, ConcentricRings } from "@/components/AdvancedVisuals";
 import { DashboardCustomizer, useDashboardLayout, type WidgetDef } from "@/components/DashboardCustomizer";
 import { PvSystemConfigCard, usePvConfig } from "@/components/PvSystemConfig";
+import { NotificationsConfig } from "@/components/NotificationsConfig";
+import { useNotificationWatcher } from "@/lib/notifications";
+import { useAuth } from "@/lib/auth";
+import { Bell } from "lucide-react";
 
 export const Route = createFileRoute("/sites/$siteId")({
   component: () => <ProtectedLayout><SiteDetail /></ProtectedLayout>,
@@ -48,10 +52,13 @@ interface DailyTotal {
 function SiteDetail() {
   const { siteId } = Route.useParams();
   const { t } = useI18n();
+  const { user } = useAuth();
   const [site, setSite] = useState<Site | null>(null);
   const [latest, setLatest] = useState<Sample | null>(null);
   const [history, setHistory] = useState<Sample[]>([]);
   const [totals, setTotals] = useState<DailyTotal[]>([]);
+
+  useNotificationWatcher(siteId, user?.id);
 
   async function load() {
     const { data: s } = await supabase.from("sites").select("*").eq("id", siteId).maybeSingle();
@@ -119,6 +126,7 @@ function SiteDetail() {
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="charts">Charts</TabsTrigger>
           <TabsTrigger value="totals">Totals</TabsTrigger>
+          <TabsTrigger value="notifications"><Bell className="mr-1 h-3.5 w-3.5" /> Alertas</TabsTrigger>
           <TabsTrigger value="config">Configuration</TabsTrigger>
         </TabsList>
 
@@ -206,6 +214,14 @@ function SiteDetail() {
             </table>
             {totals.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">No daily data yet.</p>}
           </div>
+        </TabsContent>
+
+        <TabsContent value="notifications" className="mt-6">
+          {user ? (
+            <NotificationsConfig siteId={siteId} userId={user.id} />
+          ) : (
+            <p className="text-sm text-muted-foreground">Inicia sesión para configurar alertas.</p>
+          )}
         </TabsContent>
 
         <TabsContent value="config" className="mt-6 space-y-6">

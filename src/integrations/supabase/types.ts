@@ -429,6 +429,113 @@ export type Database = {
           },
         ]
       }
+      notification_events: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          metric: string | null
+          read_at: string | null
+          rule_id: string | null
+          severity: string
+          site_id: string
+          title: string
+          user_id: string
+          value: number | null
+          value_text: string | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          metric?: string | null
+          read_at?: string | null
+          rule_id?: string | null
+          severity?: string
+          site_id: string
+          title: string
+          user_id: string
+          value?: number | null
+          value_text?: string | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          metric?: string | null
+          read_at?: string | null
+          rule_id?: string | null
+          severity?: string
+          site_id?: string
+          title?: string
+          user_id?: string
+          value?: number | null
+          value_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_events_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "notification_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_rules: {
+        Row: {
+          channels: Json
+          cooldown_minutes: number
+          created_at: string
+          enabled: boolean
+          id: string
+          last_triggered_at: string | null
+          metric: string
+          name: string
+          operator: string
+          severity: string
+          site_id: string
+          threshold: number | null
+          threshold_text: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          channels?: Json
+          cooldown_minutes?: number
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_triggered_at?: string | null
+          metric: string
+          name: string
+          operator: string
+          severity?: string
+          site_id: string
+          threshold?: number | null
+          threshold_text?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          channels?: Json
+          cooldown_minutes?: number
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_triggered_at?: string | null
+          metric?: string
+          name?: string
+          operator?: string
+          severity?: string
+          site_id?: string
+          threshold?: number | null
+          threshold_text?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       plans: {
         Row: {
           active: boolean
