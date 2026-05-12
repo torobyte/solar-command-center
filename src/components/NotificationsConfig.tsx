@@ -136,12 +136,18 @@ export function NotificationsConfig({ siteId, userId }: { siteId: string; userId
               Recibe avisos del navegador / PWA cuando la batería, la red o el inversor cumplan condiciones.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {permission === "granted" ? (
               <Badge variant="secondary" className="gap-1"><Bell className="h-3 w-3" /> Permitidas</Badge>
             ) : (
               <Button size="sm" onClick={requestPerm}>
                 <BellOff className="mr-2 h-4 w-4" /> Activar permisos
+              </Button>
+            )}
+            {isPushSupported() && (
+              <Button size="sm" variant={pushOn ? "secondary" : "default"} onClick={togglePush} disabled={pushBusy}>
+                <Smartphone className="mr-2 h-4 w-4" />
+                {pushOn ? "Push activo (app cerrada)" : "Activar push en background"}
               </Button>
             )}
             <Button size="sm" variant="outline" onClick={testNotification}>Probar</Button>
