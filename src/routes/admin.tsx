@@ -675,12 +675,12 @@ function Licenses() {
                       </Button>
                       {!r.redeemed_at && !r.revoked_at && (
                         <Button size="sm" variant="ghost" title="Revocar"
-                          onClick={() => revokeLicense(r.id)}>
+                          onClick={() => setConfirmRev(r)}>
                           <ShieldOff className="h-3.5 w-3.5" />
                         </Button>
                       )}
                       <Button size="sm" variant="ghost" title="Eliminar licencia"
-                        onClick={() => deleteLicense(r.id)}>
+                        onClick={() => setConfirmDel(r)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -694,6 +694,31 @@ function Licenses() {
           <p className="p-8 text-center text-sm text-muted-foreground">Sin licencias.</p>
         )}
       </div>
+
+      <ConfirmDestructiveDialog
+        open={!!confirmRev}
+        onOpenChange={(o) => !o && setConfirmRev(null)}
+        title="Revocar licencia"
+        description={`Esta acción inhabilita el código ${confirmRev?.code ?? ""} de forma inmediata. Queda registrada en auditoría.`}
+        expectedText="REVOCAR"
+        confirmLabel="Revocar licencia"
+        destructive={false}
+        requireReason
+        onConfirm={async (reason) => { if (confirmRev) await doRevoke(confirmRev, reason); }}
+      />
+
+      <ConfirmDestructiveDialog
+        open={!!confirmDel}
+        onOpenChange={(o) => !o && setConfirmDel(null)}
+        title="Eliminar licencia permanentemente"
+        description="Vas a eliminar definitivamente la licencia. El historial de auditoría se conserva. Para confirmar, escribe el código completo."
+        expectedText={confirmDel?.code ?? ""}
+        expectedLabel={`el código (${confirmDel?.code ?? ""})`}
+        confirmLabel="Eliminar definitivamente"
+        destructive
+        requireReason
+        onConfirm={async (reason) => { if (confirmDel) await doDelete(confirmDel, reason); }}
+      />
     </>
   );
 }
