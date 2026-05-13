@@ -259,6 +259,13 @@ class Agent:
         self.history: list[dict] = []  # last ~12h of samples for local charts
         self.lock = threading.Lock()
         self.pending: queue.Queue = queue.Queue(maxsize=10000)
+        # Diagnóstico para la página de estado local
+        self.last_error: str | None = None
+        self.last_error_at: str | None = None
+        self.last_sample_at: str | None = None
+        self.error_count: int = 0
+        self.read_count: int = 0
+        self.started_at: str = datetime.now(timezone.utc).isoformat()
 
     def ensure_transport(self):
         if self.transport: return
@@ -270,6 +277,8 @@ class Agent:
                 self.config["inverter_transport"] = self.transport.kind
                 save_config(self.config)
         else:
+            self.last_error = "No se detectó inversor en ningún puerto"
+            self.last_error_at = datetime.now(timezone.utc).isoformat()
             print("[agent] no inverter detected, retrying in 5 s")
 
     def poll_loop(self):
@@ -284,16 +293,22 @@ class Agent:
                     sample["recorded_at"] = datetime.now(timezone.utc).isoformat()
                     with self.lock:
                         self.latest = sample
+                        self.last_sample_at = sample["recorded_at"]
+                        self.read_count += 1
                         self.history.append(sample)
                         # Keep ~12h at 5s = 8640 samples; cap at 2000 to limit memory.
                         if len(self.history) > 2000: self.history = self.history[-2000:]
                     try: self.pending.put_nowait(sample)
                     except queue.Full: pass
             except Exception as e:
+                self.last_error = f"{type(e).__name__}: {e}"
+                self.last_error_at = datetime.now(timezone.utc).isoformat()
+                self.error_count += 1
                 print(f"[agent] poll error: {e}")
                 if self.transport: self.transport.close()
                 self.transport = None
             time.sleep(POLL_INTERVAL)
+
 
     def push_loop(self):
         while True:
@@ -1247,35 +1262,201 @@ def make_app(agent: Agent) -> Flask:
         save_pvcfg(cfg)
         return jsonify({"ok": True, "config": cfg})
 
+    @app.get("/status")
+    def status_page():
+        return render_template_string(STATUS_PAGE)
+
+    @app.get("/api/status")
+    def status_api():
+        # systemd unit status (active/inactive/failed/unknown)
+        def unit(name: str) -> dict:
+            try:
+                act = subprocess.run(
+                    ["systemctl", "is-active", name],
+                    capture_output=True, text=True, timeout=2,
+                ).stdout.strip() or "unknown"
+                en = subprocess.run(
+                    ["systemctl", "is-enabled", name],
+                    capture_output=True, text=True, timeout=2,
+                ).stdout.strip() or "unknown"
+                return {"name": name, "active": act, "enabled": en}
+            except Exception as e:
+                return {"name": name, "active": "unknown", "enabled": "unknown", "error": str(e)}
+
+        with agent.lock:
+            latest = dict(agent.latest)
+            last_err = agent.last_error
+            last_err_at = agent.last_error_at
+            last_sample_at = agent.last_sample_at
+            err_count = agent.error_count
+            read_count = agent.read_count
+            started_at = agent.started_at
+            transport_path = agent.transport.path if agent.transport else None
+            transport_kind = agent.transport.kind if agent.transport else None
+
+        # Lista de puertos candidatos detectables (USB/HID/serie)
+        candidates = _candidate_ports()
+        usb_devs = list_usb_devices()
+
+        return jsonify({
+            "agent": {
+                "started_at": started_at,
+                "version": agent.snapshot.get("agent_version") if agent.snapshot else None,
+                "hardware_id": hardware_id(),
+                "board": board_model(),
+                "uptime_seconds": int(time.time() - time.mktime(datetime.fromisoformat(started_at.replace("Z","+00:00")).timetuple())) if started_at else None,
+            },
+            "transport": {
+                "connected": transport_path is not None,
+                "port": transport_path,
+                "kind": transport_kind,
+                "preferred": agent.config.get("inverter_port"),
+                "candidates": candidates,
+                "usb_devices": usb_devs,
+            },
+            "data": {
+                "last_sample_at": last_sample_at,
+                "read_count": read_count,
+                "error_count": err_count,
+                "latest": {k: latest.get(k) for k in (
+                    "battery_capacity","battery_voltage","pv_input_power",
+                    "ac_output_active_power","grid_voltage","inverter_mode")},
+            },
+            "errors": {
+                "last": last_err,
+                "last_at": last_err_at,
+            },
+            "systemd": [
+                unit("solarops.service"),
+                unit("solarops-kiosk.service"),
+                unit("solarops-update.timer"),
+                unit("solarops-update.service"),
+            ],
+        })
+
     @app.get("/manifest.webmanifest")
     def manifest():
         return jsonify({
-            "name": "SolarOps Local",
-            "short_name": "SolarOps",
-            "start_url": "/",
-            "scope": "/",
-            "display": "standalone",
-            "background_color": "#0b1220",
-            "theme_color": "#f59e0b",
-            "icons": [
-                {"src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
-            ],
+            "name": "SolarOps Local", "short_name": "SolarOps",
+            "start_url": "/", "scope": "/", "display": "standalone",
+            "background_color": "#0b1220", "theme_color": "#f59e0b",
+            "icons": [{"src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}],
         })
 
     @app.get("/icon.svg")
     def icon():
         svg = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">'
                '<rect width="192" height="192" rx="40" fill="#0b1220"/>'
-               '<g fill="#f59e0b"><circle cx="96" cy="96" r="34"/>'
-               '<g stroke="#f59e0b" stroke-width="10" stroke-linecap="round">'
-               '<line x1="96" y1="20" x2="96" y2="48"/><line x1="96" y1="144" x2="96" y2="172"/>'
-               '<line x1="20" y1="96" x2="48" y2="96"/><line x1="144" y1="96" x2="172" y2="96"/>'
-               '<line x1="42" y1="42" x2="62" y2="62"/><line x1="130" y1="130" x2="150" y2="150"/>'
-               '<line x1="42" y1="150" x2="62" y2="130"/><line x1="130" y1="62" x2="150" y2="42"/>'
-               '</g></g></svg>')
+               '<circle cx="96" cy="96" r="34" fill="#f59e0b"/></svg>')
         return app.response_class(svg, mimetype="image/svg+xml")
 
     return app
+
+
+STATUS_PAGE = r"""<!doctype html>
+<html lang="es"><head><meta charset="utf-8"/>
+<title>Estado local · SolarOps</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--card:#111827;--border:#1f2937;--fg:#e5e7eb;--mut:#9ca3af;--ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--accent:#f59e0b}
+*{box-sizing:border-box}body{margin:0;font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto;background:var(--bg);color:var(--fg)}
+header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:#0f172a}
+h1{margin:0;font-size:18px;font-weight:600}h2{margin:0 0 12px;font-size:13px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
+a{color:var(--accent);text-decoration:none}main{padding:20px;display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));max-width:1400px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+.row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--border);font-size:13px}
+.row:last-child{border:0}.k{color:var(--mut)}.v{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;text-align:right;word-break:break-all;max-width:60%}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;text-transform:uppercase}
+.ok{background:rgba(34,197,94,.15);color:var(--ok)}.warn{background:rgba(245,158,11,.15);color:var(--warn)}.err{background:rgba(239,68,68,.15);color:var(--err)}
+.mut{background:rgba(156,163,175,.15);color:var(--mut)}
+.list{max-height:160px;overflow:auto;background:#0a1018;border:1px solid var(--border);border-radius:8px;padding:8px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#cbd5e1}
+.err-box{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:10px;color:#fecaca;font-family:ui-monospace,Menlo,monospace;font-size:11px;white-space:pre-wrap;word-break:break-word}
+button{background:var(--accent);color:#000;border:0;padding:6px 12px;border-radius:8px;font-weight:600;cursor:pointer;font-size:12px}
+.foot{padding:16px 20px;color:var(--mut);font-size:11px;text-align:center}
+</style></head><body>
+<header>
+  <h1>⚙️ Estado local · SolarOps</h1>
+  <div><a href="/">← Dashboard</a> &nbsp; <button onclick="load()">Recargar</button></div>
+</header>
+<main id="root">Cargando…</main>
+<div class="foot">Auto-refresh cada 5 s · Datos del agente local</div>
+<script>
+function pill(state){
+  if(state==='active'||state==='enabled') return '<span class="pill ok">'+state+'</span>';
+  if(state==='inactive'||state==='disabled') return '<span class="pill mut">'+state+'</span>';
+  if(state==='failed') return '<span class="pill err">'+state+'</span>';
+  return '<span class="pill warn">'+(state||'?')+'</span>';
+}
+function fmt(t){ if(!t) return '—'; const d=new Date(t); return d.toLocaleString(); }
+function ago(t){ if(!t) return 'nunca'; const s=Math.floor((Date.now()-new Date(t).getTime())/1000);
+  if(s<60) return s+'s'; if(s<3600) return Math.floor(s/60)+'m'; if(s<86400) return Math.floor(s/3600)+'h';
+  return Math.floor(s/86400)+'d'; }
+async function load(){
+  try{
+    const r=await fetch('/api/status'); const d=await r.json();
+    const t=d.transport, da=d.data, e=d.errors, ag=d.agent;
+    const dataFresh = da.last_sample_at && (Date.now()-new Date(da.last_sample_at).getTime() < 30000);
+    const tStatus = t.connected ? '<span class="pill ok">Conectado</span>' : '<span class="pill err">Sin puerto</span>';
+    const dStatus = dataFresh ? '<span class="pill ok">En vivo</span>' : (da.last_sample_at? '<span class="pill warn">Sin datos recientes</span>':'<span class="pill err">Nunca recibió</span>');
+    const html = `
+      <section class="card">
+        <h2>Conexión inversor (USB / Serie)</h2>
+        <div class="row"><span class="k">Estado</span><span class="v">${tStatus}</span></div>
+        <div class="row"><span class="k">Puerto detectado</span><span class="v">${t.port||'—'}</span></div>
+        <div class="row"><span class="k">Tipo de transporte</span><span class="v">${t.kind||'—'}</span></div>
+        <div class="row"><span class="k">Puerto preferido (config)</span><span class="v">${t.preferred||'—'}</span></div>
+        <div class="row"><span class="k">Candidatos detectados</span><span class="v">${t.candidates.length}</span></div>
+        ${t.candidates.length? '<div class="list">'+t.candidates.map(p=>'• '+p).join('<br>')+'</div>':''}
+      </section>
+      <section class="card">
+        <h2>Último dato recibido</h2>
+        <div class="row"><span class="k">Estado</span><span class="v">${dStatus}</span></div>
+        <div class="row"><span class="k">Cuándo</span><span class="v">${fmt(da.last_sample_at)} (${ago(da.last_sample_at)})</span></div>
+        <div class="row"><span class="k">Lecturas OK</span><span class="v">${da.read_count}</span></div>
+        <div class="row"><span class="k">Errores totales</span><span class="v">${da.error_count}</span></div>
+        <div class="row"><span class="k">Modo</span><span class="v">${da.latest.inverter_mode||'—'}</span></div>
+        <div class="row"><span class="k">SOC batería</span><span class="v">${da.latest.battery_capacity??'—'} %</span></div>
+        <div class="row"><span class="k">PV</span><span class="v">${da.latest.pv_input_power??'—'} W</span></div>
+        <div class="row"><span class="k">Carga AC</span><span class="v">${da.latest.ac_output_active_power??'—'} W</span></div>
+        <div class="row"><span class="k">Red</span><span class="v">${da.latest.grid_voltage??'—'} V</span></div>
+      </section>
+      <section class="card">
+        <h2>Errores de lectura</h2>
+        ${e.last? `<div class="row"><span class="k">Último</span><span class="v">${fmt(e.last_at)} (${ago(e.last_at)})</span></div>
+                  <div class="err-box">${e.last.replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}</div>`
+                : '<div class="pill ok">Sin errores recientes</div>'}
+      </section>
+      <section class="card">
+        <h2>Servicios systemd</h2>
+        ${d.systemd.map(u=>`
+          <div class="row">
+            <span class="k">${u.name}</span>
+            <span class="v">${pill(u.active)} ${pill(u.enabled)}</span>
+          </div>`).join('')}
+      </section>
+      <section class="card">
+        <h2>Equipo</h2>
+        <div class="row"><span class="k">Hardware ID</span><span class="v">${ag.hardware_id||'—'}</span></div>
+        <div class="row"><span class="k">Placa</span><span class="v">${ag.board||'—'}</span></div>
+        <div class="row"><span class="k">Versión agente</span><span class="v">${ag.version||'—'}</span></div>
+        <div class="row"><span class="k">Iniciado</span><span class="v">${fmt(ag.started_at)} (${ago(ag.started_at)} de uptime)</span></div>
+      </section>
+      <section class="card">
+        <h2>Dispositivos USB</h2>
+        ${t.usb_devices && t.usb_devices.length
+          ? '<div class="list">'+t.usb_devices.map(x=>'• '+x).join('<br>')+'</div>'
+          : '<div class="pill mut">Ninguno detectado</div>'}
+      </section>`;
+    document.getElementById('root').innerHTML = html;
+  }catch(err){
+    document.getElementById('root').innerHTML='<div class="card err-box">Error: '+err.message+'</div>';
+  }
+}
+load(); setInterval(load, 5000);
+</script>
+</body></html>"""
+
+
 
 
 def main():

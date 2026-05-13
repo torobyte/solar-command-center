@@ -20,6 +20,7 @@ import {
   adminCreateUser, adminSetUserRole, adminDeleteUser,
   adminCreateSite, adminAssignSite, adminDeleteSite, adminRequestRefresh,
   adminActivateSite, adminRevokeLicense,
+  adminExtendLicense, adminSetExpiration, adminReactivateSite,
 } from "@/lib/admin.functions";
 import { formatDistanceToNow } from "date-fns";
 import { BrandingAdmin } from "@/components/admin/BrandingAdmin";
@@ -56,6 +57,7 @@ function AdminPanel() {
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
           <TabsList className="w-max">
             <TabsTrigger value="sites">{t("admin.tab.sites")}</TabsTrigger>
+            <TabsTrigger value="devices">Dispositivos</TabsTrigger>
             <TabsTrigger value="users">{t("admin.tab.users")}</TabsTrigger>
             <TabsTrigger value="licenses">{t("admin.tab.licenses")}</TabsTrigger>
             <TabsTrigger value="audit">Auditoría</TabsTrigger>
@@ -64,6 +66,7 @@ function AdminPanel() {
           </TabsList>
         </div>
         <TabsContent value="sites" className="mt-6"><SitesAdmin /></TabsContent>
+        <TabsContent value="devices" className="mt-6"><DevicesAdmin /></TabsContent>
         <TabsContent value="users" className="mt-6"><UsersAdmin /></TabsContent>
         <TabsContent value="licenses" className="mt-6"><Licenses /></TabsContent>
         <TabsContent value="audit" className="mt-6"><LicenseAuditLog /></TabsContent>
@@ -730,3 +733,401 @@ function generateCode() {
   return `${seg()}-${seg()}-${seg()}-${seg()}`;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Dispositivos: vista por hardware_id con activación, extensión, expiración
+// personalizada, reactivación y auditoría por dispositivo.
+// ─────────────────────────────────────────────────────────────────────────────
+interface DeviceRow {
+  site_id: string;
+  hardware_id: string;
+  name: string;
+  owner_email: string | null;
+  inverter_model: string | null;
+  plan: string;
+  license_expires_at: string | null;
+  last_seen_at: string | null;
+  status: string;
+  device_token: string;
+  board_model: string | null;
+  agent_version: string | null;
+  ip_wlan: string | null;
+  ip_eth: string | null;
+}
+interface AuditRow {
+  id: string; action: string; reason: string | null;
+  performed_by_email: string | null; created_at: string;
+  details: Record<string, unknown> | null;
+}
+
+function DevicesAdmin() {
+  const licenseInfo = useLicenseInfo();
+  const syncStatus = useSyncStatus();
+  const [rows, setRows] = useState<DeviceRow[]>([]);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"all" | "online" | "offline" | "expired" | "active">("all");
+  const [activateRow, setActivateRow] = useState<DeviceRow | null>(null);
+  const [extendRow, setExtendRow] = useState<DeviceRow | null>(null);
+  const [expRow, setExpRow] = useState<DeviceRow | null>(null);
+  const [reactRow, setReactRow] = useState<DeviceRow | null>(null);
+  const [auditRow, setAuditRow] = useState<DeviceRow | null>(null);
+  const [auditEvents, setAuditEvents] = useState<AuditRow[]>([]);
+  const [code, setCode] = useState("");
+  const [days, setDays] = useState(30);
+  const [reason, setReason] = useState("");
+  const [expDate, setExpDate] = useState("");
+
+  const activateFn = useServerFn(adminActivateSite);
+  const extendFn = useServerFn(adminExtendLicense);
+  const setExpFn = useServerFn(adminSetExpiration);
+  const reactFn = useServerFn(adminReactivateSite);
+  const revokeFn = useServerFn(adminRevokeLicense);
+
+  async function runAdminAction<TData, TResult>(
+    action: (opts: { data: TData; headers?: HeadersInit }) => Promise<TResult>,
+    data: TData,
+  ) {
+    const headers = await getAuthHeaders();
+    return action({ data, headers });
+  }
+
+  async function load() {
+    const { data: sites, error } = await supabase
+      .from("sites")
+      .select("id,name,status,plan,inverter_model,owner_id,last_seen_at,device_token,license_expires_at,hardware_id")
+      .not("hardware_id", "is", null)
+      .order("last_seen_at", { ascending: false, nullsFirst: false });
+    if (error) { toast.error(error.message); return; }
+    const ids = (sites ?? []).map((s) => s.id);
+    const ownerIds = Array.from(new Set((sites ?? []).map((s) => s.owner_id).filter(Boolean)));
+    const [{ data: snaps }, { data: profs }] = await Promise.all([
+      ids.length
+        ? supabase.from("device_snapshots").select("site_id,board_model,agent_version,ip_wlan,ip_eth").in("site_id", ids)
+        : Promise.resolve({ data: [] as Array<{ site_id: string; board_model: string | null; agent_version: string | null; ip_wlan: string | null; ip_eth: string | null }> }),
+      ownerIds.length
+        ? supabase.from("profiles").select("id,email").in("id", ownerIds)
+        : Promise.resolve({ data: [] as Array<{ id: string; email: string }> }),
+    ]);
+    const snapMap = new Map((snaps ?? []).map((s) => [s.site_id, s]));
+    const profMap = new Map((profs ?? []).map((p) => [p.id, p.email]));
+    setRows(
+      (sites ?? []).map((s): DeviceRow => {
+        const sn = snapMap.get(s.id);
+        return {
+          site_id: s.id,
+          hardware_id: s.hardware_id ?? "",
+          name: s.name,
+          owner_email: profMap.get(s.owner_id) ?? null,
+          inverter_model: s.inverter_model,
+          plan: s.plan,
+          license_expires_at: s.license_expires_at,
+          last_seen_at: s.last_seen_at,
+          status: s.status,
+          device_token: s.device_token,
+          board_model: sn?.board_model ?? null,
+          agent_version: sn?.agent_version ?? null,
+          ip_wlan: sn?.ip_wlan ?? null,
+          ip_eth: sn?.ip_eth ?? null,
+        };
+      }),
+    );
+  }
+  useEffect(() => { load(); }, []);
+
+  async function loadAudit(row: DeviceRow) {
+    const { data } = await supabase
+      .from("license_audit_log")
+      .select("id,action,reason,performed_by_email,created_at,details")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    setAuditEvents(((data ?? []) as AuditRow[]).filter((e) => {
+      const d = e.details as Record<string, unknown> | null;
+      return d?.site_id === row.site_id;
+    }));
+  }
+
+  const filtered = rows.filter((r) => {
+    const isExpired = r.license_expires_at && new Date(r.license_expires_at).getTime() < Date.now();
+    const ageMs = r.last_seen_at ? Date.now() - new Date(r.last_seen_at).getTime() : Infinity;
+    if (filter === "online" && ageMs >= 2 * 60_000) return false;
+    if (filter === "offline" && ageMs < 2 * 60_000) return false;
+    if (filter === "expired" && !isExpired) return false;
+    if (filter === "active" && (isExpired || !r.license_expires_at)) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      if (
+        !r.hardware_id.toLowerCase().includes(q) &&
+        !r.name.toLowerCase().includes(q) &&
+        !(r.owner_email ?? "").toLowerCase().includes(q)
+      ) return false;
+    }
+    return true;
+  });
+
+  return (
+    <>
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <Input
+          placeholder="Buscar por hardware_id, nombre o email…"
+          value={search} onChange={(e) => setSearch(e.target.value)}
+          className="h-9 w-72"
+        />
+        <Select value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
+          <SelectTrigger className="h-9 w-[160px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="online">En línea</SelectItem>
+            <SelectItem value="offline">Desconectados</SelectItem>
+            <SelectItem value="active">Licencia vigente</SelectItem>
+            <SelectItem value="expired">Expirados</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button size="sm" variant="ghost" onClick={load}>
+          <RefreshCw className="mr-1 h-3.5 w-3.5" /> Recargar
+        </Button>
+        <span className="ml-auto text-xs text-muted-foreground">{filtered.length} dispositivo(s)</span>
+      </div>
+
+      <div className="overflow-x-auto rounded-lg border bg-card">
+        <table className="w-full min-w-[1100px] text-sm">
+          <thead className="border-b bg-muted/50 text-left">
+            <tr>
+              <th className="px-3 py-3 font-medium">Hardware ID</th>
+              <th className="px-3 py-3 font-medium">Dispositivo</th>
+              <th className="px-3 py-3 font-medium">Propietario</th>
+              <th className="px-3 py-3 font-medium">Estado</th>
+              <th className="px-3 py-3 font-medium">Plan / Expira</th>
+              <th className="px-3 py-3 font-medium">Última conexión</th>
+              <th className="px-3 py-3"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((r) => {
+              const s = syncStatus(r.last_seen_at);
+              const li = licenseInfo(r.plan, r.license_expires_at);
+              const isExpired = r.license_expires_at && new Date(r.license_expires_at).getTime() < Date.now();
+              return (
+                <tr key={r.site_id} className="border-b last:border-0">
+                  <td className="px-3 py-3">
+                    <div className="font-mono text-xs">{r.hardware_id.slice(0, 16)}…</div>
+                    <div className="text-[10px] text-muted-foreground">
+                      {r.board_model ?? "—"} {r.agent_version ? `· v${r.agent_version}` : ""}
+                    </div>
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="font-medium">{r.name}</div>
+                    <div className="text-xs text-muted-foreground">{r.inverter_model ?? "—"}</div>
+                  </td>
+                  <td className="px-3 py-3 text-xs">{r.owner_email ?? "—"}</td>
+                  <td className={`px-3 py-3 font-medium ${s.color}`}>
+                    {s.label}
+                    {(r.ip_wlan || r.ip_eth) && (
+                      <div className="text-[10px] font-normal text-muted-foreground">
+                        {r.ip_eth ?? r.ip_wlan}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className={`font-medium ${li.color}`}>{li.label}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {r.license_expires_at
+                        ? new Date(r.license_expires_at).toLocaleDateString()
+                        : li.sub}
+                    </div>
+                  </td>
+                  <td className="px-3 py-3 text-xs text-muted-foreground">
+                    {r.last_seen_at ? formatDistanceToNow(new Date(r.last_seen_at), { addSuffix: true }) : "—"}
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    <div className="flex flex-wrap justify-end gap-1">
+                      <Button size="sm" variant="ghost" title="Activar con código"
+                        onClick={() => { setCode(""); setReason(""); setActivateRow(r); }}>
+                        <KeyRound className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="sm" variant="ghost" title="Extender N días"
+                        onClick={() => { setDays(30); setReason(""); setExtendRow(r); }}>
+                        +30d
+                      </Button>
+                      <Button size="sm" variant="ghost" title="Fijar fecha de expiración"
+                        onClick={() => {
+                          setExpDate(r.license_expires_at?.slice(0, 10) ?? new Date().toISOString().slice(0, 10));
+                          setReason(""); setExpRow(r);
+                        }}>
+                        📅
+                      </Button>
+                      {isExpired && (
+                        <Button size="sm" variant="ghost" title="Reactivar"
+                          onClick={() => { setDays(30); setReason(""); setReactRow(r); }}>
+                          <ShieldCheck className="h-3.5 w-3.5 text-success" />
+                        </Button>
+                      )}
+                      <Button size="sm" variant="ghost" title="Copiar hardware_id"
+                        onClick={() => { navigator.clipboard.writeText(r.hardware_id); toast.success("Copiado"); }}>
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="sm" variant="ghost" title="Auditoría del dispositivo"
+                        onClick={async () => { await loadAudit(r); setAuditRow(r); }}>
+                        🕓
+                      </Button>
+                      {r.license_expires_at && !isExpired && (
+                        <Button size="sm" variant="ghost" title="Revocar"
+                          onClick={async () => {
+                            if (!confirm(`¿Revocar licencia de ${r.name}?`)) return;
+                            try {
+                              await runAdminAction(revokeFn, { site_id: r.site_id });
+                              toast.success("Licencia revocada"); load();
+                            } catch (e) { toast.error((e as Error).message); }
+                          }}>
+                          <ShieldOff className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {filtered.length === 0 && (
+          <p className="p-8 text-center text-sm text-muted-foreground">
+            Sin dispositivos registrados. Cuando un Raspberry/Orange Pi corra el instalador, aparecerá aquí automáticamente.
+          </p>
+        )}
+      </div>
+
+      {/* Activar */}
+      <Dialog open={!!activateRow} onOpenChange={(o) => !o && setActivateRow(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Activar licencia · {activateRow?.name}</DialogTitle></DialogHeader>
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            if (!activateRow) return;
+            try {
+              const res = await runAdminAction(activateFn, { site_id: activateRow.site_id, code: code.trim() });
+              toast.success(`Activado: ${res.plan} hasta ${new Date(res.expires_at).toLocaleDateString()}`);
+              setActivateRow(null); load();
+            } catch (e) { toast.error((e as Error).message); }
+          }} className="space-y-4">
+            <div className="rounded-md border bg-muted/30 p-3 text-xs">
+              <div>Hardware: <span className="font-mono">{activateRow?.hardware_id}</span></div>
+              <div>Plan actual: <strong>{activateRow?.plan}</strong></div>
+              <div>Expira: {activateRow?.license_expires_at ? new Date(activateRow.license_expires_at).toLocaleString() : "—"}</div>
+            </div>
+            <div className="space-y-2">
+              <Label>Código de licencia</Label>
+              <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="XXXXX-XXXXX-XXXXX-XXXXX" required />
+            </div>
+            <DialogFooter><Button type="submit">Activar</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Extender */}
+      <Dialog open={!!extendRow} onOpenChange={(o) => !o && setExtendRow(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Extender licencia · {extendRow?.name}</DialogTitle></DialogHeader>
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            if (!extendRow) return;
+            try {
+              const res = await runAdminAction(extendFn, { site_id: extendRow.site_id, days, reason });
+              toast.success(`Extendido hasta ${new Date(res.expires_at).toLocaleDateString()}`);
+              setExtendRow(null); load();
+            } catch (e) { toast.error((e as Error).message); }
+          }} className="space-y-4">
+            <div className="space-y-2"><Label>Días a sumar</Label>
+              <Input type="number" min={1} max={3650} value={days} onChange={(e) => setDays(parseInt(e.target.value) || 30)} required />
+            </div>
+            <div className="space-y-2"><Label>Motivo (auditoría)</Label>
+              <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="p.ej. cortesía soporte" />
+            </div>
+            <DialogFooter><Button type="submit">Extender</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Fijar fecha */}
+      <Dialog open={!!expRow} onOpenChange={(o) => !o && setExpRow(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Fijar expiración · {expRow?.name}</DialogTitle></DialogHeader>
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            if (!expRow) return;
+            try {
+              const iso = new Date(expDate + "T23:59:59Z").toISOString();
+              await runAdminAction(setExpFn, { site_id: expRow.site_id, expires_at: iso, reason });
+              toast.success("Expiración actualizada");
+              setExpRow(null); load();
+            } catch (e) { toast.error((e as Error).message); }
+          }} className="space-y-4">
+            <div className="space-y-2"><Label>Nueva fecha de expiración</Label>
+              <Input type="date" value={expDate} onChange={(e) => setExpDate(e.target.value)} required />
+            </div>
+            <div className="space-y-2"><Label>Motivo (auditoría)</Label>
+              <Input value={reason} onChange={(e) => setReason(e.target.value)} />
+            </div>
+            <DialogFooter><Button type="submit">Guardar</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reactivar */}
+      <Dialog open={!!reactRow} onOpenChange={(o) => !o && setReactRow(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Reactivar · {reactRow?.name}</DialogTitle></DialogHeader>
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            if (!reactRow) return;
+            try {
+              const res = await runAdminAction(reactFn, { site_id: reactRow.site_id, days, plan: "pro", reason });
+              toast.success(`Reactivado · ${res.plan} hasta ${new Date(res.expires_at).toLocaleDateString()}`);
+              setReactRow(null); load();
+            } catch (e) { toast.error((e as Error).message); }
+          }} className="space-y-4">
+            <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-xs">
+              Este dispositivo tiene la licencia expirada. Se reactivará desde hoy con plan <strong>pro</strong>.
+            </div>
+            <div className="space-y-2"><Label>Duración (días)</Label>
+              <Input type="number" min={1} value={days} onChange={(e) => setDays(parseInt(e.target.value) || 30)} required />
+            </div>
+            <div className="space-y-2"><Label>Motivo (auditoría)</Label>
+              <Input value={reason} onChange={(e) => setReason(e.target.value)} />
+            </div>
+            <DialogFooter><Button type="submit">Reactivar</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Auditoría por dispositivo */}
+      <Dialog open={!!auditRow} onOpenChange={(o) => !o && setAuditRow(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>Auditoría · {auditRow?.name}</DialogTitle></DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto rounded-md border">
+            <table className="w-full text-xs">
+              <thead className="border-b bg-muted/50 text-left">
+                <tr>
+                  <th className="px-3 py-2">Cuándo</th>
+                  <th className="px-3 py-2">Acción</th>
+                  <th className="px-3 py-2">Por</th>
+                  <th className="px-3 py-2">Motivo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {auditEvents.map((e) => (
+                  <tr key={e.id} className="border-b last:border-0">
+                    <td className="px-3 py-2 text-muted-foreground">{new Date(e.created_at).toLocaleString()}</td>
+                    <td className="px-3 py-2 font-medium">{e.action}</td>
+                    <td className="px-3 py-2">{e.performed_by_email ?? "—"}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{e.reason ?? "—"}</td>
+                  </tr>
+                ))}
+                {auditEvents.length === 0 && (
+                  <tr><td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">Sin eventos.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
