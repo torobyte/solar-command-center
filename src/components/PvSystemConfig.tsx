@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Sun, Save, Wand2 } from "lucide-react";
+import { Sun, Save, Wand2, Search, Loader2, MapPin } from "lucide-react";
 
 export interface PvConfig {
   site_id: string;
