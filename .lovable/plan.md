@@ -1,92 +1,73 @@
 
 ## Objetivo
 
-Reorganizar el sistema de licencias para que cada código quede vinculado a un email desde el momento en que el superadmin lo crea, y agregar las funciones tipo Solar Assistant que pediste: configuración del inversor (lectura + escritura remota), especificación detallada, estado de red y estado del sistema/hardware.
+Que la interfaz que se ve al abrir `http://<ip-del-pi>/` sea **literalmente el mismo dashboard React** del cloud, leyendo en modo offline desde el propio agente, y eliminar el error `Unexpected token '<', "<!doctype "...`.
 
 ---
 
-## Parte 1 — Licencias vinculadas por email
+## Fase 1 — Diagnóstico y fix del error JSON
 
-### Cambios de base de datos
-- Añadir `assigned_email text` a `license_codes` (lowercase, indexado).
-- Añadir `assigned_user_id uuid` (se rellena cuando el usuario se registra/canjea).
-- Trigger `before insert/update`: normaliza email a lowercase; si existe un `auth.users` con ese email, llena `assigned_user_id` automáticamente.
-- Trigger `on auth.users insert`: cuando un usuario nuevo se registra, busca `license_codes` con su email y los vincula (`assigned_user_id`, `owner_id`).
-- En `activate.ts`: validar que el email del JWT del usuario coincida con `assigned_email` antes de canjear (o que el código sea pre-asignado a su `user_id`).
+1. Reproducir abriendo el agente y leyendo Network: identificar qué `fetch()` recibe HTML en vez de JSON.
+   Sospechosos: `/api/pvconfig` o `/api/state` cuando el navegador está cacheando el `index.html` viejo de un deploy anterior, o cuando se accede al agente vía un proxy/túnel que reescribe rutas.
+2. En `agent/agent.py`:
+   - Endurecer `refresh()` y `loadPvCfg()` en el frontend: comprobar `r.ok` y `Content-Type: application/json` antes de `r.json()`. Si no es JSON, mostrar mensaje claro ("agente sin reiniciar / ruta no disponible") en vez del crudo `Unexpected token <`.
+   - Añadir `Cache-Control: no-store` a las respuestas `/api/*` para evitar que el navegador sirva un `index.html` cacheado bajo esas URLs.
+   - Versionar el HTML servido (`<meta name="agent-build" content="...">` + busting `?v=` en assets) para forzar recarga tras `solarops-update`.
 
-### Panel superadmin (`/admin`)
-- Formulario de creación pide: email destino + plan + duración + nombre del sitio (opcional).
-- Tabla muestra: código, email asignado, estado (pendiente/canjeado/expirado), usuario vinculado, sitio canjeado, fecha.
-- Acciones: copiar código, reenviar por email (futuro), revocar.
-- Filtros por estado y búsqueda por email.
+## Fase 2 — Modo "local" del dashboard React
 
-### Panel de usuario (`/app`)
-- Sección "Mis licencias": lista las licencias asignadas a su email aunque no estén canjeadas todavía, con botón "Activar en un nuevo sitio" (genera comando de instalación con el código pre-rellenado).
+Reutilizar el código real del cloud (`DashboardGrid`, `AdvancedVisuals`, `EnergyFlowDiagram`, `PowerGauges`, `PvSystemConfig`, `SolarForecastWidget`) sin duplicarlo.
 
-### Cómo el sistema sabe a quién corresponde una licencia
-1. El superadmin la crea con `assigned_email`.
-2. Si ese email ya tiene cuenta → se vincula al `user_id` al instante.
-3. Si no, queda esperando: cuando el usuario se registra con ese email, el trigger la vincula automáticamente.
-4. Al canjear (`/api/public/activate` con device token), el endpoint exige que el email del usuario autenticado coincida con `assigned_email`.
+1. **Capa de datos abstracta** `src/lib/dataSource.ts`:
+   - `getLatestSample(siteId)`, `subscribeSamples(siteId, cb)`, `getPvConfig`, `setPvConfig`, `getHistory`, `getTotalsToday`.
+   - Implementación `cloud` (actual: Supabase + realtime).
+   - Implementación `local` (fetch a `/api/state` cada 2 s + fetch a `/api/pvconfig`).
+   - Selector en runtime con `import.meta.env.VITE_RUNTIME_MODE` (`cloud` por defecto, `local` cuando se compila el bundle del agente).
+2. **Refactor mínimo** de `sites.$siteId.tsx` y de los componentes para que consuman `dataSource` en lugar de llamar a `supabase` directamente.
+3. **Nueva ruta** `src/routes/local.tsx`:
+   - No requiere login (no entra en `_authenticated`).
+   - No depende de `siteId` de URL: lo obtiene desde `/api/state` (`license.site_id`).
+   - Renderiza el mismo árbol de componentes que `sites.$siteId.tsx`.
 
----
+## Fase 3 — Pipeline de build embebido
 
-## Parte 2 — Funciones tipo Solar Assistant
+1. Nuevo script `agent/build-ui.mjs`:
+   - Ejecuta `vite build --mode local --outDir agent/static_ui` con `VITE_RUNTIME_MODE=local` y `base=/ui/`.
+   - Copia el resultado dentro del paquete del agente.
+2. `agent/agent.py`:
+   - Servir `agent/static_ui/` bajo `/ui/<path>` con `send_from_directory`.
+   - `/` redirige a `/ui/local` (o sirve `index.html` con fallback SPA).
+   - Mantener `/api/*` igual; los endpoints son la fuente de datos del bundle.
+   - Mantener `STATUS_PAGE` en `/status` como diagnóstico (no React).
+3. `agent/install.sh` y `agent/update.sh`:
+   - Detectar si `static_ui/` existe en el repo descargado; si no, hacer `node build-ui.mjs` (instalar Node si falta — ya está vía nodejs en bullseye/bookworm).
+   - Mejor: que el repo de GitHub ya incluya `static_ui/` precompilado en cada release para que Pi/Orange Pi no necesiten Node.
 
-Nueva pestaña **Configuration** (rediseñada) en `sites/$siteId.tsx` con bloques colapsables:
+## Fase 4 — Verificación
 
-### A. General
-Site owner, Site ID, plan, expira, botones "Configurar acceso local", "Ver token de instalación".
-
-### B. Inverter — Specification (read-only)
-Tarjeta con: driver, modelo, serial, firmware, topología, voltaje nominal batería, max AC input/output, max AC power. Datos vienen de un nuevo endpoint del agente `/api/spec` (ejecuta `QPIRI` + `QID` + `QVFW`) que se sube periódicamente a una nueva tabla `inverter_specs (site_id pk, raw jsonb, updated_at)`.
-
-### C. Inverter — Settings (lectura + escritura)
-Campos editables (basados en captura 2):
-- Output source priority (Solar first / Utility first / SBU)
-- Charger source priority (Solar only / Solar+Utility / Utility first)
-- AC input voltage range (Appliance / UPS)
-- AC output voltage / frequency
-- Max charge current / Max AC charge current
-- Battery bulk/float/cutoff voltages
-- Buzzer, LCD backlight, power saving, overload bypass/restart
-
-### D. Network status
-SSID, IP eth0, IP wlan0, IP pública/Internet up-down. Recogido por el agente y subido junto a `/heartbeat`.
-
-### E. System status
-CPU temp, almacenamiento, USB devices count, board model, versión del agente, "voltage dips" si el modelo lo expone.
+1. Abrir el preview cloud → confirma que `/sites/{id}` sigue funcionando idéntico (no se rompió nada por el refactor a `dataSource`).
+2. Levantar el agente localmente con `python agent/agent.py` → abrir `http://localhost/` → debe verse **píxel-idéntico** al cloud, con datos de `/api/state`, drag & drop y resize funcionando con `localStorage`.
+3. Sin internet: el dashboard sigue vivo (todo viene del agente).
+4. Reiniciar el servicio tras un update: el navegador carga el bundle nuevo, sin `Unexpected token <`.
 
 ---
 
-## Parte 3 — Control remoto (cola de comandos)
+## Archivos que se tocan
 
-### Tabla `device_commands`
-Campos clave: `site_id`, `command` (`set_output_priority`, `set_charge_current`, etc.), `payload jsonb`, `status` (`pending`/`sent`/`done`/`failed`), `result jsonb`, `created_by`, timestamps.
+**Nuevos**
+- `src/lib/dataSource.ts` (capa cloud/local)
+- `src/routes/local.tsx` (entrada del bundle local)
+- `agent/build-ui.mjs` (script de empaquetado)
+- `agent/static_ui/` (artefacto compilado, commiteado)
 
-RLS: el dueño del sitio (o superadmin) puede insertar y leer; el agente lee/actualiza vía device token.
+**Modificados**
+- `src/routes/sites.$siteId.tsx`, `src/components/DashboardGrid.tsx`, `src/components/PvSystemConfig.tsx`, `src/components/AdvancedVisuals.tsx` → usar `dataSource` en vez de `supabase` directo.
+- `vite.config.ts` → soporte `mode=local` + `base` configurable.
+- `agent/agent.py` → servir `/ui/`, redirigir `/`, headers `no-store` en `/api/*`, bandera de versión.
+- `agent/install.sh`, `agent/update.sh` → instalar/copiar `static_ui/`.
 
-### Endpoints públicos para el agente
-- `GET /api/public/commands?token=...` → devuelve comandos `pending` y los marca `sent`.
-- `POST /api/public/commands/ack` → el agente reporta resultado (`done`/`failed` + `result`).
-- `POST /api/public/spec` → sube specification + network + system snapshots.
+## Riesgos / notas
 
-### Agente Python
-- Loop adicional cada 10 s: pide comandos, los traduce a comandos Voltronic (`POP02`, `PCP00`, `MCHGC040`, `MNCHGC020`, `PSDV*`, `PCVV*`, `PBFT*`, etc.), ejecuta y hace ack.
-- Cada 60 s: empuja `spec`, `network`, `system` al endpoint nuevo.
-
-### UI
-Cada control en "Settings" envía un command insertando en `device_commands`. La fila aparece como "Pendiente → Enviado → Aplicado" usando realtime. Si falla, muestra el error y permite reintentar.
-
----
-
-## Notas técnicas
-
-- Migrations: añadir columnas, triggers, tablas `inverter_specs`, `device_commands`, índices y RLS.
-- Frontend: refactor `/admin` y `/sites/$siteId` (pestaña Configuration). Crear hooks `useInverterSpec`, `useInverterSettings`, `useDeviceCommand`.
-- Backend: 3 nuevos endpoints en `src/routes/api/public/`.
-- Agente: nuevos módulos `commands.py` y `snapshots.py`, integrados en el loop principal de `agent.py`.
-- Seguridad: todos los endpoints públicos validan `device_token`; el frontend valida que el usuario sea owner antes de encolar comandos (RLS lo refuerza).
-- i18n: añadir traducciones es/en para los nuevos textos.
-
-¿Apruebas el plan o quieres ajustar algo (por ejemplo, recortar el set inicial de parámetros editables)?
+- El refactor a `dataSource` toca el árbol de componentes del cloud; lo haré en commits pequeños y manteniendo el comportamiento existente para no romper realtime ni el admin.
+- El bundle compilado pesa ~1–2 MB; aceptable para Pi.
+- Si el usuario prefiere no commitear `static_ui/` al repo, el instalador necesitará Node, lo cual añade ~120 MB al Pi. Por defecto lo dejaré commiteado.

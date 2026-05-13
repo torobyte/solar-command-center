@@ -1111,32 +1111,54 @@ function renderDiag(){
 async function activateDevice(){
   const code=document.getElementById('actCode').value.trim();
   const name=document.getElementById('actName').value.trim()||'Local site';
-  const r=await fetch('/api/activate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,name})});
-  if(r.ok){ alert('Activado ✓'); refresh(); } else { const j=await r.json().catch(()=>({})); alert('Error: '+(j.error||r.status)); }
+  try {
+    await fetchJSON('/api/activate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,name})});
+    alert('Activado ✓'); refresh();
+  } catch(e) { alert('Error: '+e.message); }
 }
 window.activateDevice=activateDevice;
 
+// ====== Helper: fetch JSON con manejo de errores claro ======
+async function fetchJSON(url, opts){
+  const r = await fetch(url, opts);
+  const ct = (r.headers.get('content-type')||'').toLowerCase();
+  if (!r.ok) {
+    let detail = '';
+    try { detail = ct.includes('json') ? JSON.stringify(await r.json()) : (await r.text()).slice(0,140); } catch(_){}
+    throw new Error('HTTP '+r.status+(detail?(' · '+detail):''));
+  }
+  if (!ct.includes('application/json')) {
+    const txt = (await r.text()).slice(0,140);
+    throw new Error('Respuesta no-JSON desde '+url+' (¿agente sin reiniciar?): '+txt);
+  }
+  return r.json();
+}
+
 // ====== Config ======
 async function loadPvCfg(){
-  const r=await fetch('/api/pvconfig'); const c=await r.json()||{};
-  ['kwp','pc','pw','bat','az','ti','lo','la','ln'].forEach((k,i)=>{
-    const map=['array_kwp','panel_count','panel_watts','battery_kwh','azimuth','tilt','system_losses_pct','latitude','longitude'];
-    const el=document.getElementById('cf_'+k); if(el && c[map[i]]!=null) el.value=c[map[i]];
-  });
+  try {
+    const c = await fetchJSON('/api/pvconfig') || {};
+    ['kwp','pc','pw','bat','az','ti','lo','la','ln'].forEach((k,i)=>{
+      const map=['array_kwp','panel_count','panel_watts','battery_kwh','azimuth','tilt','system_losses_pct','latitude','longitude'];
+      const el=document.getElementById('cf_'+k); if(el && c[map[i]]!=null) el.value=c[map[i]];
+    });
+  } catch(e) { console.warn('loadPvCfg:', e.message); }
 }
 async function savePvCfg(){
   const map={'cf_kwp':'array_kwp','cf_pc':'panel_count','cf_pw':'panel_watts','cf_bat':'battery_kwh',
     'cf_az':'azimuth','cf_ti':'tilt','cf_lo':'system_losses_pct','cf_la':'latitude','cf_ln':'longitude'};
   const body={}; Object.entries(map).forEach(([id,k])=>{const v=document.getElementById(id).value; if(v!=='') body[k]=Number(v)});
-  const r=await fetch('/api/pvconfig',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(r.ok) alert('Guardado ✓'); else alert('Error');
+  try {
+    await fetchJSON('/api/pvconfig',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    alert('Guardado ✓');
+  } catch(e) { alert('Error: '+e.message); }
 }
 window.savePvCfg=savePvCfg;
 
 // ====== Refresh loop ======
 async function refresh(){
   try{
-    const r=await fetch('/api/state'); STATE=await r.json();
+    STATE = await fetchJSON('/api/state');
     const dot=document.getElementById('conDot'), txt=document.getElementById('conTxt');
     const fresh = STATE.latest&&STATE.latest.recorded_at;
     dot.className='dot '+(fresh?'on':'off');
@@ -1154,6 +1176,7 @@ async function refresh(){
   }catch(e){
     document.getElementById('conDot').className='dot off';
     document.getElementById('conTxt').textContent='Error: '+e.message;
+    console.error('refresh failed:', e);
   }
 }
 document.getElementById('actLink').onclick=e=>{e.preventDefault();document.querySelector('[data-tab=diag]').click()};
@@ -1197,13 +1220,31 @@ def compute_today_totals(samples: list[dict]) -> dict:
 def make_app(agent: Agent) -> Flask:
     app = Flask(__name__)
 
+    # Build / boot id — cambia cada arranque del agente. Se usa para invalidar
+    # cachés del navegador después de un solarops-update.
+    BOOT_ID = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+
+    @app.after_request
+    def _no_store(resp):
+        # Evita que el navegador sirva /api/* desde caché (causa típica del
+        # "Unexpected token '<'" cuando un index.html viejo queda cacheado
+        # bajo una ruta API). También aplica a la página principal para que
+        # un solarops-update se vea de inmediato.
+        path = request.path or ""
+        if path.startswith("/api/") or path in ("/", "/status"):
+            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+            resp.headers["Pragma"] = "no-cache"
+            resp.headers["Expires"] = "0"
+        resp.headers["X-SolarOps-Boot"] = BOOT_ID
+        return resp
+
     @app.get("/")
     def index():
         # Servimos siempre la UI local — visualmente idéntica al panel de la
         # plataforma web. Funciona sin internet (lee la caché local del
         # agente) y se sincroniza con la nube en segundo plano cuando hay
         # conexión.
-        return render_template_string(PAGE)
+        return render_template_string(PAGE, boot_id=BOOT_ID)
 
     @app.get("/api/state")
     def state():
