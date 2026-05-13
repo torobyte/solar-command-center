@@ -9,6 +9,7 @@ import { Sun } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 import { LangSwitcher } from "@/components/LangSwitcher";
+import { ErrorDialog } from "@/components/ErrorDialog";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -20,22 +21,34 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errorOpen, setErrorOpen] = useState(false);
+  const [errorDetails, setErrorDetails] = useState<string | undefined>();
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function attemptLogin() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      setErrorDetails(error.message);
+      setErrorOpen(true);
+      return;
+    }
     navigate({ to: "/app" });
+  }
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    await attemptLogin();
   }
 
   async function withGoogle() {
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: `${window.location.origin}/app`,
     });
-    if (result.error) toast.error(result.error.message);
-    else if (!result.redirected) navigate({ to: "/app" });
+    if (result.error) {
+      setErrorDetails(result.error.message);
+      setErrorOpen(true);
+    } else if (!result.redirected) navigate({ to: "/app" });
   }
 
   async function forgot() {
