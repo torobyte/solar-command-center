@@ -524,6 +524,84 @@ def collect_device_snapshot() -> dict:
 
 
 # ---------- LAN web UI ----------
+WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>SolarOps</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#15171f">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<style>
+  html,body{margin:0;padding:0;height:100%;background:#15171f;color:#f5f3ee;
+    font-family:-apple-system,BlinkMacSystemFont,"Inter","SF Pro Display","Segoe UI",sans-serif}
+  #frame{position:fixed;inset:0;width:100%;height:100%;border:0;background:#15171f;
+    opacity:0;transition:opacity .3s ease}
+  #frame.ready{opacity:1}
+  #boot{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:14px;text-align:center;padding:24px}
+  #boot .logo{font-size:22px;font-weight:800;letter-spacing:-.02em;color:#f5b945}
+  #boot .sub{font-size:13px;color:#8a8d97;max-width:420px;line-height:1.5}
+  #boot .spin{width:34px;height:34px;border:3px solid rgba(245,185,69,.15);
+    border-top-color:#f5b945;border-radius:50%;animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .btn{margin-top:6px;padding:9px 16px;border-radius:10px;border:1px solid #2c2f42;
+    background:#1d2030;color:#f5f3ee;font-size:13px;font-weight:600;cursor:pointer;
+    text-decoration:none;display:inline-block}
+  .btn:hover{background:#232739}
+</style>
+</head><body>
+<div id="boot">
+  <div class="logo">SolarOps</div>
+  <div class="spin"></div>
+  <div class="sub" id="bootMsg">Conectando con el panel de control…</div>
+  <a class="btn" href="/legacy" id="fallbackBtn" style="display:none">Abrir panel local (offline)</a>
+  <a class="btn" href="/status" style="background:transparent">Diagnóstico del agente</a>
+</div>
+<iframe id="frame" allow="fullscreen; clipboard-write" referrerpolicy="no-referrer"></iframe>
+<script>
+(function(){
+  var origin = window.location.origin;
+  var cloud  = "{{ cloud_base }}";
+  var url    = cloud + "/local?agent=" + encodeURIComponent(origin) + "&v={{ boot_id }}";
+  var frame  = document.getElementById("frame");
+  var boot   = document.getElementById("boot");
+  var msg    = document.getElementById("bootMsg");
+  var fb     = document.getElementById("fallbackBtn");
+
+  var ready = false;
+  function showFallback(reason){
+    if (ready) return;
+    msg.textContent = reason || "No pude alcanzar el panel cloud. Mostrando el panel local.";
+    fb.style.display = "inline-block";
+    // Auto-redirect al fallback tras 1.2s
+    setTimeout(function(){ if(!ready) window.location.replace("/legacy"); }, 1200);
+  }
+
+  // Detector: si el iframe carga el dashboard cloud, lo sabemos por su evento "load".
+  // Si NO carga en 4s (sin internet, cloud caído, DNS), caemos a /legacy.
+  var deadline = setTimeout(function(){ showFallback("Sin conexión con el panel cloud."); }, 4000);
+
+  frame.addEventListener("load", function(){
+    // load se dispara también para about:blank — verificamos que no estemos vacíos.
+    try {
+      var href = frame.contentWindow && frame.contentWindow.location && frame.contentWindow.location.href;
+      if (href && href.indexOf("about:blank") === 0) return;
+    } catch(_) { /* cross-origin: bien, significa que cargó el cloud */ }
+    clearTimeout(deadline);
+    ready = true;
+    frame.classList.add("ready");
+    boot.style.display = "none";
+  });
+
+  frame.addEventListener("error", function(){ showFallback("Error cargando el panel cloud."); });
+
+  // Probe de conectividad rápida — si falla, ni intentes el iframe.
+  fetch(cloud + "/manifest.webmanifest", { method:"GET", mode:"no-cors", cache:"no-store" })
+    .then(function(){ frame.src = url; })
+    .catch(function(){ showFallback("Sin internet. Cargando panel local."); });
+})();
+</script>
+</body></html>"""
+
 PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>SolarOps · Local</title>
@@ -1224,26 +1302,46 @@ def make_app(agent: Agent) -> Flask:
     # cachés del navegador después de un solarops-update.
     BOOT_ID = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
 
+    # URL pública del dashboard cloud que sirve la UI compartida.
+    CLOUD_BASE = os.environ.get(
+        "SOLAROPS_CLOUD_URL",
+        "https://solar-heartbeat-sync.lovable.app",
+    ).rstrip("/")
+
     @app.after_request
-    def _no_store(resp):
-        # Evita que el navegador sirva /api/* desde caché (causa típica del
-        # "Unexpected token '<'" cuando un index.html viejo queda cacheado
-        # bajo una ruta API). También aplica a la página principal para que
-        # un solarops-update se vea de inmediato.
+    def _no_store_and_cors(resp):
         path = request.path or ""
-        if path.startswith("/api/") or path in ("/", "/status"):
+        # Evita que el navegador sirva /api/* desde caché.
+        if path.startswith("/api/") or path in ("/", "/status", "/legacy"):
             resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
             resp.headers["Pragma"] = "no-cache"
             resp.headers["Expires"] = "0"
+        # CORS para que el iframe del dashboard cloud (otro origin) pueda
+        # leer /api/state, /api/pvconfig, etc. desde el agente local.
+        if path.startswith("/api/"):
+            resp.headers["Access-Control-Allow-Origin"] = "*"
+            resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+            resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+            resp.headers["Access-Control-Max-Age"] = "86400"
         resp.headers["X-SolarOps-Boot"] = BOOT_ID
         return resp
 
+    # Preflight CORS para cualquier endpoint /api/*
+    @app.route("/api/<path:_p>", methods=["OPTIONS"])
+    def _api_options(_p):
+        return ("", 204)
+
     @app.get("/")
     def index():
-        # Servimos siempre la UI local — visualmente idéntica al panel de la
-        # plataforma web. Funciona sin internet (lee la caché local del
-        # agente) y se sincroniza con la nube en segundo plano cuando hay
-        # conexión.
+        # Wrapper híbrido: intentamos cargar el dashboard cloud en un iframe
+        # (parity 100% con la UI online). Si no hay internet o el cloud no
+        # responde en 4 s, caemos automáticamente a /legacy (la UI Flask
+        # local que funciona 100% offline).
+        return render_template_string(WRAPPER_PAGE, cloud_base=CLOUD_BASE, boot_id=BOOT_ID)
+
+    @app.get("/legacy")
+    def legacy_index():
+        # UI Flask local — fallback offline / sin internet.
         return render_template_string(PAGE, boot_id=BOOT_ID)
 
     @app.get("/api/state")
