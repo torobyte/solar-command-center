@@ -2,6 +2,10 @@
 <!--
   Widget metadata. Drop into:
   android/app/src/main/res/xml/widget_solarops_info.xml
+
+  updatePeriodMillis is set to the system minimum (1.8M = 30 min) but the
+  widget actually refreshes every 30s via an AlarmManager tick scheduled
+  inside SolarOpsWidget.kt — see ACTION_TICK / scheduleAlarm().
 -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="180dp"
