@@ -562,6 +562,8 @@ const WIDGET_DEFS: WidgetDef[] = [
   { id: "rings", label: "Anillos concéntricos" },
   { id: "gauges", label: "Medidores radiales" },
   { id: "battery3d", label: "Batería 3D animada" },
+  { id: "solarcell", label: "Celda 3D — Producción solar" },
+  { id: "loadcell", label: "Celda 3D — Consumo" },
   { id: "solarrays", label: "Sol radiante" },
   { id: "gridwave", label: "Onda sinusoidal de red" },
   { id: "flow", label: "Diagrama de flujo de energía" },
