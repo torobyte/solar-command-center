@@ -78,7 +78,7 @@ function mergeSample(prev: Sample | null, next: Sample): Sample {
   const merged: Sample = { ...next };
   for (const k of keys) {
     if (next[k] == null && prev[k] != null) {
-      (merged as Record<string, unknown>)[k as string] = prev[k];
+      (merged as unknown as Record<string, unknown>)[k as string] = prev[k];
     }
   }
   return merged;
