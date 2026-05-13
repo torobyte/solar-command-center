@@ -1224,26 +1224,46 @@ def make_app(agent: Agent) -> Flask:
     # cachés del navegador después de un solarops-update.
     BOOT_ID = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
 
+    # URL pública del dashboard cloud que sirve la UI compartida.
+    CLOUD_BASE = os.environ.get(
+        "SOLAROPS_CLOUD_URL",
+        "https://solar-heartbeat-sync.lovable.app",
+    ).rstrip("/")
+
     @app.after_request
-    def _no_store(resp):
-        # Evita que el navegador sirva /api/* desde caché (causa típica del
-        # "Unexpected token '<'" cuando un index.html viejo queda cacheado
-        # bajo una ruta API). También aplica a la página principal para que
-        # un solarops-update se vea de inmediato.
+    def _no_store_and_cors(resp):
         path = request.path or ""
-        if path.startswith("/api/") or path in ("/", "/status"):
+        # Evita que el navegador sirva /api/* desde caché.
+        if path.startswith("/api/") or path in ("/", "/status", "/legacy"):
             resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
             resp.headers["Pragma"] = "no-cache"
             resp.headers["Expires"] = "0"
+        # CORS para que el iframe del dashboard cloud (otro origin) pueda
+        # leer /api/state, /api/pvconfig, etc. desde el agente local.
+        if path.startswith("/api/"):
+            resp.headers["Access-Control-Allow-Origin"] = "*"
+            resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+            resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+            resp.headers["Access-Control-Max-Age"] = "86400"
         resp.headers["X-SolarOps-Boot"] = BOOT_ID
         return resp
 
+    # Preflight CORS para cualquier endpoint /api/*
+    @app.route("/api/<path:_p>", methods=["OPTIONS"])
+    def _api_options(_p):
+        return ("", 204)
+
     @app.get("/")
     def index():
-        # Servimos siempre la UI local — visualmente idéntica al panel de la
-        # plataforma web. Funciona sin internet (lee la caché local del
-        # agente) y se sincroniza con la nube en segundo plano cuando hay
-        # conexión.
+        # Wrapper híbrido: intentamos cargar el dashboard cloud en un iframe
+        # (parity 100% con la UI online). Si no hay internet o el cloud no
+        # responde en 4 s, caemos automáticamente a /legacy (la UI Flask
+        # local que funciona 100% offline).
+        return render_template_string(WRAPPER_PAGE, cloud_base=CLOUD_BASE, boot_id=BOOT_ID)
+
+    @app.get("/legacy")
+    def legacy_index():
+        # UI Flask local — fallback offline / sin internet.
         return render_template_string(PAGE, boot_id=BOOT_ID)
 
     @app.get("/api/state")
