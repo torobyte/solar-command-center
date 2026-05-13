@@ -1197,13 +1197,31 @@ def compute_today_totals(samples: list[dict]) -> dict:
 def make_app(agent: Agent) -> Flask:
     app = Flask(__name__)
 
+    # Build / boot id — cambia cada arranque del agente. Se usa para invalidar
+    # cachés del navegador después de un solarops-update.
+    BOOT_ID = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+
+    @app.after_request
+    def _no_store(resp):
+        # Evita que el navegador sirva /api/* desde caché (causa típica del
+        # "Unexpected token '<'" cuando un index.html viejo queda cacheado
+        # bajo una ruta API). También aplica a la página principal para que
+        # un solarops-update se vea de inmediato.
+        path = request.path or ""
+        if path.startswith("/api/") or path in ("/", "/status"):
+            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+            resp.headers["Pragma"] = "no-cache"
+            resp.headers["Expires"] = "0"
+        resp.headers["X-SolarOps-Boot"] = BOOT_ID
+        return resp
+
     @app.get("/")
     def index():
         # Servimos siempre la UI local — visualmente idéntica al panel de la
         # plataforma web. Funciona sin internet (lee la caché local del
         # agente) y se sincroniza con la nube en segundo plano cuando hay
         # conexión.
-        return render_template_string(PAGE)
+        return render_template_string(PAGE, boot_id=BOOT_ID)
 
     @app.get("/api/state")
     def state():
