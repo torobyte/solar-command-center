@@ -63,6 +63,27 @@ interface DailyTotal {
   grid_used_kwh: number; battery_charged_kwh: number; battery_discharged_kwh: number;
 }
 
+/**
+ * Merge a new sample with the previous one, preserving the last known
+ * non-null value for each metric. This prevents the dashboard from
+ * "flickering to zero" when a single bad inverter read sanitizes some
+ * fields to null. The new recorded_at is always kept.
+ */
+function mergeSample(prev: Sample | null, next: Sample): Sample {
+  if (!prev) return next;
+  const keys: (keyof Sample)[] = [
+    "ac_output_active_power", "pv_input_power", "battery_capacity",
+    "battery_voltage", "grid_voltage", "inverter_mode",
+  ];
+  const merged: Sample = { ...next };
+  for (const k of keys) {
+    if (next[k] == null && prev[k] != null) {
+      (merged as unknown as Record<string, unknown>)[k as string] = prev[k];
+    }
+  }
+  return merged;
+}
+
 function SiteDetail() {
   const { siteId } = Route.useParams();
   const { t } = useI18n();
@@ -134,7 +155,7 @@ function SiteDetail() {
             ? (row.device_id === selectedDevice.id || row.device_id == null)
             : row.device_id === selectedDevice.id;
           if (!matches) return;
-          setLatest(row);
+          setLatest((prev) => mergeSample(prev, row));
           setHistory((h) => (h.length && h[h.length - 1].recorded_at === row.recorded_at) ? h : [...h.slice(-719), row]);
         })
       .subscribe();
@@ -153,7 +174,7 @@ function SiteDetail() {
       setLatest((prev) => {
         if (prev && prev.recorded_at === row.recorded_at) return prev;
         setHistory((h) => (h.length && h[h.length - 1].recorded_at === row.recorded_at) ? h : [...h.slice(-719), row]);
-        return row;
+        return mergeSample(prev, row);
       });
     }
     const pollId = setInterval(poll, 1000);
