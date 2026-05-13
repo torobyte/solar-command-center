@@ -259,6 +259,13 @@ class Agent:
         self.history: list[dict] = []  # last ~12h of samples for local charts
         self.lock = threading.Lock()
         self.pending: queue.Queue = queue.Queue(maxsize=10000)
+        # Diagnóstico para la página de estado local
+        self.last_error: str | None = None
+        self.last_error_at: str | None = None
+        self.last_sample_at: str | None = None
+        self.error_count: int = 0
+        self.read_count: int = 0
+        self.started_at: str = datetime.now(timezone.utc).isoformat()
 
     def ensure_transport(self):
         if self.transport: return
@@ -270,6 +277,8 @@ class Agent:
                 self.config["inverter_transport"] = self.transport.kind
                 save_config(self.config)
         else:
+            self.last_error = "No se detectó inversor en ningún puerto"
+            self.last_error_at = datetime.now(timezone.utc).isoformat()
             print("[agent] no inverter detected, retrying in 5 s")
 
     def poll_loop(self):
@@ -284,16 +293,22 @@ class Agent:
                     sample["recorded_at"] = datetime.now(timezone.utc).isoformat()
                     with self.lock:
                         self.latest = sample
+                        self.last_sample_at = sample["recorded_at"]
+                        self.read_count += 1
                         self.history.append(sample)
                         # Keep ~12h at 5s = 8640 samples; cap at 2000 to limit memory.
                         if len(self.history) > 2000: self.history = self.history[-2000:]
                     try: self.pending.put_nowait(sample)
                     except queue.Full: pass
             except Exception as e:
+                self.last_error = f"{type(e).__name__}: {e}"
+                self.last_error_at = datetime.now(timezone.utc).isoformat()
+                self.error_count += 1
                 print(f"[agent] poll error: {e}")
                 if self.transport: self.transport.close()
                 self.transport = None
             time.sleep(POLL_INTERVAL)
+
 
     def push_loop(self):
         while True:
