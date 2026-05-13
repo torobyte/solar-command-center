@@ -1111,8 +1111,10 @@ function renderDiag(){
 async function activateDevice(){
   const code=document.getElementById('actCode').value.trim();
   const name=document.getElementById('actName').value.trim()||'Local site';
-  const r=await fetch('/api/activate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,name})});
-  if(r.ok){ alert('Activado ✓'); refresh(); } else { const j=await r.json().catch(()=>({})); alert('Error: '+(j.error||r.status)); }
+  try {
+    await fetchJSON('/api/activate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,name})});
+    alert('Activado ✓'); refresh();
+  } catch(e) { alert('Error: '+e.message); }
 }
 window.activateDevice=activateDevice;
 
