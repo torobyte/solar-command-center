@@ -1334,6 +1334,22 @@ def make_app(agent: Agent) -> Flask:
             ],
         })
 
+    @app.get("/manifest.webmanifest")
+    def manifest():
+        return jsonify({
+            "name": "SolarOps Local", "short_name": "SolarOps",
+            "start_url": "/", "scope": "/", "display": "standalone",
+            "background_color": "#0b1220", "theme_color": "#f59e0b",
+            "icons": [{"src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}],
+        })
+
+    @app.get("/icon.svg")
+    def icon():
+        svg = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">'
+               '<rect width="192" height="192" rx="40" fill="#0b1220"/>'
+               '<circle cx="96" cy="96" r="34" fill="#f59e0b"/></svg>')
+        return app.response_class(svg, mimetype="image/svg+xml")
+
     return app
 
 
