@@ -67,6 +67,8 @@ class WidgetConfigActivity : Activity() {
                 putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(widgetId))
             }
             sendBroadcast(updateIntent)
+            // Ensure the real-time alarm tick is scheduled
+            SolarOpsWidget.scheduleAlarm(this)
             mgr.updateAppWidget(widgetId, null) // triggers onUpdate via provider
 
             setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
