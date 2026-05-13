@@ -118,44 +118,48 @@ function SiteDetail() {
 
   useEffect(() => {
     if (!selectedDevice) return;
+    let alive = true;
     load();
+
+    // Unique channel name per effect run prevents reuse of an already-
+    // subscribed channel object (which silently fails to re-subscribe).
+    const chanName = `site-${siteId}-${selectedDevice.id}-${Math.random().toString(36).slice(2, 8)}`;
     const channel = supabase
-      .channel(`site-${siteId}-${selectedDevice.id}`)
+      .channel(chanName)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "telemetry_samples", filter: `site_id=eq.${siteId}` },
         (payload) => {
+          if (!alive) return;
           const row = payload.new as Sample & { device_id: string | null };
-          // Only accept rows for the selected device
           const matches = selectedDevice.is_primary
             ? (row.device_id === selectedDevice.id || row.device_id == null)
             : row.device_id === selectedDevice.id;
           if (!matches) return;
           setLatest(row);
-          setHistory((h) => [...h.slice(-719), row]);
+          setHistory((h) => (h.length && h[h.length - 1].recorded_at === row.recorded_at) ? h : [...h.slice(-719), row]);
         })
       .subscribe();
-    // Polling fallback every 2s — guarantees real-time even if the websocket
-    // is dropped by intermediate proxies (mobile networks, corporate firewalls).
-    const poll = setInterval(async () => {
+
+    // Polling fallback (websocket may be dropped by mobile / corp proxies).
+    async function poll() {
       let q = supabase
         .from("telemetry_samples")
         .select("recorded_at, ac_output_active_power, pv_input_power, battery_capacity, battery_voltage, grid_voltage, inverter_mode, device_id")
         .eq("site_id", siteId);
       q = applyDeviceFilter(q as never) as never;
-      const { data } = await q.order("recorded_at", { ascending: false }).limit(1).maybeSingle();
-      if (data) {
-        setLatest((prev) => {
-          if (prev && prev.recorded_at === (data as Sample).recorded_at) return prev;
-          setHistory((h) => {
-            if (h.length && h[h.length - 1].recorded_at === (data as Sample).recorded_at) return h;
-            return [...h.slice(-719), data as Sample];
-          });
-          return data as Sample;
-        });
-      }
-    }, 2000);
-    return () => { supabase.removeChannel(channel); clearInterval(poll); };
+      const { data } = await q.order("recorded_at", { ascending: false }).limit(1);
+      if (!alive) return;
+      const row = (data && data[0]) as Sample | undefined;
+      if (!row) return;
+      setLatest((prev) => {
+        if (prev && prev.recorded_at === row.recorded_at) return prev;
+        setHistory((h) => (h.length && h[h.length - 1].recorded_at === row.recorded_at) ? h : [...h.slice(-719), row]);
+        return row;
+      });
+    }
+    const pollId = setInterval(poll, 2000);
+    return () => { alive = false; supabase.removeChannel(channel); clearInterval(pollId); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [siteId, selectedDevice?.id]);
+  }, [siteId, selectedDevice?.id, selectedDevice?.is_primary]);
 
   const chartData = useMemo(() => history.map((r) => ({
     t: new Date(r.recorded_at).getTime(),
