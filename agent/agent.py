@@ -552,7 +552,7 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
 <div id="boot">
   <div class="logo">SolarOps</div>
   <div class="spin"></div>
-  <div class="sub" id="bootMsg">Conectando con el panel de control…</div>
+  <div class="sub" id="bootMsg">Verificando agente local…</div>
   <a class="btn" href="/legacy" id="fallbackBtn" style="display:none">Abrir panel local (offline)</a>
   <a class="btn" href="/status" style="background:transparent">Diagnóstico del agente</a>
 </div>
@@ -567,36 +567,68 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
   var msg    = document.getElementById("bootMsg");
   var fb     = document.getElementById("fallbackBtn");
 
+  // Mixed content: si esta página se sirvió por HTTPS pero el agente vive
+  // en HTTP (caso típico en LAN), el navegador bloqueará los fetch
+  // HTTPS→HTTP del iframe cloud. Detectamos eso y vamos directo al panel
+  // local — sin iframe, sin esperar timeouts.
+  var pageIsHttps  = window.location.protocol === "https:";
+  var agentIsHttp  = origin.indexOf("http://") === 0;
+  var mixedContent = pageIsHttps && agentIsHttp;
+
   var ready = false;
-  function showFallback(reason){
+  function goLegacy(reason){
     if (ready) return;
-    msg.textContent = reason || "No pude alcanzar el panel cloud. Mostrando el panel local.";
+    msg.textContent = reason || "Mostrando el panel local.";
     fb.style.display = "inline-block";
-    // Auto-redirect al fallback tras 1.2s
-    setTimeout(function(){ if(!ready) window.location.replace("/legacy"); }, 1200);
+    setTimeout(function(){ if(!ready) window.location.replace("/legacy"); }, 800);
   }
 
-  // Detector: si el iframe carga el dashboard cloud, lo sabemos por su evento "load".
-  // Si NO carga en 4s (sin internet, cloud caído, DNS), caemos a /legacy.
-  var deadline = setTimeout(function(){ showFallback("Sin conexión con el panel cloud."); }, 4000);
+  // 1) Healthcheck del propio agente. Si esto falla, nada más tiene sentido.
+  fetch("/api/health", { cache:"no-store" })
+    .then(function(r){ return r.ok ? r.json() : Promise.reject(new Error("health "+r.status)); })
+    .then(function(h){
+      if (mixedContent) { goLegacy("Conexión segura no disponible — usando panel local."); return; }
+      msg.textContent = h && h.has_inverter_data
+        ? "Conectando con el panel cloud…"
+        : "Esperando primer dato del inversor…";
+      probeCloud();
+    })
+    .catch(function(e){
+      msg.textContent = "Agente local no responde (" + (e && e.message || "error") + ").";
+      fb.style.display = "inline-block";
+    });
 
-  frame.addEventListener("load", function(){
-    // load se dispara también para about:blank — verificamos que no estemos vacíos.
-    try {
-      var href = frame.contentWindow && frame.contentWindow.location && frame.contentWindow.location.href;
-      if (href && href.indexOf("about:blank") === 0) return;
-    } catch(_) { /* cross-origin: bien, significa que cargó el cloud */ }
-    clearTimeout(deadline);
-    ready = true;
-    frame.classList.add("ready");
-    boot.style.display = "none";
-  });
+  // 2) Probe al cloud con timeout real. Si no responde en 2.5s → fallback.
+  function probeCloud(){
+    var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+    var to = setTimeout(function(){ if(ctrl) ctrl.abort(); }, 2500);
+    fetch(cloud + "/manifest.webmanifest", {
+      method:"GET", mode:"no-cors", cache:"no-store",
+      signal: ctrl ? ctrl.signal : undefined
+    })
+      .then(function(){ clearTimeout(to); loadIframe(); })
+      .catch(function(){ clearTimeout(to); goLegacy("Sin internet. Cargando panel local."); });
+  }
 
-  frame.addEventListener("error", function(){ showFallback("Error cargando el panel cloud."); });
+  function loadIframe(){
+    var deadline = setTimeout(function(){ goLegacy("Cloud no respondió a tiempo."); }, 4000);
+    frame.addEventListener("load", function(){
+      try {
+        var href = frame.contentWindow && frame.contentWindow.location && frame.contentWindow.location.href;
+        if (href && href.indexOf("about:blank") === 0) return;
+      } catch(_) { /* cross-origin = bien, cargó el cloud */ }
+      clearTimeout(deadline);
+      ready = true;
+      frame.classList.add("ready");
+      boot.style.display = "none";
+    });
+    frame.addEventListener("error", function(){ goLegacy("Error cargando el panel cloud."); });
+    frame.src = url;
+    setTimeout(tick, 500);
+  }
 
-  // ---- Bridge: el padre (HTTP, mismo origen que /api/*) hace los fetches y
-  // envía los datos al iframe (HTTPS cloud) por postMessage. Esto evita el
-  // bloqueo de mixed-content que rompe los fetch HTTPS→HTTP del iframe.
+  // ---- Bridge postMessage: el padre (mismo origen que /api/*) hace los
+  // fetches y se los pasa al iframe HTTPS para sortear mixed-content.
   var lastState = null, lastPv = null;
   function postTo(target, type, payload){
     try { target.postMessage({ source:"solarops-agent", type: type, payload: payload }, "*"); }
@@ -619,7 +651,6 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
       if (p) { lastPv = p; postTo(w, "pvconfig", p); }
     }
   }
-  // Re-emite el último estado cuando el iframe pide handshake.
   window.addEventListener("message", function(ev){
     var d = ev && ev.data;
     if (!d || d.source !== "solarops-local" || d.type !== "ready") return;
@@ -628,11 +659,6 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
     if (lastPv)    postTo(w, "pvconfig", lastPv);
   });
   setInterval(tick, 2000);
-
-  // Probe de conectividad rápida — si falla, ni intentes el iframe.
-  fetch(cloud + "/manifest.webmanifest", { method:"GET", mode:"no-cors", cache:"no-store" })
-    .then(function(){ frame.src = url; setTimeout(tick, 500); })
-    .catch(function(){ showFallback("Sin internet. Cargando panel local."); });
 })();
 </script>
 </body></html>"""
