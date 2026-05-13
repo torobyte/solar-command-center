@@ -57,6 +57,7 @@ function AdminPanel() {
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
           <TabsList className="w-max">
             <TabsTrigger value="sites">{t("admin.tab.sites")}</TabsTrigger>
+            <TabsTrigger value="devices">Dispositivos</TabsTrigger>
             <TabsTrigger value="users">{t("admin.tab.users")}</TabsTrigger>
             <TabsTrigger value="licenses">{t("admin.tab.licenses")}</TabsTrigger>
             <TabsTrigger value="audit">Auditoría</TabsTrigger>
@@ -65,6 +66,7 @@ function AdminPanel() {
           </TabsList>
         </div>
         <TabsContent value="sites" className="mt-6"><SitesAdmin /></TabsContent>
+        <TabsContent value="devices" className="mt-6"><DevicesAdmin /></TabsContent>
         <TabsContent value="users" className="mt-6"><UsersAdmin /></TabsContent>
         <TabsContent value="licenses" className="mt-6"><Licenses /></TabsContent>
         <TabsContent value="audit" className="mt-6"><LicenseAuditLog /></TabsContent>
