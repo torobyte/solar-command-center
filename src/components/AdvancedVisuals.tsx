@@ -700,7 +700,7 @@ export function HouseLoadViz({ load, loadMax = 5000 }: { load: number; loadMax?:
  * Inputs: SOC (%), total bank kWh, usable DoD (%), current
  * load (W), and current PV (W). Net discharge = load - pv.
  * ============================================================ */
-import { Clock, Zap as ZapIcon, BatteryCharging } from "lucide-react";
+
 
 export function BackupTimeCard({
   soc, batteryKwh, usableDodPct, load, pv, batteryCount, batteryType,
