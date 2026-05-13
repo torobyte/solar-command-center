@@ -694,3 +694,118 @@ export function HouseLoadViz({ load, loadMax = 5000 }: { load: number; loadMax?:
     </div>
   );
 }
+
+/* ============================================================
+ * BackupTimeCard — runtime estimation for the battery bank.
+ * Inputs: SOC (%), total bank kWh, usable DoD (%), current
+ * load (W), and current PV (W). Net discharge = load - pv.
+ * ============================================================ */
+import { Clock, Zap as ZapIcon, BatteryCharging } from "lucide-react";
+
+export function BackupTimeCard({
+  soc, batteryKwh, usableDodPct, load, pv, batteryCount, batteryType,
+}: {
+  soc: number;
+  batteryKwh: number | null;
+  usableDodPct: number | null;
+  load: number;
+  pv: number;
+  batteryCount: number | null;
+  batteryType: string | null;
+}) {
+  const dod = (usableDodPct ?? 80) / 100;
+  const usableKwh = (batteryKwh ?? 0) * (Math.max(0, Math.min(100, soc)) / 100) * dod;
+  const netDischargeW = Math.max(0, load - pv);
+  const netDischargeKw = netDischargeW / 1000;
+  const charging = pv > load + 5;
+
+  let runtimeHours: number | null = null;
+  if (!charging && netDischargeKw > 0.01 && usableKwh > 0) {
+    runtimeHours = usableKwh / netDischargeKw;
+  }
+
+  const hh = runtimeHours != null ? Math.floor(runtimeHours) : 0;
+  const mm = runtimeHours != null ? Math.round((runtimeHours - hh) * 60) : 0;
+
+  // Color by criticality
+  const color = runtimeHours == null
+    ? "var(--success)"
+    : runtimeHours > 6 ? "var(--success)"
+    : runtimeHours > 2 ? "var(--warning)"
+    : "var(--destructive)";
+
+  const typeLabel: Record<string, string> = {
+    lithium: "Litio (LiFePO4)", lithium_nmc: "Litio (NMC)",
+    agm: "AGM", gel: "Gel", lead_acid: "Plomo-ácido", other: "Otra",
+  };
+
+  const ringPct = runtimeHours == null ? 100 : Math.min(100, (runtimeHours / 12) * 100);
+  const r = 52, c = 2 * Math.PI * r;
+
+  return (
+    <div className="@container rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in h-full">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="flex items-center gap-2 font-semibold">
+          <Clock className="h-4 w-4 text-[var(--battery)]" /> Tiempo de respaldo
+        </h3>
+        <span
+          className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+          style={{ background: `color-mix(in oklab, ${color} 18%, transparent)`, color }}
+        >
+          {charging
+            ? "⚡ Cargando — sin descarga"
+            : runtimeHours == null
+              ? "Sin datos del banco"
+              : runtimeHours > 6 ? "● Holgado"
+              : runtimeHours > 2 ? "● Limitado"
+              : "● Crítico"}
+        </span>
+      </div>
+
+      <div className="flex flex-col items-stretch gap-4 @[360px]:flex-row @[360px]:items-center">
+        <div className="relative mx-auto" style={{ width: 140, height: 140 }}>
+          <svg width="140" height="140" className="-rotate-90">
+            <circle cx="70" cy="70" r={r} fill="none" stroke={color} strokeOpacity="0.15" strokeWidth="12" />
+            <circle cx="70" cy="70" r={r} fill="none" stroke={color} strokeWidth="12" strokeLinecap="round"
+              strokeDasharray={c} strokeDashoffset={c * (1 - ringPct / 100)}
+              style={{ transition: "stroke-dashoffset 1s ease, stroke 0.5s", filter: `drop-shadow(0 0 6px ${color})` }} />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            {charging ? (
+              <>
+                <BatteryCharging className="h-6 w-6" style={{ color }} />
+                <div className="mt-1 text-[10px] uppercase text-muted-foreground">cargando</div>
+              </>
+            ) : runtimeHours == null ? (
+              <div className="px-2 text-center text-[10px] text-muted-foreground">
+                Configura el banco
+              </div>
+            ) : runtimeHours > 99 ? (
+              <>
+                <div className="text-2xl font-extrabold tabular-nums" style={{ color }}>99+</div>
+                <div className="text-[10px] uppercase text-muted-foreground">horas</div>
+              </>
+            ) : (
+              <>
+                <div className="text-3xl font-extrabold tabular-nums leading-none" style={{ color }}>{hh}<span className="text-base">h</span> {mm}<span className="text-base">m</span></div>
+                <div className="mt-1 text-[10px] uppercase text-muted-foreground">restantes</div>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="flex-1 space-y-2.5 text-sm">
+          <Stat label="Energía útil" value={`${usableKwh.toFixed(2)} kWh`} />
+          <Stat label="Descarga neta" value={charging ? "0 W (cargando)" : `${Math.round(netDischargeW).toLocaleString()} W`} />
+          <Stat label="SOC actual" value={`${Math.max(0, Math.min(100, soc)).toFixed(0)} %`} />
+          <Stat label="Banco" value={
+            batteryCount && batteryCount > 0
+              ? `${batteryCount}× ${typeLabel[batteryType ?? "other"] ?? "—"}`
+              : "Sin configurar"
+          } />
+          <Stat label="DoD útil" value={`${(usableDodPct ?? 80).toFixed(0)} %`} />
+        </div>
+      </div>
+    </div>
+  );
+}
