@@ -625,7 +625,7 @@ function DashboardView({ latest, siteId, spec: _spec }: { latest: Sample | null;
 
   // Decide layout cols: heavier widgets in 2-col grid
   const visible = state.filter((w) => w.visible);
-  const dualCol = new Set(["battery3d", "solarrays", "gridwave"]);
+  const dualCol = new Set(["battery3d", "solarcell", "loadcell", "solarrays", "gridwave"]);
 
   return (
     <div className="space-y-4">
