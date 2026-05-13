@@ -8,14 +8,14 @@ export function Battery3D({ soc, voltage, charging }: { soc: number; voltage: nu
   const pct = Math.max(0, Math.min(100, soc));
   const fillColor = pct > 60 ? "var(--success)" : pct > 30 ? "var(--warning)" : "var(--destructive)";
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="flex items-center gap-2 font-semibold"><Battery className="h-4 w-4" /> Batería</h3>
+    <div className="@container rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h3 className="flex min-w-0 items-center gap-2 truncate font-semibold"><Battery className="h-4 w-4 shrink-0" /> <span className="truncate">Batería</span></h3>
         <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium">
           {charging ? "⚡ Cargando" : "Descargando"}
         </span>
       </div>
-      <div className="flex items-center gap-6">
+      <div className="flex flex-col items-center gap-4 @[340px]:flex-row @[340px]:gap-6">
         <div className="relative" style={{ width: 110, height: 200 }}>
           {/* terminal */}
           <div className="absolute left-1/2 top-0 h-3 w-10 -translate-x-1/2 rounded-t-md bg-foreground/40" />
@@ -114,7 +114,7 @@ export function PowerCell3D({
   const active = watts > 1;
   const cellId = `cell-${title.replace(/\s/g, "")}`;
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
+    <div className="@container rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="flex items-center gap-2 font-semibold">
           <span style={{ color }}>{icon}</span> {title}
@@ -129,7 +129,7 @@ export function PowerCell3D({
           {active ? `⚡ ${activeLabel}` : idleLabel}
         </span>
       </div>
-      <div className="flex items-center gap-6">
+      <div className="flex flex-col items-center gap-4 @[340px]:flex-row @[340px]:gap-6">
         <div className="relative" style={{ width: 110, height: 200 }}>
           {/* terminal */}
           <div className="absolute left-1/2 top-0 h-3 w-10 -translate-x-1/2 rounded-t-md bg-foreground/40" />
