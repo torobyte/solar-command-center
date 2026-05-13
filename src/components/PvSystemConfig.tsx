@@ -17,6 +17,24 @@ export interface PvConfig {
   system_losses_pct: number | null;
   latitude: number | null;
   longitude: number | null;
+  battery_count: number | null;
+  battery_type: string | null;
+  battery_voltage_each: number | null;
+  battery_ah_each: number | null;
+  battery_usable_dod_pct: number | null;
+}
+
+const BATTERY_TYPES: { v: string; l: string; dod: number }[] = [
+  { v: "lithium", l: "Litio (LiFePO4)", dod: 90 },
+  { v: "lithium_nmc", l: "Litio (NMC)", dod: 80 },
+  { v: "agm", l: "AGM (sellada)", dod: 50 },
+  { v: "gel", l: "Gel", dod: 50 },
+  { v: "lead_acid", l: "Plomo-ácido (inundada)", dod: 50 },
+  { v: "other", l: "Otra", dod: 60 },
+];
+
+export function defaultDodFor(type: string | null | undefined): number {
+  return BATTERY_TYPES.find((b) => b.v === type)?.dod ?? 80;
 }
 
 export function usePvConfig(siteId: string) {
@@ -48,6 +66,8 @@ export function PvSystemConfigCard({ siteId, maxAcOutputPower, nominalBatteryV }
     array_kwp: null, panel_count: null, panel_watts: null,
     azimuth: 180, tilt: 30, battery_kwh: null, system_losses_pct: 14,
     latitude: null, longitude: null,
+    battery_count: null, battery_type: "lithium",
+    battery_voltage_each: null, battery_ah_each: null, battery_usable_dod_pct: 90,
   });
   const [saving, setSaving] = useState(false);
 
