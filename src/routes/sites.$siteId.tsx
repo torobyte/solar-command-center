@@ -600,7 +600,7 @@ const WIDGET_DEFS: WidgetDef[] = [
   { id: "forecast", label: "Previsión solar y producción" },
 ];
 
-function DashboardView({ latest, siteId, spec: _spec }: { latest: Sample | null; siteId: string; spec: InverterSpec | null }) {
+function DashboardView({ latest, siteId, spec: _spec, device: _device }: { latest: Sample | null; siteId: string; spec: InverterSpec | null; device: Device | null }) {
   const { t } = useI18n();
   const { state, persist } = useDashboardLayout(siteId, WIDGET_DEFS);
   const { config: pv } = usePvConfig(siteId);
@@ -612,10 +612,11 @@ function DashboardView({ latest, siteId, spec: _spec }: { latest: Sample | null;
   const gridConnected = gridV > 50;
   const mode = formatInverterMode(latest?.inverter_mode);
   const charging = pv_W > load;
+  const pvMax = (pv?.array_kwp ?? 5) * 1000;
 
   const widgets: Record<string, React.ReactNode> = {
     mode: (
-      <div key="mode" className="flex items-center justify-between rounded-xl border bg-card p-4 sm:p-5 animate-fade-in">
+      <div className="flex items-center justify-between rounded-xl border bg-card p-4 sm:p-5 animate-fade-in h-full">
         <div className="flex items-center gap-3">
           <Cpu className="h-8 w-8 text-foreground/70" />
           <div>
@@ -627,7 +628,7 @@ function DashboardView({ latest, siteId, spec: _spec }: { latest: Sample | null;
       </div>
     ),
     icons: (
-      <div key="icons" className="grid grid-cols-2 gap-3 rounded-xl border bg-card p-4 sm:gap-4 sm:p-6 animate-fade-in lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 rounded-xl border bg-card p-4 sm:gap-4 sm:p-6 animate-fade-in lg:grid-cols-5 h-full">
         <IconCard icon={<Cpu className="h-10 w-10 sm:h-12 sm:w-12 text-foreground/70" />} title={t("site.dash.inverter")} subtitle={mode.label} />
         <IconCard icon={<Sun className="h-10 w-10 sm:h-12 sm:w-12 text-[var(--solar)]" />} title={t("site.dash.solar")} subtitle={`${Math.round(pv_W).toLocaleString()} W`} />
         <IconCard icon={<Plug className="h-10 w-10 sm:h-12 sm:w-12 text-[var(--load)]" />} title="Consumo" subtitle={`${Math.round(load).toLocaleString()} W`} />
@@ -637,52 +638,28 @@ function DashboardView({ latest, siteId, spec: _spec }: { latest: Sample | null;
         <IconCard icon={<Battery className="h-10 w-10 sm:h-12 sm:w-12 text-[var(--battery)]" />} title={t("site.dash.battery")} subtitle={`${battery.toFixed(0)} %`} />
       </div>
     ),
-    rings: <ConcentricRings key="rings" pv={pv_W} load={load} soc={battery} pvMax={(pv?.array_kwp ?? 5) * 1000} loadMax={5000} />,
-    gauges: <PowerGauges key="gauges" pv={pv_W} load={load} gridV={gridV} battery={battery} batteryV={batteryV} pvMax={(pv?.array_kwp ?? 5) * 1000} />,
-    battery3d: <Battery3D key="battery3d" soc={battery} voltage={batteryV} charging={charging} />,
-    solarcell: <SolarPanelsViz key="solarcell" pv={pv_W} pvMax={(pv?.array_kwp ?? 5) * 1000} />,
-    loadcell: <HouseLoadViz key="loadcell" load={load} loadMax={(pv?.array_kwp ?? 5) * 1000} />,
-    solarrays: <SolarRays key="solarrays" pv={pv_W} pvMax={(pv?.array_kwp ?? 5) * 1000} />,
-    gridwave: <GridSineWave key="gridwave" voltage={gridV} frequency={50} />,
-    flow: <EnergyFlowDiagram key="flow" pv={pv_W} load={load} gridV={gridV} battery={battery} batteryV={batteryV} />,
+    rings: <ConcentricRings pv={pv_W} load={load} soc={battery} pvMax={pvMax} loadMax={5000} />,
+    gauges: <PowerGauges pv={pv_W} load={load} gridV={gridV} battery={battery} batteryV={batteryV} pvMax={pvMax} />,
+    battery3d: <Battery3D soc={battery} voltage={batteryV} charging={charging} />,
+    solarcell: <SolarPanelsViz pv={pv_W} pvMax={pvMax} />,
+    loadcell: <HouseLoadViz load={load} loadMax={pvMax} />,
+    solarrays: <SolarRays pv={pv_W} pvMax={pvMax} />,
+    gridwave: <GridSineWave voltage={gridV} frequency={50} />,
+    flow: <EnergyFlowDiagram pv={pv_W} load={load} gridV={gridV} battery={battery} batteryV={batteryV} />,
     forecast: (
       <SolarForecastWidget
-        key="forecast"
         pvConfig={{ kwp: pv?.array_kwp, lossesPct: pv?.system_losses_pct, batteryKwh: pv?.battery_kwh, lat: pv?.latitude, lon: pv?.longitude }}
       />
     ),
   };
 
-  // Decide layout cols: heavier widgets in 2-col grid
-  const visible = state.filter((w) => w.visible);
-  const dualCol = new Set(["battery3d", "solarcell", "loadcell", "solarrays", "gridwave"]);
-
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-medium text-muted-foreground">Vista personalizable</h2>
-        <DashboardCustomizer defs={WIDGET_DEFS} state={state} onChange={persist} />
-      </div>
-      {/* Group dual-col widgets side-by-side */}
-      {(() => {
-        const out: React.ReactNode[] = [];
-        let pair: React.ReactNode[] = [];
-        const flushPair = () => {
-          if (pair.length === 0) return;
-          out.push(<div key={`pair-${out.length}`} className="grid gap-4 md:grid-cols-2">{pair}</div>);
-          pair = [];
-        };
-        for (const w of visible) {
-          const node = widgets[w.id];
-          if (!node) continue;
-          if (dualCol.has(w.id)) pair.push(node);
-          else { flushPair(); out.push(node); }
-          if (pair.length === 2) flushPair();
-        }
-        flushPair();
-        return out;
-      })()}
-    </div>
+    <DashboardGrid
+      defs={WIDGET_DEFS}
+      state={state}
+      onChange={persist}
+      render={(id) => widgets[id] ?? null}
+    />
   );
 }
 
