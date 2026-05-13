@@ -22,8 +22,8 @@ from flask import Flask, jsonify, redirect, render_template_string, request
 CLOUD_URL_DEFAULT = "https://project--7cb3041b-eb20-43aa-ba17-b0848cb53051.lovable.app"
 CONFIG_PATH = Path(os.environ.get("SOLAROPS_CONFIG", "/etc/solarops/config.json"))
 DB_PATH = Path(os.environ.get("SOLAROPS_DB", "/var/lib/solarops/state.db"))
-POLL_INTERVAL = 5.0
-PUSH_INTERVAL = 5.0  # push every 5s so the cloud dashboard feels live
+POLL_INTERVAL = 1.0  # leer inversor cada 1s para sensación "en vivo"
+PUSH_INTERVAL = 1.0  # empujar al cloud cada 1s
 SNAPSHOT_INTERVAL = 60.0  # send specs/network/system snapshot every 60s
 AGENT_VERSION = "0.6.0"
 PVCFG_PATH = Path(os.environ.get("SOLAROPS_PVCFG", "/etc/solarops/pv.json"))

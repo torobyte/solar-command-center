@@ -156,7 +156,7 @@ function SiteDetail() {
         return row;
       });
     }
-    const pollId = setInterval(poll, 2000);
+    const pollId = setInterval(poll, 1000);
     return () => { alive = false; supabase.removeChannel(channel); clearInterval(pollId); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [siteId, selectedDevice?.id, selectedDevice?.is_primary]);
