@@ -1379,6 +1379,36 @@ def make_app(agent: Agent) -> Flask:
         # UI Flask local — fallback offline / sin internet.
         return render_template_string(PAGE, boot_id=BOOT_ID)
 
+    @app.get("/api/health")
+    def health():
+        # Endpoint ligero para validar que el agente está vivo antes de
+        # intentar cargar el dashboard. Pensado para que el wrapper híbrido
+        # (y cualquier monitor externo) decida si mostrar UI o fallback.
+        with agent.lock:
+            latest = dict(agent.latest)
+            license = dict(agent.license)
+            cfg = dict(agent.config)
+        recorded_at = latest.get("recorded_at")
+        fresh = False
+        if recorded_at:
+            try:
+                t = datetime.fromisoformat(str(recorded_at).replace("Z", "+00:00"))
+                fresh = (datetime.now(timezone.utc) - t).total_seconds() < 60
+            except Exception:
+                fresh = False
+        return jsonify({
+            "ok": True,
+            "boot_id": BOOT_ID,
+            "has_inverter_data": bool(recorded_at),
+            "fresh": fresh,
+            "last_recorded_at": recorded_at,
+            "site_id": license.get("site_id"),
+            "site_name": license.get("site_name"),
+            "plan": license.get("plan"),
+            "activated": bool(cfg.get("device_token")),
+            "cloud_url": cfg.get("cloud_url"),
+        })
+
     @app.get("/api/state")
     def state():
         with agent.lock:
