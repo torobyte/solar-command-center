@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { AppHeader } from "@/components/AppHeader";
 import { Loader2 } from "lucide-react";
+import { RealtimeStatusMonitor } from "@/components/RealtimeStatusMonitor";
 
 export function ProtectedLayout({
   children,
