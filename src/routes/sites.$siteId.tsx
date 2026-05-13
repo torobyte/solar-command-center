@@ -15,7 +15,7 @@ import { useI18n } from "@/lib/i18n";
 import { SolarForecastWidget } from "@/components/SolarForecastWidget";
 import { EnergyFlowDiagram } from "@/components/EnergyFlowDiagram";
 import { PowerGauges } from "@/components/PowerGauges";
-import { Battery3D, SolarRays, GridSineWave, ConcentricRings, SolarPanelsViz, HouseLoadViz } from "@/components/AdvancedVisuals";
+import { Battery3D, SolarRays, GridSineWave, ConcentricRings, SolarPanelsViz, HouseLoadViz, BackupTimeCard } from "@/components/AdvancedVisuals";
 import { DashboardGrid, useDashboardLayout, type WidgetDef } from "@/components/DashboardCustomizer";
 import { PvSystemConfigCard, usePvConfig } from "@/components/PvSystemConfig";
 import { DeviceSelector, useDevices, type Device } from "@/components/DeviceManager";
@@ -589,6 +589,7 @@ function formatInverterMode(raw: string | null | undefined): { label: string; co
 const WIDGET_DEFS: WidgetDef[] = [
   { id: "mode", label: "Modo del inversor" },
   { id: "icons", label: "Tarjetas resumen" },
+  { id: "backup", label: "Tiempo de respaldo" },
   { id: "rings", label: "Anillos concéntricos" },
   { id: "gauges", label: "Medidores radiales" },
   { id: "battery3d", label: "Batería 3D animada" },
