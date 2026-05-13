@@ -107,7 +107,28 @@ function SiteDetail() {
           setHistory((h) => [...h.slice(-719), row]);
         })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    // Polling fallback every 3s — guarantees real-time even if the websocket
+    // is dropped by intermediate proxies (mobile networks, corporate firewalls).
+    const poll = setInterval(async () => {
+      const { data } = await supabase
+        .from("telemetry_samples")
+        .select("recorded_at, ac_output_active_power, pv_input_power, battery_capacity, battery_voltage, grid_voltage, inverter_mode")
+        .eq("site_id", siteId)
+        .order("recorded_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data) {
+        setLatest((prev) => {
+          if (prev && prev.recorded_at === (data as Sample).recorded_at) return prev;
+          setHistory((h) => {
+            if (h.length && h[h.length - 1].recorded_at === (data as Sample).recorded_at) return h;
+            return [...h.slice(-719), data as Sample];
+          });
+          return data as Sample;
+        });
+      }
+    }, 3000);
+    return () => { supabase.removeChannel(channel); clearInterval(poll); };
   }, [siteId]);
 
   const chartData = useMemo(() => history.map((r) => ({
