@@ -373,7 +373,7 @@ export function ConcentricRings({ pv, load, soc, pvMax = 5000, loadMax = 5000 }:
   return (
     <div className="@container rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
       <h3 className="mb-3 font-semibold">Anillos de actividad</h3>
-      <div className="flex items-center justify-center gap-6">
+      <div className="flex flex-col items-center justify-center gap-4 @[360px]:flex-row @[360px]:gap-6">
         <div className="relative" style={{ width: size, height: size }}>
           <svg width={size} height={size} className="-rotate-90">
             {rings.map((r, i) => {
