@@ -134,7 +134,7 @@ function SiteDetail() {
             ? (row.device_id === selectedDevice.id || row.device_id == null)
             : row.device_id === selectedDevice.id;
           if (!matches) return;
-          setLatest(row);
+          setLatest((prev) => mergeSample(prev, row));
           setHistory((h) => (h.length && h[h.length - 1].recorded_at === row.recorded_at) ? h : [...h.slice(-719), row]);
         })
       .subscribe();
