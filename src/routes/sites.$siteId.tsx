@@ -67,6 +67,7 @@ function SiteDetail() {
   const { siteId } = Route.useParams();
   const { t } = useI18n();
   const { user } = useAuth();
+  const { devices, selected: selectedDevice } = useDevices(siteId);
   const [site, setSite] = useState<Site | null>(null);
   const [latest, setLatest] = useState<Sample | null>(null);
   const [history, setHistory] = useState<Sample[]>([]);
@@ -75,15 +76,33 @@ function SiteDetail() {
 
   useNotificationWatcher(siteId, user?.id);
 
+  // device_id NULL on a row = legacy / primary device. So when the
+  // selected device is the primary one, accept rows whose device_id
+  // matches OR is NULL. Otherwise filter strictly to that device.
+  const deviceFilter = useMemo(() => {
+    if (!selectedDevice) return null;
+    if (selectedDevice.is_primary) {
+      return `device_id.eq.${selectedDevice.id},device_id.is.null`;
+    }
+    return null; // non-primary handled with .eq below
+  }, [selectedDevice]);
+
+  function applyDeviceFilter<T extends { eq: (col: string, v: unknown) => T; or: (q: string) => T }>(q: T): T {
+    if (!selectedDevice) return q;
+    if (selectedDevice.is_primary && deviceFilter) return q.or(deviceFilter);
+    return q.eq("device_id", selectedDevice.id);
+  }
+
   async function load() {
     const { data: s } = await supabase.from("sites").select("*").eq("id", siteId).maybeSingle();
     setSite(s as Site | null);
-    const { data: t } = await supabase
+
+    let tq = supabase
       .from("telemetry_samples")
-      .select("recorded_at, ac_output_active_power, pv_input_power, battery_capacity, battery_voltage, grid_voltage, inverter_mode")
-      .eq("site_id", siteId)
-      .order("recorded_at", { ascending: false })
-      .limit(720); // ~12h at 1/min
+      .select("recorded_at, ac_output_active_power, pv_input_power, battery_capacity, battery_voltage, grid_voltage, inverter_mode, device_id")
+      .eq("site_id", siteId);
+    tq = applyDeviceFilter(tq as never) as never;
+    const { data: t } = await tq.order("recorded_at", { ascending: false }).limit(720);
     const rows = (t ?? []).reverse() as Sample[];
     setHistory(rows);
     setLatest(rows.length ? rows[rows.length - 1] : null);
@@ -98,26 +117,31 @@ function SiteDetail() {
   }
 
   useEffect(() => {
+    if (!selectedDevice) return;
     load();
     const channel = supabase
-      .channel(`site-${siteId}`)
+      .channel(`site-${siteId}-${selectedDevice.id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "telemetry_samples", filter: `site_id=eq.${siteId}` },
         (payload) => {
-          const row = payload.new as Sample;
+          const row = payload.new as Sample & { device_id: string | null };
+          // Only accept rows for the selected device
+          const matches = selectedDevice.is_primary
+            ? (row.device_id === selectedDevice.id || row.device_id == null)
+            : row.device_id === selectedDevice.id;
+          if (!matches) return;
           setLatest(row);
           setHistory((h) => [...h.slice(-719), row]);
         })
       .subscribe();
-    // Polling fallback every 3s — guarantees real-time even if the websocket
+    // Polling fallback every 2s — guarantees real-time even if the websocket
     // is dropped by intermediate proxies (mobile networks, corporate firewalls).
     const poll = setInterval(async () => {
-      const { data } = await supabase
+      let q = supabase
         .from("telemetry_samples")
-        .select("recorded_at, ac_output_active_power, pv_input_power, battery_capacity, battery_voltage, grid_voltage, inverter_mode")
-        .eq("site_id", siteId)
-        .order("recorded_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .select("recorded_at, ac_output_active_power, pv_input_power, battery_capacity, battery_voltage, grid_voltage, inverter_mode, device_id")
+        .eq("site_id", siteId);
+      q = applyDeviceFilter(q as never) as never;
+      const { data } = await q.order("recorded_at", { ascending: false }).limit(1).maybeSingle();
       if (data) {
         setLatest((prev) => {
           if (prev && prev.recorded_at === (data as Sample).recorded_at) return prev;
@@ -128,9 +152,10 @@ function SiteDetail() {
           return data as Sample;
         });
       }
-    }, 3000);
+    }, 2000);
     return () => { supabase.removeChannel(channel); clearInterval(poll); };
-  }, [siteId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [siteId, selectedDevice?.id]);
 
   const chartData = useMemo(() => history.map((r) => ({
     t: new Date(r.recorded_at).getTime(),
@@ -148,13 +173,17 @@ function SiteDetail() {
         <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" strokeWidth={2.4} /> Back to sites
       </Link>
 
-      <div className="mb-6 flex items-center justify-between animate-fade-up">
+      <div className="mb-4 flex items-center justify-between animate-fade-up">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{site.name}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {site.inverter_model ?? "Inverter not yet detected"} · <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${site.status === "online" ? "bg-success/15 text-success" : site.status === "offline" ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground"}`}>● {site.status}</span>
+            {selectedDevice?.name ?? site.inverter_model ?? "Inverter not yet detected"} · <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${site.status === "online" ? "bg-success/15 text-success" : site.status === "offline" ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground"}`}>● {site.status}</span>
           </p>
         </div>
+      </div>
+
+      <div className="mb-6">
+        <DeviceSelector siteId={siteId} />
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as SiteTab)} className="pb-24 md:pb-0">
@@ -167,10 +196,10 @@ function SiteDetail() {
         </TabsList>
 
         <TabsContent value="dashboard" className="mt-6">
-          <DashboardView latest={latest} siteId={siteId} spec={null} />
+          <DashboardView latest={latest} siteId={siteId} spec={null} device={selectedDevice} />
           {!latest && (
             <div className="mt-8 rounded-lg border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">
-              Waiting for the first telemetry sample from your device…
+              Esperando la primera muestra de {selectedDevice?.name ?? "tu inversor"}…
             </div>
           )}
         </TabsContent>
