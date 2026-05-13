@@ -442,7 +442,7 @@ export function SolarPanelsViz({ pv, pvMax = 5000 }: { pv: number; pvMax?: numbe
         </span>
       </div>
 
-      <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
+      <div className="flex flex-col items-stretch gap-4 @[420px]:flex-row @[420px]:items-center">
         <div className="relative mx-auto h-[200px] w-full max-w-[320px] overflow-hidden rounded-xl border bg-gradient-to-b from-sky-200/60 via-sky-100/40 to-emerald-50/40 dark:from-slate-800/80 dark:via-slate-900/60 dark:to-slate-950">
           {/* Sun */}
           <div
@@ -571,7 +571,7 @@ export function HouseLoadViz({ load, loadMax = 5000 }: { load: number; loadMax?:
         </span>
       </div>
 
-      <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
+      <div className="flex flex-col items-stretch gap-4 @[420px]:flex-row @[420px]:items-center">
         <div className="relative mx-auto h-[200px] w-full max-w-[320px] overflow-hidden rounded-xl border bg-gradient-to-b from-slate-100 via-slate-50 to-emerald-50/40 dark:from-slate-900 dark:via-slate-900/80 dark:to-slate-950">
           {/* night/day ambient circle */}
           <div className="absolute right-5 top-4 h-8 w-8 rounded-full bg-gradient-to-br from-yellow-200/70 to-orange-200/40 blur-[2px] dark:from-slate-700/60 dark:to-slate-800/40" />
