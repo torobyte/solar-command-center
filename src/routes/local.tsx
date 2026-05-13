@@ -108,9 +108,18 @@ function LocalDashboardPage() {
     async function fetchJSON<T>(url: string): Promise<T> {
       const r = await fetch(url, { cache: "no-store" });
       const ct = (r.headers.get("content-type") || "").toLowerCase();
+      // Si el agente devolvió JSON con `error`, úsalo como mensaje legible
+      // en lugar del genérico "HTTP 500".
+      if (ct.includes("application/json")) {
+        const body = await r.json();
+        if (!r.ok) {
+          const msg = (body && (body.error || body.message)) || `HTTP ${r.status}`;
+          throw new Error(String(msg));
+        }
+        return body as T;
+      }
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      if (!ct.includes("application/json")) throw new Error("Respuesta no-JSON");
-      return r.json() as Promise<T>;
+      throw new Error("Respuesta no-JSON (¿estás apuntando al agente?)");
     }
 
     async function pullState() {
