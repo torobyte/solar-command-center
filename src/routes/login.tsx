@@ -102,6 +102,14 @@ function LoginPage() {
           </div>
         </div>
       </div>
+      <ErrorDialog
+        open={errorOpen}
+        onOpenChange={setErrorOpen}
+        kind="login"
+        details={errorDetails}
+        retrying={loading}
+        onRetry={attemptLogin}
+      />
     </div>
   );
 }
