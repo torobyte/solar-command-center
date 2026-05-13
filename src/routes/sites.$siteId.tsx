@@ -84,6 +84,43 @@ function mergeSample(prev: Sample | null, next: Sample): Sample {
   return merged;
 }
 
+/* ---------------- Chart smoothing ---------------- */
+type SeriesPoint = { t: number; pv: number | null; load: number | null; soc: number | null; grid: number | null };
+
+function smoothSeries(
+  data: SeriesPoint[],
+  mode: "off" | "mean" | "median",
+  window: number,
+): Array<{ t: number; pv: number; load: number; soc: number; grid: number }> {
+  if (mode === "off" || window <= 1) {
+    return data.map((p) => ({
+      t: p.t,
+      pv: p.pv ?? 0,
+      load: p.load ?? 0,
+      soc: p.soc ?? 0,
+      grid: p.grid ?? 0,
+    }));
+  }
+  const keys: ("pv" | "load" | "soc" | "grid")[] = ["pv", "load", "soc", "grid"];
+  const out = data.map((p) => ({ t: p.t, pv: 0, load: 0, soc: 0, grid: 0 }));
+  for (let i = 0; i < data.length; i++) {
+    const start = Math.max(0, i - window + 1);
+    const slice = data.slice(start, i + 1);
+    for (const k of keys) {
+      const vals = slice.map((s) => s[k]).filter((v): v is number => v != null && Number.isFinite(v));
+      if (vals.length === 0) { out[i][k] = 0; continue; }
+      if (mode === "mean") {
+        out[i][k] = vals.reduce((a, b) => a + b, 0) / vals.length;
+      } else {
+        const sorted = [...vals].sort((a, b) => a - b);
+        const mid = Math.floor(sorted.length / 2);
+        out[i][k] = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+      }
+    }
+  }
+  return out;
+}
+
 function SiteDetail() {
   const { siteId } = Route.useParams();
   const { t } = useI18n();
@@ -182,13 +219,28 @@ function SiteDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [siteId, selectedDevice?.id, selectedDevice?.is_primary]);
 
-  const chartData = useMemo(() => history.map((r) => ({
+  // Persisted smoothing options (per-browser).
+  const [smoothMode, setSmoothMode] = useState<"off" | "mean" | "median">(
+    () => (typeof localStorage !== "undefined" && (localStorage.getItem("chart.smoothMode") as "off" | "mean" | "median")) || "off",
+  );
+  const [smoothWindow, setSmoothWindow] = useState<number>(
+    () => (typeof localStorage !== "undefined" && Number(localStorage.getItem("chart.smoothWindow"))) || 5,
+  );
+  useEffect(() => { localStorage.setItem("chart.smoothMode", smoothMode); }, [smoothMode]);
+  useEffect(() => { localStorage.setItem("chart.smoothWindow", String(smoothWindow)); }, [smoothWindow]);
+
+  const rawChartData = useMemo(() => history.map((r) => ({
     t: new Date(r.recorded_at).getTime(),
-    pv: Number(r.pv_input_power ?? 0),
-    load: Number(r.ac_output_active_power ?? 0),
-    soc: Number(r.battery_capacity ?? 0),
-    grid: Number(r.grid_voltage ?? 0),
+    pv: r.pv_input_power == null ? null : Number(r.pv_input_power),
+    load: r.ac_output_active_power == null ? null : Number(r.ac_output_active_power),
+    soc: r.battery_capacity == null ? null : Number(r.battery_capacity),
+    grid: r.grid_voltage == null ? null : Number(r.grid_voltage),
   })), [history]);
+
+  const chartData = useMemo(
+    () => smoothSeries(rawChartData, smoothMode, smoothWindow),
+    [rawChartData, smoothMode, smoothWindow],
+  );
 
   if (!site) return <SiteDetailSkeleton />;
 
@@ -230,6 +282,35 @@ function SiteDetail() {
         </TabsContent>
 
         <TabsContent value="charts" className="mt-6 space-y-6">
+          <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card/60 p-3 text-sm">
+            <div className="flex items-center gap-2">
+              <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">Suavizado</span>
+            </div>
+            <div className="inline-flex overflow-hidden rounded-md border">
+              {(["off", "mean", "median"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setSmoothMode(m)}
+                  className={`px-3 py-1 text-xs transition-colors ${smoothMode === m ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+                >
+                  {m === "off" ? "Sin filtro" : m === "mean" ? "Promedio móvil" : "Mediana"}
+                </button>
+              ))}
+            </div>
+            <div className="ml-auto flex items-center gap-2">
+              <label className="text-xs text-muted-foreground">Ventana</label>
+              <input
+                type="range" min={2} max={30} step={1}
+                value={smoothWindow}
+                disabled={smoothMode === "off"}
+                onChange={(e) => setSmoothWindow(Number(e.target.value))}
+                className="w-32 accent-primary disabled:opacity-40"
+              />
+              <span className="w-12 text-right font-mono text-xs tabular-nums">{smoothWindow} pts</span>
+            </div>
+          </div>
           <ChartCard title="Power (W) — last 12h">
             <AreaChart data={chartData}>
               <defs>
