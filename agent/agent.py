@@ -1359,6 +1359,29 @@ def compute_today_totals(samples: list[dict]) -> dict:
 def make_app(agent: Agent) -> Flask:
     app = Flask(__name__)
 
+    # Cualquier excepción dentro de un endpoint /api/* debe devolver JSON,
+    # nunca el HTML por defecto de Flask. Si no, el frontend ve "Respuesta
+    # no-JSON" o `<!doctype html>...500 Internal Server Error` crudo.
+    @app.errorhandler(Exception)
+    def _json_errors(err):
+        from werkzeug.exceptions import HTTPException
+        path = request.path or ""
+        if not path.startswith("/api/"):
+            # rutas HTML: re-lanzar para que Flask siga su flujo normal
+            if isinstance(err, HTTPException):
+                return err
+            raise err
+        import traceback
+        tb = traceback.format_exc(limit=6)
+        try: print(f"[api error] {path}: {err}\n{tb}", flush=True)
+        except Exception: pass
+        status = err.code if isinstance(err, HTTPException) else 500
+        return jsonify({
+            "ok": False,
+            "error": str(err) or err.__class__.__name__,
+            "where": path,
+        }), status
+
     # Build / boot id — cambia cada arranque del agente. Se usa para invalidar
     # cachés del navegador después de un solarops-update.
     BOOT_ID = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
