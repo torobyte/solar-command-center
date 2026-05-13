@@ -84,6 +84,43 @@ function mergeSample(prev: Sample | null, next: Sample): Sample {
   return merged;
 }
 
+/* ---------------- Chart smoothing ---------------- */
+type SeriesPoint = { t: number; pv: number | null; load: number | null; soc: number | null; grid: number | null };
+
+function smoothSeries(
+  data: SeriesPoint[],
+  mode: "off" | "mean" | "median",
+  window: number,
+): Array<{ t: number; pv: number; load: number; soc: number; grid: number }> {
+  if (mode === "off" || window <= 1) {
+    return data.map((p) => ({
+      t: p.t,
+      pv: p.pv ?? 0,
+      load: p.load ?? 0,
+      soc: p.soc ?? 0,
+      grid: p.grid ?? 0,
+    }));
+  }
+  const keys: ("pv" | "load" | "soc" | "grid")[] = ["pv", "load", "soc", "grid"];
+  const out = data.map((p) => ({ t: p.t, pv: 0, load: 0, soc: 0, grid: 0 }));
+  for (let i = 0; i < data.length; i++) {
+    const start = Math.max(0, i - window + 1);
+    const slice = data.slice(start, i + 1);
+    for (const k of keys) {
+      const vals = slice.map((s) => s[k]).filter((v): v is number => v != null && Number.isFinite(v));
+      if (vals.length === 0) { out[i][k] = 0; continue; }
+      if (mode === "mean") {
+        out[i][k] = vals.reduce((a, b) => a + b, 0) / vals.length;
+      } else {
+        const sorted = [...vals].sort((a, b) => a - b);
+        const mid = Math.floor(sorted.length / 2);
+        out[i][k] = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+      }
+    }
+  }
+  return out;
+}
+
 function SiteDetail() {
   const { siteId } = Route.useParams();
   const { t } = useI18n();
