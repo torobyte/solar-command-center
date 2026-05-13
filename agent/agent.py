@@ -1116,27 +1116,47 @@ async function activateDevice(){
 }
 window.activateDevice=activateDevice;
 
+// ====== Helper: fetch JSON con manejo de errores claro ======
+async function fetchJSON(url, opts){
+  const r = await fetch(url, opts);
+  const ct = (r.headers.get('content-type')||'').toLowerCase();
+  if (!r.ok) {
+    let detail = '';
+    try { detail = ct.includes('json') ? JSON.stringify(await r.json()) : (await r.text()).slice(0,140); } catch(_){}
+    throw new Error('HTTP '+r.status+(detail?(' · '+detail):''));
+  }
+  if (!ct.includes('application/json')) {
+    const txt = (await r.text()).slice(0,140);
+    throw new Error('Respuesta no-JSON desde '+url+' (¿agente sin reiniciar?): '+txt);
+  }
+  return r.json();
+}
+
 // ====== Config ======
 async function loadPvCfg(){
-  const r=await fetch('/api/pvconfig'); const c=await r.json()||{};
-  ['kwp','pc','pw','bat','az','ti','lo','la','ln'].forEach((k,i)=>{
-    const map=['array_kwp','panel_count','panel_watts','battery_kwh','azimuth','tilt','system_losses_pct','latitude','longitude'];
-    const el=document.getElementById('cf_'+k); if(el && c[map[i]]!=null) el.value=c[map[i]];
-  });
+  try {
+    const c = await fetchJSON('/api/pvconfig') || {};
+    ['kwp','pc','pw','bat','az','ti','lo','la','ln'].forEach((k,i)=>{
+      const map=['array_kwp','panel_count','panel_watts','battery_kwh','azimuth','tilt','system_losses_pct','latitude','longitude'];
+      const el=document.getElementById('cf_'+k); if(el && c[map[i]]!=null) el.value=c[map[i]];
+    });
+  } catch(e) { console.warn('loadPvCfg:', e.message); }
 }
 async function savePvCfg(){
   const map={'cf_kwp':'array_kwp','cf_pc':'panel_count','cf_pw':'panel_watts','cf_bat':'battery_kwh',
     'cf_az':'azimuth','cf_ti':'tilt','cf_lo':'system_losses_pct','cf_la':'latitude','cf_ln':'longitude'};
   const body={}; Object.entries(map).forEach(([id,k])=>{const v=document.getElementById(id).value; if(v!=='') body[k]=Number(v)});
-  const r=await fetch('/api/pvconfig',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(r.ok) alert('Guardado ✓'); else alert('Error');
+  try {
+    await fetchJSON('/api/pvconfig',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    alert('Guardado ✓');
+  } catch(e) { alert('Error: '+e.message); }
 }
 window.savePvCfg=savePvCfg;
 
 // ====== Refresh loop ======
 async function refresh(){
   try{
-    const r=await fetch('/api/state'); STATE=await r.json();
+    STATE = await fetchJSON('/api/state');
     const dot=document.getElementById('conDot'), txt=document.getElementById('conTxt');
     const fresh = STATE.latest&&STATE.latest.recorded_at;
     dot.className='dot '+(fresh?'on':'off');
@@ -1154,6 +1174,7 @@ async function refresh(){
   }catch(e){
     document.getElementById('conDot').className='dot off';
     document.getElementById('conTxt').textContent='Error: '+e.message;
+    console.error('refresh failed:', e);
   }
 }
 document.getElementById('actLink').onclick=e=>{e.preventDefault();document.querySelector('[data-tab=diag]').click()};
