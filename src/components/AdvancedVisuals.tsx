@@ -1,4 +1,4 @@
-import { Battery, Sun, Plug, Zap } from "lucide-react";
+import { Battery, Sun, Plug, Zap, Home } from "lucide-react";
 
 /* ============================================================
  * Battery3D — animated 3D-ish battery cell with liquid level,
