@@ -286,10 +286,10 @@ export function SolarRays({ pv, pvMax = 5000 }: { pv: number; pvMax?: number }) 
           </g>
           {/* sun body */}
           <circle r="34" fill="url(#sunGrad)" style={{ filter: `drop-shadow(0 0 ${10 + ratio * 18}px var(--solar))` }} />
-          <text textAnchor="middle" y="6" className="fill-[#7c2d12]" fontSize="18" fontWeight="800">
-            {(pv / 1000).toFixed(2)}
+          <text textAnchor="middle" y="4" className="fill-[#7c2d12]" fontSize="16" fontWeight="800">
+            {Math.round(pv).toLocaleString()}
           </text>
-          <text textAnchor="middle" y="22" className="fill-[#7c2d12]" fontSize="9" opacity="0.85">kW</text>
+          <text textAnchor="middle" y="20" className="fill-[#7c2d12]" fontSize="9" opacity="0.85">W</text>
         </svg>
       </div>
       <style>{`
