@@ -15,7 +15,7 @@ import { useI18n } from "@/lib/i18n";
 import { SolarForecastWidget } from "@/components/SolarForecastWidget";
 import { EnergyFlowDiagram } from "@/components/EnergyFlowDiagram";
 import { PowerGauges } from "@/components/PowerGauges";
-import { Battery3D, SolarRays, GridSineWave, ConcentricRings, SolarCell3D, LoadCell3D } from "@/components/AdvancedVisuals";
+import { Battery3D, SolarRays, GridSineWave, ConcentricRings, SolarPanelsViz, HouseLoadViz } from "@/components/AdvancedVisuals";
 import { DashboardCustomizer, useDashboardLayout, type WidgetDef } from "@/components/DashboardCustomizer";
 import { PvSystemConfigCard, usePvConfig } from "@/components/PvSystemConfig";
 import { NotificationsConfig } from "@/components/NotificationsConfig";
@@ -562,8 +562,8 @@ const WIDGET_DEFS: WidgetDef[] = [
   { id: "rings", label: "Anillos concéntricos" },
   { id: "gauges", label: "Medidores radiales" },
   { id: "battery3d", label: "Batería 3D animada" },
-  { id: "solarcell", label: "Celda 3D — Producción solar" },
-  { id: "loadcell", label: "Celda 3D — Consumo" },
+  { id: "solarcell", label: "Paneles solares animados" },
+  { id: "loadcell", label: "Casa — consumo animado" },
   { id: "solarrays", label: "Sol radiante" },
   { id: "gridwave", label: "Onda sinusoidal de red" },
   { id: "flow", label: "Diagrama de flujo de energía" },
@@ -610,8 +610,8 @@ function DashboardView({ latest, siteId, spec: _spec }: { latest: Sample | null;
     rings: <ConcentricRings key="rings" pv={pv_W} load={load} soc={battery} pvMax={(pv?.array_kwp ?? 5) * 1000} loadMax={5000} />,
     gauges: <PowerGauges key="gauges" pv={pv_W} load={load} gridV={gridV} battery={battery} batteryV={batteryV} pvMax={(pv?.array_kwp ?? 5) * 1000} />,
     battery3d: <Battery3D key="battery3d" soc={battery} voltage={batteryV} charging={charging} />,
-    solarcell: <SolarCell3D key="solarcell" pv={pv_W} pvMax={(pv?.array_kwp ?? 5) * 1000} />,
-    loadcell: <LoadCell3D key="loadcell" load={load} loadMax={(pv?.array_kwp ?? 5) * 1000} />,
+    solarcell: <SolarPanelsViz key="solarcell" pv={pv_W} pvMax={(pv?.array_kwp ?? 5) * 1000} />,
+    loadcell: <HouseLoadViz key="loadcell" load={load} loadMax={(pv?.array_kwp ?? 5) * 1000} />,
     solarrays: <SolarRays key="solarrays" pv={pv_W} pvMax={(pv?.array_kwp ?? 5) * 1000} />,
     gridwave: <GridSineWave key="gridwave" voltage={gridV} frequency={50} />,
     flow: <EnergyFlowDiagram key="flow" pv={pv_W} load={load} gridV={gridV} battery={battery} batteryV={batteryV} />,

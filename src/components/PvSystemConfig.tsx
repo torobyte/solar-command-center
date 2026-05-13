@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Sun, Save, Wand2 } from "lucide-react";
+import { Sun, Save, Wand2, Search, Loader2, MapPin } from "lucide-react";
 
 export interface PvConfig {
   site_id: string;
@@ -116,13 +116,14 @@ export function PvSystemConfigCard({ siteId, maxAcOutputPower, nominalBatteryV }
         <Field label="Pérdidas del sistema (%)" hint="Cableado, suciedad, inversor (~14% típico)">
           <Input type="number" value={form.system_losses_pct ?? ""} onChange={(e) => set("system_losses_pct", parseFloat(e.target.value) || null)} />
         </Field>
-        <Field label="Ubicación" hint="Latitud / Longitud para previsión solar">
-          <div className="flex gap-2">
-            <Input type="number" step="0.0001" value={form.latitude ?? ""} onChange={(e) => set("latitude", parseFloat(e.target.value) || null)} placeholder="Lat" />
-            <Input type="number" step="0.0001" value={form.longitude ?? ""} onChange={(e) => set("longitude", parseFloat(e.target.value) || null)} placeholder="Lon" />
-            <Button type="button" variant="outline" size="sm" onClick={geolocate}>📍</Button>
-          </div>
-        </Field>
+        <div className="sm:col-span-2">
+          <AddressPicker
+            lat={form.latitude}
+            lon={form.longitude}
+            onPick={(lat, lon) => { set("latitude", +lat.toFixed(4)); set("longitude", +lon.toFixed(4)); }}
+            onGeolocate={geolocate}
+          />
+        </div>
       </div>
 
       <div className="mt-5 flex justify-end">
@@ -140,6 +141,119 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
       <Label className="text-xs">{label}</Label>
       <div className="mt-1">{children}</div>
       {hint && <p className="mt-1 text-[10px] text-muted-foreground">{hint}</p>}
+    </div>
+  );
+}
+
+interface GeoResult { name: string; country?: string; admin1?: string; admin2?: string; latitude: number; longitude: number }
+
+function AddressPicker({ lat, lon, onPick, onGeolocate }: {
+  lat: number | null; lon: number | null;
+  onPick: (lat: number, lon: number, label?: string) => void;
+  onGeolocate: () => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<GeoResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [resolvedLabel, setResolvedLabel] = useState<string | null>(null);
+  const debRef = useRef<number | null>(null);
+
+  // Reverse-geocode current lat/lon to display a friendly address.
+  useEffect(() => {
+    let cancelled = false;
+    if (lat == null || lon == null) { setResolvedLabel(null); return; }
+    (async () => {
+      try {
+        const r = await fetch(`https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&language=es`);
+        const j = await r.json();
+        const top = j.results?.[0];
+        if (!cancelled && top) {
+          setResolvedLabel([top.name, top.admin1, top.country].filter(Boolean).join(", "));
+        }
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, [lat, lon]);
+
+  function search(q: string) {
+    setQuery(q);
+    if (debRef.current) window.clearTimeout(debRef.current);
+    if (q.trim().length < 2) { setResults([]); return; }
+    debRef.current = window.setTimeout(async () => {
+      setSearching(true);
+      try {
+        const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=8&language=es&format=json`);
+        const j = await r.json();
+        setResults(j.results ?? []);
+      } catch { setResults([]); }
+      finally { setSearching(false); }
+    }, 300);
+  }
+
+  function pick(r: GeoResult) {
+    onPick(r.latitude, r.longitude, r.name);
+    setQuery("");
+    setResults([]);
+    setResolvedLabel([r.name, r.admin1, r.country].filter(Boolean).join(", "));
+    toast.success(`Ubicación: ${r.name}`);
+  }
+
+  return (
+    <div>
+      <Label className="text-xs">Ubicación</Label>
+      <p className="mb-2 text-[10px] text-muted-foreground">
+        Escribe tu dirección o ciudad (ej: "Chillán, Chile") para una previsión solar precisa.
+      </p>
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 rounded-md border bg-background px-2">
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <input
+            value={query}
+            onChange={(e) => search(e.target.value)}
+            placeholder="Buscar dirección o ciudad…"
+            className="w-full bg-transparent py-2 text-sm outline-none"
+          />
+          {searching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+          <Button type="button" variant="ghost" size="sm" onClick={onGeolocate} title="Usar mi ubicación actual">
+            <MapPin className="h-4 w-4" />
+          </Button>
+        </div>
+        {results.length > 0 && (
+          <ul className="max-h-48 overflow-auto rounded-md border bg-card text-sm">
+            {results.map((r, i) => (
+              <li key={`${r.latitude}-${r.longitude}-${i}`}>
+                <button
+                  type="button"
+                  onClick={() => pick(r)}
+                  className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-muted"
+                >
+                  <span className="font-medium">{r.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {[r.admin1, r.country].filter(Boolean).join(", ")}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {(lat != null && lon != null) && (
+          <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 text-xs">
+            <MapPin className="h-3.5 w-3.5 text-[var(--solar)]" />
+            <span className="font-medium">{resolvedLabel ?? "Ubicación seleccionada"}</span>
+            <span className="text-muted-foreground">· {lat.toFixed(4)}, {lon.toFixed(4)}</span>
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-2">
+          <Input
+            type="number" step="0.0001" value={lat ?? ""} placeholder="Latitud"
+            onChange={(e) => onPick(parseFloat(e.target.value) || 0, lon ?? 0)}
+          />
+          <Input
+            type="number" step="0.0001" value={lon ?? ""} placeholder="Longitud"
+            onChange={(e) => onPick(lat ?? 0, parseFloat(e.target.value) || 0)}
+          />
+        </div>
+      </div>
     </div>
   );
 }

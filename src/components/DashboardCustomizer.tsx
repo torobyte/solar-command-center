@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
-import { Eye, EyeOff, ArrowUp, ArrowDown, Settings2, RotateCcw } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Eye, EyeOff, Settings2, RotateCcw, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export interface WidgetDef { id: string; label: string }
-
 export interface WidgetState { id: string; visible: boolean }
 
 const STORAGE_PREFIX = "dashboard.layout.v1.";
@@ -16,7 +15,6 @@ export function useDashboardLayout(siteId: string, defaults: WidgetDef[]) {
   );
   const [loaded, setLoaded] = useState(false);
 
-  // Load layout: cloud first, fallback to localStorage
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -30,7 +28,6 @@ export function useDashboardLayout(siteId: string, defaults: WidgetDef[]) {
       }
       if (!next && local) { try { next = JSON.parse(local); } catch { /* ignore */ } }
       if (next) {
-        // merge with current defaults (add new widgets, drop removed ones)
         const known = new Set(defaults.map((d) => d.id));
         const reordered = next.filter((w) => known.has(w.id));
         for (const d of defaults) if (!reordered.find((w) => w.id === d.id)) reordered.push({ id: d.id, visible: true });
@@ -61,22 +58,34 @@ export function DashboardCustomizer({ defs, state, onChange }: {
   defs: WidgetDef[]; state: WidgetState[]; onChange: (next: WidgetState[]) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const dragId = useRef<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
 
   function toggle(id: string) {
     onChange(state.map((w) => w.id === id ? { ...w, visible: !w.visible } : w));
   }
-  function move(id: string, dir: -1 | 1) {
-    const idx = state.findIndex((w) => w.id === id);
-    if (idx < 0) return;
-    const nIdx = idx + dir;
-    if (nIdx < 0 || nIdx >= state.length) return;
-    const next = state.slice();
-    [next[idx], next[nIdx]] = [next[nIdx], next[idx]];
-    onChange(next);
-  }
   function reset() {
     onChange(defs.map((d) => ({ id: d.id, visible: true })));
     toast.success("Layout restablecido");
+  }
+
+  function handleDragStart(id: string) { dragId.current = id; }
+  function handleDragOver(e: React.DragEvent, id: string) {
+    e.preventDefault();
+    if (overId !== id) setOverId(id);
+  }
+  function handleDrop(targetId: string) {
+    const sourceId = dragId.current;
+    dragId.current = null;
+    setOverId(null);
+    if (!sourceId || sourceId === targetId) return;
+    const next = state.slice();
+    const from = next.findIndex((w) => w.id === sourceId);
+    const to = next.findIndex((w) => w.id === targetId);
+    if (from < 0 || to < 0) return;
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    onChange(next);
   }
 
   return (
@@ -91,23 +100,43 @@ export function DashboardCustomizer({ defs, state, onChange }: {
               <h3 className="text-lg font-semibold">Widgets del dashboard</h3>
               <Button variant="ghost" size="sm" onClick={reset}><RotateCcw className="mr-1 h-3.5 w-3.5" /> Reiniciar</Button>
             </div>
-            <p className="mb-3 text-xs text-muted-foreground">Activa, oculta y reordena los widgets. Se guarda automáticamente.</p>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Arrastra los widgets para reordenarlos. Tu orden se guarda automáticamente.
+            </p>
             <ul className="space-y-1.5">
-              {state.map((w, i) => {
+              {state.map((w) => {
                 const def = defs.find((d) => d.id === w.id);
                 if (!def) return null;
+                const dragging = dragId.current === w.id;
+                const isOver = overId === w.id;
                 return (
-                  <li key={w.id} className="flex items-center gap-2 rounded-lg border bg-background px-3 py-2">
-                    <div className="flex flex-col gap-0.5">
-                      <button disabled={i === 0} onClick={() => move(w.id, -1)} className="text-muted-foreground hover:text-foreground disabled:opacity-30">
-                        <ArrowUp className="h-3.5 w-3.5" />
-                      </button>
-                      <button disabled={i === state.length - 1} onClick={() => move(w.id, 1)} className="text-muted-foreground hover:text-foreground disabled:opacity-30">
-                        <ArrowDown className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+                  <li
+                    key={w.id}
+                    draggable
+                    onDragStart={() => handleDragStart(w.id)}
+                    onDragOver={(e) => handleDragOver(e, w.id)}
+                    onDragLeave={() => setOverId((v) => (v === w.id ? null : v))}
+                    onDrop={() => handleDrop(w.id)}
+                    onDragEnd={() => { dragId.current = null; setOverId(null); }}
+                    className={[
+                      "group flex items-center gap-2 rounded-lg border bg-background px-3 py-2 transition-all",
+                      dragging ? "opacity-40" : "",
+                      isOver ? "border-accent ring-2 ring-accent/30 -translate-y-0.5" : "",
+                    ].join(" ")}
+                  >
+                    <button
+                      type="button"
+                      className="cursor-grab touch-none rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing"
+                      title="Arrastrar para reordenar"
+                    >
+                      <GripVertical className="h-4 w-4" />
+                    </button>
                     <span className="flex-1 text-sm">{def.label}</span>
-                    <button onClick={() => toggle(w.id)} className={`rounded-md p-1.5 ${w.visible ? "text-primary" : "text-muted-foreground"}`}>
+                    <button
+                      onClick={() => toggle(w.id)}
+                      className={`rounded-md p-1.5 transition-colors ${w.visible ? "text-primary hover:bg-primary/10" : "text-muted-foreground hover:bg-muted"}`}
+                      title={w.visible ? "Ocultar" : "Mostrar"}
+                    >
                       {w.visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                     </button>
                   </li>

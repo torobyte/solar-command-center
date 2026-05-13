@@ -415,3 +415,263 @@ export function ConcentricRings({ pv, load, soc, pvMax = 5000, loadMax = 5000 }:
     </div>
   );
 }
+
+/* ============================================================
+ * SolarPanelsViz — animated tilted solar panel array with a
+ * traveling sun, light rays hitting cells and energy ripple
+ * proportional to current PV production.
+ * ============================================================ */
+export function SolarPanelsViz({ pv, pvMax = 5000 }: { pv: number; pvMax?: number }) {
+  const ratio = Math.max(0, Math.min(1, pvMax > 0 ? pv / pvMax : 0));
+  const active = pv > 1;
+  const cells = Array.from({ length: 12 });
+  return (
+    <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="flex items-center gap-2 font-semibold">
+          <Sun className="h-4 w-4 text-[var(--solar)]" /> Producción Solar
+        </h3>
+        <span
+          className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+          style={{
+            background: "color-mix(in oklab, var(--solar) 18%, transparent)",
+            color: "var(--solar)",
+          }}
+        >
+          {active ? "⚡ Generando" : "Sin sol"}
+        </span>
+      </div>
+
+      <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
+        <div className="relative mx-auto h-[200px] w-full max-w-[320px] overflow-hidden rounded-xl border bg-gradient-to-b from-sky-200/60 via-sky-100/40 to-emerald-50/40 dark:from-slate-800/80 dark:via-slate-900/60 dark:to-slate-950">
+          {/* Sun */}
+          <div
+            className="absolute h-12 w-12 rounded-full"
+            style={{
+              top: 18,
+              left: `${20 + ratio * 55}%`,
+              background: "radial-gradient(circle at 35% 35%, #fffbe6, var(--solar) 60%, #f59e0b)",
+              boxShadow: `0 0 ${20 + ratio * 30}px var(--solar)`,
+              transition: "left 1.2s ease, box-shadow 0.6s ease",
+              animation: "solarSunFloat 6s ease-in-out infinite",
+            }}
+          />
+          {/* Rays */}
+          {active && (
+            <svg className="absolute inset-0 h-full w-full" viewBox="0 0 320 200" preserveAspectRatio="none">
+              {[0, 1, 2, 3, 4].map((i) => {
+                const x = 70 + i * 45;
+                return (
+                  <line
+                    key={i}
+                    x1={`${20 + ratio * 55}%`}
+                    y1="42"
+                    x2={x}
+                    y2="135"
+                    stroke="var(--solar)"
+                    strokeWidth="1.5"
+                    strokeDasharray="3 5"
+                    opacity={0.35 + ratio * 0.5}
+                    style={{ animation: `solarRayFlow 1.6s linear ${i * 0.15}s infinite` }}
+                  />
+                );
+              })}
+            </svg>
+          )}
+          {/* Ground */}
+          <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-emerald-700/20 to-transparent dark:from-emerald-900/30" />
+          {/* Pole */}
+          <div className="absolute bottom-2 left-1/2 h-12 w-1.5 -translate-x-1/2 rounded bg-foreground/40" />
+          {/* Tilted panel array */}
+          <div
+            className="absolute left-1/2 bottom-12 -translate-x-1/2"
+            style={{
+              transform: "translateX(-50%) perspective(420px) rotateX(48deg)",
+              transformOrigin: "bottom center",
+            }}
+          >
+            <div
+              className="grid grid-cols-4 gap-[3px] rounded-md border-2 border-slate-700/80 bg-slate-900 p-1 shadow-2xl"
+              style={{ width: 200, height: 110 }}
+            >
+              {cells.map((_, i) => (
+                <div
+                  key={i}
+                  className="relative overflow-hidden rounded-[2px]"
+                  style={{
+                    background: `linear-gradient(135deg,
+                      color-mix(in oklab, #1e3a8a ${100 - ratio * 35}%, var(--solar) ${ratio * 60}%) 0%,
+                      color-mix(in oklab, #0f172a ${100 - ratio * 25}%, var(--solar) ${ratio * 45}%) 100%)`,
+                    boxShadow: active ? `inset 0 0 6px color-mix(in oklab, var(--solar) ${ratio * 70}%, transparent)` : undefined,
+                  }}
+                >
+                  {/* cell grid lines */}
+                  <div className="absolute inset-0 opacity-50"
+                    style={{ backgroundImage: "linear-gradient(transparent 49%, rgba(255,255,255,0.15) 50%, transparent 51%), linear-gradient(90deg, transparent 49%, rgba(255,255,255,0.15) 50%, transparent 51%)", backgroundSize: "100% 50%, 50% 100%" }} />
+                  {/* shimmer */}
+                  {active && (
+                    <div
+                      className="absolute inset-y-0 -left-1/2 w-1/2"
+                      style={{
+                        background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)",
+                        animation: `panelShimmer ${2 + (i % 4) * 0.3}s ease-in-out ${i * 0.12}s infinite`,
+                      }}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Watt label */}
+          <div className="absolute right-2 top-2 rounded-md bg-card/80 px-2 py-1 text-right backdrop-blur-sm">
+            <div className="text-[9px] uppercase text-muted-foreground">Potencia</div>
+            <div className="text-base font-bold tabular-nums text-[var(--solar)]">
+              {Math.round(pv).toLocaleString()} <span className="text-[10px] text-muted-foreground">W</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 space-y-3">
+          <Stat label="Potencia" value={`${Math.round(pv).toLocaleString()} W`} />
+          <Stat label="Capacidad" value={`${Math.round(pvMax).toLocaleString()} W`} />
+          <Stat label="Aprovechamiento" value={`${(ratio * 100).toFixed(0)} %`} />
+          <Stat label="Estado" value={active ? "Produciendo" : "Inactivo"} />
+        </div>
+      </div>
+      <style>{`
+        @keyframes solarSunFloat { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-6px);} }
+        @keyframes solarRayFlow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -16; } }
+        @keyframes panelShimmer { 0%{transform:translateX(0);} 100%{transform:translateX(400%);} }
+      `}</style>
+    </div>
+  );
+}
+
+/* ============================================================
+ * HouseLoadViz — animated house whose windows glow brighter and
+ * a chimney/AC hum pulse intensifies with consumption.
+ * ============================================================ */
+export function HouseLoadViz({ load, loadMax = 5000 }: { load: number; loadMax?: number }) {
+  const ratio = Math.max(0, Math.min(1, loadMax > 0 ? load / loadMax : 0));
+  const active = load > 1;
+  // window count lit (out of 4)
+  const lit = Math.round(ratio * 4);
+  return (
+    <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="flex items-center gap-2 font-semibold">
+          <Home className="h-4 w-4 text-[var(--load)]" /> Consumo de la casa
+        </h3>
+        <span
+          className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+          style={{
+            background: "color-mix(in oklab, var(--load) 18%, transparent)",
+            color: "var(--load)",
+          }}
+        >
+          {active ? "⚡ Consumiendo" : "En reposo"}
+        </span>
+      </div>
+
+      <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
+        <div className="relative mx-auto h-[200px] w-full max-w-[320px] overflow-hidden rounded-xl border bg-gradient-to-b from-indigo-200/40 via-slate-100/40 to-emerald-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950">
+          {/* moon/dim sun for ambience */}
+          <div className="absolute right-4 top-3 h-6 w-6 rounded-full bg-yellow-200/50 blur-[1px]" />
+          {/* ground */}
+          <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-emerald-800/30 to-transparent dark:from-emerald-950/50" />
+          {/* House */}
+          <svg viewBox="0 0 320 200" className="absolute inset-0 h-full w-full">
+            {/* roof */}
+            <polygon points="60,95 160,40 260,95" fill="#7f1d1d" stroke="#450a0a" strokeWidth="2" />
+            <polygon points="60,95 160,40 260,95" fill="url(#roofShine)" opacity="0.35" />
+            <defs>
+              <linearGradient id="roofShine" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="#fff" stopOpacity="0.6" />
+                <stop offset="1" stopColor="#fff" stopOpacity="0" />
+              </linearGradient>
+              <radialGradient id="windowGlow">
+                <stop offset="0%" stopColor="#fff7d6" />
+                <stop offset="60%" stopColor="#fcd34d" />
+                <stop offset="100%" stopColor="#f59e0b" />
+              </radialGradient>
+            </defs>
+            {/* body */}
+            <rect x="70" y="95" width="180" height="90" fill="#fde7c8" stroke="#a16207" strokeWidth="2" />
+            {/* door */}
+            <rect x="148" y="135" width="24" height="50" fill="#7c2d12" stroke="#431407" strokeWidth="1.5" />
+            <circle cx="166" cy="160" r="1.6" fill="#fbbf24" />
+            {/* windows (4) */}
+            {[
+              { x: 86, y: 110 },
+              { x: 116, y: 110 },
+              { x: 184, y: 110 },
+              { x: 214, y: 110 },
+            ].map((w, i) => {
+              const on = i < lit;
+              return (
+                <g key={i}>
+                  <rect
+                    x={w.x} y={w.y} width="20" height="20" rx="2"
+                    fill={on ? "url(#windowGlow)" : "#1e293b"}
+                    stroke="#7c2d12" strokeWidth="1.5"
+                    style={{
+                      transition: "fill 0.6s ease",
+                      filter: on ? `drop-shadow(0 0 ${4 + ratio * 6}px var(--solar))` : undefined,
+                    }}
+                  />
+                  <line x1={w.x + 10} y1={w.y} x2={w.x + 10} y2={w.y + 20} stroke="#7c2d12" strokeWidth="1" />
+                  <line x1={w.x} y1={w.y + 10} x2={w.x + 20} y2={w.y + 10} stroke="#7c2d12" strokeWidth="1" />
+                </g>
+              );
+            })}
+            {/* chimney */}
+            <rect x="210" y="58" width="14" height="28" fill="#7f1d1d" stroke="#450a0a" strokeWidth="1.5" />
+            {/* smoke / heat puffs when active */}
+            {active && [0, 1, 2].map((i) => (
+              <circle
+                key={i}
+                cx="217" cy="50" r={4 + i}
+                fill="#cbd5e1" opacity="0.5"
+                style={{ animation: `houseSmoke ${3 + i}s ease-out ${i * 0.7}s infinite` }}
+              />
+            ))}
+          </svg>
+          {/* Power badge */}
+          <div className="absolute left-2 top-2 rounded-md bg-card/80 px-2 py-1 backdrop-blur-sm">
+            <div className="text-[9px] uppercase text-muted-foreground">Carga</div>
+            <div className="text-base font-bold tabular-nums text-[var(--load)]">
+              {Math.round(load).toLocaleString()} <span className="text-[10px] text-muted-foreground">W</span>
+            </div>
+          </div>
+          {/* electric pulse line at base */}
+          {active && (
+            <div className="absolute bottom-2 left-4 right-4 h-0.5 overflow-hidden rounded-full bg-[var(--load)]/15">
+              <div
+                className="h-full"
+                style={{
+                  width: `${20 + ratio * 80}%`,
+                  background: "linear-gradient(90deg, transparent, var(--load), transparent)",
+                  animation: "houseLoadPulse 1.4s linear infinite",
+                }}
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 space-y-3">
+          <Stat label="Carga actual" value={`${Math.round(load).toLocaleString()} W`} />
+          <Stat label="Capacidad" value={`${Math.round(loadMax).toLocaleString()} W`} />
+          <Stat label="Uso" value={`${(ratio * 100).toFixed(0)} %`} />
+          <Stat label="Nivel" value={ratio > 0.8 ? "Alto" : ratio > 0.4 ? "Medio" : "Bajo"} />
+        </div>
+      </div>
+      <style>{`
+        @keyframes houseSmoke {
+          0% { transform: translate(0,0) scale(0.6); opacity: 0.6; }
+          100% { transform: translate(-12px,-46px) scale(1.4); opacity: 0; }
+        }
+        @keyframes houseLoadPulse { 0%{transform:translateX(-100%);} 100%{transform:translateX(200%);} }
+      `}</style>
+    </div>
+  );
+}
