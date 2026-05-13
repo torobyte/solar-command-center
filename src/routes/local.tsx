@@ -3,6 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { SiteDashboardView, type DashboardSample, formatInverterMode } from "@/components/SiteDashboardView";
 import type { PvConfig } from "@/components/PvSystemConfig";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { LangSwitcher } from "@/components/LangSwitcher";
 
 /**
  * Public mirror of /sites/$siteId — designed to be embedded inside an
