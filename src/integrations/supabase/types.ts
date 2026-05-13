@@ -153,6 +153,7 @@ export type Database = {
       }
       dashboard_layouts: {
         Row: {
+          device_id: string | null
           id: string
           site_id: string
           updated_at: string
@@ -160,6 +161,7 @@ export type Database = {
           widgets: Json
         }
         Insert: {
+          device_id?: string | null
           id?: string
           site_id: string
           updated_at?: string
@@ -167,13 +169,22 @@ export type Database = {
           widgets?: Json
         }
         Update: {
+          device_id?: string | null
           id?: string
           site_id?: string
           updated_at?: string
           user_id?: string
           widgets?: Json
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "dashboard_layouts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       device_commands: {
         Row: {
@@ -181,6 +192,7 @@ export type Database = {
           command: string
           created_at: string
           created_by: string | null
+          device_id: string | null
           error: string | null
           id: string
           payload: Json
@@ -194,6 +206,7 @@ export type Database = {
           command: string
           created_at?: string
           created_by?: string | null
+          device_id?: string | null
           error?: string | null
           id?: string
           payload?: Json
@@ -207,6 +220,7 @@ export type Database = {
           command?: string
           created_at?: string
           created_by?: string | null
+          device_id?: string | null
           error?: string | null
           id?: string
           payload?: Json
@@ -215,13 +229,22 @@ export type Database = {
           site_id?: string
           status?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "device_commands_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       device_snapshots: {
         Row: {
           agent_version: string | null
           board_model: string | null
           cpu_temp_c: number | null
+          device_id: string | null
           internet_up: boolean | null
           ip_eth: string | null
           ip_public: string | null
@@ -240,6 +263,7 @@ export type Database = {
           agent_version?: string | null
           board_model?: string | null
           cpu_temp_c?: number | null
+          device_id?: string | null
           internet_up?: boolean | null
           ip_eth?: string | null
           ip_public?: string | null
@@ -258,6 +282,7 @@ export type Database = {
           agent_version?: string | null
           board_model?: string | null
           cpu_temp_c?: number | null
+          device_id?: string | null
           internet_up?: boolean | null
           ip_eth?: string | null
           ip_public?: string | null
@@ -272,10 +297,66 @@ export type Database = {
           usb_devices_list?: Json | null
           voltage_dips?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "device_snapshots_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devices: {
+        Row: {
+          created_at: string
+          driver: string | null
+          id: string
+          is_primary: boolean
+          model: string | null
+          name: string
+          serial_number: string | null
+          site_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          driver?: string | null
+          id?: string
+          is_primary?: boolean
+          model?: string | null
+          name: string
+          serial_number?: string | null
+          site_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          driver?: string | null
+          id?: string
+          is_primary?: boolean
+          model?: string | null
+          name?: string
+          serial_number?: string | null
+          site_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devices_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       inverter_specs: {
         Row: {
+          device_id: string | null
           driver: string | null
           expected_ac_input_voltage: number | null
           firmware: string | null
@@ -293,6 +374,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          device_id?: string | null
           driver?: string | null
           expected_ac_input_voltage?: number | null
           firmware?: string | null
@@ -310,6 +392,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          device_id?: string | null
           driver?: string | null
           expected_ac_input_voltage?: number | null
           firmware?: string | null
@@ -326,7 +409,15 @@ export type Database = {
           topology?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "inverter_specs_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       license_audit_log: {
         Row: {
@@ -487,6 +578,7 @@ export type Database = {
           channels: Json
           cooldown_minutes: number
           created_at: string
+          device_id: string | null
           enabled: boolean
           id: string
           last_triggered_at: string | null
@@ -504,6 +596,7 @@ export type Database = {
           channels?: Json
           cooldown_minutes?: number
           created_at?: string
+          device_id?: string | null
           enabled?: boolean
           id?: string
           last_triggered_at?: string | null
@@ -521,6 +614,7 @@ export type Database = {
           channels?: Json
           cooldown_minutes?: number
           created_at?: string
+          device_id?: string | null
           enabled?: boolean
           id?: string
           last_triggered_at?: string | null
@@ -534,7 +628,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notification_rules_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       plans: {
         Row: {
@@ -646,6 +748,7 @@ export type Database = {
           array_kwp: number | null
           azimuth: number | null
           battery_kwh: number | null
+          device_id: string | null
           latitude: number | null
           longitude: number | null
           panel_count: number | null
@@ -659,6 +762,7 @@ export type Database = {
           array_kwp?: number | null
           azimuth?: number | null
           battery_kwh?: number | null
+          device_id?: string | null
           latitude?: number | null
           longitude?: number | null
           panel_count?: number | null
@@ -672,6 +776,7 @@ export type Database = {
           array_kwp?: number | null
           azimuth?: number | null
           battery_kwh?: number | null
+          device_id?: string | null
           latitude?: number | null
           longitude?: number | null
           panel_count?: number | null
@@ -681,7 +786,15 @@ export type Database = {
           tilt?: number | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pv_system_config_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sites: {
         Row: {
@@ -748,6 +861,7 @@ export type Database = {
           battery_discharge_current: number | null
           battery_voltage: number | null
           bus_voltage: number | null
+          device_id: string | null
           device_status: string | null
           grid_frequency: number | null
           grid_voltage: number | null
@@ -772,6 +886,7 @@ export type Database = {
           battery_discharge_current?: number | null
           battery_voltage?: number | null
           bus_voltage?: number | null
+          device_id?: string | null
           device_status?: string | null
           grid_frequency?: number | null
           grid_voltage?: number | null
@@ -796,6 +911,7 @@ export type Database = {
           battery_discharge_current?: number | null
           battery_voltage?: number | null
           bus_voltage?: number | null
+          device_id?: string | null
           device_status?: string | null
           grid_frequency?: number | null
           grid_voltage?: number | null
@@ -811,6 +927,13 @@ export type Database = {
           site_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "telemetry_samples_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "telemetry_samples_site_id_fkey"
             columns: ["site_id"]

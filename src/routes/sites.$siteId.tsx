@@ -16,8 +16,9 @@ import { SolarForecastWidget } from "@/components/SolarForecastWidget";
 import { EnergyFlowDiagram } from "@/components/EnergyFlowDiagram";
 import { PowerGauges } from "@/components/PowerGauges";
 import { Battery3D, SolarRays, GridSineWave, ConcentricRings, SolarPanelsViz, HouseLoadViz } from "@/components/AdvancedVisuals";
-import { DashboardCustomizer, useDashboardLayout, type WidgetDef } from "@/components/DashboardCustomizer";
+import { DashboardGrid, useDashboardLayout, type WidgetDef } from "@/components/DashboardCustomizer";
 import { PvSystemConfigCard, usePvConfig } from "@/components/PvSystemConfig";
+import { DeviceSelector, useDevices, type Device } from "@/components/DeviceManager";
 import { NotificationsConfig } from "@/components/NotificationsConfig";
 import { useNotificationWatcher } from "@/lib/notifications";
 import { useAuth } from "@/lib/auth";
@@ -66,6 +67,7 @@ function SiteDetail() {
   const { siteId } = Route.useParams();
   const { t } = useI18n();
   const { user } = useAuth();
+  const { devices, selected: selectedDevice } = useDevices(siteId);
   const [site, setSite] = useState<Site | null>(null);
   const [latest, setLatest] = useState<Sample | null>(null);
   const [history, setHistory] = useState<Sample[]>([]);
@@ -74,15 +76,33 @@ function SiteDetail() {
 
   useNotificationWatcher(siteId, user?.id);
 
+  // device_id NULL on a row = legacy / primary device. So when the
+  // selected device is the primary one, accept rows whose device_id
+  // matches OR is NULL. Otherwise filter strictly to that device.
+  const deviceFilter = useMemo(() => {
+    if (!selectedDevice) return null;
+    if (selectedDevice.is_primary) {
+      return `device_id.eq.${selectedDevice.id},device_id.is.null`;
+    }
+    return null; // non-primary handled with .eq below
+  }, [selectedDevice]);
+
+  function applyDeviceFilter<T extends { eq: (col: string, v: unknown) => T; or: (q: string) => T }>(q: T): T {
+    if (!selectedDevice) return q;
+    if (selectedDevice.is_primary && deviceFilter) return q.or(deviceFilter);
+    return q.eq("device_id", selectedDevice.id);
+  }
+
   async function load() {
     const { data: s } = await supabase.from("sites").select("*").eq("id", siteId).maybeSingle();
     setSite(s as Site | null);
-    const { data: t } = await supabase
+
+    let tq = supabase
       .from("telemetry_samples")
-      .select("recorded_at, ac_output_active_power, pv_input_power, battery_capacity, battery_voltage, grid_voltage, inverter_mode")
-      .eq("site_id", siteId)
-      .order("recorded_at", { ascending: false })
-      .limit(720); // ~12h at 1/min
+      .select("recorded_at, ac_output_active_power, pv_input_power, battery_capacity, battery_voltage, grid_voltage, inverter_mode, device_id")
+      .eq("site_id", siteId);
+    tq = applyDeviceFilter(tq as never) as never;
+    const { data: t } = await tq.order("recorded_at", { ascending: false }).limit(720);
     const rows = (t ?? []).reverse() as Sample[];
     setHistory(rows);
     setLatest(rows.length ? rows[rows.length - 1] : null);
@@ -97,26 +117,31 @@ function SiteDetail() {
   }
 
   useEffect(() => {
+    if (!selectedDevice) return;
     load();
     const channel = supabase
-      .channel(`site-${siteId}`)
+      .channel(`site-${siteId}-${selectedDevice.id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "telemetry_samples", filter: `site_id=eq.${siteId}` },
         (payload) => {
-          const row = payload.new as Sample;
+          const row = payload.new as Sample & { device_id: string | null };
+          // Only accept rows for the selected device
+          const matches = selectedDevice.is_primary
+            ? (row.device_id === selectedDevice.id || row.device_id == null)
+            : row.device_id === selectedDevice.id;
+          if (!matches) return;
           setLatest(row);
           setHistory((h) => [...h.slice(-719), row]);
         })
       .subscribe();
-    // Polling fallback every 3s — guarantees real-time even if the websocket
+    // Polling fallback every 2s — guarantees real-time even if the websocket
     // is dropped by intermediate proxies (mobile networks, corporate firewalls).
     const poll = setInterval(async () => {
-      const { data } = await supabase
+      let q = supabase
         .from("telemetry_samples")
-        .select("recorded_at, ac_output_active_power, pv_input_power, battery_capacity, battery_voltage, grid_voltage, inverter_mode")
-        .eq("site_id", siteId)
-        .order("recorded_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .select("recorded_at, ac_output_active_power, pv_input_power, battery_capacity, battery_voltage, grid_voltage, inverter_mode, device_id")
+        .eq("site_id", siteId);
+      q = applyDeviceFilter(q as never) as never;
+      const { data } = await q.order("recorded_at", { ascending: false }).limit(1).maybeSingle();
       if (data) {
         setLatest((prev) => {
           if (prev && prev.recorded_at === (data as Sample).recorded_at) return prev;
@@ -127,9 +152,10 @@ function SiteDetail() {
           return data as Sample;
         });
       }
-    }, 3000);
+    }, 2000);
     return () => { supabase.removeChannel(channel); clearInterval(poll); };
-  }, [siteId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [siteId, selectedDevice?.id]);
 
   const chartData = useMemo(() => history.map((r) => ({
     t: new Date(r.recorded_at).getTime(),
@@ -147,13 +173,17 @@ function SiteDetail() {
         <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" strokeWidth={2.4} /> Back to sites
       </Link>
 
-      <div className="mb-6 flex items-center justify-between animate-fade-up">
+      <div className="mb-4 flex items-center justify-between animate-fade-up">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{site.name}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {site.inverter_model ?? "Inverter not yet detected"} · <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${site.status === "online" ? "bg-success/15 text-success" : site.status === "offline" ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground"}`}>● {site.status}</span>
+            {selectedDevice?.name ?? site.inverter_model ?? "Inverter not yet detected"} · <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${site.status === "online" ? "bg-success/15 text-success" : site.status === "offline" ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground"}`}>● {site.status}</span>
           </p>
         </div>
+      </div>
+
+      <div className="mb-6">
+        <DeviceSelector siteId={siteId} />
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as SiteTab)} className="pb-24 md:pb-0">
@@ -166,10 +196,10 @@ function SiteDetail() {
         </TabsList>
 
         <TabsContent value="dashboard" className="mt-6">
-          <DashboardView latest={latest} siteId={siteId} spec={null} />
+          <DashboardView latest={latest} siteId={siteId} spec={null} device={selectedDevice} />
           {!latest && (
             <div className="mt-8 rounded-lg border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">
-              Waiting for the first telemetry sample from your device…
+              Esperando la primera muestra de {selectedDevice?.name ?? "tu inversor"}…
             </div>
           )}
         </TabsContent>
@@ -570,7 +600,7 @@ const WIDGET_DEFS: WidgetDef[] = [
   { id: "forecast", label: "Previsión solar y producción" },
 ];
 
-function DashboardView({ latest, siteId, spec: _spec }: { latest: Sample | null; siteId: string; spec: InverterSpec | null }) {
+function DashboardView({ latest, siteId, spec: _spec, device: _device }: { latest: Sample | null; siteId: string; spec: InverterSpec | null; device: Device | null }) {
   const { t } = useI18n();
   const { state, persist } = useDashboardLayout(siteId, WIDGET_DEFS);
   const { config: pv } = usePvConfig(siteId);
@@ -582,10 +612,11 @@ function DashboardView({ latest, siteId, spec: _spec }: { latest: Sample | null;
   const gridConnected = gridV > 50;
   const mode = formatInverterMode(latest?.inverter_mode);
   const charging = pv_W > load;
+  const pvMax = (pv?.array_kwp ?? 5) * 1000;
 
   const widgets: Record<string, React.ReactNode> = {
     mode: (
-      <div key="mode" className="flex items-center justify-between rounded-xl border bg-card p-4 sm:p-5 animate-fade-in">
+      <div className="flex items-center justify-between rounded-xl border bg-card p-4 sm:p-5 animate-fade-in h-full">
         <div className="flex items-center gap-3">
           <Cpu className="h-8 w-8 text-foreground/70" />
           <div>
@@ -597,7 +628,7 @@ function DashboardView({ latest, siteId, spec: _spec }: { latest: Sample | null;
       </div>
     ),
     icons: (
-      <div key="icons" className="grid grid-cols-2 gap-3 rounded-xl border bg-card p-4 sm:gap-4 sm:p-6 animate-fade-in lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 rounded-xl border bg-card p-4 sm:gap-4 sm:p-6 animate-fade-in lg:grid-cols-5 h-full">
         <IconCard icon={<Cpu className="h-10 w-10 sm:h-12 sm:w-12 text-foreground/70" />} title={t("site.dash.inverter")} subtitle={mode.label} />
         <IconCard icon={<Sun className="h-10 w-10 sm:h-12 sm:w-12 text-[var(--solar)]" />} title={t("site.dash.solar")} subtitle={`${Math.round(pv_W).toLocaleString()} W`} />
         <IconCard icon={<Plug className="h-10 w-10 sm:h-12 sm:w-12 text-[var(--load)]" />} title="Consumo" subtitle={`${Math.round(load).toLocaleString()} W`} />
@@ -607,52 +638,28 @@ function DashboardView({ latest, siteId, spec: _spec }: { latest: Sample | null;
         <IconCard icon={<Battery className="h-10 w-10 sm:h-12 sm:w-12 text-[var(--battery)]" />} title={t("site.dash.battery")} subtitle={`${battery.toFixed(0)} %`} />
       </div>
     ),
-    rings: <ConcentricRings key="rings" pv={pv_W} load={load} soc={battery} pvMax={(pv?.array_kwp ?? 5) * 1000} loadMax={5000} />,
-    gauges: <PowerGauges key="gauges" pv={pv_W} load={load} gridV={gridV} battery={battery} batteryV={batteryV} pvMax={(pv?.array_kwp ?? 5) * 1000} />,
-    battery3d: <Battery3D key="battery3d" soc={battery} voltage={batteryV} charging={charging} />,
-    solarcell: <SolarPanelsViz key="solarcell" pv={pv_W} pvMax={(pv?.array_kwp ?? 5) * 1000} />,
-    loadcell: <HouseLoadViz key="loadcell" load={load} loadMax={(pv?.array_kwp ?? 5) * 1000} />,
-    solarrays: <SolarRays key="solarrays" pv={pv_W} pvMax={(pv?.array_kwp ?? 5) * 1000} />,
-    gridwave: <GridSineWave key="gridwave" voltage={gridV} frequency={50} />,
-    flow: <EnergyFlowDiagram key="flow" pv={pv_W} load={load} gridV={gridV} battery={battery} batteryV={batteryV} />,
+    rings: <ConcentricRings pv={pv_W} load={load} soc={battery} pvMax={pvMax} loadMax={5000} />,
+    gauges: <PowerGauges pv={pv_W} load={load} gridV={gridV} battery={battery} batteryV={batteryV} pvMax={pvMax} />,
+    battery3d: <Battery3D soc={battery} voltage={batteryV} charging={charging} />,
+    solarcell: <SolarPanelsViz pv={pv_W} pvMax={pvMax} />,
+    loadcell: <HouseLoadViz load={load} loadMax={pvMax} />,
+    solarrays: <SolarRays pv={pv_W} pvMax={pvMax} />,
+    gridwave: <GridSineWave voltage={gridV} frequency={50} />,
+    flow: <EnergyFlowDiagram pv={pv_W} load={load} gridV={gridV} battery={battery} batteryV={batteryV} />,
     forecast: (
       <SolarForecastWidget
-        key="forecast"
         pvConfig={{ kwp: pv?.array_kwp, lossesPct: pv?.system_losses_pct, batteryKwh: pv?.battery_kwh, lat: pv?.latitude, lon: pv?.longitude }}
       />
     ),
   };
 
-  // Decide layout cols: heavier widgets in 2-col grid
-  const visible = state.filter((w) => w.visible);
-  const dualCol = new Set(["battery3d", "solarcell", "loadcell", "solarrays", "gridwave"]);
-
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-medium text-muted-foreground">Vista personalizable</h2>
-        <DashboardCustomizer defs={WIDGET_DEFS} state={state} onChange={persist} />
-      </div>
-      {/* Group dual-col widgets side-by-side */}
-      {(() => {
-        const out: React.ReactNode[] = [];
-        let pair: React.ReactNode[] = [];
-        const flushPair = () => {
-          if (pair.length === 0) return;
-          out.push(<div key={`pair-${out.length}`} className="grid gap-4 md:grid-cols-2">{pair}</div>);
-          pair = [];
-        };
-        for (const w of visible) {
-          const node = widgets[w.id];
-          if (!node) continue;
-          if (dualCol.has(w.id)) pair.push(node);
-          else { flushPair(); out.push(node); }
-          if (pair.length === 2) flushPair();
-        }
-        flushPair();
-        return out;
-      })()}
-    </div>
+    <DashboardGrid
+      defs={WIDGET_DEFS}
+      state={state}
+      onChange={persist}
+      render={(id) => widgets[id] ?? null}
+    />
   );
 }
 

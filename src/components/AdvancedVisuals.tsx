@@ -554,8 +554,9 @@ export function SolarPanelsViz({ pv, pvMax = 5000 }: { pv: number; pvMax?: numbe
 export function HouseLoadViz({ load, loadMax = 5000 }: { load: number; loadMax?: number }) {
   const ratio = Math.max(0, Math.min(1, loadMax > 0 ? load / loadMax : 0));
   const active = load > 1;
-  // window count lit (out of 4)
-  const lit = Math.round(ratio * 4);
+  const level = ratio > 0.66 ? "alto" : ratio > 0.33 ? "medio" : "bajo";
+  const glow = `color-mix(in oklab, var(--load) ${30 + ratio * 50}%, transparent)`;
+
   return (
     <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
       <div className="mb-3 flex items-center justify-between">
@@ -564,86 +565,108 @@ export function HouseLoadViz({ load, loadMax = 5000 }: { load: number; loadMax?:
         </h3>
         <span
           className="rounded-full px-2 py-0.5 text-[10px] font-medium"
-          style={{
-            background: "color-mix(in oklab, var(--load) 18%, transparent)",
-            color: "var(--load)",
-          }}
+          style={{ background: "color-mix(in oklab, var(--load) 18%, transparent)", color: "var(--load)" }}
         >
           {active ? "⚡ Consumiendo" : "En reposo"}
         </span>
       </div>
 
       <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
-        <div className="relative mx-auto h-[200px] w-full max-w-[320px] overflow-hidden rounded-xl border bg-gradient-to-b from-indigo-200/40 via-slate-100/40 to-emerald-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950">
-          {/* moon/dim sun for ambience */}
-          <div className="absolute right-4 top-3 h-6 w-6 rounded-full bg-yellow-200/50 blur-[1px]" />
+        <div className="relative mx-auto h-[200px] w-full max-w-[320px] overflow-hidden rounded-xl border bg-gradient-to-b from-slate-100 via-slate-50 to-emerald-50/40 dark:from-slate-900 dark:via-slate-900/80 dark:to-slate-950">
+          {/* night/day ambient circle */}
+          <div className="absolute right-5 top-4 h-8 w-8 rounded-full bg-gradient-to-br from-yellow-200/70 to-orange-200/40 blur-[2px] dark:from-slate-700/60 dark:to-slate-800/40" />
+          {/* horizon glow */}
+          <div className="absolute bottom-7 left-0 right-0 h-10" style={{ background: `radial-gradient(ellipse at 50% 100%, ${glow}, transparent 70%)` }} />
           {/* ground */}
-          <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-emerald-800/30 to-transparent dark:from-emerald-950/50" />
-          {/* House */}
+          <div className="absolute bottom-0 left-0 right-0 h-7 bg-gradient-to-t from-slate-300/60 to-transparent dark:from-slate-800/60" />
+
+          {/* Modern house */}
           <svg viewBox="0 0 320 200" className="absolute inset-0 h-full w-full">
-            {/* roof */}
-            <polygon points="60,95 160,40 260,95" fill="#7f1d1d" stroke="#450a0a" strokeWidth="2" />
-            <polygon points="60,95 160,40 260,95" fill="url(#roofShine)" opacity="0.35" />
             <defs>
-              <linearGradient id="roofShine" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stopColor="#fff" stopOpacity="0.6" />
-                <stop offset="1" stopColor="#fff" stopOpacity="0" />
+              <linearGradient id="modernHouseFront" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#f8fafc" />
+                <stop offset="100%" stopColor="#cbd5e1" />
               </linearGradient>
-              <radialGradient id="windowGlow">
-                <stop offset="0%" stopColor="#fff7d6" />
-                <stop offset="60%" stopColor="#fcd34d" />
-                <stop offset="100%" stopColor="#f59e0b" />
-              </radialGradient>
+              <linearGradient id="modernHouseDark" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#475569" />
+                <stop offset="100%" stopColor="#1e293b" />
+              </linearGradient>
+              <linearGradient id="modernGlass" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#fef3c7" stopOpacity={active ? 0.95 : 0.15} />
+                <stop offset="100%" stopColor="#fbbf24" stopOpacity={active ? 0.85 : 0.1} />
+              </linearGradient>
+              <filter id="modernShadow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="2" />
+              </filter>
             </defs>
-            {/* body */}
-            <rect x="70" y="95" width="180" height="90" fill="#fde7c8" stroke="#a16207" strokeWidth="2" />
-            {/* door */}
-            <rect x="148" y="135" width="24" height="50" fill="#7c2d12" stroke="#431407" strokeWidth="1.5" />
-            <circle cx="166" cy="160" r="1.6" fill="#fbbf24" />
-            {/* windows (4) */}
-            {[
-              { x: 86, y: 110 },
-              { x: 116, y: 110 },
-              { x: 184, y: 110 },
-              { x: 214, y: 110 },
-            ].map((w, i) => {
-              const on = i < lit;
+
+            {/* shadow under house */}
+            <ellipse cx="160" cy="178" rx="100" ry="6" fill="black" opacity="0.18" filter="url(#modernShadow)" />
+
+            {/* Two-story modern house: lower wide block + upper narrower block */}
+            {/* lower block */}
+            <rect x="60" y="120" width="200" height="55" rx="3" fill="url(#modernHouseFront)" stroke="#94a3b8" strokeWidth="1" />
+            {/* upper block (offset right for asymmetry) */}
+            <rect x="130" y="78" width="130" height="42" rx="3" fill="url(#modernHouseDark)" stroke="#0f172a" strokeWidth="1" />
+            {/* flat-roof slab cantilever */}
+            <rect x="56" y="116" width="208" height="5" rx="1" fill="#0f172a" />
+            <rect x="126" y="74" width="138" height="5" rx="1" fill="#0f172a" />
+
+            {/* Large floor-to-ceiling window (lower left) — modern feature */}
+            <rect x="70" y="128" width="46" height="42" rx="2" fill="url(#modernGlass)" stroke="#334155" strokeWidth="1.5" />
+            <line x1="93" y1="128" x2="93" y2="170" stroke="#334155" strokeWidth="1" />
+            {/* warm interior glow when active */}
+            {active && (
+              <rect x="70" y="128" width="46" height="42" rx="2" fill="none"
+                style={{ filter: `drop-shadow(0 0 ${4 + ratio * 10}px var(--solar))` }} />
+            )}
+
+            {/* Door — slim modern */}
+            <rect x="124" y="138" width="18" height="32" rx="1" fill="#0f172a" stroke="#020617" strokeWidth="1" />
+            <circle cx="139" cy="156" r="1.2" fill="#fbbf24" />
+
+            {/* Lower-right horizontal slit window */}
+            <rect x="160" y="135" width="86" height="14" rx="1" fill="url(#modernGlass)" stroke="#334155" strokeWidth="1.2" />
+            <line x1="189" y1="135" x2="189" y2="149" stroke="#334155" strokeWidth="0.8" />
+            <line x1="218" y1="135" x2="218" y2="149" stroke="#334155" strokeWidth="0.8" />
+
+            {/* Lower-right second slit */}
+            <rect x="160" y="156" width="86" height="10" rx="1" fill="#1e293b" stroke="#0f172a" strokeWidth="0.8" opacity="0.85" />
+
+            {/* Upper block large window grid (4 panes) */}
+            {[0, 1, 2, 3].map((i) => {
+              const x = 138 + i * 30;
+              const on = i < Math.round(ratio * 4);
               return (
                 <g key={i}>
-                  <rect
-                    x={w.x} y={w.y} width="20" height="20" rx="2"
-                    fill={on ? "url(#windowGlow)" : "#1e293b"}
-                    stroke="#7c2d12" strokeWidth="1.5"
+                  <rect x={x} y="86" width="24" height="26" rx="1.5"
+                    fill={on ? "url(#modernGlass)" : "#0f172a"}
+                    stroke="#020617" strokeWidth="0.8"
                     style={{
                       transition: "fill 0.6s ease",
-                      filter: on ? `drop-shadow(0 0 ${4 + ratio * 6}px var(--solar))` : undefined,
-                    }}
-                  />
-                  <line x1={w.x + 10} y1={w.y} x2={w.x + 10} y2={w.y + 20} stroke="#7c2d12" strokeWidth="1" />
-                  <line x1={w.x} y1={w.y + 10} x2={w.x + 20} y2={w.y + 10} stroke="#7c2d12" strokeWidth="1" />
+                      filter: on ? `drop-shadow(0 0 ${3 + ratio * 6}px var(--solar))` : undefined,
+                    }} />
                 </g>
               );
             })}
-            {/* chimney */}
-            <rect x="210" y="58" width="14" height="28" fill="#7f1d1d" stroke="#450a0a" strokeWidth="1.5" />
-            {/* smoke / heat puffs when active */}
-            {active && [0, 1, 2].map((i) => (
-              <circle
-                key={i}
-                cx="217" cy="50" r={4 + i}
-                fill="#cbd5e1" opacity="0.5"
-                style={{ animation: `houseSmoke ${3 + i}s ease-out ${i * 0.7}s infinite` }}
-              />
-            ))}
+
+            {/* Slim rooftop solar/EV panel hint on flat roof */}
+            <rect x="200" y="69" width="50" height="5" rx="0.5" fill="#1e293b" stroke="#0f172a" strokeWidth="0.5" />
+            <rect x="200" y="69" width="50" height="5" rx="0.5" fill="url(#modernGlass)" opacity={active ? 0.4 : 0.15} />
+
+            {/* Antenna / chimney slim */}
+            <rect x="245" y="62" width="2.5" height="14" fill="#0f172a" />
           </svg>
+
           {/* Power badge */}
-          <div className="absolute left-2 top-2 rounded-md bg-card/80 px-2 py-1 backdrop-blur-sm">
+          <div className="absolute left-2 top-2 rounded-md bg-card/85 px-2 py-1 backdrop-blur-sm">
             <div className="text-[9px] uppercase text-muted-foreground">Carga</div>
             <div className="text-base font-bold tabular-nums text-[var(--load)]">
               {Math.round(load).toLocaleString()} <span className="text-[10px] text-muted-foreground">W</span>
             </div>
           </div>
-          {/* electric pulse line at base */}
+
+          {/* Animated electric pulse line at base */}
           {active && (
             <div className="absolute bottom-2 left-4 right-4 h-0.5 overflow-hidden rounded-full bg-[var(--load)]/15">
               <div
@@ -662,14 +685,10 @@ export function HouseLoadViz({ load, loadMax = 5000 }: { load: number; loadMax?:
           <Stat label="Carga actual" value={`${Math.round(load).toLocaleString()} W`} />
           <Stat label="Capacidad" value={`${Math.round(loadMax).toLocaleString()} W`} />
           <Stat label="Uso" value={`${(ratio * 100).toFixed(0)} %`} />
-          <Stat label="Nivel" value={ratio > 0.8 ? "Alto" : ratio > 0.4 ? "Medio" : "Bajo"} />
+          <Stat label="Nivel" value={level.charAt(0).toUpperCase() + level.slice(1)} />
         </div>
       </div>
       <style>{`
-        @keyframes houseSmoke {
-          0% { transform: translate(0,0) scale(0.6); opacity: 0.6; }
-          100% { transform: translate(-12px,-46px) scale(1.4); opacity: 0; }
-        }
         @keyframes houseLoadPulse { 0%{transform:translateX(-100%);} 100%{transform:translateX(200%);} }
       `}</style>
     </div>
