@@ -41,6 +41,9 @@ export function usePvConfig(siteId: string) {
   const [config, setConfig] = useState<PvConfig | null>(null);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
+    // Allow callers to opt out (e.g. local agent passes a sentinel when it
+    // already has the config object from /api/pvconfig).
+    if (!siteId || siteId.startsWith("__")) { setLoaded(true); return; }
     let cancelled = false;
     (async () => {
       const { data } = await supabase.from("pv_system_config").select("*").eq("site_id", siteId).maybeSingle();
