@@ -116,13 +116,14 @@ export function PvSystemConfigCard({ siteId, maxAcOutputPower, nominalBatteryV }
         <Field label="Pérdidas del sistema (%)" hint="Cableado, suciedad, inversor (~14% típico)">
           <Input type="number" value={form.system_losses_pct ?? ""} onChange={(e) => set("system_losses_pct", parseFloat(e.target.value) || null)} />
         </Field>
-        <Field label="Ubicación" hint="Latitud / Longitud para previsión solar">
-          <div className="flex gap-2">
-            <Input type="number" step="0.0001" value={form.latitude ?? ""} onChange={(e) => set("latitude", parseFloat(e.target.value) || null)} placeholder="Lat" />
-            <Input type="number" step="0.0001" value={form.longitude ?? ""} onChange={(e) => set("longitude", parseFloat(e.target.value) || null)} placeholder="Lon" />
-            <Button type="button" variant="outline" size="sm" onClick={geolocate}>📍</Button>
-          </div>
-        </Field>
+        <div className="sm:col-span-2">
+          <AddressPicker
+            lat={form.latitude}
+            lon={form.longitude}
+            onPick={(lat, lon) => { set("latitude", +lat.toFixed(4)); set("longitude", +lon.toFixed(4)); }}
+            onGeolocate={geolocate}
+          />
+        </div>
       </div>
 
       <div className="mt-5 flex justify-end">
