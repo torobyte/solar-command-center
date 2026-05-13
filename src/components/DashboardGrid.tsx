@@ -133,7 +133,7 @@ export function DashboardGrid({ defs, state, onChange, render }: GridProps) {
               onDrop={() => onDrop(w.id)}
               onDragEnd={() => { dragId.current = null; setOverId(null); }}
               className={[
-                "group relative col-span-1 transition-all",
+                "@container group relative col-span-1 transition-all",
                 WIDTH_TO_COL[width],
                 isOver ? "ring-2 ring-accent/60 ring-offset-2 ring-offset-background rounded-2xl -translate-y-0.5" : "",
               ].join(" ")}
