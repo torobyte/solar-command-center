@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { AppHeader } from "@/components/AppHeader";
 import { Loader2 } from "lucide-react";
+import { RealtimeStatusMonitor } from "@/components/RealtimeStatusMonitor";
 
 export function ProtectedLayout({
   children,
@@ -32,6 +33,7 @@ export function ProtectedLayout({
     <div className="ambient-bg min-h-screen bg-background">
       <AppHeader />
       <main className="mx-auto max-w-7xl animate-fade-up px-4 py-6 sm:px-6 sm:py-8">{children}</main>
+      <RealtimeStatusMonitor />
     </div>
   );
 }
