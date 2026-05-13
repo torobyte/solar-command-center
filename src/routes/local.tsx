@@ -42,10 +42,68 @@ function LocalDashboardPage() {
 
   const lastRecordedAt = useRef<string | null>(null);
   const lastLicenseKey = useRef<string>("");
+  const bridgedRef = useRef(false);
+
+  // ---- Bridge postMessage: cuando estamos embebidos en el wrapper HTTP del
+  // agente, el padre hace los fetches a /api/* y nos envía los datos por
+  // postMessage. Así evitamos el bloqueo mixed-content HTTPS→HTTP.
+  useEffect(() => {
+    function applyState(data: { latest?: DashboardSample | null; license?: LicenseMeta | null } | null) {
+      if (!data) return;
+      setError(null);
+      setLastTick(Date.now());
+      const incoming = data.latest ?? null;
+      const incomingKey = incoming?.recorded_at ?? null;
+      if (incomingKey !== lastRecordedAt.current) {
+        lastRecordedAt.current = incomingKey;
+        setLatest(incoming);
+      }
+      const lic = data.license ?? null;
+      const licKey = lic ? `${lic.site_id}|${lic.site_name}|${lic.plan}` : "";
+      if (licKey !== lastLicenseKey.current) {
+        lastLicenseKey.current = licKey;
+        setLicense(lic);
+      }
+    }
+    function applyPv(data: Partial<PvConfig> | null) {
+      if (!data) return;
+      setPvCfg({
+        site_id: "local",
+        array_kwp: data.array_kwp ?? null,
+        panel_count: data.panel_count ?? null,
+        panel_watts: data.panel_watts ?? null,
+        azimuth: data.azimuth ?? null,
+        tilt: data.tilt ?? null,
+        battery_kwh: data.battery_kwh ?? null,
+        system_losses_pct: data.system_losses_pct ?? null,
+        latitude: data.latitude ?? null,
+        longitude: data.longitude ?? null,
+        battery_count: data.battery_count ?? null,
+        battery_type: data.battery_type ?? null,
+        battery_voltage_each: data.battery_voltage_each ?? null,
+        battery_ah_each: data.battery_ah_each ?? null,
+        battery_usable_dod_pct: data.battery_usable_dod_pct ?? null,
+      });
+    }
+    function onMessage(ev: MessageEvent) {
+      const d = ev.data as { source?: string; type?: string; payload?: unknown } | null;
+      if (!d || d.source !== "solarops-agent") return;
+      bridgedRef.current = true;
+      if (d.type === "state") applyState(d.payload as Parameters<typeof applyState>[0]);
+      else if (d.type === "pvconfig") applyPv(d.payload as Partial<PvConfig>);
+    }
+    window.addEventListener("message", onMessage);
+    if (window.parent && window.parent !== window) {
+      try { window.parent.postMessage({ source: "solarops-local", type: "ready" }, "*"); } catch { /* ignore */ }
+    }
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
 
   useEffect(() => {
     if (!agentBase) return;
     let alive = true;
+    const mountedAt = Date.now();
+    const embedded = typeof window !== "undefined" && window.parent && window.parent !== window;
 
     async function fetchJSON<T>(url: string): Promise<T> {
       const r = await fetch(url, { cache: "no-store" });
@@ -56,6 +114,7 @@ function LocalDashboardPage() {
     }
 
     async function pullState() {
+      if (bridgedRef.current) return;
       try {
         const data = await fetchJSON<{
           latest: DashboardSample | null;
@@ -65,7 +124,6 @@ function LocalDashboardPage() {
         setError(null);
         setLastTick(Date.now());
 
-        // Only push a new `latest` reference if the sample actually changed.
         const incoming = data.latest;
         const incomingKey = incoming?.recorded_at ?? null;
         if (incomingKey !== lastRecordedAt.current) {
@@ -73,7 +131,6 @@ function LocalDashboardPage() {
           setLatest(incoming);
         }
 
-        // Same for license/meta — usually never changes.
         const lic = data.license ?? null;
         const licKey = lic ? `${lic.site_id}|${lic.site_name}|${lic.plan}` : "";
         if (licKey !== lastLicenseKey.current) {
@@ -82,10 +139,14 @@ function LocalDashboardPage() {
         }
       } catch (e) {
         if (!alive) return;
+        // Estamos embebidos esperando el bridge del padre — no mostremos
+        // "Failed to fetch" durante los primeros 4s; el bridge ya está en camino.
+        if (embedded && (bridgedRef.current || Date.now() - mountedAt < 4000)) return;
         setError((e as Error).message);
       }
     }
     async function pullPv() {
+      if (bridgedRef.current) return;
       try {
         const data = await fetchJSON<Partial<PvConfig>>(`${agentBase}/api/pvconfig`);
         if (!alive) return;

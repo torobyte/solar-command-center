@@ -594,9 +594,44 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
 
   frame.addEventListener("error", function(){ showFallback("Error cargando el panel cloud."); });
 
+  // ---- Bridge: el padre (HTTP, mismo origen que /api/*) hace los fetches y
+  // envía los datos al iframe (HTTPS cloud) por postMessage. Esto evita el
+  // bloqueo de mixed-content que rompe los fetch HTTPS→HTTP del iframe.
+  var lastState = null, lastPv = null;
+  function postTo(target, type, payload){
+    try { target.postMessage({ source:"solarops-agent", type: type, payload: payload }, "*"); }
+    catch(_) {}
+  }
+  async function pull(path){
+    try {
+      var r = await fetch(path, { cache:"no-store" });
+      var ct = (r.headers.get("content-type")||"").toLowerCase();
+      if (!r.ok || ct.indexOf("application/json") < 0) return null;
+      return await r.json();
+    } catch(_) { return null; }
+  }
+  async function tick(){
+    var w = frame.contentWindow; if (!w) return;
+    var s = await pull("/api/state");
+    if (s) { lastState = s; postTo(w, "state", s); }
+    if (!lastPv) {
+      var p = await pull("/api/pvconfig");
+      if (p) { lastPv = p; postTo(w, "pvconfig", p); }
+    }
+  }
+  // Re-emite el último estado cuando el iframe pide handshake.
+  window.addEventListener("message", function(ev){
+    var d = ev && ev.data;
+    if (!d || d.source !== "solarops-local" || d.type !== "ready") return;
+    var w = frame.contentWindow; if (!w) return;
+    if (lastState) postTo(w, "state", lastState);
+    if (lastPv)    postTo(w, "pvconfig", lastPv);
+  });
+  setInterval(tick, 2000);
+
   // Probe de conectividad rápida — si falla, ni intentes el iframe.
   fetch(cloud + "/manifest.webmanifest", { method:"GET", mode:"no-cors", cache:"no-store" })
-    .then(function(){ frame.src = url; })
+    .then(function(){ frame.src = url; setTimeout(tick, 500); })
     .catch(function(){ showFallback("Sin internet. Cargando panel local."); });
 })();
 </script>
