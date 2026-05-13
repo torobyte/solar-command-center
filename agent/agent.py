@@ -511,534 +511,642 @@ def collect_device_snapshot() -> dict:
 # ---------- LAN web UI ----------
 PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>SolarOps</title>
+<title>SolarOps · Local</title>
 <link rel="manifest" href="/manifest.webmanifest">
-<meta name="theme-color" content="#f59e0b">
+<meta name="theme-color" content="#1a1a2e">
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
 <style>
-:root{--bg:#fbf8f1;--fg:#0b1220;--muted:#6b7280;--card:#fffdf7;--border:#ece6d6;
-  --pv:#f59e0b;--bat:#10b981;--grid:#f59e0b;--inv:#0b1220;--danger:#ef4444;--load:#3b82f6}
-*{box-sizing:border-box}
-html,body{margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;
-  background:var(--bg);color:var(--fg);padding:16px;min-height:100vh}
-.wrap{max-width:1280px;margin:0 auto}
-h1{font-size:22px;font-weight:800;margin:0 0 4px}
-.sub{color:var(--muted);font-size:13px;margin-bottom:16px}
-.tabs{display:flex;gap:4px;background:#f1ece0;border-radius:10px;padding:4px;margin-bottom:16px;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.tab{padding:8px 14px;border-radius:8px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border:none;background:transparent;white-space:nowrap;flex-shrink:0}
-.tab.active{background:#fff;color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.06)}
-.panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px}
-.panel h3{margin:0 0 12px;font-size:14px;font-weight:700}
-.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.grid4{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.tile{background:#faf6ec;border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px}
-.icon{width:44px;height:44px;border-radius:10px;background:#f3ecda;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;position:relative}
-.tile .label{font-size:14px;font-weight:700}
-.tile .val{font-size:13px;color:var(--muted);margin-top:2px}
-.warn{position:absolute;bottom:-2px;right:-2px;width:16px;height:16px;background:var(--pv);border-radius:50%;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;border:2px solid var(--card)}
-.big{text-align:center;padding:18px 8px;background:#faf6ec;border:1px solid var(--border);border-radius:12px}
-.big .v{font-size:28px;font-weight:800;letter-spacing:-0.5px}
-.big .l{color:var(--muted);font-size:12px;margin-top:4px}
-.row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;gap:8px}
-.row:last-child{border-bottom:0}
-.row .k{color:var(--muted)}
-.row .v{font-weight:600;text-align:right;word-break:break-all}
-.modecard{display:flex;justify-content:space-between;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px}
-.modecard .l{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
-.modecard .v{font-size:18px;font-weight:700;margin-top:2px}
-.code{background:#eee;padding:3px 8px;border-radius:6px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted)}
-.usblist{background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;max-height:200px;overflow:auto}
-.usblist div{padding:3px 0}
-.status{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
-.dot.online{background:var(--bat)} .dot.offline{background:var(--danger)}
-.banner{background:#fef3c7;border:1px solid #fde68a;color:#92400e;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:14px}
-form{display:flex;flex-direction:column;gap:8px}
-input,select{padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:#fff;color:var(--fg);font-size:14px;width:100%}
-button{padding:10px 18px;border-radius:10px;border:none;background:var(--fg);color:#fff;cursor:pointer;font-weight:600;font-size:14px}
-.totalcard{text-align:center;padding:16px;background:#faf6ec;border:1px solid var(--border);border-radius:12px}
-.totalcard .v{font-size:24px;font-weight:800}
-.totalcard .l{font-size:12px;color:var(--muted);margin-top:4px}
-svg.chart{width:100%;height:200px;background:#fff;border:1px solid var(--border);border-radius:10px}
-.hidden{display:none!important}
-/* Battery 3D */
-.bat3d{position:relative;width:90px;height:160px;margin:0 auto}
-.bat3d .term{position:absolute;left:50%;top:0;transform:translateX(-50%);width:32px;height:8px;border-radius:4px 4px 0 0;background:#9ca3af}
-.bat3d .body{position:absolute;left:0;right:0;top:8px;bottom:0;border:2px solid #9ca3af;border-radius:14px;overflow:hidden;background:#f3f4f6}
-.bat3d .liq{position:absolute;left:0;right:0;bottom:0;transition:height .8s ease;box-shadow:0 0 20px currentColor}
-.bat3d .pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#0b1220}
-@keyframes wave{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-.bat3d .wv{position:absolute;left:0;top:-6px;width:200%;height:12px;animation:wave 4s linear infinite;opacity:.7}
-/* Sun rays */
-@keyframes spin{to{transform:rotate(360deg)}}
-@keyframes pulse{0%,100%{opacity:.2;transform:scale(1)}50%{opacity:.45;transform:scale(1.1)}}
-.sunwrap{display:flex;justify-content:center;padding:8px}
-.sunwrap svg{width:160px;height:160px}
-.sunwrap .rays{transform-origin:center;animation:spin 30s linear infinite}
-.sunwrap .halo{transform-origin:center;animation:pulse 3s ease-in-out infinite}
-/* Sine wave */
-@keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-200px)}}
-.sine{height:90px;background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;position:relative}
-.sine svg{position:absolute;inset:0;width:100%;height:100%}
-.sine .anim{animation:scroll 1.2s linear infinite}
-/* Concentric rings */
-.rings{display:flex;align-items:center;gap:18px;justify-content:center}
-.rings svg{width:180px;height:180px}
-.ringlabel{display:flex;align-items:center;gap:6px;font-size:12px;margin:4px 0}
-.ringlabel .swatch{width:10px;height:10px;border-radius:50%}
-/* Forecast widget */
-.fct{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;height:80px;align-items:end;margin-top:10px}
-.fct .bar{background:linear-gradient(180deg,#fde68a,var(--pv));border-radius:4px 4px 0 0;position:relative;min-height:4px}
-.fct .bar small{position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:8px;color:var(--pv);font-weight:700;white-space:nowrap}
-.daily{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:10px;border-top:1px solid var(--border);padding-top:10px}
-.daily .d{text-align:center;padding:6px;border-radius:8px;font-size:11px}
-.daily .d strong{display:block;color:var(--pv)}
-.prodest{background:linear-gradient(135deg,#fff7ed,transparent);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px}
-.prodest .v{font-size:28px;font-weight:800;color:var(--pv)}
-/* Customizer */
-.cust-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px}
-.cust-btn{padding:6px 12px;font-size:12px;background:#fff;color:var(--fg);border:1px solid var(--border)}
-.cust-modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
-.cust-card{background:var(--card);border-radius:14px;padding:16px;width:100%;max-width:420px;max-height:80vh;overflow:auto}
-.cust-item{display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;background:#fff;font-size:13px}
-.cust-item .arr{display:flex;flex-direction:column;gap:2px}
-.cust-item .arr button{padding:0 6px;font-size:11px;background:#f3ecda;color:var(--fg);border:none;border-radius:4px}
-@media(min-width:720px){
-  body{padding:32px}
-  h1{font-size:28px}
-  .grid4{grid-template-columns:repeat(4,1fr)}
-  .big{padding:32px 20px} .big .v{font-size:42px}
-  .modecard .v{font-size:22px}
+:root{
+  --bg:#15171f; --fg:#f5f3ee; --muted:#8a8d97; --card:#1d2030; --card2:#232739;
+  --border:#2c2f42; --accent:#f5b945; --accent2:#fbbf24;
+  --pv:#f59e0b; --battery:#22c55e; --grid:#ef4444; --load:#3b82f6;
+  --success:#22c55e; --warn:#f59e0b; --danger:#ef4444;
+  --shadow:0 10px 40px -12px rgba(0,0,0,.55);
+  --radius:16px;
 }
-</style></head><body><div class="wrap">
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--fg)}
+body{font-family:-apple-system,BlinkMacSystemFont,"Inter","SF Pro Display","Segoe UI",sans-serif;
+  min-height:100vh;-webkit-font-smoothing:antialiased;
+  background:radial-gradient(1200px 600px at 80% -10%,rgba(245,185,69,.06),transparent 60%),
+             radial-gradient(900px 500px at -10% 110%,rgba(34,197,94,.05),transparent 60%),var(--bg)}
+.wrap{max-width:1480px;margin:0 auto;padding:18px 16px 80px}
+.hdr{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.hdr h1{font-size:22px;font-weight:800;margin:0;letter-spacing:-.02em}
+.hdr .sub{color:var(--muted);font-size:12.5px}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border:1px solid var(--border);border-radius:999px;font-size:11.5px;font-weight:600;background:var(--card)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);box-shadow:0 0 0 0 currentColor}
+.dot.on{background:var(--success);animation:pulse 2s infinite}
+.dot.off{background:var(--danger)}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.6)}50%{box-shadow:0 0 0 6px rgba(34,197,94,0)}}
+.tabs{display:flex;gap:2px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:14px;overflow-x:auto}
+.tab{padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border:0;background:transparent;white-space:nowrap}
+.tab.active{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#1a1a2e;box-shadow:0 4px 14px -4px rgba(245,185,69,.5)}
+.banner{background:linear-gradient(135deg,rgba(245,185,69,.12),rgba(251,191,36,.06));border:1px solid rgba(245,185,69,.3);color:var(--accent);padding:11px 14px;border-radius:12px;font-size:13px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.modecard{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px}
+.modecard .l{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.modecard .v{font-size:18px;font-weight:800;margin-top:2px;letter-spacing:-.01em}
 
-<div id="banner" class="banner hidden"></div>
+/* ===== Grid + tiles (drag & drop + resize) ===== */
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px;align-items:start}
+.tile{container-type:inline-size;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  position:relative;overflow:hidden;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
+  min-height:160px}
+.tile:hover{border-color:#3a3e58}
+.tile.dragging{opacity:.4}
+.tile.over{border-color:var(--accent);box-shadow:0 0 0 2px rgba(245,185,69,.25)}
+.tile .body{padding:16px;height:100%}
+.tile .toolbar{position:absolute;top:6px;right:6px;display:none;gap:2px;background:rgba(15,17,24,.85);backdrop-filter:blur(8px);padding:3px;border-radius:8px;border:1px solid var(--border);z-index:5}
+.tile:hover .toolbar,.editing .tile .toolbar{display:flex}
+.tbtn{background:transparent;border:0;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;padding:4px 7px;border-radius:5px;font-family:inherit}
+.tbtn:hover{background:var(--card2);color:var(--fg)}
+.tbtn.act{color:var(--accent)}
+.handle{position:absolute;top:6px;left:6px;width:22px;height:22px;display:none;align-items:center;justify-content:center;color:var(--muted);cursor:grab;border-radius:6px;background:rgba(15,17,24,.7);z-index:5}
+.tile:hover .handle,.editing .tile .handle{display:flex}
+.handle:active{cursor:grabbing}
+.editing .tile{box-shadow:inset 0 0 0 1px rgba(245,185,69,.3)}
+@media(max-width:768px){
+  .grid{grid-template-columns:repeat(4,1fr);gap:10px}
+  .toolbar,.handle{display:flex !important}
+}
+@media(max-width:480px){
+  .grid{grid-template-columns:repeat(2,1fr)}
+}
 
-<div id="app" class="hidden">
-  <h1 id="sname">—</h1>
-  <div class="sub"><span id="invStatus">—</span> · <span class="status"><span id="dot" class="dot"></span><span id="connStatus">—</span></span></div>
+/* widget chrome */
+.wh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.wh .t{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:7px}
+.wh .v{font-size:11px;color:var(--muted)}
+.icon{width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center}
+.big{font-size:32px;font-weight:800;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
+@container (min-width: 360px){.big{font-size:40px}}
+@container (min-width: 520px){.big{font-size:48px}}
+.unit{font-size:13px;color:var(--muted);margin-left:4px;font-weight:600}
+.sub2{font-size:12px;color:var(--muted);margin-top:6px}
 
-  <div class="tabs">
-    <button class="tab active" data-tab="dashboard">Dashboard</button>
+/* row stats */
+.rows{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.rk{display:flex;justify-content:space-between;font-size:12.5px;padding:6px 0;border-bottom:1px dashed var(--border)}
+.rk:last-child{border:0}
+.rk .k{color:var(--muted)}
+.rk .v{font-weight:700;font-variant-numeric:tabular-nums}
+
+/* Settings/forms */
+.panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:12px}
+.panel h3{margin:0 0 12px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
+.formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+input,select,textarea{width:100%;padding:9px 12px;background:var(--card2);border:1px solid var(--border);border-radius:9px;color:var(--fg);font-size:13.5px;font-family:inherit}
+input:focus,select:focus,textarea:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px rgba(245,185,69,.18)}
+.btn{padding:10px 16px;border:0;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#1a1a2e;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.btn.ghost{background:var(--card2);color:var(--fg);border:1px solid var(--border)}
+.btn:hover{filter:brightness(1.08)}
+.code{background:var(--card2);padding:3px 8px;border-radius:6px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--accent)}
+.usblist{background:var(--card2);border:1px solid var(--border);border-radius:9px;padding:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;max-height:220px;overflow:auto}
+.row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
+.row:last-child{border:0} .row .k{color:var(--muted)} .row .v{font-weight:600;text-align:right;word-break:break-all}
+
+/* Animations */
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.tile{animation:fadeIn .35s ease}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes shimmer{0%,100%{opacity:.6}50%{opacity:1}}
+@keyframes flow{to{stroke-dashoffset:-40}}
+
+/* Charts */
+.chart{height:240px;background:var(--card2);border-radius:10px;padding:8px}
+
+/* Edit-mode toggle */
+.editmode-toggle{position:fixed;bottom:16px;right:16px;z-index:50;padding:11px 16px;border-radius:999px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#1a1a2e;font-weight:800;border:0;box-shadow:var(--shadow);cursor:pointer;font-size:13px}
+.editing .editmode-toggle{background:var(--card);color:var(--accent);border:1px solid var(--accent)}
+</style></head><body>
+<div class="wrap">
+  <div class="hdr">
+    <div>
+      <h1 id="siteName">SolarOps Local</h1>
+      <div class="sub"><span class="badge"><span class="dot" id="conDot"></span><span id="conTxt">Conectando…</span></span>
+        <span style="margin-left:6px;color:var(--muted);font-size:12px" id="lastSeen"></span></div>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <span class="badge" id="modeBadge">Modo: —</span>
+      <span class="badge" id="planBadge">Plan: —</span>
+    </div>
+  </div>
+
+  <div id="actBanner" class="banner" style="display:none">
+    Este dispositivo aún no está activado.
+    <a href="#" id="actLink" style="color:var(--accent);font-weight:700;text-decoration:underline;margin-left:6px">Activar ahora →</a>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-tab="dash">Dashboard</button>
     <button class="tab" data-tab="charts">Gráficos</button>
-    <button class="tab" data-tab="totals">Totales</button>
     <button class="tab" data-tab="config">Configuración</button>
+    <button class="tab" data-tab="diag">Diagnóstico</button>
   </div>
 
-  <!-- Dashboard -->
-  <section id="tab-dashboard">
-    <div class="cust-bar">
-      <span class="status"><span class="dot online"></span>Vista personalizable</span>
-      <button class="cust-btn" onclick="openCust()">⚙ Personalizar widgets</button>
+  <!-- ============ DASHBOARD ============ -->
+  <section data-pane="dash">
+    <div class="modecard">
+      <div><div class="l">Modo del inversor</div><div class="v" id="invMode">—</div></div>
+      <div style="text-align:right"><div class="l">Hora</div><div class="v" id="clock" style="font-variant-numeric:tabular-nums">—</div></div>
     </div>
-    <div id="widgets"></div>
-    <!-- Templates (rendered by JS into #widgets in chosen order) -->
-    <template id="w-mode"><div class="modecard"><div><div class="l">Modo de uso del inversor</div><div class="v" id="modeLabel">—</div></div><span class="code" id="modeCode">QMOD: —</span></div></template>
-    <template id="w-icons"><div class="panel"><div class="grid4">
-      <div class="tile"><div class="icon">🖥️<span id="invWarn" class="warn hidden">!</span></div><div><div class="label">Inversor</div><div class="val" id="invMode">—</div></div></div>
-      <div class="tile"><div class="icon" style="color:var(--pv)">☀️</div><div><div class="label">Solar PV</div><div class="val" id="pvKw">0.0 kW</div></div></div>
-      <div class="tile"><div class="icon" style="color:var(--grid)">🔌<span id="gridWarn" class="warn hidden">!</span></div><div><div class="label">Red</div><div class="val" id="gridV">0 V</div></div></div>
-      <div class="tile"><div class="icon" style="color:var(--bat)">🔋</div><div><div class="label">Batería</div><div class="val" id="batPct">0 %</div></div></div>
-    </div></div></template>
-    <template id="w-power"><div class="panel"><div class="grid4">
-      <div class="big"><div class="v" id="loadW">0 W</div><div class="l">Carga</div></div>
-      <div class="big"><div class="v" id="pvW">0 W</div><div class="l">Solar PV</div></div>
-      <div class="big"><div class="v" id="gridW">0 W</div><div class="l">Red</div></div>
-      <div class="big"><div class="v" id="batW">0 W</div><div class="l">Batería</div></div>
-    </div></div></template>
-    <template id="w-rings"><div class="panel"><h3>Anillos de actividad</h3><div class="rings">
-      <svg viewBox="0 0 200 200" id="ringsSvg"></svg>
-      <div><div class="ringlabel"><span class="swatch" style="background:var(--pv)"></span>Solar <strong id="rPv" style="margin-left:auto">0 W</strong></div>
-      <div class="ringlabel"><span class="swatch" style="background:var(--load)"></span>Consumo <strong id="rLoad" style="margin-left:auto">0 W</strong></div>
-      <div class="ringlabel"><span class="swatch" style="background:var(--bat)"></span>Batería <strong id="rSoc" style="margin-left:auto">0 %</strong></div></div>
-    </div></div></template>
-    <template id="w-bat3d"><div class="panel"><h3>🔋 Batería</h3><div style="display:flex;align-items:center;gap:20px;justify-content:center">
-      <div class="bat3d"><div class="term"></div><div class="body"><div class="liq" id="batLiq" style="height:0%;background:var(--bat);color:var(--bat)"><svg class="wv" viewBox="0 0 200 12" preserveAspectRatio="none"><path d="M0 6 Q25 0 50 6 T100 6 T150 6 T200 6 V12 H0 Z" fill="currentColor"/></svg></div><div class="pct" id="batPctV">0%</div></div></div>
-      <div style="font-size:13px"><div id="batMode" style="font-weight:700;color:var(--bat)">—</div><div style="color:var(--muted);margin-top:4px">Voltaje: <strong id="batVv">0.0 V</strong></div></div>
-    </div></div></template>
-    <template id="w-sun"><div class="panel"><h3>☀️ Producción Solar</h3><div class="sunwrap"><svg viewBox="-100 -100 200 200">
-      <circle class="halo" r="44" fill="var(--pv)" opacity=".25"/>
-      <g class="rays" id="sunRays"></g>
-      <circle r="34" fill="#fbbf24" stroke="#f59e0b" stroke-width="2"/>
-      <text id="sunKw" text-anchor="middle" y="3" font-size="18" font-weight="800" fill="#7c2d12">0.0</text>
-      <text text-anchor="middle" y="20" font-size="9" fill="#7c2d12">kW</text>
-    </svg></div></div></template>
-    <template id="w-sine"><div class="panel"><h3>🔌 Red Eléctrica</h3><div class="sine"><svg id="sineSvg" viewBox="0 0 400 90" preserveAspectRatio="none"></svg></div>
-      <div class="grid2" style="margin-top:10px"><div class="big" style="padding:10px"><div class="v" id="sineV" style="font-size:20px">0 V</div><div class="l">Voltaje</div></div><div class="big" style="padding:10px"><div class="v" id="sineHz" style="font-size:20px">— Hz</div><div class="l">Frecuencia</div></div></div></div></template>
-    <template id="w-forecast"><div class="panel"><h3>🌤 Previsión solar y producción</h3>
-      <div id="prodEst" class="prodest hidden"><div class="l" style="font-size:11px;text-transform:uppercase;color:var(--muted)">Producción estimada (próximas 12h)</div><div class="v"><span id="prodKwh">0</span> <span style="font-size:14px;color:var(--muted)">kWh</span></div></div>
-      <div id="fctCity" class="sub" style="margin:0">—</div>
-      <div class="fct" id="fctBars"></div>
-      <div class="daily" id="fctDaily"></div>
-    </div></template>
+    <div class="grid" id="grid"></div>
   </section>
 
-  <!-- Charts -->
-  <section id="tab-charts" class="hidden">
-    <div class="panel"><h3>Potencia Solar PV (W)</h3><svg class="chart" id="chPv"></svg></div>
-    <div class="panel"><h3>Carga AC (W)</h3><svg class="chart" id="chLoad"></svg></div>
-    <div class="panel"><h3>Estado de carga batería (%)</h3><svg class="chart" id="chSoc"></svg></div>
+  <!-- ============ CHARTS ============ -->
+  <section data-pane="charts" style="display:none">
+    <div class="panel"><h3>Producción solar (últimas 2 h)</h3><svg id="chPv" class="chart" preserveAspectRatio="none"></svg></div>
+    <div class="panel"><h3>Consumo de la casa (últimas 2 h)</h3><svg id="chLoad" class="chart" preserveAspectRatio="none"></svg></div>
+    <div class="panel"><h3>Estado de batería SOC %</h3><svg id="chSoc" class="chart" preserveAspectRatio="none"></svg></div>
+    <div class="panel"><h3>Totales hoy</h3><div id="totalsBox" class="formgrid"></div></div>
   </section>
 
-  <!-- Totals -->
-  <section id="tab-totals" class="hidden">
-    <div class="panel"><h3>Hoy (en vivo, calculado localmente)</h3>
-      <div class="grid4">
-        <div class="totalcard"><div class="v" id="tPv">0</div><div class="l">PV (kWh)</div></div>
-        <div class="totalcard"><div class="v" id="tLoad">0</div><div class="l">Carga (kWh)</div></div>
-        <div class="totalcard"><div class="v" id="tGrid">0</div><div class="l">Red usada (kWh)</div></div>
-        <div class="totalcard"><div class="v" id="tBatChg">0</div><div class="l">Batería cargada (kWh)</div></div>
+  <!-- ============ CONFIG ============ -->
+  <section data-pane="config" style="display:none">
+    <div class="panel">
+      <h3>⚡ Sistema fotovoltaico</h3>
+      <div class="formgrid">
+        <div><label>Potencia del arreglo (kWp)</label><input id="cf_kwp" type="number" step="0.1"></div>
+        <div><label>N° de paneles</label><input id="cf_pc" type="number"></div>
+        <div><label>Watts por panel</label><input id="cf_pw" type="number"></div>
+        <div><label>Capacidad de batería (kWh)</label><input id="cf_bat" type="number" step="0.1"></div>
+        <div><label>Acimut (°)</label><input id="cf_az" type="number"></div>
+        <div><label>Inclinación (°)</label><input id="cf_ti" type="number"></div>
+        <div><label>Pérdidas (%)</label><input id="cf_lo" type="number"></div>
+        <div><label>Latitud</label><input id="cf_la" type="number" step="0.0001"></div>
+        <div><label>Longitud</label><input id="cf_ln" type="number" step="0.0001"></div>
       </div>
-    </div>
-    <div class="panel">
-      <p class="sub" style="margin:0">Para totales históricos de varios días, abre el panel en la nube cuando tengas conexión.</p>
+      <div style="margin-top:12px;display:flex;gap:8px"><button class="btn" onclick="savePvCfg()">Guardar</button></div>
     </div>
   </section>
 
-  <!-- Configuration -->
-  <section id="tab-config" class="hidden">
-    <div class="panel"><h3>☀️ Sistema fotovoltaico</h3>
-      <p class="sub">Datos del array, batería y ubicación. Se usan para estimar la producción solar.</p>
-      <form onsubmit="savePv(event)" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <label style="font-size:12px">Potencia array (kWp)<input id="pv_kwp" type="number" step="0.01" placeholder="ej. 5.20"></label>
-        <label style="font-size:12px">Capacidad batería (kWh)<input id="pv_bat" type="number" step="0.1" placeholder="ej. 4.8"></label>
-        <label style="font-size:12px">Nº paneles<input id="pv_n" type="number"></label>
-        <label style="font-size:12px">W por panel<input id="pv_w" type="number"></label>
-        <label style="font-size:12px">Azimut (°)<input id="pv_az" type="number" placeholder="180"></label>
-        <label style="font-size:12px">Inclinación (°)<input id="pv_tilt" type="number" placeholder="30"></label>
-        <label style="font-size:12px">Pérdidas (%)<input id="pv_loss" type="number" placeholder="14"></label>
-        <label style="font-size:12px">&nbsp;<button type="button" onclick="autoFromInv()" class="cust-btn" style="width:100%">⚡ Auto desde inversor</button></label>
-        <label style="font-size:12px">Latitud<input id="pv_lat" type="number" step="0.0001"></label>
-        <label style="font-size:12px">Longitud<input id="pv_lon" type="number" step="0.0001"></label>
-        <button style="grid-column:1/-1">Guardar configuración</button>
-      </form>
-    </div>
-    <div class="panel"><h3>Especificación del inversor</h3><div id="specRows"></div></div>
-    <div class="panel"><h3>Estado de red</h3><div id="netRows"></div></div>
-    <div class="panel"><h3>Sistema</h3><div id="sysRows"></div></div>
+  <!-- ============ DIAG ============ -->
+  <section data-pane="diag" style="display:none">
+    <div class="panel"><h3>📋 Especificación del inversor</h3><div id="specRows"></div></div>
+    <div class="panel"><h3>🌐 Red</h3><div id="netRows"></div></div>
+    <div class="panel"><h3>🖥️ Sistema</h3><div id="sysRows"></div></div>
+    <div class="panel"><h3>🔌 USB</h3><div id="usbList" class="usblist">—</div></div>
     <div class="panel">
-      <h3>Detecciones USB</h3>
-      <div id="usbList" class="usblist">—</div>
+      <h3>🔑 Token / Activación</h3>
+      <div id="actBlock"></div>
     </div>
   </section>
 </div>
 
-<!-- Customizer modal -->
-<div id="custModal" class="cust-modal hidden" onclick="if(event.target===this)closeCust()">
-  <div class="cust-card">
-    <h3 style="margin:0 0 10px">Widgets del dashboard</h3>
-    <p class="sub" style="margin-bottom:12px">Activa, oculta y reordena. Se guarda en este dispositivo.</p>
-    <div id="custList"></div>
-    <div style="display:flex;justify-content:space-between;margin-top:12px">
-      <button class="cust-btn" onclick="resetWidgets()">↺ Reiniciar</button>
-      <button onclick="closeCust()">Listo</button>
-    </div>
-  </div>
-</div>
-</div>
-
-<div id="actcard" class="panel hidden">
-  <h1>Activar dispositivo</h1>
-  <p class="sub">Pega el código de licencia y elige un nombre para este sitio.</p>
-  <form onsubmit="act(event)">
-    <input id="name" placeholder="Nombre del sitio" required>
-    <input id="code" placeholder="XXXXX-XXXXX-XXXXX-XXXXX" required>
-    <button>Activar</button>
-  </form>
-  <p id="msg" style="color:var(--danger)"></p>
-</div>
+<button class="editmode-toggle" id="editBtn" onclick="toggleEdit()">✏️ Personalizar</button>
 
 <script>
-const QMOD = {P:"Encendido (Power On)",S:"Standby",L:"Modo Red (Línea)",B:"Modo Batería",
-  F:"Fallo",H:"Ahorro de energía (ECO)",D:"Apagado",Y:"Bypass",G:"Conectado a red (Grid-tie)",
-  C:"Cargando",E:"ECO",T:"Test / Mantenimiento"};
-function fmtMode(raw){
-  if(!raw) return {label:"—",code:""};
-  const c = String(raw).replace(/[^A-Za-z]/g,"").charAt(0).toUpperCase();
-  if(!c) return {label:"—",code:""};
-  return {label: QMOD[c] || ("Modo "+c+" (desconocido)"), code:c};
-}
-function row(k,v){return '<div class="row"><span class="k">'+k+'</span><span class="v">'+(v??"—")+'</span></div>'}
-
-/* ---------- Widget customizer ---------- */
-const WIDGETS = [
-  {id:'mode',label:'Modo del inversor'},
-  {id:'icons',label:'Tarjetas resumen'},
-  {id:'rings',label:'Anillos concéntricos'},
-  {id:'power',label:'Potencias en vivo'},
-  {id:'bat3d',label:'Batería 3D animada'},
-  {id:'sun',label:'Sol radiante'},
-  {id:'sine',label:'Onda sinusoidal de red'},
-  {id:'forecast',label:'Previsión solar y producción'},
+// ====== State ======
+let STATE = null;
+let EDIT = false;
+const LS_KEY = 'solarops.local.layout.v2';
+const DEFAULT_LAYOUT = [
+  { id: 'pv',       w: 4 },
+  { id: 'load',     w: 4 },
+  { id: 'battery',  w: 4 },
+  { id: 'backup',   w: 6 },
+  { id: 'rings',    w: 6 },
+  { id: 'flow',     w: 12 },
+  { id: 'grid',     w: 4 },
+  { id: 'mode',     w: 4 },
+  { id: 'temp',     w: 4 },
+  { id: 'totals',   w: 12 },
 ];
-const LS_KEY='solarops.widgets.v1';
 function loadLayout(){
-  try{ const w=JSON.parse(localStorage.getItem(LS_KEY)||'null'); if(Array.isArray(w)) {
-    const known=new Set(WIDGETS.map(x=>x.id));
-    const next=w.filter(x=>known.has(x.id));
-    for(const d of WIDGETS) if(!next.find(x=>x.id===d.id)) next.push({id:d.id,visible:true});
-    return next;
-  }}catch(_){}
-  return WIDGETS.map(d=>({id:d.id,visible:true}));
+  try{ const v=JSON.parse(localStorage.getItem(LS_KEY)); if(Array.isArray(v)&&v.length) return v;}catch(e){}
+  return DEFAULT_LAYOUT.slice();
 }
-function saveLayout(L){localStorage.setItem(LS_KEY,JSON.stringify(L));}
+function saveLayout(l){ localStorage.setItem(LS_KEY, JSON.stringify(l)); }
 let LAYOUT = loadLayout();
-function renderWidgets(){
-  const host=document.getElementById('widgets'); if(!host) return;
-  host.innerHTML='';
-  for(const w of LAYOUT){
-    if(!w.visible) continue;
-    const tpl=document.getElementById('w-'+w.id);
-    if(tpl) host.appendChild(tpl.content.cloneNode(true));
-  }
-}
-function openCust(){
-  const list=document.getElementById('custList'); list.innerHTML='';
-  LAYOUT.forEach((w,i)=>{
-    const def=WIDGETS.find(d=>d.id===w.id); if(!def) return;
-    const it=document.createElement('div'); it.className='cust-item';
-    it.innerHTML='<div class="arr"><button data-a="up">▲</button><button data-a="dn">▼</button></div><span style="flex:1">'+def.label+'</span><button data-a="tg">'+(w.visible?'👁':'🚫')+'</button>';
-    it.querySelector('[data-a=up]').onclick=()=>{if(i>0){[LAYOUT[i-1],LAYOUT[i]]=[LAYOUT[i],LAYOUT[i-1]];saveLayout(LAYOUT);openCust();renderWidgets();tick();}};
-    it.querySelector('[data-a=dn]').onclick=()=>{if(i<LAYOUT.length-1){[LAYOUT[i+1],LAYOUT[i]]=[LAYOUT[i],LAYOUT[i+1]];saveLayout(LAYOUT);openCust();renderWidgets();tick();}};
-    it.querySelector('[data-a=tg]').onclick=()=>{LAYOUT[i].visible=!LAYOUT[i].visible;saveLayout(LAYOUT);openCust();renderWidgets();tick();};
-    list.appendChild(it);
-  });
-  document.getElementById('custModal').classList.remove('hidden');
-}
-function closeCust(){document.getElementById('custModal').classList.add('hidden');}
-function resetWidgets(){LAYOUT=WIDGETS.map(d=>({id:d.id,visible:true}));saveLayout(LAYOUT);openCust();renderWidgets();tick();}
 
-/* ---------- Visualization helpers ---------- */
-function renderRings(pv,load,soc,pvMax){
-  const svg=document.getElementById('ringsSvg'); if(!svg) return;
-  const data=[{v:pv,m:pvMax,c:'var(--pv)'},{v:load,m:5000,c:'var(--load)'},{v:soc,m:100,c:'var(--bat)'}];
-  let html=''; const cx=100,cy=100,stroke=14,gap=4;
-  data.forEach((r,i)=>{const rad=85-i*(stroke+gap); const C=2*Math.PI*rad; const ratio=Math.min(1,Math.max(0,r.v/r.m));
-    html+='<circle cx="'+cx+'" cy="'+cy+'" r="'+rad+'" fill="none" stroke="'+r.c+'" stroke-opacity=".18" stroke-width="'+stroke+'"/>';
-    html+='<circle cx="'+cx+'" cy="'+cy+'" r="'+rad+'" fill="none" stroke="'+r.c+'" stroke-width="'+stroke+'" stroke-linecap="round" stroke-dasharray="'+C+'" stroke-dashoffset="'+(C*(1-ratio))+'" transform="rotate(-90 '+cx+' '+cy+')" style="transition:stroke-dashoffset .8s"/>';
-  });
-  svg.innerHTML=html;
-}
-function renderSun(pv,pvMax){
-  const g=document.getElementById('sunRays'); if(!g) return;
-  const ratio=Math.min(1,Math.max(0,pv/pvMax)); const len=18+ratio*36;
-  let html=''; for(let i=0;i<12;i++){const a=(i/12)*Math.PI*2; const x1=Math.cos(a)*38,y1=Math.sin(a)*38;const x2=Math.cos(a)*(38+len),y2=Math.sin(a)*(38+len);
-    html+='<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="#f59e0b" stroke-width="4" stroke-linecap="round"/>';
-  }
-  g.innerHTML=html;
-  const t=document.getElementById('sunKw'); if(t) t.textContent=(pv/1000).toFixed(2);
-}
-function renderSine(v){
-  const svg=document.getElementById('sineSvg'); if(!svg) return;
-  const connected=v>50; const color=connected?'#f59e0b':'#9ca3af';
-  if(!connected){svg.innerHTML='<text x="200" y="50" text-anchor="middle" fill="#9ca3af" font-size="13">— sin señal —</text>';return;}
-  let d='M0 45'; for(let i=0;i<=200;i++){const x=(i/200)*800; const y=45-Math.sin((i/200)*Math.PI*8)*30; d+=' L'+x.toFixed(1)+' '+y.toFixed(1);}
-  svg.innerHTML='<g class="anim"><path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="2.5" filter="drop-shadow(0 0 4px '+color+')"/></g>';
-  const sv=document.getElementById('sineV'); if(sv) sv.textContent=v.toFixed(0)+' V';
-  const sh=document.getElementById('sineHz'); if(sh) sh.textContent='50 Hz';
-}
-function renderBat3d(soc,vlt,charging){
-  const liq=document.getElementById('batLiq'); if(!liq) return;
-  const pct=Math.max(0,Math.min(100,soc));
-  const color=pct>60?'#10b981':pct>30?'#f59e0b':'#ef4444';
-  liq.style.height=pct+'%'; liq.style.background=color; liq.style.color=color;
-  document.getElementById('batPctV').textContent=pct.toFixed(0)+'%';
-  document.getElementById('batMode').textContent=charging?'⚡ Cargando':'Descargando';
-  document.getElementById('batVv').textContent=vlt.toFixed(2)+' V';
-}
-
-/* ---------- Solar forecast & production estimate ---------- */
-let _fctCache=null,_fctAt=0;
-async function loadForecast(pvcfg){
-  const lat=pvcfg.latitude, lon=pvcfg.longitude;
-  if(lat==null||lon==null) return null;
-  if(_fctCache && Date.now()-_fctAt<10*60*1000) return _fctCache;
-  try{
-    const u='https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&hourly=shortwave_radiation,temperature_2m,weather_code&daily=weather_code,sunshine_duration,temperature_2m_max,temperature_2m_min&forecast_days=5&timezone=auto';
-    const r=await fetch(u); _fctCache=await r.json(); _fctAt=Date.now(); return _fctCache;
-  }catch(_){return null;}
-}
-function renderForecast(j,pvcfg){
-  const bars=document.getElementById('fctBars'); const daily=document.getElementById('fctDaily'); const city=document.getElementById('fctCity');
-  if(!bars) return;
-  if(!j){bars.innerHTML='<div class="sub" style="grid-column:1/-1">Configura latitud/longitud en Configuración para ver la previsión.</div>'; daily.innerHTML=''; city.textContent=''; return;}
-  city.textContent='Lat '+pvcfg.latitude+' · Lon '+pvcfg.longitude;
-  const now=new Date(); const times=j.hourly.time||[]; const rad=j.hourly.shortwave_radiation||[];
-  const next=[]; for(let i=0;i<times.length && next.length<12;i++){if(new Date(times[i])>=now) next.push({t:times[i],r:rad[i]||0});}
-  const peak=Math.max(1,...next.map(x=>x.r));
-  const kwp=parseFloat(pvcfg.array_kwp)||0; const loss=(parseFloat(pvcfg.system_losses_pct)||14)/100;
-  const totalKwh=kwp?next.reduce((a,h)=>a+kwp*(h.r/1000)*(1-loss),0):0;
-  const pe=document.getElementById('prodEst');
-  if(kwp && pe){pe.classList.remove('hidden'); document.getElementById('prodKwh').textContent=totalKwh.toFixed(2);} else if(pe){pe.classList.add('hidden');}
-  bars.innerHTML=next.map(h=>{const hh=new Date(h.t).getHours(); const ht=Math.max(4,(h.r/peak)*100); const kwh=kwp?(kwp*(h.r/1000)*(1-loss)):0;
-    return '<div class="bar" style="height:'+ht+'%" title="'+Math.round(h.r)+' W/m²">'+(kwh>0?'<small>'+kwh.toFixed(1)+'</small>':'')+'<div style="position:absolute;bottom:-14px;left:0;right:0;text-align:center;font-size:9px;color:#9ca3af">'+hh+'h</div></div>';
-  }).join('');
-  const dt=j.daily.time||[]; const wc=j.daily.weather_code||[]; const sh=j.daily.sunshine_duration||[]; const mx=j.daily.temperature_2m_max||[]; const mn=j.daily.temperature_2m_min||[];
-  daily.innerHTML=dt.slice(0,5).map((d,i)=>{const sun=(sh[i]||0)/3600; const dKwh=kwp?(kwp*sun*0.65*(1-loss)):0;
-    const lab=i===0?'Hoy':new Date(d).toLocaleDateString('es',{weekday:'short'});
-    return '<div class="d"><div style="font-weight:700">'+lab+'</div><div>'+Math.round(mx[i]||0)+'°/'+Math.round(mn[i]||0)+'°</div><div style="color:var(--pv)">'+sun.toFixed(1)+'h ☀</div>'+(kwp?'<strong>'+dKwh.toFixed(1)+' kWh</strong>':'')+'</div>';
-  }).join('');
-}
-
-/* ---------- PV config form ---------- */
-let _pvcfg={};
-async function loadPv(){try{const r=await fetch('/api/pvconfig');_pvcfg=await r.json();}catch(_){_pvcfg={};}
-  ['kwp','bat','n','w','az','tilt','loss','lat','lon'].forEach(k=>{
-    const map={kwp:'array_kwp',bat:'battery_kwh',n:'panel_count',w:'panel_watts',az:'azimuth',tilt:'tilt',loss:'system_losses_pct',lat:'latitude',lon:'longitude'};
-    const el=document.getElementById('pv_'+k); if(el && _pvcfg[map[k]]!=null) el.value=_pvcfg[map[k]];
-  });
-}
-async function savePv(e){e.preventDefault();
-  const map={kwp:'array_kwp',bat:'battery_kwh',n:'panel_count',w:'panel_watts',az:'azimuth',tilt:'tilt',loss:'system_losses_pct',lat:'latitude',lon:'longitude'};
-  const body={};
-  for(const k in map){const el=document.getElementById('pv_'+k); const v=el.value.trim(); body[map[k]]=v?parseFloat(v):null;}
-  await fetch('/api/pvconfig',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  _pvcfg=body; _fctCache=null; alert('Guardado'); tick();
-}
-function autoFromInv(){
-  fetch('/api/state').then(r=>r.json()).then(j=>{
-    const sp=j.spec||{};
-    const k=document.getElementById('pv_kwp'); if(!k.value && sp.max_ac_output_power) k.value=(sp.max_ac_output_power/1000).toFixed(2);
-    const b=document.getElementById('pv_bat'); if(!b.value && sp.nominal_battery_voltage) b.value=(sp.nominal_battery_voltage*100/1000).toFixed(1);
-  });
-}
-
-renderWidgets(); loadPv();
-
-document.querySelectorAll('.tab').forEach(b=>{
-  b.onclick = ()=>{
-    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-    b.classList.add('active');
-    ['dashboard','charts','totals','config'].forEach(t=>{
-      document.getElementById('tab-'+t).classList.toggle('hidden', t!==b.dataset.tab);
-    });
-  };
+// ====== Tabs ======
+document.getElementById('tabs').addEventListener('click', e=>{
+  if(!e.target.matches('.tab')) return;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  e.target.classList.add('active');
+  const k=e.target.dataset.tab;
+  document.querySelectorAll('section[data-pane]').forEach(s=>s.style.display=s.dataset.pane===k?'':'none');
 });
 
-function drawChart(svg, points, color){
-  const el = document.getElementById(svg);
-  if(!el) return;
-  el.innerHTML = "";
-  const W = el.clientWidth || 600, H = 200, P = 8;
-  if(!points || points.length < 2){
-    el.innerHTML = '<text x="'+W/2+'" y="'+H/2+'" text-anchor="middle" fill="#9ca3af" font-size="13" font-family="sans-serif">Sin datos suficientes todavía</text>';
-    return;
-  }
-  const vals = points.map(p=>Number(p)||0);
-  const max = Math.max(1, ...vals), min = Math.min(0, ...vals);
-  const sx = (W - 2*P) / (points.length - 1);
-  const sy = (H - 2*P) / Math.max(1, max - min);
-  let d = "";
-  vals.forEach((v,i)=>{
-    const x = P + i*sx, y = H - P - (v - min)*sy;
-    d += (i===0?"M":"L") + x.toFixed(1) + " " + y.toFixed(1) + " ";
-  });
-  el.innerHTML = '<path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="2" stroke-linejoin="round"/>';
+// ====== Edit mode ======
+function toggleEdit(){
+  EDIT=!EDIT;
+  document.body.classList.toggle('editing',EDIT);
+  document.getElementById('editBtn').textContent = EDIT?'✓ Listo':'✏️ Personalizar';
 }
 
-async function tick(){
-  let j;
-  try{ j = await (await fetch('/api/state')).json(); }catch(_){return}
-  const cfg = j.config||{};
-  if(!cfg.device_token){
-    document.getElementById('actcard').classList.remove('hidden');
-    document.getElementById('app').classList.add('hidden');
-    return;
+// ====== Widget renderers ======
+function fmt(v,d=0){ if(v==null||isNaN(v)) return '—'; return Number(v).toFixed(d); }
+function kw(w){ if(w==null) return '—'; const k=w/1000; return k.toFixed(k>=10?1:2); }
+
+function widgetHTML(id){
+  const L=STATE&&STATE.latest||{};
+  const pvW=Number(L.pv_input_power||0), loadW=Number(L.ac_output_active_power||0);
+  const soc=Number(L.battery_capacity||0), batV=Number(L.battery_voltage||0);
+  const gridV=Number(L.grid_voltage||0), gridF=Number(L.grid_frequency||0);
+  const temp=Number(L.inverter_temperature||0);
+  const acV=Number(L.ac_output_voltage||0);
+  const charging=pvW>loadW;
+
+  switch(id){
+    case 'pv': return solarPanelsCard(pvW);
+    case 'load': return houseCard(loadW);
+    case 'battery': return batteryCard(soc,batV,charging);
+    case 'backup': return backupCard(soc,loadW,pvW);
+    case 'rings': return ringsCard(pvW,loadW,soc);
+    case 'flow': return flowCard(pvW,loadW,gridV,soc,batV);
+    case 'grid': return gridCard(gridV,gridF);
+    case 'mode': return statTile('🔌','Modo',L.inverter_mode||'—','Salida AC: '+fmt(acV,1)+' V');
+    case 'temp': return statTile('🌡️','Temperatura',fmt(temp,1)+'°C',temp>60?'Alta':'Normal');
+    case 'totals': return totalsCard();
   }
-  document.getElementById('actcard').classList.add('hidden');
-  document.getElementById('app').classList.remove('hidden');
-  document.getElementById('sname').textContent = cfg.site_name || cfg.site_id || 'Sitio local';
+  return '<div class="body">—</div>';
+}
 
-  const L = j.license||{};
-  const cloudOk = L.last_check_ok !== false && !!L.last_check_at;
-  document.getElementById('dot').className = 'dot ' + (cloudOk?'online':'offline');
-  document.getElementById('connStatus').textContent = cloudOk ? 'sincronizado con la nube' : 'modo offline';
+function statTile(emoji,label,big,sub){
+  return `<div class="body">
+    <div class="wh"><div class="t"><span class="icon">${emoji}</span>${label}</div></div>
+    <div class="big">${big}</div><div class="sub2">${sub||''}</div></div>`;
+}
 
-  const banner = document.getElementById('banner');
-  if(L.plan && L.license_active===false){
-    banner.classList.remove('hidden');
-    banner.textContent = 'Licencia expirada. Contacta al administrador.';
-  } else if(L.plan==='trial' && (L.days_remaining||0) <= 7){
-    banner.classList.remove('hidden');
-    banner.textContent = 'Trial: '+(L.days_remaining||0)+' días restantes.';
-  } else { banner.classList.add('hidden'); }
+function solarPanelsCard(pvW){
+  const intensity = Math.min(1, pvW/3000);
+  const rays = Math.round(20+intensity*60);
+  return `<div class="body">
+    <div class="wh"><div class="t"><span class="icon">☀️</span>Producción solar</div><div class="v">${pvW>50?'Generando':'En reposo'}</div></div>
+    <svg viewBox="0 0 220 110" style="width:100%;height:auto;max-height:140px">
+      <defs><radialGradient id="sun"><stop offset="0%" stop-color="#fde047"/><stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/></radialGradient></defs>
+      <circle cx="40" cy="34" r="${14+intensity*8}" fill="#fbbf24" style="filter:drop-shadow(0 0 ${rays/4}px #fbbf24)"/>
+      <circle cx="40" cy="34" r="${24+intensity*14}" fill="url(#sun)" opacity="${.4+intensity*.4}"/>
+      <g stroke="#fbbf24" stroke-width="2" stroke-linecap="round" opacity="${intensity}">
+        ${[0,45,90,135,180,225,270,315].map(a=>{const r1=20+intensity*4,r2=r1+8;const x1=40+Math.cos(a*Math.PI/180)*r1,y1=34+Math.sin(a*Math.PI/180)*r1;const x2=40+Math.cos(a*Math.PI/180)*r2,y2=34+Math.sin(a*Math.PI/180)*r2;return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`}).join('')}
+      </g>
+      <!-- panels -->
+      <g transform="translate(105 50)">
+        ${[0,1].map(r=>[0,1,2].map(c=>{const x=c*32,y=r*22;const lit=intensity>0.05;return `
+          <rect x="${x}" y="${y}" width="28" height="18" rx="2" fill="${lit?'#1e3a5f':'#1a2335'}" stroke="#0f1729" stroke-width="1"/>
+          <line x1="${x+9}" y1="${y}" x2="${x+9}" y2="${y+18}" stroke="#0f1729" stroke-width=".5"/>
+          <line x1="${x+19}" y1="${y}" x2="${x+19}" y2="${y+18}" stroke="#0f1729" stroke-width=".5"/>
+          <line x1="${x}" y1="${y+9}" x2="${x+28}" y2="${y+9}" stroke="#0f1729" stroke-width=".5"/>
+          ${lit?`<rect x="${x}" y="${y}" width="28" height="18" rx="2" fill="#fbbf24" opacity="${.05+intensity*.25}"><animate attributeName="opacity" values="${.05+intensity*.15};${.1+intensity*.4};${.05+intensity*.15}" dur="2.4s" repeatCount="indefinite"/></rect>`:''}
+        `}).join('')).join('')}
+      </g>
+    </svg>
+    <div class="big" style="color:var(--pv);text-shadow:0 0 24px rgba(245,158,11,.35)">${kw(pvW)}<span class="unit">kW</span></div>
+    <div class="sub2">${pvW.toFixed(0)} W instantáneos</div>
+  </div>`;
+}
 
-  const s = j.latest||{};
-  const hasData = Object.keys(s).length>0;
-  document.getElementById('invStatus').textContent = hasData ? 'Inversor conectado' : 'Inversor no detectado aún';
-  document.getElementById('invWarn').classList.toggle('hidden', hasData);
-  const m = fmtMode(s.inverter_mode);
-  document.getElementById('modeLabel').textContent = m.label;
-  document.getElementById('modeCode').textContent = 'QMOD: ' + (m.code || '—');
-  document.getElementById('invMode').textContent = m.label;
-  document.getElementById('pvKw').textContent = ((s.pv_input_power||0)/1000).toFixed(1)+' kW';
-  document.getElementById('gridV').textContent = (s.grid_voltage||0).toFixed(0)+' V';
-  document.getElementById('gridWarn').classList.toggle('hidden', (s.grid_voltage||0)>0);
-  document.getElementById('batPct').textContent = (s.battery_capacity||0).toFixed(0)+' %';
-  document.getElementById('loadW').textContent = (s.ac_output_active_power||0).toFixed(0)+' W';
-  document.getElementById('pvW').textContent = (s.pv_input_power||0).toFixed(0)+' W';
-  const gw = (s.grid_voltage||0) > 0 ? (s.ac_output_active_power||0) : 0;
-  document.getElementById('gridW').textContent = gw.toFixed(0)+' W';
-  const bw = (s.battery_voltage||0) * (s.battery_discharge_current||0) - (s.battery_voltage||0)*(s.battery_charging_current||0);
-  document.getElementById('batW').textContent = Math.abs(bw).toFixed(0)+' W';
+function houseCard(loadW){
+  const intensity = Math.min(1, loadW/3000);
+  return `<div class="body">
+    <div class="wh"><div class="t"><span class="icon">🏠</span>Consumo de la casa</div><div class="v">${loadW>30?'Activo':'Mínimo'}</div></div>
+    <svg viewBox="0 0 220 110" style="width:100%;height:auto;max-height:140px">
+      <!-- modern house -->
+      <g transform="translate(60 18)">
+        <!-- roof -->
+        <polygon points="0,40 50,5 100,40" fill="#2c3349" stroke="#3a4262" stroke-width="1"/>
+        <!-- body -->
+        <rect x="6" y="38" width="88" height="50" fill="#3b82f6" opacity=".18" stroke="#3b82f6" stroke-width="1.2" rx="2"/>
+        <rect x="6" y="38" width="88" height="50" fill="none" stroke="#3b82f6" stroke-width="1.2" rx="2"/>
+        <!-- door -->
+        <rect x="42" y="60" width="16" height="28" fill="#1a2335" stroke="#3b82f6" stroke-width="1" rx="1"/>
+        <circle cx="54" cy="74" r="1.4" fill="#fbbf24"/>
+        <!-- windows -->
+        <g fill="${loadW>50?'#fbbf24':'#1a2335'}" stroke="#3b82f6" stroke-width=".8">
+          <rect x="14" y="46" width="14" height="12" rx="1" opacity="${.3+intensity*.7}">
+            ${loadW>50?'<animate attributeName="opacity" values=".5;1;.5" dur="3s" repeatCount="indefinite"/>':''}
+          </rect>
+          <rect x="72" y="46" width="14" height="12" rx="1" opacity="${.3+intensity*.7}">
+            ${loadW>50?'<animate attributeName="opacity" values=".5;1;.5" dur="2.7s" repeatCount="indefinite"/>':''}
+          </rect>
+        </g>
+        <!-- chimney smoke when high load -->
+        ${loadW>1500?`<g opacity=".5"><circle cx="78" cy="14" r="3" fill="#8a8d97"><animate attributeName="cy" values="14;-6" dur="3s" repeatCount="indefinite"/><animate attributeName="opacity" values=".5;0" dur="3s" repeatCount="indefinite"/></circle></g>`:''}
+      </g>
+    </svg>
+    <div class="big" style="color:var(--load);text-shadow:0 0 24px rgba(59,130,246,.35)">${kw(loadW)}<span class="unit">kW</span></div>
+    <div class="sub2">${loadW.toFixed(0)} W instantáneos</div>
+  </div>`;
+}
 
-  // Advanced widgets
-  const pvMax = (parseFloat(_pvcfg.array_kwp)||5)*1000;
-  const pvW = s.pv_input_power||0, loadW = s.ac_output_active_power||0;
-  const charging = (s.battery_charging_current||0) > (s.battery_discharge_current||0);
-  renderRings(pvW, loadW, s.battery_capacity||0, pvMax);
-  renderSun(pvW, pvMax);
-  renderSine(s.grid_voltage||0);
-  renderBat3d(s.battery_capacity||0, s.battery_voltage||0, charging);
-  if(document.getElementById('rPv')){document.getElementById('rPv').textContent=Math.round(pvW)+' W';document.getElementById('rLoad').textContent=Math.round(loadW)+' W';document.getElementById('rSoc').textContent=Math.round(s.battery_capacity||0)+' %';}
-  // Forecast (async, cached)
-  if(document.getElementById('fctBars')){loadForecast(_pvcfg).then(fc=>renderForecast(fc,_pvcfg));}
+function batteryCard(soc,batV,charging){
+  const fill=Math.max(0,Math.min(100,soc));
+  const col = fill>50?'var(--success)':fill>20?'var(--warn)':'var(--danger)';
+  return `<div class="body">
+    <div class="wh"><div class="t"><span class="icon">🔋</span>Batería</div><div class="v">${charging?'Cargando':'Descargando'}</div></div>
+    <svg viewBox="0 0 220 110" style="width:100%;height:auto;max-height:140px">
+      <g transform="translate(40 25)">
+        <rect x="0" y="0" width="120" height="60" rx="8" fill="none" stroke="#3a4262" stroke-width="2"/>
+        <rect x="120" y="20" width="6" height="20" rx="2" fill="#3a4262"/>
+        <rect x="6" y="6" width="${(108)*(fill/100)}" height="48" rx="4" fill="${col}" opacity=".75">
+          ${charging?'<animate attributeName="opacity" values=".5;.95;.5" dur="1.8s" repeatCount="indefinite"/>':''}
+        </rect>
+        <text x="63" y="38" text-anchor="middle" fill="#fff" font-size="20" font-weight="800" font-family="inherit">${fill.toFixed(0)}%</text>
+        ${charging?`<g transform="translate(140 24)"><path d="M6 0 L0 14 L5 14 L3 26 L11 12 L6 12 Z" fill="${col}"><animate attributeName="opacity" values=".4;1;.4" dur="1.2s" repeatCount="indefinite"/></path></g>`:''}
+      </g>
+    </svg>
+    <div class="rows">
+      <div class="rk"><span class="k">SOC</span><span class="v">${fill.toFixed(0)} %</span></div>
+      <div class="rk"><span class="k">Voltaje</span><span class="v">${batV.toFixed(1)} V</span></div>
+    </div>
+  </div>`;
+}
 
-  // Charts
-  const h = j.history||[];
-  drawChart('chPv',   h.map(p=>p.pv),   '#f59e0b');
+function backupCard(soc,loadW,pvW){
+  const cfg = STATE&&STATE.config||{};
+  const batKwh = Number(cfg.battery_kwh||0);
+  const dod = Number(cfg.battery_usable_dod_pct||80)/100;
+  const usable = batKwh*(soc/100)*dod;
+  const netW = Math.max(0, loadW-pvW);
+  const charging = pvW>loadW+5;
+  const hours = (!charging && netW>10 && usable>0) ? (usable/(netW/1000)) : null;
+  const hh = hours==null?0:Math.floor(hours);
+  const mm = hours==null?0:Math.round((hours-hh)*60);
+  const col = hours==null?'var(--success)':hours>6?'var(--success)':hours>2?'var(--warn)':'var(--danger)';
+  const ringPct = hours==null?100:Math.min(100,(hours/12)*100);
+  const r=52, c=2*Math.PI*r;
+  const tag = charging?'⚡ Cargando — sin descarga':hours==null?'Configura el banco':hours>6?'● Holgado':hours>2?'● Limitado':'● Crítico';
+  return `<div class="body">
+    <div class="wh"><div class="t"><span class="icon">⏱️</span>Tiempo de respaldo</div>
+      <span class="v" style="background:color-mix(in oklab,${col} 18%,transparent);color:${col};padding:3px 9px;border-radius:999px;font-size:10.5px;font-weight:700">${tag}</span></div>
+    <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+      <div style="position:relative;width:140px;height:140px;flex-shrink:0">
+        <svg width="140" height="140" style="transform:rotate(-90deg)">
+          <circle cx="70" cy="70" r="${r}" fill="none" stroke="${col}" stroke-opacity=".15" stroke-width="12"/>
+          <circle cx="70" cy="70" r="${r}" fill="none" stroke="${col}" stroke-width="12" stroke-linecap="round"
+            stroke-dasharray="${c}" stroke-dashoffset="${c*(1-ringPct/100)}"
+            style="transition:stroke-dashoffset 1s ease;filter:drop-shadow(0 0 6px ${col})"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+          ${charging?`<div style="font-size:24px;color:${col}">⚡</div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;margin-top:2px">cargando</div>`:
+          hours==null?`<div style="font-size:11px;color:var(--muted);padding:0 8px">Configura el banco</div>`:
+          hours>99?`<div style="font-size:24px;font-weight:800;color:${col}">99+</div><div style="font-size:10px;color:var(--muted)">horas</div>`:
+          `<div style="font-size:24px;font-weight:800;color:${col};line-height:1">${hh}<span style="font-size:13px">h</span> ${mm}<span style="font-size:13px">m</span></div><div style="font-size:9.5px;color:var(--muted);text-transform:uppercase;margin-top:3px;letter-spacing:.05em">restantes</div>`}
+        </div>
+      </div>
+      <div style="flex:1;min-width:140px" class="rows">
+        <div class="rk"><span class="k">Energía útil</span><span class="v">${usable.toFixed(2)} kWh</span></div>
+        <div class="rk"><span class="k">Descarga neta</span><span class="v">${(netW/1000).toFixed(2)} kW</span></div>
+        <div class="rk"><span class="k">Banco</span><span class="v">${batKwh||'—'} kWh</span></div>
+        <div class="rk"><span class="k">DoD útil</span><span class="v">${(dod*100).toFixed(0)} %</span></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function ringsCard(pvW,loadW,soc){
+  const rings = [
+    {c:'#f59e0b', v:Math.min(1,pvW/5000), l:'PV'},
+    {c:'#3b82f6', v:Math.min(1,loadW/5000), l:'Carga'},
+    {c:'#22c55e', v:soc/100, l:'SOC'},
+  ];
+  const cx=80,cy=80; let html='';
+  rings.forEach((r,i)=>{const rad=66-i*16; const C=2*Math.PI*rad;
+    html+=`<circle cx="${cx}" cy="${cy}" r="${rad}" fill="none" stroke="${r.c}" stroke-opacity=".18" stroke-width="11"/>
+    <circle cx="${cx}" cy="${cy}" r="${rad}" fill="none" stroke="${r.c}" stroke-width="11" stroke-linecap="round"
+      stroke-dasharray="${C}" stroke-dashoffset="${C*(1-r.v)}" transform="rotate(-90 ${cx} ${cy})" style="transition:stroke-dashoffset .8s;filter:drop-shadow(0 0 4px ${r.c})"/>`;
+  });
+  return `<div class="body">
+    <div class="wh"><div class="t"><span class="icon">⭕</span>Vista general</div></div>
+    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center">
+      <svg viewBox="0 0 160 160" style="width:160px;height:160px">${html}</svg>
+      <div class="rows" style="flex:1;min-width:140px">
+        <div class="rk"><span class="k" style="color:var(--pv)">● PV</span><span class="v">${kw(pvW)} kW</span></div>
+        <div class="rk"><span class="k" style="color:var(--load)">● Carga</span><span class="v">${kw(loadW)} kW</span></div>
+        <div class="rk"><span class="k" style="color:var(--success)">● SOC</span><span class="v">${soc.toFixed(0)} %</span></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function flowCard(pvW,loadW,gridV,soc,batV){
+  const gridOn = gridV>50;
+  const charging = pvW>loadW;
+  return `<div class="body">
+    <div class="wh"><div class="t"><span class="icon">🔄</span>Flujo de energía</div></div>
+    <svg viewBox="0 0 600 220" style="width:100%;height:auto">
+      <defs>
+        <marker id="ah" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+          <circle cx="3" cy="3" r="2.5" fill="#fff"/>
+        </marker>
+      </defs>
+      <!-- Nodes -->
+      <g font-family="inherit" font-size="11" font-weight="700" fill="#fff">
+        <!-- PV -->
+        <g transform="translate(40 20)"><rect width="120" height="60" rx="12" fill="#1e3a5f" stroke="#f59e0b" stroke-width="1.5"/>
+          <text x="60" y="28" text-anchor="middle" fill="#f59e0b">☀ Solar</text>
+          <text x="60" y="48" text-anchor="middle">${kw(pvW)} kW</text></g>
+        <!-- Inverter -->
+        <g transform="translate(240 80)"><rect width="120" height="60" rx="12" fill="#2c3349" stroke="#f5b945" stroke-width="1.5"/>
+          <text x="60" y="28" text-anchor="middle" fill="#f5b945">⚡ Inversor</text>
+          <text x="60" y="48" text-anchor="middle">${batV.toFixed(1)} V</text></g>
+        <!-- Battery -->
+        <g transform="translate(440 20)"><rect width="120" height="60" rx="12" fill="#1a3c2a" stroke="#22c55e" stroke-width="1.5"/>
+          <text x="60" y="28" text-anchor="middle" fill="#22c55e">🔋 Batería</text>
+          <text x="60" y="48" text-anchor="middle">${soc.toFixed(0)}%</text></g>
+        <!-- Grid -->
+        <g transform="translate(40 140)"><rect width="120" height="60" rx="12" fill="#3c1a1a" stroke="#ef4444" stroke-width="1.5"/>
+          <text x="60" y="28" text-anchor="middle" fill="#ef4444">⚡ Red</text>
+          <text x="60" y="48" text-anchor="middle">${gridOn?gridV.toFixed(0)+' V':'Sin red'}</text></g>
+        <!-- Load -->
+        <g transform="translate(440 140)"><rect width="120" height="60" rx="12" fill="#1a2440" stroke="#3b82f6" stroke-width="1.5"/>
+          <text x="60" y="28" text-anchor="middle" fill="#3b82f6">🏠 Casa</text>
+          <text x="60" y="48" text-anchor="middle">${kw(loadW)} kW</text></g>
+      </g>
+      <!-- Animated lines -->
+      <g fill="none" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="8 8">
+        ${pvW>30?`<path d="M160 50 Q200 50 240 110" stroke="#f59e0b"><animate attributeName="stroke-dashoffset" from="0" to="-32" dur="1.2s" repeatCount="indefinite"/></path>`:`<path d="M160 50 Q200 50 240 110" stroke="#3a4262"/>`}
+        ${loadW>30?`<path d="M360 110 Q400 170 440 170" stroke="#3b82f6"><animate attributeName="stroke-dashoffset" from="0" to="-32" dur="1.2s" repeatCount="indefinite"/></path>`:`<path d="M360 110 Q400 170 440 170" stroke="#3a4262"/>`}
+        ${charging?`<path d="M360 110 Q400 50 440 50" stroke="#22c55e"><animate attributeName="stroke-dashoffset" from="0" to="-32" dur="1.2s" repeatCount="indefinite"/></path>`:`<path d="M440 50 Q400 50 360 110" stroke="#22c55e" opacity=".5"><animate attributeName="stroke-dashoffset" from="0" to="-32" dur="1.4s" repeatCount="indefinite"/></path>`}
+        ${gridOn?`<path d="M160 170 Q200 170 240 110" stroke="#ef4444"><animate attributeName="stroke-dashoffset" from="0" to="-32" dur="1.4s" repeatCount="indefinite"/></path>`:`<path d="M160 170 Q200 170 240 110" stroke="#3a4262"/>`}
+      </g>
+    </svg>
+  </div>`;
+}
+
+function gridCard(gridV,gridF){
+  const on = gridV>50;
+  const points = Array.from({length:80},(_,i)=>{const x=i*7.5;const y=30+(on?Math.sin(i*0.5)*16:0);return `${x},${y}`}).join(' ');
+  return `<div class="body">
+    <div class="wh"><div class="t"><span class="icon">⚡</span>Red eléctrica</div><div class="v">${on?'Conectada':'Sin red'}</div></div>
+    <svg viewBox="0 0 600 60" style="width:100%;height:60px">
+      <polyline points="${points}" fill="none" stroke="${on?'var(--grid)':'#3a4262'}" stroke-width="2.4" stroke-linecap="round" style="filter:${on?'drop-shadow(0 0 4px var(--grid))':'none'}"/>
+    </svg>
+    <div class="rows">
+      <div class="rk"><span class="k">Voltaje</span><span class="v">${gridV.toFixed(1)} V</span></div>
+      <div class="rk"><span class="k">Frecuencia</span><span class="v">${gridF.toFixed(2)} Hz</span></div>
+    </div>
+  </div>`;
+}
+
+function totalsCard(){
+  const t = STATE&&STATE.totals_today||{};
+  const items=[
+    {k:'pv_kwh',l:'☀️ Producción', c:'var(--pv)'},
+    {k:'load_kwh',l:'🏠 Consumo', c:'var(--load)'},
+    {k:'battery_charged_kwh',l:'🔋↑ Cargado', c:'var(--success)'},
+    {k:'battery_discharged_kwh',l:'🔋↓ Descargado', c:'var(--warn)'},
+    {k:'grid_used_kwh',l:'⚡ Red', c:'var(--grid)'},
+  ];
+  return `<div class="body">
+    <div class="wh"><div class="t"><span class="icon">📊</span>Totales hoy</div></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:6px">
+      ${items.map(i=>`<div style="background:var(--card2);padding:14px 12px;border-radius:10px;text-align:center;border:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600">${i.l}</div>
+        <div style="font-size:20px;font-weight:800;color:${i.c};font-variant-numeric:tabular-nums">${(Number(t[i.k]||0)).toFixed(2)}</div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase">kWh</div></div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ====== Render grid ======
+function renderGrid(){
+  const g = document.getElementById('grid');
+  g.innerHTML = '';
+  LAYOUT.forEach((item,idx)=>{
+    const tile=document.createElement('div');
+    tile.className='tile';
+    tile.style.gridColumn=`span ${item.w}`;
+    tile.dataset.idx=idx;
+    tile.draggable=true;
+    tile.innerHTML = `
+      <div class="handle" title="Arrastrar">⋮⋮</div>
+      <div class="toolbar">
+        ${[3,6,9,12].map(w=>`<button class="tbtn ${item.w===w?'act':''}" onclick="resizeTile(${idx},${w})">${(w/12*100)|0}%</button>`).join('')}
+      </div>
+      ${widgetHTML(item.id)}`;
+    // DnD
+    tile.addEventListener('dragstart',e=>{ tile.classList.add('dragging'); e.dataTransfer.setData('text/plain',idx); e.dataTransfer.effectAllowed='move';});
+    tile.addEventListener('dragend',()=>tile.classList.remove('dragging'));
+    tile.addEventListener('dragover',e=>{e.preventDefault();tile.classList.add('over')});
+    tile.addEventListener('dragleave',()=>tile.classList.remove('over'));
+    tile.addEventListener('drop',e=>{
+      e.preventDefault(); tile.classList.remove('over');
+      const from=Number(e.dataTransfer.getData('text/plain')); const to=Number(tile.dataset.idx);
+      if(isNaN(from)||from===to) return;
+      const next=LAYOUT.slice(); const [m]=next.splice(from,1); next.splice(to,0,m);
+      LAYOUT=next; saveLayout(LAYOUT); renderGrid();
+    });
+    g.appendChild(tile);
+  });
+}
+function resizeTile(idx,w){ LAYOUT[idx].w=w; saveLayout(LAYOUT); renderGrid(); }
+window.resizeTile=resizeTile;
+
+// ====== Charts ======
+function drawChart(id, points, color){
+  const svg=document.getElementById(id); if(!svg) return;
+  const W=600,H=200; svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  if(!points.length){ svg.innerHTML=`<text x="${W/2}" y="${H/2}" text-anchor="middle" fill="#8a8d97" font-size="12">Sin datos aún</text>`; return; }
+  const xs=points.map((_,i)=>i*W/Math.max(1,points.length-1));
+  const ys=points.map(v=>v==null?null:v);
+  const max=Math.max(1,...ys.filter(v=>v!=null)); const min=Math.min(0,...ys.filter(v=>v!=null));
+  const sc=v=>H-10-(v-min)/(max-min||1)*(H-20);
+  let d=''; let started=false;
+  ys.forEach((y,i)=>{ if(y==null) return; const px=xs[i],py=sc(y); d+=(started?'L':'M')+px+' '+py+' '; started=true; });
+  let area=d?d+`L${xs[xs.length-1]} ${H} L0 ${H} Z`:'';
+  svg.innerHTML = `
+    <defs><linearGradient id="${id}g" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="${color}" stop-opacity=".4"/><stop offset="100%" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
+    ${area?`<path d="${area}" fill="url(#${id}g)"/>`:''}
+    ${d?`<path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round"/>`:''}`;
+}
+
+function renderCharts(){
+  const h = STATE&&STATE.history||[];
+  drawChart('chPv', h.map(p=>p.pv), '#f59e0b');
   drawChart('chLoad', h.map(p=>p.load), '#3b82f6');
-  drawChart('chSoc',  h.map(p=>p.soc),  '#10b981');
+  drawChart('chSoc', h.map(p=>p.soc), '#22c55e');
+  const t = STATE&&STATE.totals_today||{};
+  document.getElementById('totalsBox').innerHTML =
+    [['☀️ PV','pv_kwh','#f59e0b'],['🏠 Carga','load_kwh','#3b82f6'],['🔋↑','battery_charged_kwh','#22c55e'],['🔋↓','battery_discharged_kwh','#f59e0b'],['⚡ Red','grid_used_kwh','#ef4444']]
+    .map(([l,k,c])=>`<div style="background:var(--card2);padding:14px;border-radius:10px;text-align:center;border:1px solid var(--border)"><div style="color:var(--muted);font-size:11px">${l}</div><div style="font-size:22px;font-weight:800;color:${c};margin-top:4px">${(Number(t[k]||0)).toFixed(2)}</div><div style="font-size:10px;color:var(--muted)">kWh</div></div>`).join('');
+}
 
-  // Totals
-  const T = j.totals_today||{};
-  document.getElementById('tPv').textContent     = (T.pv_kwh||0).toFixed(2);
-  document.getElementById('tLoad').textContent   = (T.load_kwh||0).toFixed(2);
-  document.getElementById('tGrid').textContent   = (T.grid_used_kwh||0).toFixed(2);
-  document.getElementById('tBatChg').textContent = (T.battery_charged_kwh||0).toFixed(2);
-
-  // Configuration
-  const sp = j.spec||{}, sn = j.snapshot||{};
-  document.getElementById('specRows').innerHTML =
-    row('Driver', sp.driver) + row('Modelo', sp.model_name) + row('Serie', sp.serial_number) +
-    row('Firmware', sp.firmware) + row('Voltaje nominal batería', sp.nominal_battery_voltage?sp.nominal_battery_voltage+' V':null) +
-    row('Voltaje AC esperado', sp.expected_ac_input_voltage?sp.expected_ac_input_voltage+' V':null) +
-    row('Max AC entrada', sp.max_ac_input_current?sp.max_ac_input_current+' A':null) +
-    row('Max AC salida', sp.max_ac_output_current?sp.max_ac_output_current+' A':null) +
-    row('Max potencia AC', sp.max_ac_output_power?sp.max_ac_output_power+' W':null);
-  document.getElementById('netRows').innerHTML =
-    row('SSID WiFi', sn.ssid) + row('Internet', sn.internet_up?'Conectado':'Desconectado') +
-    row('IP Ethernet', sn.ip_eth) + row('IP WiFi', sn.ip_wlan) + row('IP pública', sn.ip_public);
-  document.getElementById('sysRows').innerHTML =
-    row('Modelo de placa', sn.board_model) + row('Versión del agente', sn.agent_version) +
-    row('Temperatura CPU', sn.cpu_temp_c?sn.cpu_temp_c.toFixed(1)+' °C':null) +
-    row('Almacenamiento', (sn.storage_used_pct!=null && sn.storage_total_gb)?sn.storage_used_pct.toFixed(0)+'% de '+sn.storage_total_gb.toFixed(0)+' GB':null) +
-    row('Dispositivos USB', sn.usb_devices);
+// ====== Diagnostics ======
+function renderDiag(){
+  const sn=STATE&&STATE.snapshot||{}, sp=STATE&&STATE.spec||{};
+  const rows=(o,keys)=>keys.map(([k,l])=>`<div class="row"><span class="k">${l}</span><span class="v">${o[k]??'—'}</span></div>`).join('');
+  document.getElementById('specRows').innerHTML = rows(sp,[
+    ['driver','Driver'],['model_name','Modelo'],['serial_number','Serial'],['firmware','Firmware'],
+    ['nominal_battery_voltage','Batería nominal (V)'],['max_ac_output_power','Pot. máx AC (W)'],['topology','Topología']]);
+  document.getElementById('netRows').innerHTML = rows(sn,[
+    ['ssid','SSID'],['ip_eth','IP eth0'],['ip_wlan','IP wlan0'],['ip_public','IP pública'],
+    ['internet_up','Internet']]);
+  document.getElementById('sysRows').innerHTML = rows(sn,[
+    ['cpu_temp_c','CPU °C'],['storage_used_pct','Disco %'],['storage_total_gb','Disco total (GB)'],
+    ['board_model','Placa'],['agent_version','Agente']]);
   const usbs = sn.usb_devices_list||[];
   document.getElementById('usbList').innerHTML = usbs.length
-    ? usbs.map(d=>'<div>• '+d.replace(/[<>]/g,'')+'</div>').join('')
-    : '<div style="color:#9ca3af">Sin dispositivos USB detectados</div>';
+    ? usbs.map(u=>`<div>${u}</div>`).join('')
+    : '<div style="color:var(--muted)">Sin dispositivos USB</div>';
+
+  // Activation block
+  const tokenSet = STATE&&STATE.config&&STATE.config.device_token;
+  document.getElementById('actBlock').innerHTML = tokenSet
+    ? `<div class="row"><span class="k">Estado</span><span class="v" style="color:var(--success)">● Activado</span></div>
+       <div class="row"><span class="k">Plan</span><span class="v">${STATE.license&&STATE.license.plan||'—'}</span></div>
+       <div class="row"><span class="k">Cloud URL</span><span class="v"><span class="code">${(STATE.config&&STATE.config.cloud_url)||''}</span></span></div>`
+    : `<form onsubmit="event.preventDefault();activateDevice()">
+        <label>Código de licencia</label><input id="actCode" required placeholder="Pega el código aquí">
+        <label>Nombre del sitio</label><input id="actName" value="Local site">
+        <button class="btn" type="submit">Activar</button></form>`;
 }
-async function act(e){e.preventDefault();
-  const r = await fetch('/api/activate',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({code:document.getElementById('code').value,name:document.getElementById('name').value})});
-  const j = await r.json();
-  if(!r.ok) document.getElementById('msg').textContent = j.error || 'Activación fallida';
-  else location.reload();
+async function activateDevice(){
+  const code=document.getElementById('actCode').value.trim();
+  const name=document.getElementById('actName').value.trim()||'Local site';
+  const r=await fetch('/api/activate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,name})});
+  if(r.ok){ alert('Activado ✓'); refresh(); } else { const j=await r.json().catch(()=>({})); alert('Error: '+(j.error||r.status)); }
 }
-setInterval(tick,2000); tick();
-</script></div></body></html>"""
+window.activateDevice=activateDevice;
+
+// ====== Config ======
+async function loadPvCfg(){
+  const r=await fetch('/api/pvconfig'); const c=await r.json()||{};
+  ['kwp','pc','pw','bat','az','ti','lo','la','ln'].forEach((k,i)=>{
+    const map=['array_kwp','panel_count','panel_watts','battery_kwh','azimuth','tilt','system_losses_pct','latitude','longitude'];
+    const el=document.getElementById('cf_'+k); if(el && c[map[i]]!=null) el.value=c[map[i]];
+  });
+}
+async function savePvCfg(){
+  const map={'cf_kwp':'array_kwp','cf_pc':'panel_count','cf_pw':'panel_watts','cf_bat':'battery_kwh',
+    'cf_az':'azimuth','cf_ti':'tilt','cf_lo':'system_losses_pct','cf_la':'latitude','cf_ln':'longitude'};
+  const body={}; Object.entries(map).forEach(([id,k])=>{const v=document.getElementById(id).value; if(v!=='') body[k]=Number(v)});
+  const r=await fetch('/api/pvconfig',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(r.ok) alert('Guardado ✓'); else alert('Error');
+}
+window.savePvCfg=savePvCfg;
+
+// ====== Refresh loop ======
+async function refresh(){
+  try{
+    const r=await fetch('/api/state'); STATE=await r.json();
+    const dot=document.getElementById('conDot'), txt=document.getElementById('conTxt');
+    const fresh = STATE.latest&&STATE.latest.recorded_at;
+    dot.className='dot '+(fresh?'on':'off');
+    txt.textContent = fresh?'En vivo · cada 2 s':'Sin datos del inversor';
+    document.getElementById('lastSeen').textContent = fresh?('Última lectura: '+new Date(fresh).toLocaleTimeString()):'';
+    document.getElementById('invMode').textContent = (STATE.latest&&STATE.latest.inverter_mode)||'—';
+    document.getElementById('modeBadge').textContent = 'Modo: '+((STATE.latest&&STATE.latest.inverter_mode)||'—');
+    document.getElementById('planBadge').textContent = 'Plan: '+((STATE.license&&STATE.license.plan)||'local');
+    document.getElementById('siteName').textContent = (STATE.license&&STATE.license.site_name)||'SolarOps Local';
+    document.getElementById('actBanner').style.display = (STATE.config&&STATE.config.device_token)?'none':'';
+    document.getElementById('clock').textContent = new Date().toLocaleTimeString();
+    renderGrid();
+    renderCharts();
+    renderDiag();
+  }catch(e){
+    document.getElementById('conDot').className='dot off';
+    document.getElementById('conTxt').textContent='Error: '+e.message;
+  }
+}
+document.getElementById('actLink').onclick=e=>{e.preventDefault();document.querySelector('[data-tab=diag]').click()};
+loadPvCfg();
+refresh();
+setInterval(refresh, 2000);
+setInterval(()=>{document.getElementById('clock').textContent=new Date().toLocaleTimeString()}, 1000);
+</script></body></html>"""
 
 def compute_today_totals(samples: list[dict]) -> dict:
     """Trapezoidal kWh from a list of samples (each has recorded_at + powers)."""
