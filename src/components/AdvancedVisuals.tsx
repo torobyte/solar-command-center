@@ -724,27 +724,64 @@ export function BackupTimeCard({
     runtimeHours = usableKwh / netDischargeKw;
   }
 
-  const hh = runtimeHours != null ? Math.floor(runtimeHours) : 0;
-  const mm = runtimeHours != null ? Math.round((runtimeHours - hh) * 60) : 0;
+  // Decompose runtime into days / hours / minutes for a readable display.
+  const totalMinutes = runtimeHours != null ? Math.max(0, Math.round(runtimeHours * 60)) : 0;
+  const days = Math.floor(totalMinutes / (60 * 24));
+  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+  const minutes = totalMinutes % 60;
 
-  // Color by criticality
+  // Human-readable ETA string ("Hasta las 14:32" o "mañana 08:15")
+  let etaLabel: string | null = null;
+  if (runtimeHours != null && runtimeHours > 0 && runtimeHours < 24 * 30) {
+    const eta = new Date(Date.now() + totalMinutes * 60_000);
+    const now = new Date();
+    const sameDay = eta.toDateString() === now.toDateString();
+    const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1);
+    const isTomorrow = eta.toDateString() === tomorrow.toDateString();
+    const time = eta.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    etaLabel = sameDay ? `hoy ${time}` : isTomorrow ? `mañana ${time}` : eta.toLocaleString([], { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+  }
+
+  // Color by criticality (thresholds in hours)
   const color = runtimeHours == null
     ? "var(--success)"
-    : runtimeHours > 6 ? "var(--success)"
-    : runtimeHours > 2 ? "var(--warning)"
+    : runtimeHours > 12 ? "var(--success)"
+    : runtimeHours > 4 ? "var(--warning)"
     : "var(--destructive)";
+
+  const statusLabel = charging
+    ? "⚡ Cargando"
+    : runtimeHours == null ? "Sin datos"
+    : runtimeHours > 12 ? "● Holgado"
+    : runtimeHours > 4 ? "● Limitado"
+    : "● Crítico";
 
   const typeLabel: Record<string, string> = {
     lithium: "Litio (LiFePO4)", lithium_nmc: "Litio (NMC)",
     agm: "AGM", gel: "Gel", lead_acid: "Plomo-ácido", other: "Otra",
   };
 
-  const ringPct = runtimeHours == null ? 100 : Math.min(100, (runtimeHours / 12) * 100);
+  // Ring fills proportional to a 24h reference
+  const ringPct = runtimeHours == null ? 100 : Math.min(100, (runtimeHours / 24) * 100);
   const r = 52, c = 2 * Math.PI * r;
+
+  // Compact "Xd Yh Zm" string, omitting zero leading units
+  const compact = days > 0
+    ? `${days}d ${hours}h`
+    : hours > 0
+      ? `${hours}h ${minutes}m`
+      : `${minutes}m`;
+
+  const TimeUnit = ({ v, u }: { v: number; u: string }) => (
+    <div className="flex flex-col items-center leading-none">
+      <span className="text-2xl font-extrabold tabular-nums sm:text-3xl" style={{ color }}>{v}</span>
+      <span className="mt-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">{u}</span>
+    </div>
+  );
 
   return (
     <div className="@container rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in h-full">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between gap-2">
         <h3 className="flex items-center gap-2 font-semibold">
           <Clock className="h-4 w-4 text-[var(--battery)]" /> Tiempo de respaldo
         </h3>
@@ -752,58 +789,75 @@ export function BackupTimeCard({
           className="rounded-full px-2 py-0.5 text-[10px] font-medium"
           style={{ background: `color-mix(in oklab, ${color} 18%, transparent)`, color }}
         >
-          {charging
-            ? "⚡ Cargando — sin descarga"
-            : runtimeHours == null
-              ? "Sin datos del banco"
-              : runtimeHours > 6 ? "● Holgado"
-              : runtimeHours > 2 ? "● Limitado"
-              : "● Crítico"}
+          {statusLabel}
         </span>
       </div>
 
-      <div className="flex flex-col items-stretch gap-4 @[360px]:flex-row @[360px]:items-center">
-        <div className="relative mx-auto" style={{ width: 140, height: 140 }}>
-          <svg width="140" height="140" className="-rotate-90">
-            <circle cx="70" cy="70" r={r} fill="none" stroke={color} strokeOpacity="0.15" strokeWidth="12" />
-            <circle cx="70" cy="70" r={r} fill="none" stroke={color} strokeWidth="12" strokeLinecap="round"
+      <div className="flex flex-col items-stretch gap-4 @[420px]:flex-row @[420px]:items-center">
+        {/* Ring + icon */}
+        <div className="relative mx-auto shrink-0" style={{ width: 132, height: 132 }}>
+          <svg width="132" height="132" className="-rotate-90">
+            <circle cx="66" cy="66" r={r} fill="none" stroke={color} strokeOpacity="0.15" strokeWidth="11" />
+            <circle cx="66" cy="66" r={r} fill="none" stroke={color} strokeWidth="11" strokeLinecap="round"
               strokeDasharray={c} strokeDashoffset={c * (1 - ringPct / 100)}
               style={{ transition: "stroke-dashoffset 1s ease, stroke 0.5s", filter: `drop-shadow(0 0 6px ${color})` }} />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             {charging ? (
               <>
-                <BatteryCharging className="h-6 w-6" style={{ color }} />
+                <BatteryCharging className="h-7 w-7" style={{ color }} />
                 <div className="mt-1 text-[10px] uppercase text-muted-foreground">cargando</div>
               </>
             ) : runtimeHours == null ? (
-              <div className="px-2 text-center text-[10px] text-muted-foreground">
-                Configura el banco
-              </div>
-            ) : runtimeHours > 99 ? (
-              <>
-                <div className="text-2xl font-extrabold tabular-nums" style={{ color }}>99+</div>
-                <div className="text-[10px] uppercase text-muted-foreground">horas</div>
-              </>
+              <div className="px-2 text-center text-[10px] text-muted-foreground">Configura el banco</div>
             ) : (
               <>
-                <div className="text-3xl font-extrabold tabular-nums leading-none" style={{ color }}>{hh}<span className="text-base">h</span> {mm}<span className="text-base">m</span></div>
+                <div className="text-xl font-extrabold tabular-nums leading-none" style={{ color }}>{compact}</div>
                 <div className="mt-1 text-[10px] uppercase text-muted-foreground">restantes</div>
               </>
             )}
           </div>
         </div>
 
-        <div className="flex-1 space-y-2.5 text-sm">
-          <Stat label="Energía útil" value={`${usableKwh.toFixed(2)} kWh`} />
-          <Stat label="Descarga neta" value={charging ? "0 W (cargando)" : `${Math.round(netDischargeW).toLocaleString()} W`} />
-          <Stat label="SOC actual" value={`${Math.max(0, Math.min(100, soc)).toFixed(0)} %`} />
-          <Stat label="Banco" value={
-            batteryCount && batteryCount > 0
-              ? `${batteryCount}× ${typeLabel[batteryType ?? "other"] ?? "—"}`
-              : "Sin configurar"
-          } />
-          <Stat label="DoD útil" value={`${(usableDodPct ?? 80).toFixed(0)} %`} />
+        {/* Big readable breakdown + ETA */}
+        <div className="flex-1 space-y-3">
+          {charging ? (
+            <div className="rounded-lg border bg-muted/30 p-3 text-center text-sm text-muted-foreground">
+              La batería se está cargando — autonomía indefinida con la PV actual.
+            </div>
+          ) : runtimeHours == null ? (
+            <div className="rounded-lg border bg-muted/30 p-3 text-center text-sm text-muted-foreground">
+              Configura el banco de baterías para ver el tiempo restante.
+            </div>
+          ) : (
+            <>
+              <div className="flex items-end justify-around gap-2 rounded-lg border bg-muted/20 px-2 py-3">
+                {days > 0 && <TimeUnit v={days} u="días" />}
+                {days > 0 && <span className="pb-4 text-xl text-muted-foreground/50">:</span>}
+                <TimeUnit v={hours} u="horas" />
+                <span className="pb-4 text-xl text-muted-foreground/50">:</span>
+                <TimeUnit v={minutes} u="min" />
+              </div>
+              {etaLabel && (
+                <div className="text-center text-xs text-muted-foreground">
+                  Se agotará alrededor de <span className="font-medium text-foreground">{etaLabel}</span>
+                </div>
+              )}
+            </>
+          )}
+
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+            <Stat label="Energía útil" value={`${usableKwh.toFixed(2)} kWh`} />
+            <Stat label="Descarga" value={charging ? "0 W" : `${Math.round(netDischargeW).toLocaleString()} W`} />
+            <Stat label="SOC" value={`${Math.max(0, Math.min(100, soc)).toFixed(0)} %`} />
+            <Stat label="DoD útil" value={`${(usableDodPct ?? 80).toFixed(0)} %`} />
+            <Stat label="Banco" value={
+              batteryCount && batteryCount > 0
+                ? `${batteryCount}× ${typeLabel[batteryType ?? "other"] ?? "—"}`
+                : "Sin configurar"
+            } />
+            <Stat label="Capacidad" value={batteryKwh ? `${batteryKwh.toFixed(2)} kWh` : "—"} />
+          </div>
         </div>
       </div>
     </div>
