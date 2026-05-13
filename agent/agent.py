@@ -266,6 +266,13 @@ class Agent:
         self.error_count: int = 0
         self.read_count: int = 0
         self.started_at: str = datetime.now(timezone.utc).isoformat()
+        # Diagnóstico del push_loop hacia el cloud
+        self.push_ok_count: int = 0
+        self.push_fail_count: int = 0
+        self.push_last_ok_at: str | None = None
+        self.push_last_attempt_at: str | None = None
+        self.push_last_error: str | None = None
+        self.push_loop_restarts: int = 0
 
     def ensure_transport(self):
         if self.transport: return
@@ -311,14 +318,31 @@ class Agent:
 
 
     def push_loop(self):
+        # Bucle exterior blindado: si una excepción inesperada (p.ej. error
+        # de SSL transitorio, timeout en json.dumps, race en la cola)
+        # tumbase el thread, sin esto el agente seguiría leyendo el inversor
+        # localmente pero dejaría de empujar al cloud silenciosamente.
+        while True:
+            try:
+                self._push_loop_inner()
+            except Exception as e:
+                self.push_loop_restarts += 1
+                self.push_last_error = f"loop crashed: {type(e).__name__}: {e}"
+                self.push_last_attempt_at = datetime.now(timezone.utc).isoformat()
+                print(f"[agent] push_loop crashed (#{self.push_loop_restarts}): {e}", flush=True)
+                time.sleep(2.0)
+
+    def _push_loop_inner(self):
         while True:
             time.sleep(PUSH_INTERVAL)
             token = self.config.get("device_token")
             if not token: continue
             batch = []
             while not self.pending.empty() and len(batch) < 60:
-                batch.append(self.pending.get_nowait())
+                try: batch.append(self.pending.get_nowait())
+                except queue.Empty: break
             if not batch: continue
+            self.push_last_attempt_at = datetime.now(timezone.utc).isoformat()
             try:
                 r = requests.post(
                     f"{self.config['cloud_url']}/api/public/ingest",
@@ -326,12 +350,20 @@ class Agent:
                     data=json.dumps({"samples": batch}), timeout=15,
                 )
                 if r.status_code != 200:
-                    print(f"[agent] push failed {r.status_code}: {r.text[:200]}")
+                    self.push_fail_count += 1
+                    self.push_last_error = f"HTTP {r.status_code}: {r.text[:200]}"
+                    print(f"[agent] push failed {r.status_code}: {r.text[:200]}", flush=True)
                     for s in batch:
                         try: self.pending.put_nowait(s)
                         except queue.Full: break
+                else:
+                    self.push_ok_count += len(batch)
+                    self.push_last_ok_at = self.push_last_attempt_at
+                    self.push_last_error = None
             except Exception as e:
-                print(f"[agent] push error: {e}")
+                self.push_fail_count += 1
+                self.push_last_error = f"{type(e).__name__}: {e}"
+                print(f"[agent] push error: {e}", flush=True)
                 for s in batch:
                     try: self.pending.put_nowait(s)
                     except queue.Full: break
@@ -1456,6 +1488,17 @@ def make_app(agent: Agent) -> Flask:
             "plan": license.get("plan"),
             "activated": bool(cfg.get("device_token")),
             "cloud_url": cfg.get("cloud_url"),
+            # Diagnóstico del push al cloud — útil para detectar cuándo el
+            # inversor está leyendo OK localmente pero el cloud no recibe.
+            "push": {
+                "queue_size": agent.pending.qsize(),
+                "ok_count": agent.push_ok_count,
+                "fail_count": agent.push_fail_count,
+                "last_ok_at": agent.push_last_ok_at,
+                "last_attempt_at": agent.push_last_attempt_at,
+                "last_error": agent.push_last_error,
+                "loop_restarts": agent.push_loop_restarts,
+            },
         })
 
     @app.get("/api/state")
