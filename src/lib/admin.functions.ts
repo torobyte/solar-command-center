@@ -183,6 +183,94 @@ export const adminActivateSite = createServerFn({ method: "POST" })
     return { plan: lic.plan, expires_at: expires };
   });
 
+export const adminExtendLicense = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      site_id: z.string().uuid(),
+      days: z.number().int().min(1).max(3650),
+      reason: z.string().trim().max(500).optional().default(""),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertSuperadmin(context.userId);
+    const { data: site, error: sErr } = await supabaseAdmin
+      .from("sites").select("id,plan,license_expires_at").eq("id", data.site_id).maybeSingle();
+    if (sErr || !site) throw new Error("Site not found");
+    const now = Date.now();
+    const baseMs = site.license_expires_at && new Date(site.license_expires_at).getTime() > now
+      ? new Date(site.license_expires_at).getTime() : now;
+    const expires = new Date(baseMs + data.days * 86_400_000).toISOString();
+    const { error } = await supabaseAdmin.from("sites").update({
+      license_expires_at: expires,
+      status: "online",
+      plan: site.plan === "trial" ? "pro" : site.plan,
+    }).eq("id", data.site_id);
+    if (error) throw new Error(error.message);
+    await supabaseAdmin.from("license_audit_log").insert({
+      action: "extended",
+      plan: site.plan,
+      performed_by: context.userId,
+      reason: data.reason || null,
+      details: { site_id: data.site_id, days: data.days, new_expires_at: expires } as never,
+    });
+    return { expires_at: expires };
+  });
+
+export const adminSetExpiration = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      site_id: z.string().uuid(),
+      expires_at: z.string().datetime(),
+      reason: z.string().trim().max(500).optional().default(""),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertSuperadmin(context.userId);
+    const { error } = await supabaseAdmin.from("sites").update({
+      license_expires_at: data.expires_at,
+      status: "online",
+    }).eq("id", data.site_id);
+    if (error) throw new Error(error.message);
+    await supabaseAdmin.from("license_audit_log").insert({
+      action: "expiration_set",
+      performed_by: context.userId,
+      reason: data.reason || null,
+      details: { site_id: data.site_id, expires_at: data.expires_at } as never,
+    });
+    return { ok: true };
+  });
+
+export const adminReactivateSite = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      site_id: z.string().uuid(),
+      days: z.number().int().min(1).max(3650).default(30),
+      plan: z.string().trim().min(1).max(40).default("pro"),
+      reason: z.string().trim().max(500).optional().default(""),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertSuperadmin(context.userId);
+    const expires = new Date(Date.now() + data.days * 86_400_000).toISOString();
+    const { error } = await supabaseAdmin.from("sites").update({
+      plan: data.plan,
+      license_expires_at: expires,
+      status: "online",
+    }).eq("id", data.site_id);
+    if (error) throw new Error(error.message);
+    await supabaseAdmin.from("license_audit_log").insert({
+      action: "reactivated",
+      plan: data.plan,
+      performed_by: context.userId,
+      reason: data.reason || null,
+      details: { site_id: data.site_id, days: data.days, expires_at: expires } as never,
+    });
+    return { plan: data.plan, expires_at: expires };
+  });
+
 export const adminRevokeLicense = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ site_id: z.string().uuid() }).parse(d))
