@@ -127,7 +127,7 @@ function LocalDashboardPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-[1480px] px-4 py-5 sm:py-6">
-        <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{siteName}</h1>
             <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -143,6 +143,10 @@ function LocalDashboardPage() {
                 </span>
               )}
             </p>
+          </div>
+          <div className="flex items-center gap-1">
+            <LangSwitcher />
+            <ThemeToggle />
           </div>
         </header>
 
