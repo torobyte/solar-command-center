@@ -39,11 +39,8 @@ export function RealtimeStatusMonitor() {
 
   async function retry() {
     setRetrying(true);
-    // Force a brand new channel
-    const ch = connect();
-    // Safety timeout to clear retrying state if no callback fires
+    connect();
     setTimeout(() => setRetrying(false), 4000);
-    return ch;
   }
 
   return (
