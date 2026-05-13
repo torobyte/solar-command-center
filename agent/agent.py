@@ -1440,30 +1440,7 @@ load(); setInterval(load, 5000);
 </script>
 </body></html>"""
 
-            "start_url": "/",
-            "scope": "/",
-            "display": "standalone",
-            "background_color": "#0b1220",
-            "theme_color": "#f59e0b",
-            "icons": [
-                {"src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
-            ],
-        })
 
-    @app.get("/icon.svg")
-    def icon():
-        svg = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">'
-               '<rect width="192" height="192" rx="40" fill="#0b1220"/>'
-               '<g fill="#f59e0b"><circle cx="96" cy="96" r="34"/>'
-               '<g stroke="#f59e0b" stroke-width="10" stroke-linecap="round">'
-               '<line x1="96" y1="20" x2="96" y2="48"/><line x1="96" y1="144" x2="96" y2="172"/>'
-               '<line x1="20" y1="96" x2="48" y2="96"/><line x1="144" y1="96" x2="172" y2="96"/>'
-               '<line x1="42" y1="42" x2="62" y2="62"/><line x1="130" y1="130" x2="150" y2="150"/>'
-               '<line x1="42" y1="150" x2="62" y2="130"/><line x1="130" y1="62" x2="150" y2="42"/>'
-               '</g></g></svg>')
-        return app.response_class(svg, mimetype="image/svg+xml")
-
-    return app
 
 
 def main():
