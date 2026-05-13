@@ -45,7 +45,7 @@ export function useDevices(siteId: string) {
   useEffect(() => {
     refresh();
     const ch = supabase
-      .channel(`devices-${siteId}`)
+      .channel(`devices-${siteId}-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "devices", filter: `site_id=eq.${siteId}` }, refresh)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
