@@ -304,7 +304,7 @@ function LocalDashboardPage() {
             <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 font-medium ${fresh ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${fresh ? "bg-success animate-pulse" : "bg-destructive"}`} />
-                {fresh ? "En vivo · cada 2 s" : error ? `Sin conexión · ${error}` : "Sin datos del inversor"}
+                {fresh ? "En vivo · cada 1 s" : error ? `Sin conexión · ${error}` : "Sin datos del inversor"}
               </span>
               <span className="rounded-full bg-muted px-2 py-0.5 font-medium">Plan: {plan}</span>
               <span className="rounded-full bg-muted px-2 py-0.5 font-medium">Modo: {mode.label}</span>
