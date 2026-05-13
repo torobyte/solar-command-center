@@ -66,14 +66,15 @@ con depuración USB activada.
 4. Cópialo desde la web: ve a tu sitio → **Configuration → API/Token**
 5. Pega y guarda
 
-El widget se actualiza automáticamente cada ~30 min (límite de Android
-para `AppWidgetProvider`). Toca el widget para abrir la app completa.
+El widget se actualiza **cada 30 segundos** (casi tiempo real) mediante un
+`AlarmManager` interno — ignora el límite de 30 min de `updatePeriodMillis`.
+Toca el widget para abrir la app completa.
 
-### Polling más frecuente (opcional)
+### Ajustar el intervalo
 
-Si necesitas refresco cada minuto, hay que añadir un `PeriodicWorkRequest`
-de WorkManager en `SolarOpsWidget.kt`. Avísame y lo añado — no se incluye
-por defecto porque consume más batería.
+Edita `REFRESH_SEC` en `SolarOpsWidget.kt` (por defecto `30L`). Valores
+más bajos consumen más batería; Android Doze puede retrasar los ticks
+cuando la pantalla está apagada durante mucho tiempo.
 
 ## Endpoint que usa el widget
 
