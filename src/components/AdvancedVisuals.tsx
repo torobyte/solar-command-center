@@ -252,7 +252,7 @@ export function SolarRays({ pv, pvMax = 5000 }: { pv: number; pvMax?: number }) 
   const rayLen = 18 + ratio * 36;
   const rays = 12;
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
+    <div className="@container rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
       <div className="mb-2 flex items-center justify-between">
         <h3 className="flex items-center gap-2 font-semibold"><Sun className="h-4 w-4 text-[var(--solar)]" /> Producción Solar</h3>
         <span className="rounded-full bg-[var(--solar)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--solar)]">
@@ -307,7 +307,7 @@ export function GridSineWave({ voltage, frequency = 50 }: { voltage: number; fre
   const connected = voltage > 50;
   const color = connected ? "var(--grid)" : "hsl(var(--muted-foreground))";
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
+    <div className="@container rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
       <div className="mb-2 flex items-center justify-between">
         <h3 className="flex items-center gap-2 font-semibold"><Plug className="h-4 w-4" /> Red Eléctrica</h3>
         <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${connected
@@ -371,7 +371,7 @@ export function ConcentricRings({ pv, load, soc, pvMax = 5000, loadMax = 5000 }:
   ];
   const size = 220, stroke = 16, gap = 6;
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
+    <div className="@container rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
       <h3 className="mb-3 font-semibold">Anillos de actividad</h3>
       <div className="flex items-center justify-center gap-6">
         <div className="relative" style={{ width: size, height: size }}>
@@ -426,7 +426,7 @@ export function SolarPanelsViz({ pv, pvMax = 5000 }: { pv: number; pvMax?: numbe
   const active = pv > 1;
   const cells = Array.from({ length: 12 });
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
+    <div className="@container rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="flex items-center gap-2 font-semibold">
           <Sun className="h-4 w-4 text-[var(--solar)]" /> Producción Solar
@@ -558,7 +558,7 @@ export function HouseLoadViz({ load, loadMax = 5000 }: { load: number; loadMax?:
   const glow = `color-mix(in oklab, var(--load) ${30 + ratio * 50}%, transparent)`;
 
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
+    <div className="@container rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="flex items-center gap-2 font-semibold">
           <Home className="h-4 w-4 text-[var(--load)]" /> Consumo de la casa
