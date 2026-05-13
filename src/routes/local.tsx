@@ -19,11 +19,7 @@ export const Route = createFileRoute("/local")({
   component: LocalDashboardPage,
 });
 
-interface AgentState {
-  latest: DashboardSample | null;
-  config?: { device_token?: boolean; cloud_url?: string } | null;
-  license?: { plan?: string; site_name?: string; site_id?: string } | null;
-}
+interface LicenseMeta { plan?: string; site_name?: string; site_id?: string }
 
 function LocalDashboardPage() {
   const search = Route.useSearch();
@@ -34,11 +30,16 @@ function LocalDashboardPage() {
     return "";
   }, [search.agent]);
 
-  const [state, setState] = useState<AgentState | null>(null);
+  // Split state so each piece only re-renders subscribers when it actually
+  // changes — this is what eliminates the 2s "flicker" of the dashboard.
+  const [latest, setLatest] = useState<DashboardSample | null>(null);
+  const [license, setLicense] = useState<LicenseMeta | null>(null);
   const [pvCfg, setPvCfg] = useState<PvConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lastTick, setLastTick] = useState<number>(0);
-  const tickRef = useRef(0);
+
+  const lastRecordedAt = useRef<string | null>(null);
+  const lastLicenseKey = useRef<string>("");
 
   useEffect(() => {
     if (!agentBase) return;
@@ -54,11 +55,29 @@ function LocalDashboardPage() {
 
     async function pullState() {
       try {
-        const data = await fetchJSON<AgentState>(`${agentBase}/api/state`);
+        const data = await fetchJSON<{
+          latest: DashboardSample | null;
+          license?: LicenseMeta | null;
+        }>(`${agentBase}/api/state`);
         if (!alive) return;
-        setState(data);
         setError(null);
         setLastTick(Date.now());
+
+        // Only push a new `latest` reference if the sample actually changed.
+        const incoming = data.latest;
+        const incomingKey = incoming?.recorded_at ?? null;
+        if (incomingKey !== lastRecordedAt.current) {
+          lastRecordedAt.current = incomingKey;
+          setLatest(incoming);
+        }
+
+        // Same for license/meta — usually never changes.
+        const lic = data.license ?? null;
+        const licKey = lic ? `${lic.site_id}|${lic.site_name}|${lic.plan}` : "";
+        if (licKey !== lastLicenseKey.current) {
+          lastLicenseKey.current = licKey;
+          setLicense(lic);
+        }
       } catch (e) {
         if (!alive) return;
         setError((e as Error).message);
@@ -86,24 +105,22 @@ function LocalDashboardPage() {
           battery_usable_dod_pct: data.battery_usable_dod_pct ?? null,
         });
       } catch {
-        // ignore — pv config is optional
+        // ignore — pv config is optional; fall back to a stub so children
+        // don't remount later when it finally arrives.
+        if (alive) setPvCfg((prev) => prev ?? ({ site_id: "local" } as PvConfig));
       }
     }
 
     pullState();
     pullPv();
-    tickRef.current = window.setInterval(() => {
-      pullState();
-    }, 2000) as unknown as number;
-
-    return () => { alive = false; window.clearInterval(tickRef.current); };
+    const id = window.setInterval(pullState, 2000);
+    return () => { alive = false; window.clearInterval(id); };
   }, [agentBase]);
 
-  const latest = state?.latest ?? null;
   const mode = formatInverterMode(latest?.inverter_mode);
   const fresh = latest?.recorded_at && (Date.now() - new Date(latest.recorded_at).getTime() < 60_000);
-  const siteName = state?.license?.site_name ?? "SolarOps Local";
-  const plan = state?.license?.plan ?? "local";
+  const siteName = license?.site_name ?? "SolarOps Local";
+  const plan = license?.plan ?? "local";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
