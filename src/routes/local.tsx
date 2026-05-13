@@ -114,6 +114,7 @@ function LocalDashboardPage() {
     }
 
     async function pullState() {
+      if (bridgedRef.current) return;
       try {
         const data = await fetchJSON<{
           latest: DashboardSample | null;
@@ -123,7 +124,6 @@ function LocalDashboardPage() {
         setError(null);
         setLastTick(Date.now());
 
-        // Only push a new `latest` reference if the sample actually changed.
         const incoming = data.latest;
         const incomingKey = incoming?.recorded_at ?? null;
         if (incomingKey !== lastRecordedAt.current) {
@@ -131,7 +131,6 @@ function LocalDashboardPage() {
           setLatest(incoming);
         }
 
-        // Same for license/meta — usually never changes.
         const lic = data.license ?? null;
         const licKey = lic ? `${lic.site_id}|${lic.site_name}|${lic.plan}` : "";
         if (licKey !== lastLicenseKey.current) {
@@ -140,10 +139,14 @@ function LocalDashboardPage() {
         }
       } catch (e) {
         if (!alive) return;
+        // Estamos embebidos esperando el bridge del padre — no mostremos
+        // "Failed to fetch" durante los primeros 4s; el bridge ya está en camino.
+        if (embedded && (bridgedRef.current || Date.now() - mountedAt < 4000)) return;
         setError((e as Error).message);
       }
     }
     async function pullPv() {
+      if (bridgedRef.current) return;
       try {
         const data = await fetchJSON<Partial<PvConfig>>(`${agentBase}/api/pvconfig`);
         if (!alive) return;
