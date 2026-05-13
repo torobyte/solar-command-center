@@ -282,6 +282,35 @@ function SiteDetail() {
         </TabsContent>
 
         <TabsContent value="charts" className="mt-6 space-y-6">
+          <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card/60 p-3 text-sm">
+            <div className="flex items-center gap-2">
+              <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">Suavizado</span>
+            </div>
+            <div className="inline-flex overflow-hidden rounded-md border">
+              {(["off", "mean", "median"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setSmoothMode(m)}
+                  className={`px-3 py-1 text-xs transition-colors ${smoothMode === m ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+                >
+                  {m === "off" ? "Sin filtro" : m === "mean" ? "Promedio móvil" : "Mediana"}
+                </button>
+              ))}
+            </div>
+            <div className="ml-auto flex items-center gap-2">
+              <label className="text-xs text-muted-foreground">Ventana</label>
+              <input
+                type="range" min={2} max={30} step={1}
+                value={smoothWindow}
+                disabled={smoothMode === "off"}
+                onChange={(e) => setSmoothWindow(Number(e.target.value))}
+                className="w-32 accent-primary disabled:opacity-40"
+              />
+              <span className="w-12 text-right font-mono text-xs tabular-nums">{smoothWindow} pts</span>
+            </div>
+          </div>
           <ChartCard title="Power (W) — last 12h">
             <AreaChart data={chartData}>
               <defs>
