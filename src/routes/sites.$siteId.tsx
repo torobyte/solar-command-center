@@ -15,7 +15,7 @@ import { useI18n } from "@/lib/i18n";
 import { SolarForecastWidget } from "@/components/SolarForecastWidget";
 import { EnergyFlowDiagram } from "@/components/EnergyFlowDiagram";
 import { PowerGauges } from "@/components/PowerGauges";
-import { Battery3D, SolarRays, GridSineWave, ConcentricRings } from "@/components/AdvancedVisuals";
+import { Battery3D, SolarRays, GridSineWave, ConcentricRings, SolarCell3D, LoadCell3D } from "@/components/AdvancedVisuals";
 import { DashboardCustomizer, useDashboardLayout, type WidgetDef } from "@/components/DashboardCustomizer";
 import { PvSystemConfigCard, usePvConfig } from "@/components/PvSystemConfig";
 import { NotificationsConfig } from "@/components/NotificationsConfig";
