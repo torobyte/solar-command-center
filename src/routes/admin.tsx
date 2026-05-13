@@ -20,6 +20,7 @@ import {
   adminCreateUser, adminSetUserRole, adminDeleteUser,
   adminCreateSite, adminAssignSite, adminDeleteSite, adminRequestRefresh,
   adminActivateSite, adminRevokeLicense,
+  adminExtendLicense, adminSetExpiration, adminReactivateSite,
 } from "@/lib/admin.functions";
 import { formatDistanceToNow } from "date-fns";
 import { BrandingAdmin } from "@/components/admin/BrandingAdmin";
