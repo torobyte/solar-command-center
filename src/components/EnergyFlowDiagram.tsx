@@ -59,7 +59,7 @@ export function EnergyFlowDiagram({ pv, load, gridV, battery, batteryV }: Props)
         </Node>
 
         {/* Solar (top-left) */}
-        <Node x={80} y={60} color="var(--solar)" label="Solar" value={`${(pv / 1000).toFixed(2)} kW`}>
+        <Node x={80} y={60} color="var(--solar)" label="Solar" value={`${Math.round(pv).toLocaleString()} W`}>
           <Sun className="h-5 w-5 text-white" strokeWidth={2.5} />
         </Node>
 

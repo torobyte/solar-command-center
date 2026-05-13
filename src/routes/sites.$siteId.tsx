@@ -15,7 +15,7 @@ import { useI18n } from "@/lib/i18n";
 import { SolarForecastWidget } from "@/components/SolarForecastWidget";
 import { EnergyFlowDiagram } from "@/components/EnergyFlowDiagram";
 import { PowerGauges } from "@/components/PowerGauges";
-import { Battery3D, SolarRays, GridSineWave, ConcentricRings } from "@/components/AdvancedVisuals";
+import { Battery3D, SolarRays, GridSineWave, ConcentricRings, SolarCell3D, LoadCell3D } from "@/components/AdvancedVisuals";
 import { DashboardCustomizer, useDashboardLayout, type WidgetDef } from "@/components/DashboardCustomizer";
 import { PvSystemConfigCard, usePvConfig } from "@/components/PvSystemConfig";
 import { NotificationsConfig } from "@/components/NotificationsConfig";
@@ -107,7 +107,28 @@ function SiteDetail() {
           setHistory((h) => [...h.slice(-719), row]);
         })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    // Polling fallback every 3s — guarantees real-time even if the websocket
+    // is dropped by intermediate proxies (mobile networks, corporate firewalls).
+    const poll = setInterval(async () => {
+      const { data } = await supabase
+        .from("telemetry_samples")
+        .select("recorded_at, ac_output_active_power, pv_input_power, battery_capacity, battery_voltage, grid_voltage, inverter_mode")
+        .eq("site_id", siteId)
+        .order("recorded_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data) {
+        setLatest((prev) => {
+          if (prev && prev.recorded_at === (data as Sample).recorded_at) return prev;
+          setHistory((h) => {
+            if (h.length && h[h.length - 1].recorded_at === (data as Sample).recorded_at) return h;
+            return [...h.slice(-719), data as Sample];
+          });
+          return data as Sample;
+        });
+      }
+    }, 3000);
+    return () => { supabase.removeChannel(channel); clearInterval(poll); };
   }, [siteId]);
 
   const chartData = useMemo(() => history.map((r) => ({
@@ -541,6 +562,8 @@ const WIDGET_DEFS: WidgetDef[] = [
   { id: "rings", label: "Anillos concéntricos" },
   { id: "gauges", label: "Medidores radiales" },
   { id: "battery3d", label: "Batería 3D animada" },
+  { id: "solarcell", label: "Celda 3D — Producción solar" },
+  { id: "loadcell", label: "Celda 3D — Consumo" },
   { id: "solarrays", label: "Sol radiante" },
   { id: "gridwave", label: "Onda sinusoidal de red" },
   { id: "flow", label: "Diagrama de flujo de energía" },
@@ -574,9 +597,10 @@ function DashboardView({ latest, siteId, spec: _spec }: { latest: Sample | null;
       </div>
     ),
     icons: (
-      <div key="icons" className="grid grid-cols-2 gap-3 rounded-xl border bg-card p-4 sm:gap-4 sm:p-6 animate-fade-in">
+      <div key="icons" className="grid grid-cols-2 gap-3 rounded-xl border bg-card p-4 sm:gap-4 sm:p-6 animate-fade-in lg:grid-cols-5">
         <IconCard icon={<Cpu className="h-10 w-10 sm:h-12 sm:w-12 text-foreground/70" />} title={t("site.dash.inverter")} subtitle={mode.label} />
-        <IconCard icon={<Sun className="h-10 w-10 sm:h-12 sm:w-12 text-[var(--solar)]" />} title={t("site.dash.solar")} subtitle={`${(pv_W / 1000).toFixed(1)} kW`} />
+        <IconCard icon={<Sun className="h-10 w-10 sm:h-12 sm:w-12 text-[var(--solar)]" />} title={t("site.dash.solar")} subtitle={`${Math.round(pv_W).toLocaleString()} W`} />
+        <IconCard icon={<Plug className="h-10 w-10 sm:h-12 sm:w-12 text-[var(--load)]" />} title="Consumo" subtitle={`${Math.round(load).toLocaleString()} W`} />
         <IconCard
           icon={<div className="relative"><Plug className="h-10 w-10 sm:h-12 sm:w-12 text-foreground/70" />{!gridConnected && <AlertCircle className="absolute -bottom-1 -right-1 h-4 w-4 fill-[var(--warning)] text-background" />}</div>}
           title={t("site.dash.grid")} subtitle={`${gridV.toFixed(0)} V`} />
@@ -586,6 +610,8 @@ function DashboardView({ latest, siteId, spec: _spec }: { latest: Sample | null;
     rings: <ConcentricRings key="rings" pv={pv_W} load={load} soc={battery} pvMax={(pv?.array_kwp ?? 5) * 1000} loadMax={5000} />,
     gauges: <PowerGauges key="gauges" pv={pv_W} load={load} gridV={gridV} battery={battery} batteryV={batteryV} pvMax={(pv?.array_kwp ?? 5) * 1000} />,
     battery3d: <Battery3D key="battery3d" soc={battery} voltage={batteryV} charging={charging} />,
+    solarcell: <SolarCell3D key="solarcell" pv={pv_W} pvMax={(pv?.array_kwp ?? 5) * 1000} />,
+    loadcell: <LoadCell3D key="loadcell" load={load} loadMax={(pv?.array_kwp ?? 5) * 1000} />,
     solarrays: <SolarRays key="solarrays" pv={pv_W} pvMax={(pv?.array_kwp ?? 5) * 1000} />,
     gridwave: <GridSineWave key="gridwave" voltage={gridV} frequency={50} />,
     flow: <EnergyFlowDiagram key="flow" pv={pv_W} load={load} gridV={gridV} battery={battery} batteryV={batteryV} />,
@@ -599,7 +625,7 @@ function DashboardView({ latest, siteId, spec: _spec }: { latest: Sample | null;
 
   // Decide layout cols: heavier widgets in 2-col grid
   const visible = state.filter((w) => w.visible);
-  const dualCol = new Set(["battery3d", "solarrays", "gridwave"]);
+  const dualCol = new Set(["battery3d", "solarcell", "loadcell", "solarrays", "gridwave"]);
 
   return (
     <div className="space-y-4">

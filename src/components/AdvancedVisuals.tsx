@@ -1,4 +1,4 @@
-import { Battery, Sun, Plug, Zap } from "lucide-react";
+import { Battery, Sun, Plug, Zap, Home } from "lucide-react";
 
 /* ============================================================
  * Battery3D — animated 3D-ish battery cell with liquid level,
@@ -92,6 +92,159 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 /* ============================================================
+ * PowerCell3D — battery-style liquid cell reused for Solar
+ * production and household Load. Liquid level reflects current
+ * vs max; bubbles + glow when active.
+ * ============================================================ */
+export function PowerCell3D({
+  title, watts, max, color, icon, activeLabel, idleLabel, stats, accent = "var(--accent)",
+}: {
+  title: string;
+  watts: number;
+  max: number;
+  color: string;
+  icon: React.ReactNode;
+  activeLabel: string;
+  idleLabel: string;
+  stats: Array<{ label: string; value: string }>;
+  accent?: string;
+}) {
+  const ratio = Math.max(0, Math.min(1, max > 0 ? watts / max : 0));
+  const pct = ratio * 100;
+  const active = watts > 1;
+  const cellId = `cell-${title.replace(/\s/g, "")}`;
+  return (
+    <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="flex items-center gap-2 font-semibold">
+          <span style={{ color }}>{icon}</span> {title}
+        </h3>
+        <span
+          className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+          style={{
+            background: `color-mix(in oklab, ${color} 15%, transparent)`,
+            color,
+          }}
+        >
+          {active ? `⚡ ${activeLabel}` : idleLabel}
+        </span>
+      </div>
+      <div className="flex items-center gap-6">
+        <div className="relative" style={{ width: 110, height: 200 }}>
+          {/* terminal */}
+          <div className="absolute left-1/2 top-0 h-3 w-10 -translate-x-1/2 rounded-t-md bg-foreground/40" />
+          {/* body */}
+          <div
+            className="absolute inset-x-0 top-3 bottom-0 overflow-hidden rounded-2xl border-2 border-foreground/30 shadow-[inset_0_4px_8px_rgba(0,0,0,0.25)]"
+            style={{ background: "linear-gradient(135deg, hsl(var(--muted)/.6), hsl(var(--card)))" }}
+          >
+            {/* liquid */}
+            <div
+              className="absolute inset-x-0 bottom-0 transition-[height] duration-700 ease-out"
+              style={{
+                height: `${pct}%`,
+                background: `linear-gradient(180deg, color-mix(in oklab, ${color} 70%, white) 0%, ${color} 100%)`,
+                boxShadow: `0 0 24px ${color}`,
+              }}
+            >
+              <svg
+                className="absolute -top-3 left-0 h-6 w-[200%]"
+                viewBox="0 0 200 20"
+                preserveAspectRatio="none"
+                style={{ animation: `waveMove-${cellId} 4s linear infinite`, color }}
+              >
+                <path d="M0 10 Q25 0 50 10 T100 10 T150 10 T200 10 V20 H0 Z" fill="currentColor" opacity="0.8" />
+              </svg>
+              {active && [...Array(5)].map((_, i) => (
+                <span
+                  key={i}
+                  className="absolute h-1.5 w-1.5 rounded-full bg-white/70"
+                  style={{
+                    left: `${15 + i * 18}%`,
+                    bottom: "-4px",
+                    animation: `bubbleUp-${cellId} ${2 + (i % 3)}s ease-in ${i * 0.4}s infinite`,
+                  }}
+                />
+              ))}
+            </div>
+            {/* glossy highlight */}
+            <div className="pointer-events-none absolute inset-y-0 left-2 w-2 rounded-full bg-white/30 blur-[1px]" />
+            {/* value label */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center font-bold text-foreground">
+              <span className="text-3xl drop-shadow-md tabular-nums">{Math.round(watts).toLocaleString()}</span>
+              <span className="text-[11px] opacity-70">W · {pct.toFixed(0)}%</span>
+            </div>
+            {active && (
+              <Zap
+                className="absolute right-2 top-2 h-5 w-5"
+                style={{
+                  color: accent,
+                  animation: `boltFlash-${cellId} 1s ease-in-out infinite`,
+                  filter: `drop-shadow(0 0 6px ${accent})`,
+                }}
+              />
+            )}
+          </div>
+        </div>
+        <div className="flex-1 space-y-3">
+          {stats.map((s) => (
+            <div key={s.label} className="flex justify-between text-sm">
+              <span className="text-muted-foreground">{s.label}</span>
+              <span className="font-semibold tabular-nums">{s.value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <style>{`
+        @keyframes waveMove-${cellId} { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        @keyframes bubbleUp-${cellId} { from { transform: translateY(0); opacity: 0.9; } to { transform: translateY(-180px); opacity: 0; } }
+        @keyframes boltFlash-${cellId} { 0%,100%{opacity:.7;transform:scale(1);} 50%{opacity:1;transform:scale(1.2);} }
+      `}</style>
+    </div>
+  );
+}
+
+export function SolarCell3D({ pv, pvMax = 5000 }: { pv: number; pvMax?: number }) {
+  return (
+    <PowerCell3D
+      title="Producción Solar"
+      watts={pv}
+      max={pvMax}
+      color="var(--solar)"
+      accent="#facc15"
+      icon={<Sun className="h-4 w-4" />}
+      activeLabel="Generando"
+      idleLabel="Sin sol"
+      stats={[
+        { label: "Potencia", value: `${Math.round(pv).toLocaleString()} W` },
+        { label: "Capacidad", value: `${Math.round(pvMax).toLocaleString()} W` },
+        { label: "Estado", value: pv > 1 ? "Produciendo" : "Inactivo" },
+      ]}
+    />
+  );
+}
+
+export function LoadCell3D({ load, loadMax = 5000 }: { load: number; loadMax?: number }) {
+  return (
+    <PowerCell3D
+      title="Consumo de la casa"
+      watts={load}
+      max={loadMax}
+      color="var(--load)"
+      accent="var(--load)"
+      icon={<Home className="h-4 w-4" />}
+      activeLabel="Consumiendo"
+      idleLabel="En reposo"
+      stats={[
+        { label: "Carga actual", value: `${Math.round(load).toLocaleString()} W` },
+        { label: "Capacidad", value: `${Math.round(loadMax).toLocaleString()} W` },
+        { label: "Nivel", value: load > loadMax * 0.8 ? "Alto" : load > loadMax * 0.4 ? "Medio" : "Bajo" },
+      ]}
+    />
+  );
+}
+
+/* ============================================================
  * SolarRays — animated sun whose rays grow with PV production.
  * ============================================================ */
 export function SolarRays({ pv, pvMax = 5000 }: { pv: number; pvMax?: number }) {
@@ -133,10 +286,10 @@ export function SolarRays({ pv, pvMax = 5000 }: { pv: number; pvMax?: number }) 
           </g>
           {/* sun body */}
           <circle r="34" fill="url(#sunGrad)" style={{ filter: `drop-shadow(0 0 ${10 + ratio * 18}px var(--solar))` }} />
-          <text textAnchor="middle" y="6" className="fill-[#7c2d12]" fontSize="18" fontWeight="800">
-            {(pv / 1000).toFixed(2)}
+          <text textAnchor="middle" y="4" className="fill-[#7c2d12]" fontSize="16" fontWeight="800">
+            {Math.round(pv).toLocaleString()}
           </text>
-          <text textAnchor="middle" y="22" className="fill-[#7c2d12]" fontSize="9" opacity="0.85">kW</text>
+          <text textAnchor="middle" y="20" className="fill-[#7c2d12]" fontSize="9" opacity="0.85">W</text>
         </svg>
       </div>
       <style>{`
