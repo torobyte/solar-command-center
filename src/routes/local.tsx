@@ -286,7 +286,7 @@ function LocalDashboardPage() {
 
     pullState();
     pullPv();
-    const id = window.setInterval(pullState, 2000);
+    const id = window.setInterval(pullState, 1000);
     return () => { alive = false; window.clearInterval(id); };
   }, [agentBase]);
 
