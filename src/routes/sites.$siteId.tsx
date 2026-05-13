@@ -182,13 +182,28 @@ function SiteDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [siteId, selectedDevice?.id, selectedDevice?.is_primary]);
 
-  const chartData = useMemo(() => history.map((r) => ({
+  // Persisted smoothing options (per-browser).
+  const [smoothMode, setSmoothMode] = useState<"off" | "mean" | "median">(
+    () => (typeof localStorage !== "undefined" && (localStorage.getItem("chart.smoothMode") as "off" | "mean" | "median")) || "off",
+  );
+  const [smoothWindow, setSmoothWindow] = useState<number>(
+    () => (typeof localStorage !== "undefined" && Number(localStorage.getItem("chart.smoothWindow"))) || 5,
+  );
+  useEffect(() => { localStorage.setItem("chart.smoothMode", smoothMode); }, [smoothMode]);
+  useEffect(() => { localStorage.setItem("chart.smoothWindow", String(smoothWindow)); }, [smoothWindow]);
+
+  const rawChartData = useMemo(() => history.map((r) => ({
     t: new Date(r.recorded_at).getTime(),
-    pv: Number(r.pv_input_power ?? 0),
-    load: Number(r.ac_output_active_power ?? 0),
-    soc: Number(r.battery_capacity ?? 0),
-    grid: Number(r.grid_voltage ?? 0),
+    pv: r.pv_input_power == null ? null : Number(r.pv_input_power),
+    load: r.ac_output_active_power == null ? null : Number(r.ac_output_active_power),
+    soc: r.battery_capacity == null ? null : Number(r.battery_capacity),
+    grid: r.grid_voltage == null ? null : Number(r.grid_voltage),
   })), [history]);
+
+  const chartData = useMemo(
+    () => smoothSeries(rawChartData, smoothMode, smoothWindow),
+    [rawChartData, smoothMode, smoothWindow],
+  );
 
   if (!site) return <SiteDetailSkeleton />;
 
