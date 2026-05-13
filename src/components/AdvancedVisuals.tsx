@@ -1,4 +1,4 @@
-import { Battery, Sun, Plug, Zap, Home } from "lucide-react";
+import { Battery, Sun, Plug, Zap, Home, Clock, BatteryCharging } from "lucide-react";
 
 /* ============================================================
  * Battery3D — animated 3D-ish battery cell with liquid level,
@@ -8,14 +8,14 @@ export function Battery3D({ soc, voltage, charging }: { soc: number; voltage: nu
   const pct = Math.max(0, Math.min(100, soc));
   const fillColor = pct > 60 ? "var(--success)" : pct > 30 ? "var(--warning)" : "var(--destructive)";
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="flex items-center gap-2 font-semibold"><Battery className="h-4 w-4" /> Batería</h3>
+    <div className="@container rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h3 className="flex min-w-0 items-center gap-2 truncate font-semibold"><Battery className="h-4 w-4 shrink-0" /> <span className="truncate">Batería</span></h3>
         <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium">
           {charging ? "⚡ Cargando" : "Descargando"}
         </span>
       </div>
-      <div className="flex items-center gap-6">
+      <div className="flex flex-col items-center gap-4 @[340px]:flex-row @[340px]:gap-6">
         <div className="relative" style={{ width: 110, height: 200 }}>
           {/* terminal */}
           <div className="absolute left-1/2 top-0 h-3 w-10 -translate-x-1/2 rounded-t-md bg-foreground/40" />
@@ -114,7 +114,7 @@ export function PowerCell3D({
   const active = watts > 1;
   const cellId = `cell-${title.replace(/\s/g, "")}`;
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
+    <div className="@container rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="flex items-center gap-2 font-semibold">
           <span style={{ color }}>{icon}</span> {title}
@@ -129,7 +129,7 @@ export function PowerCell3D({
           {active ? `⚡ ${activeLabel}` : idleLabel}
         </span>
       </div>
-      <div className="flex items-center gap-6">
+      <div className="flex flex-col items-center gap-4 @[340px]:flex-row @[340px]:gap-6">
         <div className="relative" style={{ width: 110, height: 200 }}>
           {/* terminal */}
           <div className="absolute left-1/2 top-0 h-3 w-10 -translate-x-1/2 rounded-t-md bg-foreground/40" />
@@ -252,7 +252,7 @@ export function SolarRays({ pv, pvMax = 5000 }: { pv: number; pvMax?: number }) 
   const rayLen = 18 + ratio * 36;
   const rays = 12;
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
+    <div className="@container rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
       <div className="mb-2 flex items-center justify-between">
         <h3 className="flex items-center gap-2 font-semibold"><Sun className="h-4 w-4 text-[var(--solar)]" /> Producción Solar</h3>
         <span className="rounded-full bg-[var(--solar)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--solar)]">
@@ -307,7 +307,7 @@ export function GridSineWave({ voltage, frequency = 50 }: { voltage: number; fre
   const connected = voltage > 50;
   const color = connected ? "var(--grid)" : "hsl(var(--muted-foreground))";
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
+    <div className="@container rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
       <div className="mb-2 flex items-center justify-between">
         <h3 className="flex items-center gap-2 font-semibold"><Plug className="h-4 w-4" /> Red Eléctrica</h3>
         <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${connected
@@ -371,9 +371,9 @@ export function ConcentricRings({ pv, load, soc, pvMax = 5000, loadMax = 5000 }:
   ];
   const size = 220, stroke = 16, gap = 6;
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
+    <div className="@container rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
       <h3 className="mb-3 font-semibold">Anillos de actividad</h3>
-      <div className="flex items-center justify-center gap-6">
+      <div className="flex flex-col items-center justify-center gap-4 @[360px]:flex-row @[360px]:gap-6">
         <div className="relative" style={{ width: size, height: size }}>
           <svg width={size} height={size} className="-rotate-90">
             {rings.map((r, i) => {
@@ -426,7 +426,7 @@ export function SolarPanelsViz({ pv, pvMax = 5000 }: { pv: number; pvMax?: numbe
   const active = pv > 1;
   const cells = Array.from({ length: 12 });
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
+    <div className="@container rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="flex items-center gap-2 font-semibold">
           <Sun className="h-4 w-4 text-[var(--solar)]" /> Producción Solar
@@ -442,7 +442,7 @@ export function SolarPanelsViz({ pv, pvMax = 5000 }: { pv: number; pvMax?: numbe
         </span>
       </div>
 
-      <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
+      <div className="flex flex-col items-stretch gap-4 @[420px]:flex-row @[420px]:items-center">
         <div className="relative mx-auto h-[200px] w-full max-w-[320px] overflow-hidden rounded-xl border bg-gradient-to-b from-sky-200/60 via-sky-100/40 to-emerald-50/40 dark:from-slate-800/80 dark:via-slate-900/60 dark:to-slate-950">
           {/* Sun */}
           <div
@@ -558,7 +558,7 @@ export function HouseLoadViz({ load, loadMax = 5000 }: { load: number; loadMax?:
   const glow = `color-mix(in oklab, var(--load) ${30 + ratio * 50}%, transparent)`;
 
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
+    <div className="@container rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="flex items-center gap-2 font-semibold">
           <Home className="h-4 w-4 text-[var(--load)]" /> Consumo de la casa
@@ -571,7 +571,7 @@ export function HouseLoadViz({ load, loadMax = 5000 }: { load: number; loadMax?:
         </span>
       </div>
 
-      <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
+      <div className="flex flex-col items-stretch gap-4 @[420px]:flex-row @[420px]:items-center">
         <div className="relative mx-auto h-[200px] w-full max-w-[320px] overflow-hidden rounded-xl border bg-gradient-to-b from-slate-100 via-slate-50 to-emerald-50/40 dark:from-slate-900 dark:via-slate-900/80 dark:to-slate-950">
           {/* night/day ambient circle */}
           <div className="absolute right-5 top-4 h-8 w-8 rounded-full bg-gradient-to-br from-yellow-200/70 to-orange-200/40 blur-[2px] dark:from-slate-700/60 dark:to-slate-800/40" />
@@ -691,6 +691,121 @@ export function HouseLoadViz({ load, loadMax = 5000 }: { load: number; loadMax?:
       <style>{`
         @keyframes houseLoadPulse { 0%{transform:translateX(-100%);} 100%{transform:translateX(200%);} }
       `}</style>
+    </div>
+  );
+}
+
+/* ============================================================
+ * BackupTimeCard — runtime estimation for the battery bank.
+ * Inputs: SOC (%), total bank kWh, usable DoD (%), current
+ * load (W), and current PV (W). Net discharge = load - pv.
+ * ============================================================ */
+
+
+export function BackupTimeCard({
+  soc, batteryKwh, usableDodPct, load, pv, batteryCount, batteryType,
+}: {
+  soc: number;
+  batteryKwh: number | null;
+  usableDodPct: number | null;
+  load: number;
+  pv: number;
+  batteryCount: number | null;
+  batteryType: string | null;
+}) {
+  const dod = (usableDodPct ?? 80) / 100;
+  const usableKwh = (batteryKwh ?? 0) * (Math.max(0, Math.min(100, soc)) / 100) * dod;
+  const netDischargeW = Math.max(0, load - pv);
+  const netDischargeKw = netDischargeW / 1000;
+  const charging = pv > load + 5;
+
+  let runtimeHours: number | null = null;
+  if (!charging && netDischargeKw > 0.01 && usableKwh > 0) {
+    runtimeHours = usableKwh / netDischargeKw;
+  }
+
+  const hh = runtimeHours != null ? Math.floor(runtimeHours) : 0;
+  const mm = runtimeHours != null ? Math.round((runtimeHours - hh) * 60) : 0;
+
+  // Color by criticality
+  const color = runtimeHours == null
+    ? "var(--success)"
+    : runtimeHours > 6 ? "var(--success)"
+    : runtimeHours > 2 ? "var(--warning)"
+    : "var(--destructive)";
+
+  const typeLabel: Record<string, string> = {
+    lithium: "Litio (LiFePO4)", lithium_nmc: "Litio (NMC)",
+    agm: "AGM", gel: "Gel", lead_acid: "Plomo-ácido", other: "Otra",
+  };
+
+  const ringPct = runtimeHours == null ? 100 : Math.min(100, (runtimeHours / 12) * 100);
+  const r = 52, c = 2 * Math.PI * r;
+
+  return (
+    <div className="@container rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in h-full">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="flex items-center gap-2 font-semibold">
+          <Clock className="h-4 w-4 text-[var(--battery)]" /> Tiempo de respaldo
+        </h3>
+        <span
+          className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+          style={{ background: `color-mix(in oklab, ${color} 18%, transparent)`, color }}
+        >
+          {charging
+            ? "⚡ Cargando — sin descarga"
+            : runtimeHours == null
+              ? "Sin datos del banco"
+              : runtimeHours > 6 ? "● Holgado"
+              : runtimeHours > 2 ? "● Limitado"
+              : "● Crítico"}
+        </span>
+      </div>
+
+      <div className="flex flex-col items-stretch gap-4 @[360px]:flex-row @[360px]:items-center">
+        <div className="relative mx-auto" style={{ width: 140, height: 140 }}>
+          <svg width="140" height="140" className="-rotate-90">
+            <circle cx="70" cy="70" r={r} fill="none" stroke={color} strokeOpacity="0.15" strokeWidth="12" />
+            <circle cx="70" cy="70" r={r} fill="none" stroke={color} strokeWidth="12" strokeLinecap="round"
+              strokeDasharray={c} strokeDashoffset={c * (1 - ringPct / 100)}
+              style={{ transition: "stroke-dashoffset 1s ease, stroke 0.5s", filter: `drop-shadow(0 0 6px ${color})` }} />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            {charging ? (
+              <>
+                <BatteryCharging className="h-6 w-6" style={{ color }} />
+                <div className="mt-1 text-[10px] uppercase text-muted-foreground">cargando</div>
+              </>
+            ) : runtimeHours == null ? (
+              <div className="px-2 text-center text-[10px] text-muted-foreground">
+                Configura el banco
+              </div>
+            ) : runtimeHours > 99 ? (
+              <>
+                <div className="text-2xl font-extrabold tabular-nums" style={{ color }}>99+</div>
+                <div className="text-[10px] uppercase text-muted-foreground">horas</div>
+              </>
+            ) : (
+              <>
+                <div className="text-3xl font-extrabold tabular-nums leading-none" style={{ color }}>{hh}<span className="text-base">h</span> {mm}<span className="text-base">m</span></div>
+                <div className="mt-1 text-[10px] uppercase text-muted-foreground">restantes</div>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="flex-1 space-y-2.5 text-sm">
+          <Stat label="Energía útil" value={`${usableKwh.toFixed(2)} kWh`} />
+          <Stat label="Descarga neta" value={charging ? "0 W (cargando)" : `${Math.round(netDischargeW).toLocaleString()} W`} />
+          <Stat label="SOC actual" value={`${Math.max(0, Math.min(100, soc)).toFixed(0)} %`} />
+          <Stat label="Banco" value={
+            batteryCount && batteryCount > 0
+              ? `${batteryCount}× ${typeLabel[batteryType ?? "other"] ?? "—"}`
+              : "Sin configurar"
+          } />
+          <Stat label="DoD útil" value={`${(usableDodPct ?? 80).toFixed(0)} %`} />
+        </div>
+      </div>
     </div>
   );
 }

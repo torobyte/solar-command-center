@@ -747,7 +747,12 @@ export type Database = {
         Row: {
           array_kwp: number | null
           azimuth: number | null
+          battery_ah_each: number | null
+          battery_count: number | null
           battery_kwh: number | null
+          battery_type: string | null
+          battery_usable_dod_pct: number | null
+          battery_voltage_each: number | null
           device_id: string | null
           latitude: number | null
           longitude: number | null
@@ -761,7 +766,12 @@ export type Database = {
         Insert: {
           array_kwp?: number | null
           azimuth?: number | null
+          battery_ah_each?: number | null
+          battery_count?: number | null
           battery_kwh?: number | null
+          battery_type?: string | null
+          battery_usable_dod_pct?: number | null
+          battery_voltage_each?: number | null
           device_id?: string | null
           latitude?: number | null
           longitude?: number | null
@@ -775,7 +785,12 @@ export type Database = {
         Update: {
           array_kwp?: number | null
           azimuth?: number | null
+          battery_ah_each?: number | null
+          battery_count?: number | null
           battery_kwh?: number | null
+          battery_type?: string | null
+          battery_usable_dod_pct?: number | null
+          battery_voltage_each?: number | null
           device_id?: string | null
           latitude?: number | null
           longitude?: number | null

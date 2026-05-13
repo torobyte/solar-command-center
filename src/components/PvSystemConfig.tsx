@@ -17,6 +17,24 @@ export interface PvConfig {
   system_losses_pct: number | null;
   latitude: number | null;
   longitude: number | null;
+  battery_count: number | null;
+  battery_type: string | null;
+  battery_voltage_each: number | null;
+  battery_ah_each: number | null;
+  battery_usable_dod_pct: number | null;
+}
+
+const BATTERY_TYPES: { v: string; l: string; dod: number }[] = [
+  { v: "lithium", l: "Litio (LiFePO4)", dod: 90 },
+  { v: "lithium_nmc", l: "Litio (NMC)", dod: 80 },
+  { v: "agm", l: "AGM (sellada)", dod: 50 },
+  { v: "gel", l: "Gel", dod: 50 },
+  { v: "lead_acid", l: "Plomo-ácido (inundada)", dod: 50 },
+  { v: "other", l: "Otra", dod: 60 },
+];
+
+export function defaultDodFor(type: string | null | undefined): number {
+  return BATTERY_TYPES.find((b) => b.v === type)?.dod ?? 80;
 }
 
 export function usePvConfig(siteId: string) {
@@ -48,6 +66,8 @@ export function PvSystemConfigCard({ siteId, maxAcOutputPower, nominalBatteryV }
     array_kwp: null, panel_count: null, panel_watts: null,
     azimuth: 180, tilt: 30, battery_kwh: null, system_losses_pct: 14,
     latitude: null, longitude: null,
+    battery_count: null, battery_type: "lithium",
+    battery_voltage_each: null, battery_ah_each: null, battery_usable_dod_pct: 90,
   });
   const [saving, setSaving] = useState(false);
 
@@ -98,9 +118,54 @@ export function PvSystemConfigCard({ siteId, maxAcOutputPower, nominalBatteryV }
         <Field label="Potencia del array (kWp)" hint="Suma de la potencia pico de todos los paneles">
           <Input type="number" step="0.01" value={form.array_kwp ?? ""} onChange={(e) => set("array_kwp", parseFloat(e.target.value) || null)} placeholder="ej. 5.20" />
         </Field>
-        <Field label="Capacidad batería (kWh)" hint="Capacidad útil del banco">
+        <Field label="Capacidad total batería (kWh)" hint="Se calcula automáticamente desde el banco si está configurado">
           <Input type="number" step="0.1" value={form.battery_kwh ?? ""} onChange={(e) => set("battery_kwh", parseFloat(e.target.value) || null)} placeholder="ej. 4.8" />
         </Field>
+
+        <div className="sm:col-span-2 mt-2 rounded-lg border border-dashed bg-muted/20 p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h4 className="text-sm font-semibold">Banco de baterías</h4>
+            <Button type="button" variant="ghost" size="sm" onClick={() => {
+              const n = form.battery_count ?? 0;
+              const v = form.battery_voltage_each ?? 0;
+              const ah = form.battery_ah_each ?? 0;
+              if (n > 0 && v > 0 && ah > 0) {
+                const kwh = +((n * v * ah) / 1000).toFixed(2);
+                set("battery_kwh", kwh);
+                toast.success(`Capacidad calculada: ${kwh} kWh`);
+              } else toast.error("Completa nº, voltaje y Ah primero");
+            }}>
+              <Wand2 className="mr-1.5 h-3.5 w-3.5" /> Calcular kWh
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Tipo de batería" hint="La química define la profundidad de descarga útil">
+              <select
+                className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                value={form.battery_type ?? "lithium"}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  set("battery_type", v);
+                  set("battery_usable_dod_pct", defaultDodFor(v));
+                }}
+              >
+                {BATTERY_TYPES.map((b) => <option key={b.v} value={b.v}>{b.l}</option>)}
+              </select>
+            </Field>
+            <Field label="Nº de baterías en el banco" hint="Cuenta total de baterías (serie × paralelo)">
+              <Input type="number" min={1} value={form.battery_count ?? ""} onChange={(e) => set("battery_count", parseInt(e.target.value) || null)} placeholder="ej. 4" />
+            </Field>
+            <Field label="Voltaje por batería (V)" hint="ej. 12, 24, 48">
+              <Input type="number" step="0.1" value={form.battery_voltage_each ?? ""} onChange={(e) => set("battery_voltage_each", parseFloat(e.target.value) || null)} placeholder="ej. 12" />
+            </Field>
+            <Field label="Capacidad por batería (Ah)" hint="Amperios-hora nominales">
+              <Input type="number" step="1" value={form.battery_ah_each ?? ""} onChange={(e) => set("battery_ah_each", parseFloat(e.target.value) || null)} placeholder="ej. 100" />
+            </Field>
+            <Field label="Profundidad de descarga útil (%)" hint="Litio ~90%, AGM/Gel ~50%, plomo ~50%">
+              <Input type="number" min={10} max={100} step={1} value={form.battery_usable_dod_pct ?? ""} onChange={(e) => set("battery_usable_dod_pct", parseFloat(e.target.value) || null)} placeholder="ej. 90" />
+            </Field>
+          </div>
+        </div>
         <Field label="Nº paneles" hint="Opcional">
           <Input type="number" value={form.panel_count ?? ""} onChange={(e) => set("panel_count", parseInt(e.target.value) || null)} placeholder="ej. 12" />
         </Field>

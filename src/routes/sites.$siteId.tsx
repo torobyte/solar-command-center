@@ -15,7 +15,7 @@ import { useI18n } from "@/lib/i18n";
 import { SolarForecastWidget } from "@/components/SolarForecastWidget";
 import { EnergyFlowDiagram } from "@/components/EnergyFlowDiagram";
 import { PowerGauges } from "@/components/PowerGauges";
-import { Battery3D, SolarRays, GridSineWave, ConcentricRings, SolarPanelsViz, HouseLoadViz } from "@/components/AdvancedVisuals";
+import { Battery3D, SolarRays, GridSineWave, ConcentricRings, SolarPanelsViz, HouseLoadViz, BackupTimeCard } from "@/components/AdvancedVisuals";
 import { DashboardGrid, useDashboardLayout, type WidgetDef } from "@/components/DashboardCustomizer";
 import { PvSystemConfigCard, usePvConfig } from "@/components/PvSystemConfig";
 import { DeviceSelector, useDevices, type Device } from "@/components/DeviceManager";
@@ -589,6 +589,7 @@ function formatInverterMode(raw: string | null | undefined): { label: string; co
 const WIDGET_DEFS: WidgetDef[] = [
   { id: "mode", label: "Modo del inversor" },
   { id: "icons", label: "Tarjetas resumen" },
+  { id: "backup", label: "Tiempo de respaldo" },
   { id: "rings", label: "Anillos concéntricos" },
   { id: "gauges", label: "Medidores radiales" },
   { id: "battery3d", label: "Batería 3D animada" },
@@ -628,15 +629,28 @@ function DashboardView({ latest, siteId, spec: _spec, device: _device }: { lates
       </div>
     ),
     icons: (
-      <div className="grid grid-cols-2 gap-3 rounded-xl border bg-card p-4 sm:gap-4 sm:p-6 animate-fade-in lg:grid-cols-5 h-full">
-        <IconCard icon={<Cpu className="h-10 w-10 sm:h-12 sm:w-12 text-foreground/70" />} title={t("site.dash.inverter")} subtitle={mode.label} />
-        <IconCard icon={<Sun className="h-10 w-10 sm:h-12 sm:w-12 text-[var(--solar)]" />} title={t("site.dash.solar")} subtitle={`${Math.round(pv_W).toLocaleString()} W`} />
-        <IconCard icon={<Plug className="h-10 w-10 sm:h-12 sm:w-12 text-[var(--load)]" />} title="Consumo" subtitle={`${Math.round(load).toLocaleString()} W`} />
-        <IconCard
-          icon={<div className="relative"><Plug className="h-10 w-10 sm:h-12 sm:w-12 text-foreground/70" />{!gridConnected && <AlertCircle className="absolute -bottom-1 -right-1 h-4 w-4 fill-[var(--warning)] text-background" />}</div>}
-          title={t("site.dash.grid")} subtitle={`${gridV.toFixed(0)} V`} />
-        <IconCard icon={<Battery className="h-10 w-10 sm:h-12 sm:w-12 text-[var(--battery)]" />} title={t("site.dash.battery")} subtitle={`${battery.toFixed(0)} %`} />
+      <div className="@container rounded-xl border bg-card p-4 sm:p-6 animate-fade-in h-full">
+        <div className="grid grid-cols-1 gap-3 @[280px]:grid-cols-2 @[520px]:grid-cols-3 @[760px]:grid-cols-5 sm:gap-4">
+          <IconCard icon={<Cpu className="h-10 w-10 text-foreground/70" />} title={t("site.dash.inverter")} subtitle={mode.label} />
+          <IconCard icon={<Sun className="h-10 w-10 text-[var(--solar)]" />} title={t("site.dash.solar")} subtitle={`${Math.round(pv_W).toLocaleString()} W`} />
+          <IconCard icon={<Plug className="h-10 w-10 text-[var(--load)]" />} title="Consumo" subtitle={`${Math.round(load).toLocaleString()} W`} />
+          <IconCard
+            icon={<div className="relative"><Plug className="h-10 w-10 text-foreground/70" />{!gridConnected && <AlertCircle className="absolute -bottom-1 -right-1 h-4 w-4 fill-[var(--warning)] text-background" />}</div>}
+            title={t("site.dash.grid")} subtitle={`${gridV.toFixed(0)} V`} />
+          <IconCard icon={<Battery className="h-10 w-10 text-[var(--battery)]" />} title={t("site.dash.battery")} subtitle={`${battery.toFixed(0)} %`} />
+        </div>
       </div>
+    ),
+    backup: (
+      <BackupTimeCard
+        soc={battery}
+        batteryKwh={pv?.battery_kwh ?? null}
+        usableDodPct={pv?.battery_usable_dod_pct ?? null}
+        load={load}
+        pv={pv_W}
+        batteryCount={pv?.battery_count ?? null}
+        batteryType={pv?.battery_type ?? null}
+      />
     ),
     rings: <ConcentricRings pv={pv_W} load={load} soc={battery} pvMax={pvMax} loadMax={5000} />,
     gauges: <PowerGauges pv={pv_W} load={load} gridV={gridV} battery={battery} batteryV={batteryV} pvMax={pvMax} />,
