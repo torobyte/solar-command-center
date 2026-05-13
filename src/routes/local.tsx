@@ -23,6 +23,107 @@ export const Route = createFileRoute("/local")({
 
 interface LicenseMeta { plan?: string; site_name?: string; site_id?: string }
 
+interface PushHealth {
+  queue_size: number;
+  ok_count: number;
+  fail_count: number;
+  last_ok_at: string | null;
+  last_attempt_at: string | null;
+  last_error: string | null;
+  loop_restarts: number;
+}
+
+/** Pequeña insignia que muestra si el agente está empujando telemetría al cloud. */
+function CloudPushBadge({ agentBase }: { agentBase: string }) {
+  const [push, setPush] = useState<PushHealth | null>(null);
+  const [unreachable, setUnreachable] = useState(false);
+
+  useEffect(() => {
+    if (!agentBase) return;
+    let alive = true;
+    async function tick() {
+      try {
+        const r = await fetch(`${agentBase}/api/health`, { cache: "no-store" });
+        const j = await r.json();
+        if (!alive) return;
+        setUnreachable(false);
+        setPush(j?.push ?? null);
+      } catch {
+        if (alive) setUnreachable(true);
+      }
+    }
+    tick();
+    const id = window.setInterval(tick, 5000);
+    return () => { alive = false; window.clearInterval(id); };
+  }, [agentBase]);
+
+  if (unreachable) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2 py-0.5 font-medium text-muted-foreground" title="No se pudo consultar /api/health del agente local">
+        <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
+        Cloud: sin healthcheck
+      </span>
+    );
+  }
+  if (!push) return null;
+
+  const lastOkMs = push.last_ok_at ? Date.now() - new Date(push.last_ok_at).getTime() : null;
+  const lastAttemptMs = push.last_attempt_at ? Date.now() - new Date(push.last_attempt_at).getTime() : null;
+
+  // Estados, en orden de severidad descendente:
+  // - error: último intento falló (last_error presente)
+  // - idle: nunca empujó nada (típico recién arrancado, sin muestras aún)
+  // - stale: último OK > 30 s o cola creciendo
+  // - ok: empujó hace <= 30 s
+  let tone: "ok" | "warn" | "err" | "idle" = "ok";
+  let label = "Cloud: empujando";
+  let detail = "";
+
+  if (push.last_error) {
+    tone = "err";
+    label = "Cloud: fallo";
+    detail = push.last_error;
+  } else if (push.last_ok_at == null && push.last_attempt_at == null) {
+    tone = "idle";
+    label = "Cloud: en espera";
+    detail = "el agente aún no ha intentado empujar (¿sin muestras del inversor?)";
+  } else if (lastOkMs == null || lastOkMs > 30_000 || push.queue_size > 5) {
+    tone = "warn";
+    label = "Cloud: atrasado";
+    detail = `cola=${push.queue_size}` + (lastOkMs != null ? ` · último OK hace ${Math.round(lastOkMs / 1000)} s` : "");
+  } else {
+    detail = `${push.ok_count} muestras · último OK hace ${Math.round((lastOkMs ?? 0) / 1000)} s`;
+  }
+
+  const toneCls = {
+    ok:   "bg-success/15 text-success",
+    warn: "bg-warning/15 text-warning",
+    err:  "bg-destructive/15 text-destructive",
+    idle: "bg-muted text-muted-foreground",
+  }[tone];
+  const dotCls = {
+    ok:   "bg-success animate-pulse",
+    warn: "bg-warning",
+    err:  "bg-destructive",
+    idle: "bg-muted-foreground/60",
+  }[tone];
+
+  const tooltip =
+    `${label}\n` +
+    `${detail}\n` +
+    `OK: ${push.ok_count} · Fallos: ${push.fail_count} · Cola: ${push.queue_size}` +
+    (push.loop_restarts ? ` · Reinicios push_loop: ${push.loop_restarts}` : "") +
+    (push.last_attempt_at && lastAttemptMs != null ? `\nÚltimo intento hace ${Math.round(lastAttemptMs / 1000)} s` : "");
+
+  return (
+    <span className={`inline-flex max-w-[420px] items-center gap-1.5 rounded-full px-2 py-0.5 font-medium ${toneCls}`} title={tooltip}>
+      <span className={`h-1.5 w-1.5 rounded-full ${dotCls}`} />
+      <span className="truncate">{label}{detail ? ` · ${detail}` : ""}</span>
+    </span>
+  );
+}
+
+
 function LocalDashboardPage() {
   const search = Route.useSearch();
   // Default: same-origin (when the bundle is served from the agent itself).
@@ -207,6 +308,7 @@ function LocalDashboardPage() {
               </span>
               <span className="rounded-full bg-muted px-2 py-0.5 font-medium">Plan: {plan}</span>
               <span className="rounded-full bg-muted px-2 py-0.5 font-medium">Modo: {mode.label}</span>
+              <CloudPushBadge agentBase={agentBase} />
               {lastTick > 0 && (
                 <span className="text-muted-foreground/70">
                   · Última lectura {latest?.recorded_at ? new Date(latest.recorded_at).toLocaleTimeString() : "—"}
