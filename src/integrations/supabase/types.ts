@@ -17,93 +17,144 @@ export type Database = {
       branding_settings: {
         Row: {
           accent_color: string | null
+          accent_color_dark: string | null
           background_color: string | null
+          background_color_dark: string | null
           border_color: string | null
+          border_color_dark: string | null
           card_color: string | null
+          card_color_dark: string | null
           destructive_color: string | null
+          destructive_color_dark: string | null
           favicon_url: string | null
+          favicon_url_dark: string | null
           font_body: string | null
           font_display: string | null
           foreground_color: string | null
+          foreground_color_dark: string | null
           key: string
           logo_url: string | null
+          logo_url_dark: string | null
           muted_color: string | null
+          muted_color_dark: string | null
           primary_color: string | null
+          primary_color_dark: string | null
           primary_foreground: string | null
+          primary_foreground_dark: string | null
           pwa_background_color: string | null
+          pwa_background_color_dark: string | null
           pwa_description: string | null
           pwa_display: string | null
           pwa_icon_192: string | null
+          pwa_icon_192_dark: string | null
           pwa_icon_512: string | null
+          pwa_icon_512_dark: string | null
           pwa_name: string | null
           pwa_short_name: string | null
           pwa_theme_color: string | null
+          pwa_theme_color_dark: string | null
           radius: string | null
           site_name: string
           success_color: string | null
+          success_color_dark: string | null
           tagline: string | null
           updated_at: string
           warning_color: string | null
+          warning_color_dark: string | null
         }
         Insert: {
           accent_color?: string | null
+          accent_color_dark?: string | null
           background_color?: string | null
+          background_color_dark?: string | null
           border_color?: string | null
+          border_color_dark?: string | null
           card_color?: string | null
+          card_color_dark?: string | null
           destructive_color?: string | null
+          destructive_color_dark?: string | null
           favicon_url?: string | null
+          favicon_url_dark?: string | null
           font_body?: string | null
           font_display?: string | null
           foreground_color?: string | null
+          foreground_color_dark?: string | null
           key?: string
           logo_url?: string | null
+          logo_url_dark?: string | null
           muted_color?: string | null
+          muted_color_dark?: string | null
           primary_color?: string | null
+          primary_color_dark?: string | null
           primary_foreground?: string | null
+          primary_foreground_dark?: string | null
           pwa_background_color?: string | null
+          pwa_background_color_dark?: string | null
           pwa_description?: string | null
           pwa_display?: string | null
           pwa_icon_192?: string | null
+          pwa_icon_192_dark?: string | null
           pwa_icon_512?: string | null
+          pwa_icon_512_dark?: string | null
           pwa_name?: string | null
           pwa_short_name?: string | null
           pwa_theme_color?: string | null
+          pwa_theme_color_dark?: string | null
           radius?: string | null
           site_name?: string
           success_color?: string | null
+          success_color_dark?: string | null
           tagline?: string | null
           updated_at?: string
           warning_color?: string | null
+          warning_color_dark?: string | null
         }
         Update: {
           accent_color?: string | null
+          accent_color_dark?: string | null
           background_color?: string | null
+          background_color_dark?: string | null
           border_color?: string | null
+          border_color_dark?: string | null
           card_color?: string | null
+          card_color_dark?: string | null
           destructive_color?: string | null
+          destructive_color_dark?: string | null
           favicon_url?: string | null
+          favicon_url_dark?: string | null
           font_body?: string | null
           font_display?: string | null
           foreground_color?: string | null
+          foreground_color_dark?: string | null
           key?: string
           logo_url?: string | null
+          logo_url_dark?: string | null
           muted_color?: string | null
+          muted_color_dark?: string | null
           primary_color?: string | null
+          primary_color_dark?: string | null
           primary_foreground?: string | null
+          primary_foreground_dark?: string | null
           pwa_background_color?: string | null
+          pwa_background_color_dark?: string | null
           pwa_description?: string | null
           pwa_display?: string | null
           pwa_icon_192?: string | null
+          pwa_icon_192_dark?: string | null
           pwa_icon_512?: string | null
+          pwa_icon_512_dark?: string | null
           pwa_name?: string | null
           pwa_short_name?: string | null
           pwa_theme_color?: string | null
+          pwa_theme_color_dark?: string | null
           radius?: string | null
           site_name?: string
           success_color?: string | null
+          success_color_dark?: string | null
           tagline?: string | null
           updated_at?: string
           warning_color?: string | null
+          warning_color_dark?: string | null
         }
         Relationships: []
       }
