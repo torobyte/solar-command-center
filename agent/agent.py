@@ -279,6 +279,13 @@ class Agent:
         self.error_count: int = 0
         self.read_count: int = 0
         self.started_at: str = datetime.now(timezone.utc).isoformat()
+        # Diagnóstico de la conexión con el inversor — usado por el badge
+        # "Inversor: …" del frontend local para que el operador sepa por qué
+        # no ve datos sin tener que abrir /status.
+        self.inverter_connected_at: str | None = None
+        self.inverter_reconnect_count: int = 0
+        self.inverter_consecutive_empty: int = 0
+        self.inverter_state: str = "init"  # init | searching | connected | stale | error
         # Diagnóstico del push_loop hacia el cloud
         self.push_ok_count: int = 0
         self.push_fail_count: int = 0
@@ -289,9 +296,16 @@ class Agent:
 
     def ensure_transport(self):
         if self.transport: return
+        self.inverter_state = "searching"
         preferred = self.config.get("inverter_port")
         self.transport = autodetect(preferred=preferred)
         if self.transport:
+            self.inverter_connected_at = datetime.now(timezone.utc).isoformat()
+            self.inverter_reconnect_count += 1
+            self.inverter_consecutive_empty = 0
+            self.inverter_state = "connected"
+            print(f"[agent] inverter connected on {self.transport.path} "
+                  f"({self.transport.kind}) — reconexión #{self.inverter_reconnect_count}", flush=True)
             if self.config.get("inverter_port") != self.transport.path:
                 self.config["inverter_port"] = self.transport.path
                 self.config["inverter_transport"] = self.transport.kind
@@ -299,33 +313,72 @@ class Agent:
         else:
             self.last_error = "No se detectó inversor en ningún puerto"
             self.last_error_at = datetime.now(timezone.utc).isoformat()
+            self.inverter_state = "error"
             print("[agent] no inverter detected, retrying in 5 s")
 
+    def _force_reconnect(self, reason: str):
+        """Cierra el transporte y deja que el próximo ciclo lo reabra."""
+        print(f"[agent] forcing inverter reconnect: {reason}", flush=True)
+        self.last_error = reason
+        self.last_error_at = datetime.now(timezone.utc).isoformat()
+        self.inverter_state = "error"
+        if self.transport:
+            try: self.transport.close()
+            except Exception: pass
+        self.transport = None
+        self.inverter_consecutive_empty = 0
+
     def poll_loop(self):
+        # Backoff cuando no hay inversor — evitamos hacer autodetect cada
+        # segundo (escanea /dev/hidraw* + /dev/serial/by-id/* y es caro).
+        no_device_sleep = 0.0
         while True:
             try:
+                if not self.transport and no_device_sleep > 0:
+                    time.sleep(min(no_device_sleep, 5.0))
                 self.ensure_transport()
-                if self.transport:
-                    qpigs = self.transport.send("QPIGS")
-                    qmod = self.transport.send("QMOD")
-                    sample = parse_qpigs(qpigs)
-                    sample["inverter_mode"] = qmod
-                    sample["recorded_at"] = datetime.now(timezone.utc).isoformat()
-                    with self.lock:
-                        self.latest = sample
-                        self.last_sample_at = sample["recorded_at"]
-                        self.read_count += 1
-                        self.history.append(sample)
-                        # Keep ~12h at 5s = 8640 samples; cap at 2000 to limit memory.
-                        if len(self.history) > 2000: self.history = self.history[-2000:]
-                    try: self.pending.put_nowait(sample)
-                    except queue.Full: pass
+                if not self.transport:
+                    no_device_sleep = min(5.0, no_device_sleep + 1.0)
+                    time.sleep(POLL_INTERVAL)
+                    continue
+                no_device_sleep = 0.0
+                qpigs = self.transport.send("QPIGS")
+                qmod = self.transport.send("QMOD")
+                sample = parse_qpigs(qpigs)
+                # Si la muestra no tiene siquiera la tensión de red, la
+                # consideramos vacía y forzamos reconexión tras 3 intentos
+                # — típico cuando el cable USB se desenchufa pero el
+                # /dev/hidraw0 sigue existiendo y devuelve cadenas vacías.
+                if not sample.get("grid_voltage") and not sample.get("ac_output_voltage"):
+                    self.inverter_consecutive_empty += 1
+                    if self.inverter_consecutive_empty >= 3:
+                        self._force_reconnect("3 lecturas vacías consecutivas")
+                    else:
+                        self.inverter_state = "stale"
+                    time.sleep(POLL_INTERVAL)
+                    continue
+                self.inverter_consecutive_empty = 0
+                self.inverter_state = "connected"
+                sample["inverter_mode"] = qmod
+                sample["recorded_at"] = datetime.now(timezone.utc).isoformat()
+                with self.lock:
+                    self.latest = sample
+                    self.last_sample_at = sample["recorded_at"]
+                    self.read_count += 1
+                    self.history.append(sample)
+                    # Keep ~12h at 5s = 8640 samples; cap at 2000 to limit memory.
+                    if len(self.history) > 2000: self.history = self.history[-2000:]
+                try: self.pending.put_nowait(sample)
+                except queue.Full: pass
             except Exception as e:
                 self.last_error = f"{type(e).__name__}: {e}"
                 self.last_error_at = datetime.now(timezone.utc).isoformat()
                 self.error_count += 1
+                self.inverter_state = "error"
                 print(f"[agent] poll error: {e}")
-                if self.transport: self.transport.close()
+                if self.transport:
+                    try: self.transport.close()
+                    except Exception: pass
                 self.transport = None
             time.sleep(POLL_INTERVAL)
 
