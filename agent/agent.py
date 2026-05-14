@@ -589,6 +589,7 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
   <div class="spin"></div>
   <div class="sub" id="bootMsg">Verificando agente local…</div>
   <a class="btn" href="/legacy" id="fallbackBtn" style="display:none">Abrir panel local (offline)</a>
+  <a class="btn" href="#" id="toLegacyBtn" onclick="switchMode('legacy');return false;">Cambiar a modo legacy</a>
   <a class="btn" href="/status" style="background:transparent">Diagnóstico del agente</a>
 </div>
 <iframe id="frame" allow="fullscreen; clipboard-write" referrerpolicy="no-referrer"></iframe>
