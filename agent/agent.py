@@ -623,6 +623,8 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
   fetch("/api/health", { cache:"no-store" })
     .then(function(r){ return r.ok ? r.json() : Promise.reject(new Error("health "+r.status)); })
     .then(function(h){
+      // Si el usuario eligió modo legacy explícitamente, ir directo.
+      if (h && h.ui_mode === "legacy") { window.location.replace("/legacy"); return; }
       if (mixedContent) { goLegacy("Conexión segura no disponible — usando panel local."); return; }
       msg.textContent = h && h.has_inverter_data
         ? "Conectando con el panel cloud…"
@@ -634,10 +636,10 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
       fb.style.display = "inline-block";
     });
 
-  // 2) Probe al cloud con timeout real. Si no responde en 2.5s → fallback.
+  // 2) Probe al cloud con timeout real. Si no responde en 1.5s → fallback.
   function probeCloud(){
     var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
-    var to = setTimeout(function(){ if(ctrl) ctrl.abort(); }, 2500);
+    var to = setTimeout(function(){ if(ctrl) ctrl.abort(); }, 1500);
     fetch(cloud + "/manifest.webmanifest", {
       method:"GET", mode:"no-cors", cache:"no-store",
       signal: ctrl ? ctrl.signal : undefined
@@ -645,6 +647,16 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
       .then(function(){ clearTimeout(to); loadIframe(); })
       .catch(function(){ clearTimeout(to); goLegacy("Sin internet. Cargando panel local."); });
   }
+
+  // Botón global para alternar modo y persistirlo en el agente.
+  window.switchMode = function(mode){
+    fetch("/api/mode", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ ui_mode: mode })
+    }).finally(function(){
+      window.location.replace(mode === "legacy" ? "/legacy" : "/");
+    });
+  };
 
   function loadIframe(){
     var deadline = setTimeout(function(){ goLegacy("Cloud no respondió a tiempo."); }, 4000);
