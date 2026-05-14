@@ -258,64 +258,64 @@ function RuleRow({ rule, onChange, onDelete }: { rule: NotificationRule; onChang
   const isNumeric = meta?.numeric !== false;
   const ops = isNumeric ? NUMERIC_OPS : TEXT_OPS;
   return (
-    <div className="rounded-lg border bg-card p-3">
-      <div className="flex items-start gap-2">
-        <Switch checked={rule.enabled} onCheckedChange={(v) => onChange({ enabled: v })} className="mt-1.5" />
+    <div className="rounded-lg border bg-card p-2 sm:p-2.5">
+      <div className="flex items-center gap-2">
+        <Switch checked={rule.enabled} onCheckedChange={(v) => onChange({ enabled: v })} />
         <Input
           value={rule.name}
           onChange={(e) => onChange({ name: e.target.value })}
-          className="h-9 flex-1 text-sm font-medium"
+          className="h-8 flex-1 text-sm font-medium"
         />
-        <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0 text-destructive" onClick={onDelete}>
-          <Trash2 className="h-4 w-4" />
+        <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-destructive" onClick={onDelete}>
+          <Trash2 className="h-3.5 w-3.5" />
         </Button>
       </div>
-      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="space-y-1">
-          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Métrica</Label>
+      <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+        <div className="space-y-0.5">
+          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Métrica</Label>
           <Select value={rule.metric} onValueChange={(v) => {
             const m = METRIC_OPTIONS.find((x) => x.value === v);
             const num = m?.numeric !== false;
             onChange({ metric: v, operator: num ? ">" : "==" });
           }}>
-            <SelectTrigger className="h-9 w-full text-sm"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 w-full text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               {METRIC_OPTIONS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-1">
-          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Operador</Label>
+        <div className="space-y-0.5">
+          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Operador</Label>
           <Select value={rule.operator} onValueChange={(v) => onChange({ operator: v as Operator })}>
-            <SelectTrigger className="h-9 w-full text-sm"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 w-full text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>{ops.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
           </Select>
         </div>
-        <div className="space-y-1">
-          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+        <div className="space-y-0.5">
+          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">
             Umbral{meta?.unit ? ` (${meta.unit})` : ""}
           </Label>
           {isNumeric ? (
             <Input
               type="number" inputMode="decimal" step="any"
-              className="h-9 w-full text-sm"
+              className="h-8 w-full text-xs"
               value={rule.threshold ?? ""}
               onChange={(e) => onChange({ threshold: e.target.value === "" ? null : Number(e.target.value) })}
             />
           ) : (
             <Input
-              className="h-9 w-full text-sm font-mono"
+              className="h-8 w-full text-xs font-mono"
               value={rule.threshold_text ?? ""}
               placeholder="B / G / S"
               onChange={(e) => onChange({ threshold_text: e.target.value })}
             />
           )}
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-1">
-            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Severidad</Label>
+        <div className="grid grid-cols-2 gap-1.5">
+          <div className="space-y-0.5">
+            <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Severidad</Label>
             <Select value={rule.severity} onValueChange={(v) => onChange({ severity: v as Severity })}>
-              <SelectTrigger className="h-9 w-full text-sm"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 w-full text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {(["info", "warning", "critical"] as Severity[]).map((s) => (
                   <SelectItem key={s} value={s}>{SEV_META[s].label}</SelectItem>
@@ -323,11 +323,11 @@ function RuleRow({ rule, onChange, onDelete }: { rule: NotificationRule; onChang
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1">
-            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Cooldown (min)</Label>
+          <div className="space-y-0.5">
+            <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Cooldown</Label>
             <Input
               type="number" min={1}
-              className="h-9 w-full text-sm"
+              className="h-8 w-full text-xs"
               value={rule.cooldown_minutes}
               onChange={(e) => onChange({ cooldown_minutes: Math.max(1, Number(e.target.value) || 1) })}
             />
@@ -335,7 +335,7 @@ function RuleRow({ rule, onChange, onDelete }: { rule: NotificationRule; onChang
         </div>
       </div>
       {rule.last_triggered_at && (
-        <p className="mt-2 text-xs text-muted-foreground">Último disparo: {new Date(rule.last_triggered_at).toLocaleString()}</p>
+        <p className="mt-1.5 text-[10px] text-muted-foreground">Último disparo: {new Date(rule.last_triggered_at).toLocaleString()}</p>
       )}
     </div>
   );
