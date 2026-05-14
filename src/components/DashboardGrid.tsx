@@ -197,7 +197,7 @@ export function DashboardGrid({ defs, state, onChange, render }: GridProps) {
                 isOver ? "ring-2 ring-accent/60 ring-offset-2 ring-offset-background rounded-2xl -translate-y-0.5" : "",
               ].join(" ")}
             >
-              <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between p-2 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100">
+              <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between p-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
                 <div className="pointer-events-auto hidden cursor-grab items-center gap-1 rounded-full border bg-card/90 px-2 py-1 text-[10px] font-medium text-muted-foreground shadow-sm backdrop-blur-sm active:cursor-grabbing md:inline-flex">
                   <GripVertical className="h-3 w-3" /> Mover
                 </div>
