@@ -308,9 +308,9 @@ function LocalDashboardPage() {
               <span className="rounded-full bg-muted px-2 py-0.5 font-medium">Plan: {plan}</span>
               <span className="rounded-full bg-muted px-2 py-0.5 font-medium">Modo: {mode.label}</span>
               <CloudPushBadge agentBase={agentBase} />
-              {lastTick > 0 && (
+              {latest?.recorded_at && (
                 <span className="text-muted-foreground/70">
-                  · Última lectura {latest?.recorded_at ? new Date(latest.recorded_at).toLocaleTimeString() : "—"}
+                  · Última lectura {new Date(latest.recorded_at).toLocaleTimeString()}
                 </span>
               )}
             </p>
