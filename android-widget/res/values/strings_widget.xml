@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Append to: android/app/src/main/res/values/strings.xml -->
 <resources>
-    <string name="widget_description">Solar, carga y batería en vivo</string>
+    <string name="widget_description">Compacto · Solar, carga y batería</string>
+    <string name="widget_description_tiles">Tiles · Mosaico 4 paneles a color</string>
+    <string name="widget_description_gauge">Gauge · Anillo grande de batería</string>
     <string name="widget_config_title">Configurar widget SolarOps</string>
     <string name="widget_config_hint">Pega el device_token del sitio (Configuración → API)</string>
     <string name="widget_config_save">Guardar</string>
