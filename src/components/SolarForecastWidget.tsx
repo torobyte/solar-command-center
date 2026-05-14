@@ -311,18 +311,18 @@ export function SolarForecastWidget({ pvConfig }: { pvConfig?: ForecastPvConfig 
         const batteryFillH = batteryKwh > 0 ? batteryKwh / Math.max(0.01, next12kwh / 12) : 0;
         return (
           <div className="mb-4 rounded-lg border bg-gradient-to-br from-[var(--solar)]/10 to-transparent p-3">
-            <div className="mb-1 flex items-center justify-between">
-              <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Producción estimada (próximas 12 h)
+            <div className="mb-1 flex flex-wrap items-center justify-between gap-1">
+              <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                Producción 12 h
               </div>
-              <div className="text-[10px] text-muted-foreground">{kwp} kWp · {losses}% pérdidas</div>
+              <div className="text-[10px] text-muted-foreground">{kwp} kWp · {losses}%</div>
             </div>
-            <div className="flex items-baseline gap-2">
-              <div className="text-3xl font-bold text-[var(--solar)] tabular-nums">{next12kwh.toFixed(2)}</div>
+            <div className="flex flex-wrap items-baseline gap-2">
+              <div className="text-2xl font-bold text-[var(--solar)] tabular-nums @[420px]:text-3xl">{next12kwh.toFixed(2)}</div>
               <div className="text-sm text-muted-foreground">kWh</div>
               {batteryKwh > 0 && batteryFillH > 0 && (
-                <div className="ml-auto text-[11px] text-muted-foreground">
-                  ≈ {batteryFillH.toFixed(1)} h para llenar batería de {batteryKwh} kWh
+                <div className="basis-full text-[10px] text-muted-foreground @[420px]:basis-auto @[420px]:ml-auto">
+                  ≈ {batteryFillH.toFixed(1)} h para llenar {batteryKwh} kWh
                 </div>
               )}
             </div>
