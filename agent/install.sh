@@ -212,6 +212,17 @@ else
   echo "   ⚠ nmcli no está disponible — modo AP no disponible."
 fi
 
+# DNS hijack: en modo AP (NetworkManager "shared"), redirigir TODAS las
+# consultas DNS a 10.42.0.1 → así cualquier URL en el navegador del cliente
+# (Android/iOS/Win) cae en nuestro captive portal y abre /wifi.
+install -d -m 755 /etc/NetworkManager/dnsmasq-shared.d
+cat >/etc/NetworkManager/dnsmasq-shared.d/solarops-captive.conf <<'EOF'
+# SolarOps captive portal — resuelve cualquier dominio al gateway del AP
+address=/#/10.42.0.1
+# TTL corto para que el cliente se "despegue" rápido cuando vuelva el WiFi real
+local-ttl=2
+EOF
+
 # Watchdog: cada 30 s, si no hay internet y no hay AP activo → activa AP.
 # Si hay internet → desactiva AP. Esto da el comportamiento "auto-bootstrap"
 # de Solar Assistant: el dispositivo siempre es accesible, sea por WiFi del
