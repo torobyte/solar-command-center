@@ -1208,7 +1208,7 @@ function flowCard(pvW,loadW,gridV,soc,batV){
         <!-- PV -->
         <g transform="translate(40 20)"><rect width="120" height="60" rx="12" fill="#1e3a5f" stroke="#f59e0b" stroke-width="1.5"/>
           <text x="60" y="28" text-anchor="middle" fill="#f59e0b">☀ Solar</text>
-          <text x="60" y="48" text-anchor="middle">${kw(pvW)} kW</text></g>
+          <text x="60" y="48" text-anchor="middle">${wFull(pvW)} W</text></g>
         <!-- Inverter -->
         <g transform="translate(240 80)"><rect width="120" height="60" rx="12" fill="#2c3349" stroke="#f5b945" stroke-width="1.5"/>
           <text x="60" y="28" text-anchor="middle" fill="#f5b945">⚡ Inversor</text>
