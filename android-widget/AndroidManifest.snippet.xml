@@ -1,6 +1,21 @@
 <!--
   Snippet to merge into android/app/src/main/AndroidManifest.xml inside <application>.
+  Make sure the <application> block has android:usesCleartextTraffic="false" and
+  that <uses-permission android:name="android.permission.INTERNET"/> is present.
 -->
+
+<!-- Launcher: lets the user log in and pick a site to use in widgets. -->
+<activity
+    android:name=".MainActivity"
+    android:exported="true"
+    android:label="SolarOps">
+    <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+    </intent-filter>
+</activity>
+
+<!-- Real-time home-screen widget. -->
 <receiver
     android:name=".SolarOpsWidget"
     android:exported="true">
@@ -12,6 +27,7 @@
         android:resource="@xml/widget_solarops_info" />
 </receiver>
 
+<!-- Picker shown when the widget is dropped on the home screen. -->
 <activity
     android:name=".WidgetConfigActivity"
     android:exported="true"
