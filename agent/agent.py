@@ -1653,6 +1653,52 @@ def make_app(agent: Agent) -> Flask:
         # Probe rápido server-side: evita CORS/mixed-content desde el navegador.
         return jsonify({"online": internet_up()})
 
+    # ---------- Captive Portal (iOS / Android / Windows / generic) ----------
+    # Cuando el dispositivo está en modo AP ("SolarOps-Setup"), los SO modernos
+    # hacen un probe a una URL conocida para detectar el portal cautivo. Si
+    # respondemos algo distinto al esperado, lanzan automáticamente el popup
+    # con nuestra página /wifi.
+    def _captive_redirect():
+        # 302 a la página de configuración WiFi
+        return redirect("/wifi", code=302)
+
+    # Apple iOS / macOS
+    @app.get("/hotspot-detect.html")
+    @app.get("/library/test/success.html")
+    def captive_apple():
+        if internet_up():
+            return "<HTML><HEAD><TITLE>Success</TITLE></HEAD><BODY>Success</BODY></HTML>"
+        return _captive_redirect()
+
+    # Android (varias rutas según versión)
+    @app.get("/generate_204")
+    @app.get("/gen_204")
+    def captive_android():
+        if internet_up():
+            return ("", 204)
+        return _captive_redirect()
+
+    # Windows NCSI
+    @app.get("/ncsi.txt")
+    def captive_windows_ncsi():
+        if internet_up():
+            return ("Microsoft NCSI", 200, {"Content-Type": "text/plain"})
+        return _captive_redirect()
+
+    @app.get("/connecttest.txt")
+    def captive_windows_connecttest():
+        if internet_up():
+            return ("Microsoft Connect Test", 200, {"Content-Type": "text/plain"})
+        return _captive_redirect()
+
+    # Firefox / genérico
+    @app.get("/canonical.html")
+    @app.get("/success.txt")
+    def captive_generic():
+        if internet_up():
+            return ("success\n", 200, {"Content-Type": "text/plain"})
+        return _captive_redirect()
+
     # ---------- WiFi (estilo Solar Assistant) ----------
     @app.get("/wifi")
     def wifi_page():
