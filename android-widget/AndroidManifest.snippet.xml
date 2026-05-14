@@ -3,16 +3,18 @@
   Make sure <uses-permission android:name="android.permission.INTERNET"/> is present.
 -->
 
-<!-- Launcher: login + selector de sitio. La app en sí carga el sitio web. -->
+<!--
+  NOTA: NO declares .MainActivity aquí. Capacitor ya genera su propia
+  MainActivity (extiende BridgeActivity y carga el sitio web). Esa es la
+  que debe ser LAUNCHER — déjala como la creó `npx cap add android`.
+
+  Esta actividad solo se abre desde el picker del widget para iniciar
+  sesión y elegir el sitio. NO es launcher.
+-->
 <activity
-    android:name=".MainActivity"
-    android:exported="true"
-    android:label="SolarOps">
-    <intent-filter>
-        <action android:name="android.intent.action.MAIN" />
-        <category android:name="android.intent.category.LAUNCHER" />
-    </intent-filter>
-</activity>
+    android:name=".WidgetSetupActivity"
+    android:exported="false"
+    android:label="Configurar widget SolarOps" />
 
 <!-- Variante 1 — Compacto (Solar / Carga / Batería) -->
 <receiver android:name=".SolarOpsWidget" android:exported="true" android:label="SolarOps · Compacto">
