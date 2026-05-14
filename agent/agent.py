@@ -126,7 +126,8 @@ class SerialTransport:
             else:
                 time.sleep(0.02)
         raw = buf.split(b"\r", 1)[0]
-        if raw.startswith(b"("): raw = raw[1:]
+        i = raw.find(b"(")
+        if i >= 0: raw = raw[i+1:]
         if len(raw) >= 2: raw = raw[:-2]
         return raw.decode("ascii", errors="replace").strip()
 
