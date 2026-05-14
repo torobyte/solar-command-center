@@ -168,6 +168,7 @@ export function NotificationsConfig({ siteId, userId }: { siteId: string; userId
             {[
               { l: "Batería < 20%", o: () => addPreset({ name: "Batería baja", metric: "battery_capacity", operator: "<", threshold: 20, severity: "warning" }) },
               { l: "Batería < 10%", o: () => addPreset({ name: "Batería crítica", metric: "battery_capacity", operator: "<", threshold: 10, severity: "critical", cooldown_minutes: 5 }) },
+              { l: "Batería = 100%", o: () => addPreset({ name: "Batería llena", metric: "battery_capacity", operator: ">=", threshold: 100, severity: "info", cooldown_minutes: 60 }) },
               { l: "Pérdida de red", o: () => addPreset({ name: "Sin red eléctrica", metric: "grid_voltage", operator: "<", threshold: 50, severity: "warning" }) },
               { l: "Temp > 70°C", o: () => addPreset({ name: "Sobretemperatura inversor", metric: "inverter_temperature", operator: ">", threshold: 70, severity: "critical" }) },
               { l: "Carga > 90%", o: () => addPreset({ name: "Sobrecarga", metric: "load_percent", operator: ">", threshold: 90, severity: "warning" }) },
