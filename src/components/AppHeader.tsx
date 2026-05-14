@@ -94,7 +94,7 @@ export function AppHeader() {
                 </SheetTrigger>
                 <SheetContent side="right" className="w-[82%] sm:w-80 glass-strong">
                   <SheetHeader>
-                    <SheetTitle className="text-gradient text-xl">SolarOps</SheetTitle>
+                    <SheetTitle className="text-gradient text-xl">{siteName}</SheetTitle>
                   </SheetHeader>
                   <div className="mt-6 flex flex-col gap-1.5">
                     {items.map((it) => renderNavLink(it, true))}
