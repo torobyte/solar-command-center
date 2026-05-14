@@ -220,31 +220,32 @@ export function SolarForecastWidget({ pvConfig }: { pvConfig?: ForecastPvConfig 
   const peak = Math.max(1, ...data.hourly.map((h) => h.radiation));
 
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-5 animate-fade-in">
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div className="min-w-0">
+    <div className="@container rounded-xl border bg-card p-3 shadow-sm sm:p-5 animate-fade-in">
+      <div className="mb-4 flex flex-col gap-3 @[420px]:flex-row @[420px]:items-start @[420px]:justify-between">
+        <div className="min-w-0 flex-1">
           <button
             onClick={() => setPickerOpen((v) => !v)}
-            className="flex items-center gap-1.5 rounded-md px-1.5 py-1 -mx-1.5 text-xs uppercase tracking-wide text-muted-foreground hover:bg-muted/60"
+            className="flex max-w-full items-center gap-1.5 rounded-md px-1.5 py-1 -mx-1.5 text-[10px] uppercase tracking-wide text-muted-foreground hover:bg-muted/60"
             title="Cambiar ubicación"
           >
-            <MapPin className="h-3.5 w-3.5" /> {data.city}
+            <MapPin className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{data.city}</span>
           </button>
           <div className="mt-1 flex items-center gap-3">
-            {weatherIcon(data.current.weatherCode, "h-10 w-10 sm:h-12 sm:w-12")}
-            <div>
-              <div className="text-3xl font-bold leading-none sm:text-4xl">
+            {weatherIcon(data.current.weatherCode, "h-9 w-9 @[420px]:h-12 @[420px]:w-12 shrink-0")}
+            <div className="min-w-0">
+              <div className="text-2xl font-bold leading-none @[420px]:text-4xl">
                 {Math.round(data.current.temperature)}°
               </div>
-              <div className="text-xs text-muted-foreground">{weatherLabel(data.current.weatherCode)}</div>
+              <div className="truncate text-[11px] text-muted-foreground">{weatherLabel(data.current.weatherCode)}</div>
             </div>
           </div>
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <div className="text-right">
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">Radiación</div>
-            <div className="text-2xl font-bold text-[var(--solar)]">
-              {Math.round(data.current.radiation)}<span className="ml-1 text-sm font-normal text-muted-foreground">W/m²</span>
+        <div className="flex items-center justify-between gap-2 @[420px]:flex-col @[420px]:items-end">
+          <div className="@[420px]:text-right">
+            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Radiación</div>
+            <div className="text-xl font-bold text-[var(--solar)] @[420px]:text-2xl">
+              {Math.round(data.current.radiation)}<span className="ml-1 text-xs font-normal text-muted-foreground">W/m²</span>
             </div>
           </div>
           <div className="flex gap-1">
@@ -262,7 +263,7 @@ export function SolarForecastWidget({ pvConfig }: { pvConfig?: ForecastPvConfig 
               disabled={loading}
             >
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-              Actualizar
+              <span className="hidden @[420px]:inline">Actualizar</span>
             </button>
           </div>
         </div>
@@ -310,18 +311,18 @@ export function SolarForecastWidget({ pvConfig }: { pvConfig?: ForecastPvConfig 
         const batteryFillH = batteryKwh > 0 ? batteryKwh / Math.max(0.01, next12kwh / 12) : 0;
         return (
           <div className="mb-4 rounded-lg border bg-gradient-to-br from-[var(--solar)]/10 to-transparent p-3">
-            <div className="mb-1 flex items-center justify-between">
-              <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Producción estimada (próximas 12 h)
+            <div className="mb-1 flex flex-wrap items-center justify-between gap-1">
+              <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                Producción 12 h
               </div>
-              <div className="text-[10px] text-muted-foreground">{kwp} kWp · {losses}% pérdidas</div>
+              <div className="text-[10px] text-muted-foreground">{kwp} kWp · {losses}%</div>
             </div>
-            <div className="flex items-baseline gap-2">
-              <div className="text-3xl font-bold text-[var(--solar)] tabular-nums">{next12kwh.toFixed(2)}</div>
+            <div className="flex flex-wrap items-baseline gap-2">
+              <div className="text-2xl font-bold text-[var(--solar)] tabular-nums @[420px]:text-3xl">{next12kwh.toFixed(2)}</div>
               <div className="text-sm text-muted-foreground">kWh</div>
               {batteryKwh > 0 && batteryFillH > 0 && (
-                <div className="ml-auto text-[11px] text-muted-foreground">
-                  ≈ {batteryFillH.toFixed(1)} h para llenar batería de {batteryKwh} kWh
+                <div className="basis-full text-[10px] text-muted-foreground @[420px]:basis-auto @[420px]:ml-auto">
+                  ≈ {batteryFillH.toFixed(1)} h para llenar {batteryKwh} kWh
                 </div>
               )}
             </div>

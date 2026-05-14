@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { applyBrandingToDOM, ensureGoogleFont, GOOGLE_FONTS, useBranding, type Branding } from "@/lib/branding";
+import { useTheme } from "@/lib/theme";
 import { Save, RotateCcw, Upload, X } from "lucide-react";
 
 const COLOR_FIELDS: { key: keyof Branding; label: string }[] = [
@@ -26,6 +27,7 @@ const COLOR_FIELDS: { key: keyof Branding; label: string }[] = [
 
 export function BrandingAdmin() {
   const { reload } = useBranding();
+  const { resolved } = useTheme();
   const [b, setB] = useState<Branding | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -39,7 +41,7 @@ export function BrandingAdmin() {
     if (!b) return;
     const next = { ...b, [k]: v };
     setB(next);
-    applyBrandingToDOM(next);
+    applyBrandingToDOM(next, resolved);
   }
 
   async function save() {
@@ -71,37 +73,63 @@ export function BrandingAdmin() {
           <Field label="Tagline">
             <Input value={b.tagline ?? ""} onChange={(e) => update("tagline", e.target.value)} />
           </Field>
-          <Field label="Logo">
-            <ImageUploader value={b.logo_url ?? ""} folder="logo"
-              onChange={(v) => update("logo_url", v)} hint="PNG/SVG transparente · ideal 256×64" />
-          </Field>
-          <Field label="Favicon">
-            <ImageUploader value={b.favicon_url ?? ""} folder="favicon"
-              onChange={(v) => update("favicon_url", v)} hint="32×32 PNG/SVG" />
-          </Field>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Logo (modo claro)">
+              <ImageUploader value={b.logo_url ?? ""} folder="logo"
+                onChange={(v) => update("logo_url", v)} hint="PNG/SVG · ideal 256×64" />
+            </Field>
+            <Field label="Logo (modo oscuro)">
+              <ImageUploader value={b.logo_url_dark ?? ""} folder="logo-dark"
+                onChange={(v) => update("logo_url_dark", v as never)} hint="Versión para fondos oscuros" />
+            </Field>
+            <Field label="Favicon (claro)">
+              <ImageUploader value={b.favicon_url ?? ""} folder="favicon"
+                onChange={(v) => update("favicon_url", v)} hint="32×32 PNG/SVG" />
+            </Field>
+            <Field label="Favicon (oscuro)">
+              <ImageUploader value={b.favicon_url_dark ?? ""} folder="favicon-dark"
+                onChange={(v) => update("favicon_url_dark", v as never)} hint="32×32 PNG/SVG" />
+            </Field>
+          </div>
         </TabsContent>
 
-        <TabsContent value="colors" className="mt-6">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {COLOR_FIELDS.map((f) => (
-              <Field key={f.key} label={f.label}>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    className="h-10 w-14 cursor-pointer rounded border"
-                    value={(b[f.key] as string) ?? "#000000"}
-                    onChange={(e) => update(f.key, e.target.value as never)}
-                  />
-                  <Input
-                    value={(b[f.key] as string) ?? ""}
-                    onChange={(e) => update(f.key, e.target.value as never)}
-                    className="font-mono"
-                  />
-                </div>
-              </Field>
-            ))}
+        <TabsContent value="colors" className="mt-6 space-y-6">
+          <div>
+            <h3 className="mb-3 text-sm font-semibold">☀ Modo claro</h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {COLOR_FIELDS.map((f) => (
+                <Field key={`light-${f.key}`} label={f.label}>
+                  <div className="flex items-center gap-2">
+                    <input type="color" className="h-10 w-14 cursor-pointer rounded border"
+                      value={(b[f.key] as string) ?? "#000000"}
+                      onChange={(e) => update(f.key, e.target.value as never)} />
+                    <Input value={(b[f.key] as string) ?? ""}
+                      onChange={(e) => update(f.key, e.target.value as never)} className="font-mono" />
+                  </div>
+                </Field>
+              ))}
+            </div>
           </div>
-          <Field label="Border radius" className="mt-4">
+          <div className="border-t pt-6">
+            <h3 className="mb-3 text-sm font-semibold">🌙 Modo oscuro</h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {COLOR_FIELDS.map((f) => {
+                const dk = `${f.key}_dark` as keyof Branding;
+                return (
+                  <Field key={`dark-${f.key}`} label={f.label}>
+                    <div className="flex items-center gap-2">
+                      <input type="color" className="h-10 w-14 cursor-pointer rounded border"
+                        value={(b[dk] as string) ?? "#000000"}
+                        onChange={(e) => update(dk, e.target.value as never)} />
+                      <Input value={(b[dk] as string) ?? ""}
+                        onChange={(e) => update(dk, e.target.value as never)} className="font-mono" />
+                    </div>
+                  </Field>
+                );
+              })}
+            </div>
+          </div>
+          <Field label="Border radius">
             <Input value={b.radius} onChange={(e) => update("radius", e.target.value)} placeholder="0.5rem" />
           </Field>
         </TabsContent>
@@ -142,16 +170,28 @@ export function BrandingAdmin() {
             <Textarea value={b.pwa_description ?? ""} onChange={(e) => update("pwa_description", e.target.value)} />
           </Field>
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Color tema (barra)">
+            <Field label="Color tema (claro)">
               <div className="flex gap-2">
                 <input type="color" className="h-10 w-14 rounded border" value={b.pwa_theme_color} onChange={(e) => update("pwa_theme_color", e.target.value)} />
                 <Input value={b.pwa_theme_color} onChange={(e) => update("pwa_theme_color", e.target.value)} />
               </div>
             </Field>
-            <Field label="Color de fondo (splash)">
+            <Field label="Color tema (oscuro)">
+              <div className="flex gap-2">
+                <input type="color" className="h-10 w-14 rounded border" value={b.pwa_theme_color_dark} onChange={(e) => update("pwa_theme_color_dark", e.target.value)} />
+                <Input value={b.pwa_theme_color_dark} onChange={(e) => update("pwa_theme_color_dark", e.target.value)} />
+              </div>
+            </Field>
+            <Field label="Fondo splash (claro)">
               <div className="flex gap-2">
                 <input type="color" className="h-10 w-14 rounded border" value={b.pwa_background_color} onChange={(e) => update("pwa_background_color", e.target.value)} />
                 <Input value={b.pwa_background_color} onChange={(e) => update("pwa_background_color", e.target.value)} />
+              </div>
+            </Field>
+            <Field label="Fondo splash (oscuro)">
+              <div className="flex gap-2">
+                <input type="color" className="h-10 w-14 rounded border" value={b.pwa_background_color_dark} onChange={(e) => update("pwa_background_color_dark", e.target.value)} />
+                <Input value={b.pwa_background_color_dark} onChange={(e) => update("pwa_background_color_dark", e.target.value)} />
               </div>
             </Field>
           </div>
@@ -166,14 +206,24 @@ export function BrandingAdmin() {
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Icono 192×192">
-            <ImageUploader value={b.pwa_icon_192 ?? ""} folder="pwa-192"
-              onChange={(v) => update("pwa_icon_192", v)} hint="192×192 PNG cuadrado" />
-          </Field>
-          <Field label="Icono 512×512">
-            <ImageUploader value={b.pwa_icon_512 ?? ""} folder="pwa-512"
-              onChange={(v) => update("pwa_icon_512", v)} hint="512×512 PNG cuadrado" />
-          </Field>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Icono 192×192 (claro)">
+              <ImageUploader value={b.pwa_icon_192 ?? ""} folder="pwa-192"
+                onChange={(v) => update("pwa_icon_192", v)} hint="192×192 PNG" />
+            </Field>
+            <Field label="Icono 192×192 (oscuro)">
+              <ImageUploader value={b.pwa_icon_192_dark ?? ""} folder="pwa-192-dark"
+                onChange={(v) => update("pwa_icon_192_dark", v as never)} hint="192×192 PNG" />
+            </Field>
+            <Field label="Icono 512×512 (claro)">
+              <ImageUploader value={b.pwa_icon_512 ?? ""} folder="pwa-512"
+                onChange={(v) => update("pwa_icon_512", v)} hint="512×512 PNG" />
+            </Field>
+            <Field label="Icono 512×512 (oscuro)">
+              <ImageUploader value={b.pwa_icon_512_dark ?? ""} folder="pwa-512-dark"
+                onChange={(v) => update("pwa_icon_512_dark", v as never)} hint="512×512 PNG" />
+            </Field>
+          </div>
         </TabsContent>
       </Tabs>
 

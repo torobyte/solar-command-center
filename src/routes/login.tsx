@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 import { LangSwitcher } from "@/components/LangSwitcher";
 import { ErrorDialog } from "@/components/ErrorDialog";
+import { useBranding } from "@/lib/branding";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -18,6 +19,8 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const navigate = useNavigate();
   const { t } = useI18n();
+  const { branding, resolvedLogo } = useBranding();
+  const siteName = branding?.site_name ?? "SolarOps";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -65,10 +68,16 @@ function LoginPage() {
       <div className="absolute right-4 top-4"><LangSwitcher /></div>
       <div className="w-full max-w-sm">
         <Link to="/" className="mb-8 flex items-center justify-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary">
-            <Sun className="h-5 w-5 text-accent" />
-          </div>
-          <span className="text-lg font-bold">solar<span className="font-light text-muted-foreground">ops</span></span>
+          {resolvedLogo ? (
+            <img src={resolvedLogo} alt={siteName} className="h-12 max-w-[220px] object-contain" />
+          ) : (
+            <>
+              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary">
+                <Sun className="h-5 w-5 text-accent" />
+              </div>
+              <span className="text-lg font-bold">{siteName}</span>
+            </>
+          )}
         </Link>
 
         <div className="rounded-lg border bg-card p-6 shadow-sm">
