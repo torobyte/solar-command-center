@@ -28,9 +28,16 @@ export function useDashboardLayout(siteId: string, defaults: WidgetDef[]) {
       if (!next && local) { try { next = JSON.parse(local); } catch { /* ignore */ } }
       if (next) {
         const known = new Set(defaults.map((d) => d.id));
-        const reordered = next
+        const reordered: WidgetState[] = next
           .filter((w) => known.has(w.id))
-          .map((w) => ({ id: w.id, visible: w.visible !== false, width: (w.width ?? defaultWidth(w.id)) as WidgetWidth }));
+          .map((w) => ({
+            id: w.id,
+            visible: w.visible !== false,
+            width: (w.width ?? defaultWidth(w.id)) as WidgetWidth,
+            widthMobile: w.widthMobile,
+            widthTablet: w.widthTablet,
+            widthDesktop: w.widthDesktop,
+          }));
         for (const d of defaults) {
           if (!reordered.find((w) => w.id === d.id)) {
             reordered.push({ id: d.id, visible: true, width: defaultWidth(d.id) });

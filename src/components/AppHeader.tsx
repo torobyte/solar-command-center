@@ -3,6 +3,7 @@ import { Sun, LogOut, ShieldCheck, LayoutGrid, Menu, UserCircle2, Sparkles } fro
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
+import { useBranding } from "@/lib/branding";
 import { Button } from "@/components/ui/button";
 import { LangSwitcher } from "@/components/LangSwitcher";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -13,7 +14,10 @@ export function AppHeader() {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useI18n();
+  const { branding } = useBranding();
   const [open, setOpen] = useState(false);
+  const siteName = branding?.site_name ?? "SolarOps";
+  const logoUrl = branding?.logo_url ?? null;
 
   const onSites = location.pathname.startsWith("/sites") || location.pathname === "/app";
   const onAdmin = location.pathname.startsWith("/admin");
@@ -50,14 +54,20 @@ export function AppHeader() {
     <header className="sticky top-0 z-40 border-b border-border/60 glass-strong">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         <Link to="/" className="group flex items-center gap-2.5">
-          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 shadow-glow">
-            <Sun className="h-5 w-5 text-accent icon-spring" strokeWidth={2.4} />
-            <Sparkles className="absolute -right-1 -top-1 h-3 w-3 text-accent opacity-0 transition-opacity group-hover:opacity-100" strokeWidth={2.4} />
-          </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-lg font-bold tracking-tight text-gradient">solar</span>
-            <span className="text-lg font-light text-muted-foreground">ops</span>
-          </div>
+          {logoUrl ? (
+            <img src={logoUrl} alt={siteName} className="h-10 max-w-[180px] object-contain" />
+          ) : (
+            <>
+              <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 shadow-glow">
+                <Sun className="h-5 w-5 text-accent icon-spring" strokeWidth={2.4} />
+                <Sparkles className="absolute -right-1 -top-1 h-3 w-3 text-accent opacity-0 transition-opacity group-hover:opacity-100" strokeWidth={2.4} />
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-lg font-bold tracking-tight text-gradient">{siteName.toLowerCase().replace(/ops$/i, "")}</span>
+                <span className="text-lg font-light text-muted-foreground">{/ops$/i.test(siteName) ? "ops" : ""}</span>
+              </div>
+            </>
+          )}
         </Link>
 
         {user && (
@@ -84,7 +94,7 @@ export function AppHeader() {
                 </SheetTrigger>
                 <SheetContent side="right" className="w-[82%] sm:w-80 glass-strong">
                   <SheetHeader>
-                    <SheetTitle className="text-gradient text-xl">SolarOps</SheetTitle>
+                    <SheetTitle className="text-gradient text-xl">{siteName}</SheetTitle>
                   </SheetHeader>
                   <div className="mt-6 flex flex-col gap-1.5">
                     {items.map((it) => renderNavLink(it, true))}
