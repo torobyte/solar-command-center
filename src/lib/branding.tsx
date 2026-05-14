@@ -89,11 +89,28 @@ export function applyBrandingToDOM(b: Branding, mode: "light" | "dark" = "dark")
   const set = (k: string, v: string) => r.setProperty(k, v);
   const pick = <T,>(light: T, dark: T) => (mode === "dark" ? (dark ?? light) : light);
 
+  const fg = pick(b.foreground_color, b.foreground_color_dark);
+  const card = pick(b.card_color, b.card_color_dark);
+  const muted = pick(b.muted_color, b.muted_color_dark);
+  const border = pick(b.border_color, b.border_color_dark);
+  set("--background", pick(b.background_color, b.background_color_dark));
+  set("--foreground", fg);
+  set("--card", card);
+  set("--card-foreground", fg);
+  set("--popover", card);
+  set("--popover-foreground", fg);
+  set("--muted", muted);
+  set("--muted-foreground", fg);
+  set("--secondary", muted);
+  set("--secondary-foreground", fg);
+  set("--border", border);
+  set("--input", border);
   set("--primary", pick(b.primary_color, b.primary_color_dark));
   set("--primary-foreground", pick(b.primary_foreground, b.primary_foreground_dark));
   set("--accent", pick(b.accent_color, b.accent_color_dark));
   set("--accent-foreground", pick(b.primary_foreground, b.primary_foreground_dark));
   set("--destructive", pick(b.destructive_color, b.destructive_color_dark));
+  set("--destructive-foreground", pick(b.primary_foreground, b.primary_foreground_dark));
   set("--success", pick(b.success_color, b.success_color_dark));
   set("--warning", pick(b.warning_color, b.warning_color_dark));
   set("--ring", pick(b.primary_color, b.primary_color_dark));
