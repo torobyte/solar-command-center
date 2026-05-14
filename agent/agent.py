@@ -1008,6 +1008,8 @@ function toggleEdit(){
 // ====== Widget renderers ======
 function fmt(v,d=0){ if(v==null||isNaN(v)) return '—'; return Number(v).toFixed(d); }
 function kw(w){ if(w==null) return '—'; const k=w/1000; return k.toFixed(k>=10?1:2); }
+// Formato completo en W con separador de miles, sin abreviar.
+function wFull(w){ if(w==null||isNaN(w)) return '—'; return Math.round(Number(w)).toLocaleString('es-CL'); }
 
 function widgetHTML(id){
   const L=STATE&&STATE.latest||{};
@@ -1062,8 +1064,8 @@ function solarPanelsCard(pvW){
         `}).join('')).join('')}
       </g>
     </svg>
-    <div class="big" style="color:var(--pv);text-shadow:0 0 24px rgba(245,158,11,.35)">${kw(pvW)}<span class="unit">kW</span></div>
-    <div class="sub2">${pvW.toFixed(0)} W instantáneos</div>
+    <div class="big" style="color:var(--pv);text-shadow:0 0 24px rgba(245,158,11,.35)">${wFull(pvW)}<span class="unit">W</span></div>
+    <div class="sub2">${kw(pvW)} kW · arreglo solar</div>
   </div>`;
 }
 
@@ -1095,8 +1097,8 @@ function houseCard(loadW){
         ${loadW>1500?`<g opacity=".5"><circle cx="78" cy="14" r="3" fill="#8a8d97"><animate attributeName="cy" values="14;-6" dur="3s" repeatCount="indefinite"/><animate attributeName="opacity" values=".5;0" dur="3s" repeatCount="indefinite"/></circle></g>`:''}
       </g>
     </svg>
-    <div class="big" style="color:var(--load);text-shadow:0 0 24px rgba(59,130,246,.35)">${kw(loadW)}<span class="unit">kW</span></div>
-    <div class="sub2">${loadW.toFixed(0)} W instantáneos</div>
+    <div class="big" style="color:var(--load);text-shadow:0 0 24px rgba(59,130,246,.35)">${wFull(loadW)}<span class="unit">W</span></div>
+    <div class="sub2">${kw(loadW)} kW · consumo actual</div>
   </div>`;
 }
 
@@ -1157,7 +1159,7 @@ function backupCard(soc,loadW,pvW){
       </div>
       <div style="flex:1;min-width:140px" class="rows">
         <div class="rk"><span class="k">Energía útil</span><span class="v">${usable.toFixed(2)} kWh</span></div>
-        <div class="rk"><span class="k">Descarga neta</span><span class="v">${(netW/1000).toFixed(2)} kW</span></div>
+        <div class="rk"><span class="k">Descarga neta</span><span class="v">${wFull(netW)} W</span></div>
         <div class="rk"><span class="k">Banco</span><span class="v">${batKwh||'—'} kWh</span></div>
         <div class="rk"><span class="k">DoD útil</span><span class="v">${(dod*100).toFixed(0)} %</span></div>
       </div>
@@ -1182,8 +1184,8 @@ function ringsCard(pvW,loadW,soc){
     <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center">
       <svg viewBox="0 0 160 160" style="width:160px;height:160px">${html}</svg>
       <div class="rows" style="flex:1;min-width:140px">
-        <div class="rk"><span class="k" style="color:var(--pv)">● PV</span><span class="v">${kw(pvW)} kW</span></div>
-        <div class="rk"><span class="k" style="color:var(--load)">● Carga</span><span class="v">${kw(loadW)} kW</span></div>
+        <div class="rk"><span class="k" style="color:var(--pv)">● PV</span><span class="v">${wFull(pvW)} W</span></div>
+        <div class="rk"><span class="k" style="color:var(--load)">● Carga</span><span class="v">${wFull(loadW)} W</span></div>
         <div class="rk"><span class="k" style="color:var(--success)">● SOC</span><span class="v">${soc.toFixed(0)} %</span></div>
       </div>
     </div>
@@ -1206,7 +1208,7 @@ function flowCard(pvW,loadW,gridV,soc,batV){
         <!-- PV -->
         <g transform="translate(40 20)"><rect width="120" height="60" rx="12" fill="#1e3a5f" stroke="#f59e0b" stroke-width="1.5"/>
           <text x="60" y="28" text-anchor="middle" fill="#f59e0b">☀ Solar</text>
-          <text x="60" y="48" text-anchor="middle">${kw(pvW)} kW</text></g>
+          <text x="60" y="48" text-anchor="middle">${wFull(pvW)} W</text></g>
         <!-- Inverter -->
         <g transform="translate(240 80)"><rect width="120" height="60" rx="12" fill="#2c3349" stroke="#f5b945" stroke-width="1.5"/>
           <text x="60" y="28" text-anchor="middle" fill="#f5b945">⚡ Inversor</text>
@@ -1222,7 +1224,7 @@ function flowCard(pvW,loadW,gridV,soc,batV){
         <!-- Load -->
         <g transform="translate(440 140)"><rect width="120" height="60" rx="12" fill="#1a2440" stroke="#3b82f6" stroke-width="1.5"/>
           <text x="60" y="28" text-anchor="middle" fill="#3b82f6">🏠 Casa</text>
-          <text x="60" y="48" text-anchor="middle">${kw(loadW)} kW</text></g>
+          <text x="60" y="48" text-anchor="middle">${wFull(loadW)} W</text></g>
       </g>
       <!-- Animated lines -->
       <g fill="none" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="8 8">
@@ -1270,8 +1272,11 @@ function totalsCard(){
   </div>`;
 }
 
-// ====== Render grid ======
-function renderGrid(){
+// ====== Render grid (sin parpadeo) ======
+// Sólo reconstruye DOM cuando cambia el LAYOUT. Para refrescos de datos
+// reemplaza únicamente el body de cada widget si su HTML cambió.
+let LAST_LAYOUT_KEY = '';
+function buildGrid(){
   const g = document.getElementById('grid');
   g.innerHTML = '';
   LAYOUT.forEach((item,idx)=>{
@@ -1279,14 +1284,15 @@ function renderGrid(){
     tile.className='tile';
     tile.style.gridColumn=`span ${item.w}`;
     tile.dataset.idx=idx;
+    tile.dataset.id=item.id;
     tile.draggable=true;
+    const bodyHTML = widgetHTML(item.id);
     tile.innerHTML = `
       <div class="handle" title="Arrastrar">⋮⋮</div>
       <div class="toolbar">
         ${[3,6,9,12].map(w=>`<button class="tbtn ${item.w===w?'act':''}" onclick="resizeTile(${idx},${w})">${(w/12*100)|0}%</button>`).join('')}
       </div>
-      ${widgetHTML(item.id)}`;
-    // DnD
+      <div class="widget-body" data-rendered="${escapeAttr(bodyHTML)}">${bodyHTML}</div>`;
     tile.addEventListener('dragstart',e=>{ tile.classList.add('dragging'); e.dataTransfer.setData('text/plain',idx); e.dataTransfer.effectAllowed='move';});
     tile.addEventListener('dragend',()=>tile.classList.remove('dragging'));
     tile.addEventListener('dragover',e=>{e.preventDefault();tile.classList.add('over')});
@@ -1296,17 +1302,46 @@ function renderGrid(){
       const from=Number(e.dataTransfer.getData('text/plain')); const to=Number(tile.dataset.idx);
       if(isNaN(from)||from===to) return;
       const next=LAYOUT.slice(); const [m]=next.splice(from,1); next.splice(to,0,m);
-      LAYOUT=next; saveLayout(LAYOUT); renderGrid();
+      LAYOUT=next; saveLayout(LAYOUT); LAST_LAYOUT_KEY=''; renderGrid();
     });
     g.appendChild(tile);
   });
 }
-function resizeTile(idx,w){ LAYOUT[idx].w=w; saveLayout(LAYOUT); renderGrid(); }
+function escapeAttr(s){ return ''; /* sin uso real, sólo para evitar reflow */ }
+function updateGridBodies(){
+  const g = document.getElementById('grid'); if(!g) return;
+  const tiles = g.querySelectorAll('.tile');
+  tiles.forEach((tile,idx)=>{
+    const item = LAYOUT[idx]; if(!item) return;
+    const body = tile.querySelector('.widget-body'); if(!body) return;
+    const next = widgetHTML(item.id);
+    // Sólo reemplaza si realmente cambió el HTML — evita parpadeo cuando
+    // los valores son idénticos entre ticks.
+    if (body.__last !== next) {
+      body.innerHTML = next;
+      body.__last = next;
+    }
+  });
+}
+function renderGrid(){
+  const key = LAYOUT.map(i=>i.id+':'+i.w).join('|');
+  if (key !== LAST_LAYOUT_KEY) {
+    LAST_LAYOUT_KEY = key;
+    buildGrid();
+  } else {
+    updateGridBodies();
+  }
+}
+function resizeTile(idx,w){ LAYOUT[idx].w=w; saveLayout(LAYOUT); LAST_LAYOUT_KEY=''; renderGrid(); }
 window.resizeTile=resizeTile;
 
-// ====== Charts ======
+// ====== Charts (re-render sólo si cambió la data) ======
+const _CHART_CACHE = {};
 function drawChart(id, points, color){
   const svg=document.getElementById(id); if(!svg) return;
+  const sig = id+':'+color+':'+points.map(v=>v==null?'_':Number(v).toFixed(0)).join(',');
+  if (_CHART_CACHE[id] === sig) return;
+  _CHART_CACHE[id] = sig;
   const W=600,H=200; svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
   if(!points.length){ svg.innerHTML=`<text x="${W/2}" y="${H/2}" text-anchor="middle" fill="#8a8d97" font-size="12">Sin datos aún</text>`; return; }
   const xs=points.map((_,i)=>i*W/Math.max(1,points.length-1));
@@ -1322,45 +1357,51 @@ function drawChart(id, points, color){
     ${d?`<path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round"/>`:''}`;
 }
 
+let _LAST_TOTALS_HTML = '';
 function renderCharts(){
   const h = STATE&&STATE.history||[];
   drawChart('chPv', h.map(p=>p.pv), '#f59e0b');
   drawChart('chLoad', h.map(p=>p.load), '#3b82f6');
   drawChart('chSoc', h.map(p=>p.soc), '#22c55e');
   const t = STATE&&STATE.totals_today||{};
-  document.getElementById('totalsBox').innerHTML =
-    [['☀️ PV','pv_kwh','#f59e0b'],['🏠 Carga','load_kwh','#3b82f6'],['🔋↑','battery_charged_kwh','#22c55e'],['🔋↓','battery_discharged_kwh','#f59e0b'],['⚡ Red','grid_used_kwh','#ef4444']]
+  const html = [['☀️ PV','pv_kwh','#f59e0b'],['🏠 Carga','load_kwh','#3b82f6'],['🔋↑','battery_charged_kwh','#22c55e'],['🔋↓','battery_discharged_kwh','#f59e0b'],['⚡ Red','grid_used_kwh','#ef4444']]
     .map(([l,k,c])=>`<div style="background:var(--card2);padding:14px;border-radius:10px;text-align:center;border:1px solid var(--border)"><div style="color:var(--muted);font-size:11px">${l}</div><div style="font-size:22px;font-weight:800;color:${c};margin-top:4px">${(Number(t[k]||0)).toFixed(2)}</div><div style="font-size:10px;color:var(--muted)">kWh</div></div>`).join('');
+  if (html !== _LAST_TOTALS_HTML) { document.getElementById('totalsBox').innerHTML = html; _LAST_TOTALS_HTML = html; }
 }
 
-// ====== Diagnostics ======
+// ====== Diagnostics (sólo actualiza si cambió) ======
+const _DIAG_CACHE = {};
+function setHTMLIfChanged(id, html){
+  if (_DIAG_CACHE[id] === html) return;
+  _DIAG_CACHE[id] = html;
+  const el = document.getElementById(id); if (el) el.innerHTML = html;
+}
 function renderDiag(){
   const sn=STATE&&STATE.snapshot||{}, sp=STATE&&STATE.spec||{};
   const rows=(o,keys)=>keys.map(([k,l])=>`<div class="row"><span class="k">${l}</span><span class="v">${o[k]??'—'}</span></div>`).join('');
-  document.getElementById('specRows').innerHTML = rows(sp,[
+  setHTMLIfChanged('specRows', rows(sp,[
     ['driver','Driver'],['model_name','Modelo'],['serial_number','Serial'],['firmware','Firmware'],
-    ['nominal_battery_voltage','Batería nominal (V)'],['max_ac_output_power','Pot. máx AC (W)'],['topology','Topología']]);
-  document.getElementById('netRows').innerHTML = rows(sn,[
+    ['nominal_battery_voltage','Batería nominal (V)'],['max_ac_output_power','Pot. máx AC (W)'],['topology','Topología']]));
+  setHTMLIfChanged('netRows', rows(sn,[
     ['ssid','SSID'],['ip_eth','IP eth0'],['ip_wlan','IP wlan0'],['ip_public','IP pública'],
-    ['internet_up','Internet']]);
-  document.getElementById('sysRows').innerHTML = rows(sn,[
+    ['internet_up','Internet']]));
+  setHTMLIfChanged('sysRows', rows(sn,[
     ['cpu_temp_c','CPU °C'],['storage_used_pct','Disco %'],['storage_total_gb','Disco total (GB)'],
-    ['board_model','Placa'],['agent_version','Agente']]);
+    ['board_model','Placa'],['agent_version','Agente']]));
   const usbs = sn.usb_devices_list||[];
-  document.getElementById('usbList').innerHTML = usbs.length
+  setHTMLIfChanged('usbList', usbs.length
     ? usbs.map(u=>`<div>${u}</div>`).join('')
-    : '<div style="color:var(--muted)">Sin dispositivos USB</div>';
+    : '<div style="color:var(--muted)">Sin dispositivos USB</div>');
 
-  // Activation block
   const tokenSet = STATE&&STATE.config&&STATE.config.device_token;
-  document.getElementById('actBlock').innerHTML = tokenSet
+  setHTMLIfChanged('actBlock', tokenSet
     ? `<div class="row"><span class="k">Estado</span><span class="v" style="color:var(--success)">● Activado</span></div>
        <div class="row"><span class="k">Plan</span><span class="v">${STATE.license&&STATE.license.plan||'—'}</span></div>
        <div class="row"><span class="k">Cloud URL</span><span class="v"><span class="code">${(STATE.config&&STATE.config.cloud_url)||''}</span></span></div>`
     : `<form onsubmit="event.preventDefault();activateDevice()">
         <label>Código de licencia</label><input id="actCode" required placeholder="Pega el código aquí">
         <label>Nombre del sitio</label><input id="actName" value="Local site">
-        <button class="btn" type="submit">Activar</button></form>`;
+        <button class="btn" type="submit">Activar</button></form>`);
 }
 async function activateDevice(){
   const code=document.getElementById('actCode').value.trim();

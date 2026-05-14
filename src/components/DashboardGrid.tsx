@@ -8,10 +8,10 @@ export interface WidgetDef { id: string; label: string }
 export interface WidgetState { id: string; visible: boolean; width?: WidgetWidth }
 
 const WIDTH_TO_COL: Record<WidgetWidth, string> = {
-  25: "md:col-span-3",
-  50: "md:col-span-6",
-  75: "md:col-span-9",
-  100: "md:col-span-12",
+  25: "col-span-1 md:col-span-3",
+  50: "col-span-1 md:col-span-6",
+  75: "col-span-2 md:col-span-9",
+  100: "col-span-2 md:col-span-12",
 };
 
 const WIDTH_OPTIONS: { value: WidgetWidth; label: string; icon: React.ReactNode }[] = [
@@ -117,7 +117,7 @@ export function DashboardGrid({ defs, state, onChange, render }: GridProps) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-12 md:gap-4">
         {visible.map((w) => {
           const def = defs.find((d) => d.id === w.id);
           if (!def) return null;
@@ -133,7 +133,7 @@ export function DashboardGrid({ defs, state, onChange, render }: GridProps) {
               onDrop={() => onDrop(w.id)}
               onDragEnd={() => { dragId.current = null; setOverId(null); }}
               className={[
-                "@container group relative col-span-1 transition-all",
+                "@container group relative transition-all",
                 WIDTH_TO_COL[width],
                 isOver ? "ring-2 ring-accent/60 ring-offset-2 ring-offset-background rounded-2xl -translate-y-0.5" : "",
               ].join(" ")}

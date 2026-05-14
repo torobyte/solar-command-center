@@ -159,55 +159,102 @@ function SitesIndex() {
           <p className="mt-1 text-sm text-muted-foreground">{t("sites.empty.body")}</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border bg-card shadow-card animate-fade-up">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-sm">
-              <thead className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3 font-medium">{t("sites.col.name")}</th>
-                  <th className="px-4 py-3 font-medium">{t("sites.col.inverter")}</th>
-                  <th className="px-4 py-3 font-medium">{t("sites.col.plan")}</th>
-                  <th className="px-4 py-3 font-medium">{t("sites.col.status")}</th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {sites.map((s) => {
-                  const statusKey = s.status === "online" ? "sync.online" : s.status === "offline" ? "sync.offline" : `sync.${s.status}`;
-                  const statusLabel = s.status === "online" || s.status === "offline" || s.status === "stale" || s.status === "never" ? t(statusKey) : s.status;
-                  return (
-                    <tr key={s.id} className="border-b last:border-0 transition-colors hover:bg-muted/40">
-                      <td className="px-4 py-3">
-                        <div className="font-medium">{s.name}</div>
-                        {s.description && <div className="text-xs text-muted-foreground">{s.description}</div>}
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">{s.inverter_model ?? "—"}</td>
-                      <td className="px-4 py-3"><Badge variant="outline" className="rounded-full">{s.plan}</Badge></td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          s.status === "online" ? "bg-success/15 text-success" :
-                          s.status === "offline" ? "bg-destructive/15 text-destructive" :
-                          "bg-muted text-muted-foreground"
-                        }`}>
-                          <span className={`relative flex h-1.5 w-1.5`}>
-                            {s.status === "online" && <span className="absolute inset-0 animate-ping rounded-full bg-success opacity-60" />}
-                            <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${s.status === "online" ? "bg-success" : s.status === "offline" ? "bg-destructive" : "bg-muted-foreground"}`} />
-                          </span>
-                          {statusLabel}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Link to="/sites/$siteId" params={{ siteId: s.id }}>
-                          <Button variant="outline" size="sm" className="rounded-full">{t("sites.view")}</Button>
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+        <>
+          {/* Mobile: card list */}
+          <div className="space-y-3 md:hidden animate-fade-up">
+            {sites.map((s) => {
+              const statusKey = s.status === "online" ? "sync.online" : s.status === "offline" ? "sync.offline" : `sync.${s.status}`;
+              const statusLabel = s.status === "online" || s.status === "offline" || s.status === "stale" || s.status === "never" ? t(statusKey) : s.status;
+              const lastSeen = s.last_seen_at ? new Date(s.last_seen_at).toLocaleDateString() : "—";
+              return (
+                <Link key={s.id} to="/sites/$siteId" params={{ siteId: s.id }}
+                  className="block rounded-2xl border bg-card p-4 shadow-sm transition-all active:scale-[.99] hover:border-accent/40">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="text-base font-bold tracking-tight uppercase truncate">{s.name}</h3>
+                    <span className="shrink-0 text-[11px] text-muted-foreground">{lastSeen}</span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <Badge variant="outline" className="rounded-full bg-accent/10 text-accent border-accent/20 px-2.5 py-0.5 text-[11px]">
+                      {s.plan}
+                    </Badge>
+                    {s.inverter_model && (
+                      <Badge variant="outline" className="rounded-full bg-success/10 text-success border-success/20 px-2.5 py-0.5 text-[11px] gap-1">
+                        <CpuIcon className="h-3 w-3" strokeWidth={2.4} /> {s.inverter_model}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="mt-3 flex items-center justify-between">
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${
+                      s.status === "online" ? "bg-success/15 text-success" :
+                      s.status === "offline" ? "bg-destructive/15 text-destructive" :
+                      "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                    }`}>
+                      <span className="relative flex h-1.5 w-1.5">
+                        {s.status === "online" && <span className="absolute inset-0 animate-ping rounded-full bg-success opacity-60" />}
+                        <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${s.status === "online" ? "bg-success" : s.status === "offline" ? "bg-destructive" : "bg-amber-500"}`} />
+                      </span>
+                      {statusLabel}
+                    </span>
+                    <Button size="sm" variant="ghost" className="h-7 rounded-full px-3 text-xs text-accent">
+                      {t("sites.view")} →
+                    </Button>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
-        </div>
+
+          {/* Desktop: table */}
+          <div className="hidden md:block overflow-hidden rounded-2xl border bg-card shadow-card animate-fade-up">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] text-sm">
+                <thead className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">{t("sites.col.name")}</th>
+                    <th className="px-4 py-3 font-medium">{t("sites.col.inverter")}</th>
+                    <th className="px-4 py-3 font-medium">{t("sites.col.plan")}</th>
+                    <th className="px-4 py-3 font-medium">{t("sites.col.status")}</th>
+                    <th className="px-4 py-3"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sites.map((s) => {
+                    const statusKey = s.status === "online" ? "sync.online" : s.status === "offline" ? "sync.offline" : `sync.${s.status}`;
+                    const statusLabel = s.status === "online" || s.status === "offline" || s.status === "stale" || s.status === "never" ? t(statusKey) : s.status;
+                    return (
+                      <tr key={s.id} className="border-b last:border-0 transition-colors hover:bg-muted/40">
+                        <td className="px-4 py-3">
+                          <div className="font-medium">{s.name}</div>
+                          {s.description && <div className="text-xs text-muted-foreground">{s.description}</div>}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">{s.inverter_model ?? "—"}</td>
+                        <td className="px-4 py-3"><Badge variant="outline" className="rounded-full">{s.plan}</Badge></td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            s.status === "online" ? "bg-success/15 text-success" :
+                            s.status === "offline" ? "bg-destructive/15 text-destructive" :
+                            "bg-muted text-muted-foreground"
+                          }`}>
+                            <span className={`relative flex h-1.5 w-1.5`}>
+                              {s.status === "online" && <span className="absolute inset-0 animate-ping rounded-full bg-success opacity-60" />}
+                              <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${s.status === "online" ? "bg-success" : s.status === "offline" ? "bg-destructive" : "bg-muted-foreground"}`} />
+                            </span>
+                            {statusLabel}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <Link to="/sites/$siteId" params={{ siteId: s.id }}>
+                            <Button variant="outline" size="sm" className="rounded-full">{t("sites.view")}</Button>
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
     </>
   );
