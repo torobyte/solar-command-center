@@ -1369,34 +1369,39 @@ function renderCharts(){
   if (html !== _LAST_TOTALS_HTML) { document.getElementById('totalsBox').innerHTML = html; _LAST_TOTALS_HTML = html; }
 }
 
-// ====== Diagnostics ======
+// ====== Diagnostics (sólo actualiza si cambió) ======
+const _DIAG_CACHE = {};
+function setHTMLIfChanged(id, html){
+  if (_DIAG_CACHE[id] === html) return;
+  _DIAG_CACHE[id] = html;
+  const el = document.getElementById(id); if (el) el.innerHTML = html;
+}
 function renderDiag(){
   const sn=STATE&&STATE.snapshot||{}, sp=STATE&&STATE.spec||{};
   const rows=(o,keys)=>keys.map(([k,l])=>`<div class="row"><span class="k">${l}</span><span class="v">${o[k]??'—'}</span></div>`).join('');
-  document.getElementById('specRows').innerHTML = rows(sp,[
+  setHTMLIfChanged('specRows', rows(sp,[
     ['driver','Driver'],['model_name','Modelo'],['serial_number','Serial'],['firmware','Firmware'],
-    ['nominal_battery_voltage','Batería nominal (V)'],['max_ac_output_power','Pot. máx AC (W)'],['topology','Topología']]);
-  document.getElementById('netRows').innerHTML = rows(sn,[
+    ['nominal_battery_voltage','Batería nominal (V)'],['max_ac_output_power','Pot. máx AC (W)'],['topology','Topología']]));
+  setHTMLIfChanged('netRows', rows(sn,[
     ['ssid','SSID'],['ip_eth','IP eth0'],['ip_wlan','IP wlan0'],['ip_public','IP pública'],
-    ['internet_up','Internet']]);
-  document.getElementById('sysRows').innerHTML = rows(sn,[
+    ['internet_up','Internet']]));
+  setHTMLIfChanged('sysRows', rows(sn,[
     ['cpu_temp_c','CPU °C'],['storage_used_pct','Disco %'],['storage_total_gb','Disco total (GB)'],
-    ['board_model','Placa'],['agent_version','Agente']]);
+    ['board_model','Placa'],['agent_version','Agente']]));
   const usbs = sn.usb_devices_list||[];
-  document.getElementById('usbList').innerHTML = usbs.length
+  setHTMLIfChanged('usbList', usbs.length
     ? usbs.map(u=>`<div>${u}</div>`).join('')
-    : '<div style="color:var(--muted)">Sin dispositivos USB</div>';
+    : '<div style="color:var(--muted)">Sin dispositivos USB</div>');
 
-  // Activation block
   const tokenSet = STATE&&STATE.config&&STATE.config.device_token;
-  document.getElementById('actBlock').innerHTML = tokenSet
+  setHTMLIfChanged('actBlock', tokenSet
     ? `<div class="row"><span class="k">Estado</span><span class="v" style="color:var(--success)">● Activado</span></div>
        <div class="row"><span class="k">Plan</span><span class="v">${STATE.license&&STATE.license.plan||'—'}</span></div>
        <div class="row"><span class="k">Cloud URL</span><span class="v"><span class="code">${(STATE.config&&STATE.config.cloud_url)||''}</span></span></div>`
     : `<form onsubmit="event.preventDefault();activateDevice()">
         <label>Código de licencia</label><input id="actCode" required placeholder="Pega el código aquí">
         <label>Nombre del sitio</label><input id="actName" value="Local site">
-        <button class="btn" type="submit">Activar</button></form>`;
+        <button class="btn" type="submit">Activar</button></form>`);
 }
 async function activateDevice(){
   const code=document.getElementById('actCode').value.trim();
