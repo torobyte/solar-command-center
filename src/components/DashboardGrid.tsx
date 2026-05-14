@@ -117,7 +117,7 @@ export function DashboardGrid({ defs, state, onChange, render }: GridProps) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-12 md:gap-4">
         {visible.map((w) => {
           const def = defs.find((d) => d.id === w.id);
           if (!def) return null;
