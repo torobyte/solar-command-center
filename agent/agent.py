@@ -1224,7 +1224,7 @@ function flowCard(pvW,loadW,gridV,soc,batV){
         <!-- Load -->
         <g transform="translate(440 140)"><rect width="120" height="60" rx="12" fill="#1a2440" stroke="#3b82f6" stroke-width="1.5"/>
           <text x="60" y="28" text-anchor="middle" fill="#3b82f6">🏠 Casa</text>
-          <text x="60" y="48" text-anchor="middle">${kw(loadW)} kW</text></g>
+          <text x="60" y="48" text-anchor="middle">${wFull(loadW)} W</text></g>
       </g>
       <!-- Animated lines -->
       <g fill="none" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="8 8">
