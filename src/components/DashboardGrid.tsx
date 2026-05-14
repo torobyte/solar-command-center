@@ -8,10 +8,10 @@ export interface WidgetDef { id: string; label: string }
 export interface WidgetState { id: string; visible: boolean; width?: WidgetWidth }
 
 const WIDTH_TO_COL: Record<WidgetWidth, string> = {
-  25: "md:col-span-3",
-  50: "md:col-span-6",
-  75: "md:col-span-9",
-  100: "md:col-span-12",
+  25: "col-span-1 md:col-span-3",
+  50: "col-span-1 md:col-span-6",
+  75: "col-span-2 md:col-span-9",
+  100: "col-span-2 md:col-span-12",
 };
 
 const WIDTH_OPTIONS: { value: WidgetWidth; label: string; icon: React.ReactNode }[] = [
