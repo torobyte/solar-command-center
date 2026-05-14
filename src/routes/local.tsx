@@ -33,6 +33,21 @@ interface PushHealth {
   loop_restarts: number;
 }
 
+interface InverterHealth {
+  state: "init" | "searching" | "connected" | "stale" | "error";
+  connected: boolean;
+  transport: string | null;
+  port: string | null;
+  connected_at: string | null;
+  reconnect_count: number;
+  consecutive_empty: number;
+  read_count: number;
+  error_count: number;
+  last_sample_at: string | null;
+  last_error: string | null;
+  last_error_at: string | null;
+}
+
 /** Pequeña insignia que muestra si el agente está empujando telemetría al cloud. */
 function CloudPushBadge({ agentBase }: { agentBase: string }) {
   const [push, setPush] = useState<PushHealth | null>(null);
@@ -119,6 +134,97 @@ function CloudPushBadge({ agentBase }: { agentBase: string }) {
     <span className={`inline-flex max-w-[420px] items-center gap-1.5 rounded-full px-2 py-0.5 font-medium ${toneCls}`} title={tooltip}>
       <span className={`h-1.5 w-1.5 rounded-full ${dotCls}`} />
       <span className="truncate">{label}{detail ? ` · ${detail}` : ""}</span>
+    </span>
+  );
+}
+
+/** Badge de estado del inversor con auto-reintento y diagnóstico expandido. */
+function InverterStatusBadge({ agentBase }: { agentBase: string }) {
+  const [inv, setInv] = useState<InverterHealth | null>(null);
+  const [unreachable, setUnreachable] = useState(false);
+
+  useEffect(() => {
+    if (!agentBase) return;
+    let alive = true;
+    async function tick() {
+      try {
+        const r = await fetch(`${agentBase}/api/health`, { cache: "no-store" });
+        const j = await r.json();
+        if (!alive) return;
+        setUnreachable(false);
+        setInv(j?.inverter ?? null);
+      } catch {
+        if (alive) setUnreachable(true);
+      }
+    }
+    tick();
+    const id = window.setInterval(tick, 2000);
+    return () => { alive = false; window.clearInterval(id); };
+  }, [agentBase]);
+
+  if (unreachable) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2 py-0.5 font-medium text-muted-foreground">
+        <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
+        Inversor: agente no responde
+      </span>
+    );
+  }
+  if (!inv) return null;
+
+  const lastSampleMs = inv.last_sample_at ? Date.now() - new Date(inv.last_sample_at).getTime() : null;
+  const fresh = lastSampleMs != null && lastSampleMs < 5_000;
+
+  let tone: "ok" | "warn" | "err" | "idle" = "idle";
+  let label = "Inversor: buscando…";
+
+  if (inv.state === "searching" || (!inv.connected && inv.reconnect_count === 0)) {
+    tone = "idle";
+    label = "Inversor: buscando puerto…";
+  } else if (!inv.connected) {
+    tone = "err";
+    label = "Inversor: desconectado · reintentando";
+  } else if (inv.state === "error") {
+    tone = "err";
+    label = "Inversor: error de lectura · reintentando";
+  } else if (inv.state === "stale" || inv.consecutive_empty > 0) {
+    tone = "warn";
+    label = `Inversor: lecturas vacías (${inv.consecutive_empty}/3)`;
+  } else if (!fresh) {
+    tone = "warn";
+    label = lastSampleMs != null
+      ? `Inversor: sin datos hace ${Math.round(lastSampleMs / 1000)} s`
+      : "Inversor: esperando primera muestra";
+  } else {
+    tone = "ok";
+    label = `Inversor: en vivo (${inv.transport ?? "—"})`;
+  }
+
+  const toneCls = {
+    ok:   "bg-success/15 text-success",
+    warn: "bg-warning/15 text-warning",
+    err:  "bg-destructive/15 text-destructive",
+    idle: "bg-muted text-muted-foreground",
+  }[tone];
+  const dotCls = {
+    ok:   "bg-success animate-pulse",
+    warn: "bg-warning animate-pulse",
+    err:  "bg-destructive animate-pulse",
+    idle: "bg-muted-foreground/60 animate-pulse",
+  }[tone];
+
+  const tooltip =
+    `${label}\n` +
+    `Puerto: ${inv.port ?? "—"} (${inv.transport ?? "—"})\n` +
+    `Lecturas OK: ${inv.read_count} · Errores: ${inv.error_count}\n` +
+    `Reconexiones: ${inv.reconnect_count}` +
+    (inv.connected_at ? `\nConectado desde ${new Date(inv.connected_at).toLocaleTimeString()}` : "") +
+    (inv.last_error ? `\nÚltimo error: ${inv.last_error}` : "");
+
+  return (
+    <span className={`inline-flex max-w-[420px] items-center gap-1.5 rounded-full px-2 py-0.5 font-medium ${toneCls}`} title={tooltip}>
+      <span className={`h-1.5 w-1.5 rounded-full ${dotCls}`} />
+      <span className="truncate">{label}</span>
     </span>
   );
 }
@@ -307,6 +413,7 @@ function LocalDashboardPage() {
               </span>
               <span className="rounded-full bg-muted px-2 py-0.5 font-medium">Plan: {plan}</span>
               <span className="rounded-full bg-muted px-2 py-0.5 font-medium">Modo: {mode.label}</span>
+              <InverterStatusBadge agentBase={agentBase} />
               <CloudPushBadge agentBase={agentBase} />
               {latest?.recorded_at && (
                 <span className="text-muted-foreground/70">
@@ -323,9 +430,11 @@ function LocalDashboardPage() {
 
         <SiteDashboardView latest={latest} siteId="local" pvConfig={pvCfg} />
 
-        {!latest && !error && (
+        {!latest && (
           <div className="mt-8 rounded-lg border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">
-            Esperando la primera muestra del inversor… (asegúrate de que el cable USB/serial esté conectado)
+            <div className="font-medium text-foreground/90">Esperando datos del inversor…</div>
+            <div className="mt-2">El agente está intentando reconectar automáticamente cada segundo. Revisa el badge <span className="font-medium">"Inversor: …"</span> arriba para ver el estado en detalle (puerto detectado, lecturas OK, último error).</div>
+            <div className="mt-2 text-xs">Verifica que el cable USB/serial esté conectado y que el inversor esté encendido.</div>
           </div>
         )}
       </div>
