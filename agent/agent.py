@@ -699,16 +699,20 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
       fb.style.display = "inline-block";
     });
 
-  // 2) Probe al cloud con timeout real. Si no responde en 1.5s → fallback.
+  // 2) Probe de internet hecho desde el AGENTE (TCP a 1.1.1.1:53). Esto
+  // evita falsos negativos por CORS / mixed-content / DNS lento del navegador
+  // que aparecían cuando se hacía el probe directo al cloud desde el cliente.
   function probeCloud(){
     var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
-    var to = setTimeout(function(){ if(ctrl) ctrl.abort(); }, 1500);
-    fetch(cloud + "/manifest.webmanifest", {
-      method:"GET", mode:"no-cors", cache:"no-store",
-      signal: ctrl ? ctrl.signal : undefined
-    })
-      .then(function(){ clearTimeout(to); loadIframe(); })
-      .catch(function(){ clearTimeout(to); goLegacy("Sin internet. Cargando panel local."); });
+    var to = setTimeout(function(){ if(ctrl) ctrl.abort(); }, 6000);
+    fetch("/api/internet", { cache:"no-store", signal: ctrl ? ctrl.signal : undefined })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        clearTimeout(to);
+        if (j && j.online) loadIframe();
+        else goLegacy("Sin internet en el dispositivo. Cargando panel local.");
+      })
+      .catch(function(){ clearTimeout(to); goLegacy("No se pudo verificar internet. Cargando panel local."); });
   }
 
   // Botón global para alternar modo y persistirlo en el agente.
