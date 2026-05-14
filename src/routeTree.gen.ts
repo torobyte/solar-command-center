@@ -27,6 +27,7 @@ import { Route as ApiPublicLicenseStatusRouteImport } from './routes/api/public/
 import { Route as ApiPublicIngestRouteImport } from './routes/api/public/ingest'
 import { Route as ApiPublicCommandsRouteImport } from './routes/api/public/commands'
 import { Route as ApiPublicActivateRouteImport } from './routes/api/public/activate'
+import { Route as ApiAdminSmtpTestRouteImport } from './routes/api/admin/smtp-test'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -118,6 +119,11 @@ const ApiPublicActivateRoute = ApiPublicActivateRouteImport.update({
   path: '/api/public/activate',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminSmtpTestRoute = ApiAdminSmtpTestRouteImport.update({
+  id: '/api/admin/smtp-test',
+  path: '/api/admin/smtp-test',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -129,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/sites/$siteId': typeof SitesSiteIdRoute
+  '/api/admin/smtp-test': typeof ApiAdminSmtpTestRoute
   '/api/public/activate': typeof ApiPublicActivateRoute
   '/api/public/commands': typeof ApiPublicCommandsRoute
   '/api/public/ingest': typeof ApiPublicIngestRoute
@@ -149,6 +156,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/sites/$siteId': typeof SitesSiteIdRoute
+  '/api/admin/smtp-test': typeof ApiAdminSmtpTestRoute
   '/api/public/activate': typeof ApiPublicActivateRoute
   '/api/public/commands': typeof ApiPublicCommandsRoute
   '/api/public/ingest': typeof ApiPublicIngestRoute
@@ -170,6 +178,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/sites/$siteId': typeof SitesSiteIdRoute
+  '/api/admin/smtp-test': typeof ApiAdminSmtpTestRoute
   '/api/public/activate': typeof ApiPublicActivateRoute
   '/api/public/commands': typeof ApiPublicCommandsRoute
   '/api/public/ingest': typeof ApiPublicIngestRoute
@@ -192,6 +201,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/sites/$siteId'
+    | '/api/admin/smtp-test'
     | '/api/public/activate'
     | '/api/public/commands'
     | '/api/public/ingest'
@@ -212,6 +222,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/sites/$siteId'
+    | '/api/admin/smtp-test'
     | '/api/public/activate'
     | '/api/public/commands'
     | '/api/public/ingest'
@@ -232,6 +243,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/sites/$siteId'
+    | '/api/admin/smtp-test'
     | '/api/public/activate'
     | '/api/public/commands'
     | '/api/public/ingest'
@@ -253,6 +265,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   SitesSiteIdRoute: typeof SitesSiteIdRoute
+  ApiAdminSmtpTestRoute: typeof ApiAdminSmtpTestRoute
   ApiPublicActivateRoute: typeof ApiPublicActivateRoute
   ApiPublicCommandsRoute: typeof ApiPublicCommandsRoute
   ApiPublicIngestRoute: typeof ApiPublicIngestRoute
@@ -392,6 +405,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicActivateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/smtp-test': {
+      id: '/api/admin/smtp-test'
+      path: '/api/admin/smtp-test'
+      fullPath: '/api/admin/smtp-test'
+      preLoaderRoute: typeof ApiAdminSmtpTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -405,6 +425,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   SitesSiteIdRoute: SitesSiteIdRoute,
+  ApiAdminSmtpTestRoute: ApiAdminSmtpTestRoute,
   ApiPublicActivateRoute: ApiPublicActivateRoute,
   ApiPublicCommandsRoute: ApiPublicCommandsRoute,
   ApiPublicIngestRoute: ApiPublicIngestRoute,
