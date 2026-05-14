@@ -1907,7 +1907,7 @@ button{background:var(--accent);color:#000;border:0;padding:6px 12px;border-radi
 </style></head><body>
 <header>
   <h1>⚙️ Estado local · SolarOps</h1>
-  <div><a href="/">← Dashboard</a> &nbsp; <button onclick="load()">Recargar</button></div>
+  <div><a href="/wifi">📶 WiFi</a> &nbsp; <a href="/">← Dashboard</a> &nbsp; <button onclick="load()">Recargar</button></div>
 </header>
 <main id="root">Cargando…</main>
 <div class="foot">Auto-refresh cada 5 s · Datos del agente local</div>
