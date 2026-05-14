@@ -56,7 +56,16 @@ APT_OPTS=(-y -qq --no-install-recommends \
 echo "▶ [1/9] Instalando dependencias del sistema…"
 apt-get update -qq
 apt-get install "${APT_OPTS[@]}" \
-  python3 python3-pip python3-venv git curl ca-certificates jq sudo >/dev/null
+  python3 python3-pip python3-venv git curl ca-certificates jq sudo \
+  network-manager wireless-tools iw rfkill >/dev/null
+
+# Asegurar que NetworkManager gestione el WiFi (necesario para el modo AP de
+# bootstrap y para la página /wifi del agente). En Raspberry Pi OS Bookworm+
+# ya viene por defecto; en Bullseye y derivados conviene forzarlo.
+systemctl enable --now NetworkManager >/dev/null 2>&1 || true
+# Desactivar dhcpcd si está pisando a NM (típico en Pi OS Bullseye)
+systemctl disable --now dhcpcd >/dev/null 2>&1 || true
+rfkill unblock wifi 2>/dev/null || true
 
 echo "▶ [2/9] Descargando código (rama: $BRANCH)…"
 install -d -m 755 /opt/solarops /etc/solarops /var/lib/solarops
@@ -172,6 +181,95 @@ WantedBy=timers.target
 EOF
 
 # ---------------------------------------------------------------------------
+# [6.5/9] AP DE BOOTSTRAP — si el dispositivo no tiene internet, levanta una
+# red WiFi propia ("SolarOps-Setup") para que el usuario se conecte desde su
+# móvil y configure el WiFi real desde http://10.42.0.1/wifi (estilo Solar
+# Assistant). Cuando hay internet, el AP se apaga solo.
+# ---------------------------------------------------------------------------
+echo "▶ [6.5/9] Configurando modo AP de bootstrap (WiFi de configuración)…"
+
+AP_SSID="${SOLAROPS_AP_SSID:-SolarOps-Setup}"
+AP_PASSWORD="${SOLAROPS_AP_PASSWORD:-solarops1234}"   # mínimo 8 caracteres (WPA2)
+AP_CONN_NAME="solarops-ap"
+
+# Pre-crear el perfil de hotspot en NetworkManager (no lo activamos aún —
+# eso lo decide el watchdog según haya o no internet).
+if command -v nmcli >/dev/null 2>&1; then
+  WIFI_IFACE=$(nmcli -t -f DEVICE,TYPE device | awk -F: '$2=="wifi"{print $1; exit}')
+  if [[ -n "$WIFI_IFACE" ]]; then
+    nmcli connection delete "$AP_CONN_NAME" >/dev/null 2>&1 || true
+    nmcli connection add type wifi ifname "$WIFI_IFACE" con-name "$AP_CONN_NAME" \
+      autoconnect no ssid "$AP_SSID" >/dev/null 2>&1 || true
+    nmcli connection modify "$AP_CONN_NAME" \
+      802-11-wireless.mode ap 802-11-wireless.band bg \
+      ipv4.method shared ipv6.method ignore \
+      wifi-sec.key-mgmt wpa-psk wifi-sec.psk "$AP_PASSWORD" >/dev/null 2>&1 || true
+    echo "   ✓ Perfil AP listo (SSID=${AP_SSID}, contraseña=${AP_PASSWORD})"
+  else
+    echo "   ⚠ Sin interfaz WiFi detectada — modo AP no disponible."
+  fi
+else
+  echo "   ⚠ nmcli no está disponible — modo AP no disponible."
+fi
+
+# Watchdog: cada 30 s, si no hay internet y no hay AP activo → activa AP.
+# Si hay internet → desactiva AP. Esto da el comportamiento "auto-bootstrap"
+# de Solar Assistant: el dispositivo siempre es accesible, sea por WiFi del
+# cliente o por su propio AP.
+cat >/opt/solarops/ap-watchdog.sh <<EOF
+#!/usr/bin/env bash
+# SolarOps AP-bootstrap watchdog
+set -u
+AP_CONN_NAME="${AP_CONN_NAME}"
+GRACE_BOOT=60   # esperar a que NM termine de intentar conectar al WiFi guardado
+COOLDOWN=20     # segundos entre transiciones
+sleep "\$GRACE_BOOT"
+last_change=0
+while true; do
+  now=\$(date +%s)
+  # ¿Hay internet?
+  if timeout 3 bash -c 'echo > /dev/tcp/1.1.1.1/53' 2>/dev/null; then
+    online=1
+  else
+    online=0
+  fi
+  ap_active=\$(nmcli -t -f NAME connection show --active 2>/dev/null | grep -Fx "\$AP_CONN_NAME" >/dev/null && echo 1 || echo 0)
+  if [[ "\$online" == "1" && "\$ap_active" == "1" ]]; then
+    if (( now - last_change > COOLDOWN )); then
+      logger -t solarops-ap "Internet OK — apagando AP \$AP_CONN_NAME"
+      nmcli connection down "\$AP_CONN_NAME" >/dev/null 2>&1 || true
+      last_change=\$now
+    fi
+  elif [[ "\$online" == "0" && "\$ap_active" == "0" ]]; then
+    if (( now - last_change > COOLDOWN )); then
+      logger -t solarops-ap "Sin internet — levantando AP \$AP_CONN_NAME"
+      nmcli connection up "\$AP_CONN_NAME" >/dev/null 2>&1 || true
+      last_change=\$now
+    fi
+  fi
+  sleep 30
+done
+EOF
+chmod +x /opt/solarops/ap-watchdog.sh
+
+cat >/etc/systemd/system/solarops-ap.service <<'EOF'
+[Unit]
+Description=SolarOps AP-bootstrap watchdog (auto WiFi setup)
+After=NetworkManager.service
+Wants=NetworkManager.service
+
+[Service]
+Type=simple
+ExecStart=/opt/solarops/ap-watchdog.sh
+Restart=always
+RestartSec=10
+User=root
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# ---------------------------------------------------------------------------
 # [7/9] MODO KIOSKO (Chromium pantalla completa con la plataforma local)
 # ---------------------------------------------------------------------------
 echo "▶ [7/9] Instalando modo kiosko (Chromium → http://localhost)…"
@@ -254,6 +352,7 @@ echo "▶ [8/9] Habilitando servicios en el arranque…"
 systemctl daemon-reload
 systemctl enable --now solarops.service >/dev/null 2>&1
 systemctl enable --now solarops-update.timer >/dev/null 2>&1
+systemctl enable --now solarops-ap.service >/dev/null 2>&1 || true
 if [[ -n "$CHROMIUM_BIN" ]]; then
   systemctl enable solarops-kiosk.service >/dev/null 2>&1
   systemctl start  solarops-kiosk.service >/dev/null 2>&1 || true
@@ -279,6 +378,9 @@ echo "   ☁  Dashboard nube:   ${CLOUD_URL}/app"
 echo "   🖥  Kiosko:           systemctl status solarops-kiosk"
 echo "   📜 Logs agente:      journalctl -u solarops -f"
 echo "   🔄 Auto-update:      cada hora (systemctl list-timers solarops-update)"
+echo "   📶 AP de bootstrap:  SSID=${AP_SSID:-SolarOps-Setup}  contraseña=${AP_PASSWORD:-solarops1234}"
+echo "                        (se activa solo cuando el dispositivo no tiene internet)"
+echo "                        Conéctate y abre http://10.42.0.1/wifi para configurar el WiFi real"
 echo "   🆔 hardware_id:      ${HARDWARE_ID}"
 echo "   🧩 Placa:            ${BOARD}"
 if [[ -n "${DEVICE_TOKEN:-}" ]]; then
