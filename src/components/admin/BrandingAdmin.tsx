@@ -242,6 +242,45 @@ export function BrandingAdmin() {
         </TabsContent>
 
         <TabsContent value="colors" className="mt-6 space-y-6">
+          <div className="rounded-lg border bg-muted/30 p-4">
+            <h3 className="mb-1 text-sm font-semibold">🎨 Paletas predefinidas</h3>
+            <p className="mb-4 text-xs text-muted-foreground">
+              Aplica una paleta completa con un clic. Puedes ajustar los colores después.
+            </p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {PALETTE_PRESETS.map((p) => (
+                <div key={p.name} className="rounded-lg border bg-card p-3">
+                  <div className="mb-2">
+                    <p className="text-sm font-semibold">{p.name}</p>
+                    <p className="text-[11px] text-muted-foreground">{p.description}</p>
+                  </div>
+                  <div className="mb-2 grid grid-cols-2 gap-1">
+                    <div>
+                      <p className="mb-1 text-[10px] uppercase text-muted-foreground">Claro</p>
+                      <div className="flex h-6 overflow-hidden rounded border">
+                        {[p.light.background_color, p.light.card_color, p.light.primary_color, p.light.accent_color, p.light.foreground_color].map((c, i) => (
+                          <div key={i} className="flex-1" style={{ background: c }} />
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="mb-1 text-[10px] uppercase text-muted-foreground">Oscuro</p>
+                      <div className="flex h-6 overflow-hidden rounded border">
+                        {[p.dark.background_color_dark, p.dark.card_color_dark, p.dark.primary_color_dark, p.dark.accent_color_dark, p.dark.foreground_color_dark].map((c, i) => (
+                          <div key={i} className="flex-1" style={{ background: c }} />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="outline" className="h-7 flex-1 px-1 text-xs" onClick={() => applyPreset(p, "light")}>☀</Button>
+                    <Button size="sm" variant="outline" className="h-7 flex-1 px-1 text-xs" onClick={() => applyPreset(p, "dark")}>🌙</Button>
+                    <Button size="sm" className="h-7 flex-1 px-1 text-xs" onClick={() => applyPreset(p, "both")}>Ambos</Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
           <div>
             <h3 className="mb-3 text-sm font-semibold">☀ Modo claro</h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
