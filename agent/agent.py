@@ -1335,9 +1335,13 @@ function renderGrid(){
 function resizeTile(idx,w){ LAYOUT[idx].w=w; saveLayout(LAYOUT); LAST_LAYOUT_KEY=''; renderGrid(); }
 window.resizeTile=resizeTile;
 
-// ====== Charts ======
+// ====== Charts (re-render sólo si cambió la data) ======
+const _CHART_CACHE = {};
 function drawChart(id, points, color){
   const svg=document.getElementById(id); if(!svg) return;
+  const sig = id+':'+color+':'+points.map(v=>v==null?'_':Number(v).toFixed(0)).join(',');
+  if (_CHART_CACHE[id] === sig) return;
+  _CHART_CACHE[id] = sig;
   const W=600,H=200; svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
   if(!points.length){ svg.innerHTML=`<text x="${W/2}" y="${H/2}" text-anchor="middle" fill="#8a8d97" font-size="12">Sin datos aún</text>`; return; }
   const xs=points.map((_,i)=>i*W/Math.max(1,points.length-1));
@@ -1353,15 +1357,16 @@ function drawChart(id, points, color){
     ${d?`<path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round"/>`:''}`;
 }
 
+let _LAST_TOTALS_HTML = '';
 function renderCharts(){
   const h = STATE&&STATE.history||[];
   drawChart('chPv', h.map(p=>p.pv), '#f59e0b');
   drawChart('chLoad', h.map(p=>p.load), '#3b82f6');
   drawChart('chSoc', h.map(p=>p.soc), '#22c55e');
   const t = STATE&&STATE.totals_today||{};
-  document.getElementById('totalsBox').innerHTML =
-    [['☀️ PV','pv_kwh','#f59e0b'],['🏠 Carga','load_kwh','#3b82f6'],['🔋↑','battery_charged_kwh','#22c55e'],['🔋↓','battery_discharged_kwh','#f59e0b'],['⚡ Red','grid_used_kwh','#ef4444']]
+  const html = [['☀️ PV','pv_kwh','#f59e0b'],['🏠 Carga','load_kwh','#3b82f6'],['🔋↑','battery_charged_kwh','#22c55e'],['🔋↓','battery_discharged_kwh','#f59e0b'],['⚡ Red','grid_used_kwh','#ef4444']]
     .map(([l,k,c])=>`<div style="background:var(--card2);padding:14px;border-radius:10px;text-align:center;border:1px solid var(--border)"><div style="color:var(--muted);font-size:11px">${l}</div><div style="font-size:22px;font-weight:800;color:${c};margin-top:4px">${(Number(t[k]||0)).toFixed(2)}</div><div style="font-size:10px;color:var(--muted)">kWh</div></div>`).join('');
+  if (html !== _LAST_TOTALS_HTML) { document.getElementById('totalsBox').innerHTML = html; _LAST_TOTALS_HTML = html; }
 }
 
 // ====== Diagnostics ======
