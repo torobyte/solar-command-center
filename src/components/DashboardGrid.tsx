@@ -1,30 +1,56 @@
-import { useRef, useState } from "react";
-import { GripVertical, Eye, EyeOff, Maximize2, Settings2, RotateCcw, Square, RectangleHorizontal, LayoutGrid } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { GripVertical, Eye, EyeOff, Maximize2, Settings2, RotateCcw, Square, RectangleHorizontal, LayoutGrid, Smartphone, Tablet, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 export type WidgetWidth = 25 | 50 | 75 | 100;
-export interface WidgetDef { id: string; label: string }
-export interface WidgetState { id: string; visible: boolean; width?: WidgetWidth }
+export type Breakpoint = "mobile" | "tablet" | "desktop";
 
-const WIDTH_TO_COL: Record<WidgetWidth, string> = {
-  25: "col-span-1 md:col-span-3",
-  50: "col-span-1 md:col-span-6",
-  75: "col-span-2 md:col-span-9",
-  100: "col-span-2 md:col-span-12",
+export interface WidgetDef { id: string; label: string }
+export interface WidgetState {
+  id: string;
+  visible: boolean;
+  /** legacy single-width (used as fallback when per-breakpoint missing) */
+  width?: WidgetWidth;
+  widthMobile?: WidgetWidth;
+  widthTablet?: WidgetWidth;
+  widthDesktop?: WidgetWidth;
+}
+
+// Mobile uses a 4-col grid, tablet 8-col, desktop 12-col
+// 25/50/75/100 → 1/2/3/4  | 2/4/6/8 | 3/6/9/12
+const COL_MAP: Record<Breakpoint, Record<WidgetWidth, string>> = {
+  mobile: { 25: "col-span-1", 50: "col-span-2", 75: "col-span-3", 100: "col-span-4" },
+  tablet: { 25: "md:col-span-2", 50: "md:col-span-4", 75: "md:col-span-6", 100: "md:col-span-8" },
+  desktop: { 25: "lg:col-span-3", 50: "lg:col-span-6", 75: "lg:col-span-9", 100: "lg:col-span-12" },
 };
 
-const WIDTH_OPTIONS: { value: WidgetWidth; label: string; icon: React.ReactNode }[] = [
-  { value: 25, label: "¼", icon: <Square className="h-3 w-3" /> },
-  { value: 50, label: "½", icon: <RectangleHorizontal className="h-3 w-3" /> },
-  { value: 75, label: "¾", icon: <RectangleHorizontal className="h-3 w-3" /> },
-  { value: 100, label: "1/1", icon: <Maximize2 className="h-3 w-3" /> },
+const WIDTH_OPTIONS: { value: WidgetWidth; label: string }[] = [
+  { value: 25, label: "¼" }, { value: 50, label: "½" }, { value: 75, label: "¾" }, { value: 100, label: "1/1" },
 ];
 
 export function defaultWidth(id: string): WidgetWidth {
-  // Sensible defaults — heavy widgets full-width, summaries half/quarter.
   if (["icons", "mode", "flow", "forecast"].includes(id)) return 100;
   return 50;
+}
+
+function defaultMobile(id: string): WidgetWidth {
+  // Heavy widgets full width on mobile, summaries half (= 2 columns of 4)
+  if (["icons", "mode", "flow", "forecast", "history"].includes(id)) return 100;
+  return 50;
+}
+
+function getWidth(w: WidgetState, bp: Breakpoint): WidgetWidth {
+  const fallback = w.width ?? defaultWidth(w.id);
+  if (bp === "mobile") return w.widthMobile ?? defaultMobile(w.id);
+  if (bp === "tablet") return w.widthTablet ?? fallback;
+  return w.widthDesktop ?? fallback;
+}
+
+function setWidthFor(w: WidgetState, bp: Breakpoint, v: WidgetWidth): WidgetState {
+  if (bp === "mobile") return { ...w, widthMobile: v };
+  if (bp === "tablet") return { ...w, widthTablet: v };
+  return { ...w, widthDesktop: v, width: v };
 }
 
 interface GridProps {
@@ -34,28 +60,35 @@ interface GridProps {
   render: (id: string) => React.ReactNode;
 }
 
-/**
- * 12-col responsive grid with native drag-and-drop on the cards
- * themselves and a width control (¼ ½ ¾ 1/1) per card. On desktop
- * the bottom-right corner also exposes an edge resize handle that
- * snaps to the nearest 25% step.
- */
 export function DashboardGrid({ defs, state, onChange, render }: GridProps) {
   const dragId = useRef<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const [showHidden, setShowHidden] = useState(false);
+  // Which breakpoint width controls are currently editing.
+  const [editBp, setEditBp] = useState<Breakpoint>(() => {
+    if (typeof window === "undefined") return "desktop";
+    if (window.matchMedia("(max-width: 767px)").matches) return "mobile";
+    if (window.matchMedia("(max-width: 1023px)").matches) return "tablet";
+    return "desktop";
+  });
 
   const visible = state.filter((w) => w.visible);
   const hidden = state.filter((w) => !w.visible);
 
-  function setWidth(id: string, width: WidgetWidth) {
-    onChange(state.map((w) => (w.id === id ? { ...w, width } : w)));
+  function setWidth(id: string, v: WidgetWidth) {
+    onChange(state.map((w) => (w.id === id ? setWidthFor(w, editBp, v) : w)));
   }
   function toggleVisible(id: string) {
     onChange(state.map((w) => (w.id === id ? { ...w, visible: !w.visible } : w)));
   }
   function reset() {
-    onChange(defs.map((d) => ({ id: d.id, visible: true, width: defaultWidth(d.id) })));
+    onChange(defs.map((d) => ({
+      id: d.id, visible: true,
+      widthMobile: defaultMobile(d.id),
+      widthTablet: defaultWidth(d.id),
+      widthDesktop: defaultWidth(d.id),
+      width: defaultWidth(d.id),
+    })));
     toast.success("Layout restablecido");
   }
 
@@ -81,11 +114,34 @@ export function DashboardGrid({ defs, state, onChange, render }: GridProps) {
     onChange(next);
   }
 
+  const BP_TABS: { id: Breakpoint; icon: React.ReactNode; label: string }[] = [
+    { id: "mobile", icon: <Smartphone className="h-3.5 w-3.5" />, label: "Móvil" },
+    { id: "tablet", icon: <Tablet className="h-3.5 w-3.5" />, label: "Tablet" },
+    { id: "desktop", icon: <Monitor className="h-3.5 w-3.5" />, label: "Escritorio" },
+  ];
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="text-xs text-muted-foreground">
-          Arrastra las tarjetas para reordenarlas. Usa <kbd className="rounded border px-1">¼ ½ ¾ 1/1</kbd> para cambiar el ancho.
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="text-xs text-muted-foreground">
+            Edita anchos para:
+          </div>
+          <div className="inline-flex rounded-full border bg-card p-0.5 text-xs">
+            {BP_TABS.map((b) => (
+              <button
+                key={b.id}
+                onClick={() => setEditBp(b.id)}
+                className={[
+                  "inline-flex items-center gap-1 rounded-full px-2.5 py-1 transition-colors",
+                  editBp === b.id ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted",
+                ].join(" ")}
+                title={`Editar anchos de ${b.label}`}
+              >
+                {b.icon} <span className="hidden sm:inline">{b.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
         <div className="flex items-center gap-1.5">
           {hidden.length > 0 && (
@@ -117,12 +173,15 @@ export function DashboardGrid({ defs, state, onChange, render }: GridProps) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-12 md:gap-4">
+      <div className="grid grid-cols-4 gap-2 md:grid-cols-8 md:gap-3 lg:grid-cols-12 lg:gap-4">
         {visible.map((w) => {
           const def = defs.find((d) => d.id === w.id);
           if (!def) return null;
-          const width = w.width ?? defaultWidth(w.id);
+          const wm = getWidth(w, "mobile");
+          const wt = getWidth(w, "tablet");
+          const wd = getWidth(w, "desktop");
           const isOver = overId === w.id;
+          const currentForBp = getWidth(w, editBp);
           return (
             <div
               key={w.id}
@@ -133,12 +192,11 @@ export function DashboardGrid({ defs, state, onChange, render }: GridProps) {
               onDrop={() => onDrop(w.id)}
               onDragEnd={() => { dragId.current = null; setOverId(null); }}
               className={[
-                "@container group relative transition-all",
-                WIDTH_TO_COL[width],
+                "@container group relative transition-all min-w-0",
+                COL_MAP.mobile[wm], COL_MAP.tablet[wt], COL_MAP.desktop[wd],
                 isOver ? "ring-2 ring-accent/60 ring-offset-2 ring-offset-background rounded-2xl -translate-y-0.5" : "",
               ].join(" ")}
             >
-              {/* Hover overlay: drag handle + width buttons + hide */}
               <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between p-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
                 <div className="pointer-events-auto flex cursor-grab items-center gap-1 rounded-full border bg-card/90 px-2 py-1 text-[10px] font-medium text-muted-foreground shadow-sm backdrop-blur-sm active:cursor-grabbing">
                   <GripVertical className="h-3 w-3" /> Mover
@@ -150,11 +208,11 @@ export function DashboardGrid({ defs, state, onChange, render }: GridProps) {
                       onClick={(e) => { e.stopPropagation(); setWidth(w.id, opt.value); }}
                       className={[
                         "inline-flex h-6 min-w-[26px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold transition-colors",
-                        width === opt.value
+                        currentForBp === opt.value
                           ? "bg-accent text-accent-foreground"
                           : "text-muted-foreground hover:bg-muted hover:text-foreground",
                       ].join(" ")}
-                      title={`Ancho ${opt.value}%`}
+                      title={`Ancho ${opt.value}% (${editBp})`}
                     >
                       {opt.label}
                     </button>
@@ -169,57 +227,11 @@ export function DashboardGrid({ defs, state, onChange, render }: GridProps) {
                 </div>
               </div>
 
-              {render(w.id)}
-
-              {/* Desktop edge-resize handle (snaps to 25% steps) */}
-              <ResizeHandle currentWidth={width} onWidth={(nw) => setWidth(w.id, nw)} />
+              <div className="h-full min-w-0">{render(w.id)}</div>
             </div>
           );
         })}
       </div>
     </div>
-  );
-}
-
-function ResizeHandle({ currentWidth, onWidth }: { currentWidth: WidgetWidth; onWidth: (w: WidgetWidth) => void }) {
-  const dragging = useRef(false);
-  const startX = useRef(0);
-  const startWidth = useRef<WidgetWidth>(currentWidth);
-
-  function snap(deltaPx: number, parentWidth: number): WidgetWidth {
-    // 12-col grid; each 25% step is parentWidth/4 of the parent.
-    // We treat the card as siblings sharing the row. Use raw px delta divided by ~quarter.
-    const quarter = parentWidth / 4;
-    const steps = Math.round(deltaPx / quarter);
-    const next = Math.max(25, Math.min(100, startWidth.current + steps * 25));
-    return next as WidgetWidth;
-  }
-
-  function onMouseDown(e: React.MouseEvent) {
-    e.preventDefault(); e.stopPropagation();
-    const parent = (e.currentTarget as HTMLElement).closest(".grid") as HTMLElement | null;
-    const parentWidth = parent?.clientWidth ?? 1200;
-    dragging.current = true;
-    startX.current = e.clientX;
-    startWidth.current = currentWidth;
-    function move(ev: MouseEvent) {
-      if (!dragging.current) return;
-      onWidth(snap(ev.clientX - startX.current, parentWidth));
-    }
-    function up() {
-      dragging.current = false;
-      window.removeEventListener("mousemove", move);
-      window.removeEventListener("mouseup", up);
-    }
-    window.addEventListener("mousemove", move);
-    window.addEventListener("mouseup", up);
-  }
-
-  return (
-    <div
-      onMouseDown={onMouseDown}
-      title="Arrastra para cambiar ancho"
-      className="pointer-events-auto absolute right-0 top-1/2 hidden h-12 w-1.5 -translate-y-1/2 cursor-col-resize rounded-l-md bg-accent/0 opacity-0 transition-all group-hover:bg-accent/50 group-hover:opacity-100 md:block"
-    />
   );
 }

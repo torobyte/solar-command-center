@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { applyBrandingToDOM, ensureGoogleFont, GOOGLE_FONTS, useBranding, type Branding } from "@/lib/branding";
-import { Save, RotateCcw } from "lucide-react";
+import { Save, RotateCcw, Upload, X } from "lucide-react";
 
 const COLOR_FIELDS: { key: keyof Branding; label: string }[] = [
   { key: "primary_color", label: "Primario" },
@@ -71,11 +71,13 @@ export function BrandingAdmin() {
           <Field label="Tagline">
             <Input value={b.tagline ?? ""} onChange={(e) => update("tagline", e.target.value)} />
           </Field>
-          <Field label="URL del logo">
-            <Input value={b.logo_url ?? ""} onChange={(e) => update("logo_url", e.target.value)} placeholder="https://…" />
+          <Field label="Logo">
+            <ImageUploader value={b.logo_url ?? ""} folder="logo"
+              onChange={(v) => update("logo_url", v)} hint="PNG/SVG transparente · ideal 256×64" />
           </Field>
-          <Field label="URL del favicon">
-            <Input value={b.favicon_url ?? ""} onChange={(e) => update("favicon_url", e.target.value)} placeholder="https://… (32x32 PNG/SVG)" />
+          <Field label="Favicon">
+            <ImageUploader value={b.favicon_url ?? ""} folder="favicon"
+              onChange={(v) => update("favicon_url", v)} hint="32×32 PNG/SVG" />
           </Field>
         </TabsContent>
 
@@ -164,11 +166,13 @@ export function BrandingAdmin() {
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Icono 192×192 (URL PNG)">
-            <Input value={b.pwa_icon_192 ?? ""} onChange={(e) => update("pwa_icon_192", e.target.value)} placeholder="https://… 192x192 PNG" />
+          <Field label="Icono 192×192">
+            <ImageUploader value={b.pwa_icon_192 ?? ""} folder="pwa-192"
+              onChange={(v) => update("pwa_icon_192", v)} hint="192×192 PNG cuadrado" />
           </Field>
-          <Field label="Icono 512×512 (URL PNG)">
-            <Input value={b.pwa_icon_512 ?? ""} onChange={(e) => update("pwa_icon_512", e.target.value)} placeholder="https://… 512x512 PNG" />
+          <Field label="Icono 512×512">
+            <ImageUploader value={b.pwa_icon_512 ?? ""} folder="pwa-512"
+              onChange={(v) => update("pwa_icon_512", v)} hint="512×512 PNG cuadrado" />
           </Field>
         </TabsContent>
       </Tabs>
@@ -190,6 +194,57 @@ function Field({ label, children, className }: { label: string; children: React.
     <div className={`space-y-2 ${className ?? ""}`}>
       <Label>{label}</Label>
       {children}
+    </div>
+  );
+}
+
+function ImageUploader({ value, onChange, folder, hint }: { value: string; onChange: (v: string) => void; folder: string; hint?: string }) {
+  const [busy, setBusy] = useState(false);
+  async function pick(file: File) {
+    setBusy(true);
+    try {
+      const ext = (file.name.split(".").pop() || "png").toLowerCase();
+      const path = `${folder}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("branding")
+        .upload(path, file, { upsert: true, contentType: file.type || "image/png", cacheControl: "3600" });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from("branding").getPublicUrl(path);
+      onChange(data.publicUrl);
+      toast.success("Imagen subida");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-3">
+        {value ? (
+          <div className="relative h-16 w-16 overflow-hidden rounded-lg border bg-muted/30">
+            <img src={value} alt="" className="h-full w-full object-contain" />
+          </div>
+        ) : (
+          <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-dashed bg-muted/30 text-xs text-muted-foreground">—</div>
+        )}
+        <div className="flex flex-1 flex-col gap-2">
+          <div className="flex gap-2">
+            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted">
+              <Upload className="h-3.5 w-3.5" />
+              {busy ? "Subiendo…" : "Subir imagen"}
+              <input type="file" accept="image/*" className="hidden" disabled={busy}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) pick(f); e.target.value = ""; }} />
+            </label>
+            {value && (
+              <Button size="sm" variant="ghost" onClick={() => onChange("")}>
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
+          <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder="o pega una URL…" className="h-7 text-xs" />
+        </div>
+      </div>
+      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
     </div>
   );
 }

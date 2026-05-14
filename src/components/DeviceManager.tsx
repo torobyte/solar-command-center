@@ -132,7 +132,6 @@ export function DeviceSelector({ siteId }: { siteId: string }) {
               ].join(" ")}
               title={d.model ?? ""}
             >
-              {d.is_primary && <Star className="h-3 w-3 fill-current" />}
               {d.name}
             </button>
           ))}
@@ -174,11 +173,6 @@ export function DeviceSelector({ siteId }: { siteId: string }) {
                 <>
                   <span className="flex-1 font-medium">{d.name}</span>
                   <span className="text-muted-foreground">{d.model ?? "—"}</span>
-                  {!d.is_primary && (
-                    <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => setPrimary(d.id)} title="Marcar como principal">
-                      <Star className="h-3 w-3" />
-                    </Button>
-                  )}
                   <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => { setEditingId(d.id); setDraftName(d.name); setDraftModel(d.model ?? ""); }}>
                     <Pencil className="h-3 w-3" />
                   </Button>

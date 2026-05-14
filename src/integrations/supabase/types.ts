@@ -354,6 +354,36 @@ export type Database = {
           },
         ]
       }
+      email_templates: {
+        Row: {
+          enabled: boolean | null
+          html_body: string
+          id: string
+          name: string
+          subject: string
+          text_body: string | null
+          updated_at: string
+        }
+        Insert: {
+          enabled?: boolean | null
+          html_body: string
+          id: string
+          name: string
+          subject: string
+          text_body?: string | null
+          updated_at?: string
+        }
+        Update: {
+          enabled?: boolean | null
+          html_body?: string
+          id?: string
+          name?: string
+          subject?: string
+          text_body?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       inverter_specs: {
         Row: {
           device_id: string | null
@@ -862,6 +892,45 @@ export type Database = {
           plan?: string
           status?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      smtp_settings: {
+        Row: {
+          enabled: boolean | null
+          from_email: string | null
+          from_name: string | null
+          host: string | null
+          key: string
+          password: string | null
+          port: number | null
+          secure: boolean | null
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          enabled?: boolean | null
+          from_email?: string | null
+          from_name?: string | null
+          host?: string | null
+          key?: string
+          password?: string | null
+          port?: number | null
+          secure?: boolean | null
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          enabled?: boolean | null
+          from_email?: string | null
+          from_name?: string | null
+          host?: string | null
+          key?: string
+          password?: string | null
+          port?: number | null
+          secure?: boolean | null
+          updated_at?: string
+          username?: string | null
         }
         Relationships: []
       }
