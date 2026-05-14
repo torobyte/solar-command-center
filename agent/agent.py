@@ -832,6 +832,10 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:var(--accent);box
     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
       <span class="badge" id="modeBadge">Modo: —</span>
       <span class="badge" id="planBadge">Plan: —</span>
+      <button class="badge" style="cursor:pointer;border:1px solid var(--border);background:var(--card2);color:var(--fg)"
+        onclick="fetch('/api/mode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ui_mode:'modern'})}).finally(function(){window.location.replace('/');});">
+        ↗ Cambiar a modo moderno
+      </button>
     </div>
   </div>
 
