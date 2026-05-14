@@ -1494,6 +1494,7 @@ def make_app(agent: Agent) -> Flask:
             "plan": license.get("plan"),
             "activated": bool(cfg.get("device_token")),
             "cloud_url": cfg.get("cloud_url"),
+            "ui_mode": cfg.get("ui_mode") or "modern",
             # Diagnóstico del push al cloud — útil para detectar cuándo el
             # inversor está leyendo OK localmente pero el cloud no recibe.
             "push": {
@@ -1506,6 +1507,20 @@ def make_app(agent: Agent) -> Flask:
                 "loop_restarts": agent.push_loop_restarts,
             },
         })
+
+    @app.get("/api/mode")
+    def get_mode():
+        return jsonify({"ui_mode": agent.config.get("ui_mode") or "modern"})
+
+    @app.post("/api/mode")
+    def set_mode():
+        body = request.get_json(force=True) or {}
+        mode = (body.get("ui_mode") or "").strip().lower()
+        if mode not in ("modern", "legacy"):
+            return jsonify({"error": "ui_mode must be 'modern' or 'legacy'"}), 400
+        agent.config["ui_mode"] = mode
+        save_config(agent.config)
+        return jsonify({"ok": True, "ui_mode": mode})
 
     @app.get("/api/state")
     def state():
