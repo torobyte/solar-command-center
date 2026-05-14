@@ -129,41 +129,41 @@ export function NotificationsConfig({ siteId, userId }: { siteId: string; userId
   }
 
   return (
-    <div className="space-y-6 animate-fade-up">
-      <Card className="overflow-hidden rounded-2xl border shadow-card">
-        <CardHeader className="flex flex-col gap-4 border-b bg-gradient-to-br from-accent/5 to-transparent sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent/25 to-accent/5 text-accent ring-1 ring-accent/20">
-              <BellRing className="h-5 w-5 icon-spring" strokeWidth={2.2} />
+    <div className="space-y-3 sm:space-y-4 animate-fade-up">
+      <Card className="overflow-hidden rounded-xl border shadow-sm">
+        <CardHeader className="flex flex-col gap-2.5 border-b bg-gradient-to-br from-accent/5 to-transparent p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+          <div className="flex items-start gap-2.5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-accent/25 to-accent/5 text-accent ring-1 ring-accent/20">
+              <BellRing className="h-4 w-4" strokeWidth={2.2} />
             </div>
-            <div>
-              <CardTitle className="tracking-tight">Notificaciones</CardTitle>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Recibe avisos del navegador / PWA cuando la batería, la red o el inversor cumplan condiciones.
+            <div className="min-w-0">
+              <CardTitle className="text-sm sm:text-base tracking-tight">Notificaciones</CardTitle>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Avisos cuando la batería, la red o el inversor cumplan condiciones.
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             {permission === "granted" ? (
-              <Badge variant="secondary" className="gap-1 rounded-full"><ShieldCheck className="h-3 w-3" strokeWidth={2.4} /> Permitidas</Badge>
+              <Badge variant="secondary" className="h-7 gap-1 rounded-full px-2"><ShieldCheck className="h-3 w-3" strokeWidth={2.4} /> Permitidas</Badge>
             ) : (
-              <Button size="sm" className="rounded-full" onClick={requestPerm}>
-                <BellOff className="mr-2 h-4 w-4" strokeWidth={2.2} /> Activar permisos
+              <Button size="sm" className="h-7 rounded-full px-2.5 text-xs" onClick={requestPerm}>
+                <BellOff className="mr-1 h-3.5 w-3.5" strokeWidth={2.2} /> Activar
               </Button>
             )}
             {isPushSupported() && (
-              <Button size="sm" variant={pushOn ? "secondary" : "default"} className="rounded-full" onClick={togglePush} disabled={pushBusy}>
-                <Smartphone className="mr-2 h-4 w-4" strokeWidth={2.2} />
-                {pushOn ? "Push activo (app cerrada)" : "Activar push en background"}
+              <Button size="sm" variant={pushOn ? "secondary" : "default"} className="h-7 rounded-full px-2.5 text-xs" onClick={togglePush} disabled={pushBusy}>
+                <Smartphone className="mr-1 h-3.5 w-3.5" strokeWidth={2.2} />
+                {pushOn ? "Push activo" : "Activar push"}
               </Button>
             )}
-            <Button size="sm" variant="outline" className="rounded-full" onClick={testNotification}>
-              <Zap className="mr-1.5 h-3.5 w-3.5" strokeWidth={2.4} /> Probar
+            <Button size="sm" variant="outline" className="h-7 rounded-full px-2.5 text-xs" onClick={testNotification}>
+              <Zap className="mr-1 h-3 w-3" strokeWidth={2.4} /> Probar
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="pt-5">
-          <div className="mb-4 flex flex-wrap gap-2">
+        <CardContent className="p-3 sm:p-4">
+          <div className="mb-3 flex flex-wrap gap-1.5">
             {[
               { l: "Batería < 20%", o: () => addPreset({ name: "Batería baja", metric: "battery_capacity", operator: "<", threshold: 20, severity: "warning" }) },
               { l: "Batería < 10%", o: () => addPreset({ name: "Batería crítica", metric: "battery_capacity", operator: "<", threshold: 10, severity: "critical", cooldown_minutes: 5 }) },
@@ -172,44 +172,44 @@ export function NotificationsConfig({ siteId, userId }: { siteId: string; userId
               { l: "Carga > 90%", o: () => addPreset({ name: "Sobrecarga", metric: "load_percent", operator: ">", threshold: 90, severity: "warning" }) },
               { l: "Pasa a Batería", o: () => addPreset({ name: "Modo batería", metric: "inverter_mode", operator: "changes_to", threshold_text: "B", severity: "info" }) },
             ].map((b) => (
-              <Button key={b.l} size="sm" variant="outline" className="rounded-full" onClick={b.o}>
-                <Plus className="mr-1 h-3 w-3" strokeWidth={2.6} />{b.l}
+              <Button key={b.l} size="sm" variant="outline" className="h-7 rounded-full px-2.5 text-xs" onClick={b.o}>
+                <Plus className="mr-0.5 h-3 w-3" strokeWidth={2.6} />{b.l}
               </Button>
             ))}
-            <Button size="sm" className="rounded-full shadow-glow" onClick={addBlank}>
-              <Plus className="mr-1 h-4 w-4" strokeWidth={2.4} /> Regla en blanco
+            <Button size="sm" className="h-7 rounded-full px-2.5 text-xs shadow-glow" onClick={addBlank}>
+              <Plus className="mr-0.5 h-3.5 w-3.5" strokeWidth={2.4} /> Regla en blanco
             </Button>
           </div>
 
           {loading ? (
             <RuleListSkeleton rows={3} />
           ) : rules.length === 0 ? (
-            <div className="rounded-2xl border border-dashed p-10 text-center animate-fade-in">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
-                <BellOff className="h-5 w-5 text-muted-foreground" strokeWidth={2.2} />
+            <div className="rounded-xl border border-dashed p-6 text-center animate-fade-in">
+              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-muted">
+                <BellOff className="h-4 w-4 text-muted-foreground" strokeWidth={2.2} />
               </div>
-              <p className="mt-3 text-sm text-muted-foreground">
+              <p className="mt-2 text-xs text-muted-foreground">
                 Aún no tienes reglas. Usa los botones de arriba para empezar.
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {rules.map((r) => <RuleRow key={r.id} rule={r} onChange={(p) => update(r.id, p)} onDelete={() => remove(r.id)} />)}
             </div>
           )}
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden rounded-2xl border shadow-card">
-        <CardHeader className="flex flex-row items-center justify-between border-b">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <History className="h-4 w-4 text-muted-foreground" strokeWidth={2.2} /> Historial reciente
+      <Card className="overflow-hidden rounded-xl border shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between border-b p-3 sm:p-4">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <History className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2.2} /> Historial reciente
           </CardTitle>
           {events.some((e) => !e.read_at) && (
-            <Button size="sm" variant="ghost" className="rounded-full" onClick={markAllRead}>Marcar todo como leído</Button>
+            <Button size="sm" variant="ghost" className="h-7 rounded-full px-2.5 text-xs" onClick={markAllRead}>Marcar leído</Button>
           )}
         </CardHeader>
-        <CardContent className="pt-5">
+        <CardContent className="p-3 sm:p-4">
           {loading ? (
             <div className="space-y-3">
               {Array.from({ length: 3 }).map((_, i) => (
@@ -230,17 +230,17 @@ export function NotificationsConfig({ siteId, userId }: { siteId: string; userId
                 const Sev = SEV_META[e.severity] ?? SEV_META.info;
                 const Icon = Sev.icon;
                 return (
-                  <li key={e.id} className="flex items-start gap-3 py-3 animate-fade-in">
-                    <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${e.severity === "critical" ? "bg-red-500/10" : e.severity === "warning" ? "bg-amber-500/10" : "bg-blue-500/10"}`}>
-                      <Icon className={`h-4 w-4 ${Sev.color}`} strokeWidth={2.2} />
+                  <li key={e.id} className="flex items-start gap-2.5 py-2 animate-fade-in">
+                    <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${e.severity === "critical" ? "bg-red-500/10" : e.severity === "warning" ? "bg-amber-500/10" : "bg-blue-500/10"}`}>
+                      <Icon className={`h-3.5 w-3.5 ${Sev.color}`} strokeWidth={2.2} />
                     </span>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{e.title}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-medium truncate">{e.title}</span>
                         {!e.read_at && <Badge variant="default" className="h-4 rounded-full px-1.5 text-[10px]">Nuevo</Badge>}
                       </div>
-                      {e.body && <p className="text-sm text-muted-foreground">{e.body}</p>}
-                      <p className="text-xs text-muted-foreground/70">{new Date(e.created_at).toLocaleString()}</p>
+                      {e.body && <p className="text-xs text-muted-foreground line-clamp-2">{e.body}</p>}
+                      <p className="text-[10px] text-muted-foreground/70">{new Date(e.created_at).toLocaleString()}</p>
                     </div>
                   </li>
                 );
@@ -258,64 +258,64 @@ function RuleRow({ rule, onChange, onDelete }: { rule: NotificationRule; onChang
   const isNumeric = meta?.numeric !== false;
   const ops = isNumeric ? NUMERIC_OPS : TEXT_OPS;
   return (
-    <div className="rounded-lg border bg-card p-3">
-      <div className="flex items-start gap-2">
-        <Switch checked={rule.enabled} onCheckedChange={(v) => onChange({ enabled: v })} className="mt-1.5" />
+    <div className="rounded-lg border bg-card p-2 sm:p-2.5">
+      <div className="flex items-center gap-2">
+        <Switch checked={rule.enabled} onCheckedChange={(v) => onChange({ enabled: v })} />
         <Input
           value={rule.name}
           onChange={(e) => onChange({ name: e.target.value })}
-          className="h-9 flex-1 text-sm font-medium"
+          className="h-8 flex-1 text-sm font-medium"
         />
-        <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0 text-destructive" onClick={onDelete}>
-          <Trash2 className="h-4 w-4" />
+        <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-destructive" onClick={onDelete}>
+          <Trash2 className="h-3.5 w-3.5" />
         </Button>
       </div>
-      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="space-y-1">
-          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Métrica</Label>
+      <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+        <div className="space-y-0.5">
+          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Métrica</Label>
           <Select value={rule.metric} onValueChange={(v) => {
             const m = METRIC_OPTIONS.find((x) => x.value === v);
             const num = m?.numeric !== false;
             onChange({ metric: v, operator: num ? ">" : "==" });
           }}>
-            <SelectTrigger className="h-9 w-full text-sm"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 w-full text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               {METRIC_OPTIONS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-1">
-          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Operador</Label>
+        <div className="space-y-0.5">
+          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Operador</Label>
           <Select value={rule.operator} onValueChange={(v) => onChange({ operator: v as Operator })}>
-            <SelectTrigger className="h-9 w-full text-sm"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 w-full text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>{ops.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
           </Select>
         </div>
-        <div className="space-y-1">
-          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+        <div className="space-y-0.5">
+          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">
             Umbral{meta?.unit ? ` (${meta.unit})` : ""}
           </Label>
           {isNumeric ? (
             <Input
               type="number" inputMode="decimal" step="any"
-              className="h-9 w-full text-sm"
+              className="h-8 w-full text-xs"
               value={rule.threshold ?? ""}
               onChange={(e) => onChange({ threshold: e.target.value === "" ? null : Number(e.target.value) })}
             />
           ) : (
             <Input
-              className="h-9 w-full text-sm font-mono"
+              className="h-8 w-full text-xs font-mono"
               value={rule.threshold_text ?? ""}
               placeholder="B / G / S"
               onChange={(e) => onChange({ threshold_text: e.target.value })}
             />
           )}
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-1">
-            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Severidad</Label>
+        <div className="grid grid-cols-2 gap-1.5">
+          <div className="space-y-0.5">
+            <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Severidad</Label>
             <Select value={rule.severity} onValueChange={(v) => onChange({ severity: v as Severity })}>
-              <SelectTrigger className="h-9 w-full text-sm"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 w-full text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {(["info", "warning", "critical"] as Severity[]).map((s) => (
                   <SelectItem key={s} value={s}>{SEV_META[s].label}</SelectItem>
@@ -323,11 +323,11 @@ function RuleRow({ rule, onChange, onDelete }: { rule: NotificationRule; onChang
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1">
-            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Cooldown (min)</Label>
+          <div className="space-y-0.5">
+            <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Cooldown</Label>
             <Input
               type="number" min={1}
-              className="h-9 w-full text-sm"
+              className="h-8 w-full text-xs"
               value={rule.cooldown_minutes}
               onChange={(e) => onChange({ cooldown_minutes: Math.max(1, Number(e.target.value) || 1) })}
             />
@@ -335,7 +335,7 @@ function RuleRow({ rule, onChange, onDelete }: { rule: NotificationRule; onChang
         </div>
       </div>
       {rule.last_triggered_at && (
-        <p className="mt-2 text-xs text-muted-foreground">Último disparo: {new Date(rule.last_triggered_at).toLocaleString()}</p>
+        <p className="mt-1.5 text-[10px] text-muted-foreground">Último disparo: {new Date(rule.last_triggered_at).toLocaleString()}</p>
       )}
     </div>
   );

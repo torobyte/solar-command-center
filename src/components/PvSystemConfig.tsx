@@ -106,18 +106,18 @@ export function PvSystemConfigCard({ siteId, maxAcOutputPower, nominalBatteryV }
   }
 
   return (
-    <div className="rounded-lg border bg-card p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="flex items-center gap-2 font-semibold"><Sun className="h-4 w-4 text-[var(--solar)]" /> Sistema fotovoltaico</h3>
-        <Button variant="outline" size="sm" onClick={autoFromInverter}>
-          <Wand2 className="mr-1.5 h-3.5 w-3.5" /> Auto desde inversor
+    <div className="rounded-xl border bg-card p-3 sm:p-4 shadow-sm">
+      <div className="mb-2.5 flex items-center justify-between gap-2">
+        <h3 className="flex items-center gap-2 text-sm font-semibold sm:text-base"><Sun className="h-4 w-4 text-[var(--solar)]" /> Sistema fotovoltaico</h3>
+        <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs" onClick={autoFromInverter}>
+          <Wand2 className="mr-1 h-3 w-3" /> Auto
         </Button>
       </div>
-      <p className="mb-4 text-sm text-muted-foreground">
-        Estos datos se usan para estimar la producción solar diaria/horaria a partir de la previsión meteorológica.
+      <p className="mb-3 text-xs text-muted-foreground">
+        Datos usados para estimar producción solar a partir de la previsión meteorológica.
       </p>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3">
         <Field label="Potencia del array (kWp)" hint="Suma de la potencia pico de todos los paneles">
           <Input type="number" step="0.01" value={form.array_kwp ?? ""} onChange={(e) => set("array_kwp", parseFloat(e.target.value) || null)} placeholder="ej. 5.20" />
         </Field>
@@ -125,10 +125,10 @@ export function PvSystemConfigCard({ siteId, maxAcOutputPower, nominalBatteryV }
           <Input type="number" step="0.1" value={form.battery_kwh ?? ""} onChange={(e) => set("battery_kwh", parseFloat(e.target.value) || null)} placeholder="ej. 4.8" />
         </Field>
 
-        <div className="sm:col-span-2 mt-2 rounded-lg border border-dashed bg-muted/20 p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <h4 className="text-sm font-semibold">Banco de baterías</h4>
-            <Button type="button" variant="ghost" size="sm" onClick={() => {
+        <div className="sm:col-span-2 mt-1 rounded-lg border border-dashed bg-muted/20 p-2.5 sm:p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <h4 className="text-xs font-semibold sm:text-sm">Banco de baterías</h4>
+            <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => {
               const n = form.battery_count ?? 0;
               const v = form.battery_voltage_each ?? 0;
               const ah = form.battery_ah_each ?? 0;
@@ -138,10 +138,10 @@ export function PvSystemConfigCard({ siteId, maxAcOutputPower, nominalBatteryV }
                 toast.success(`Capacidad calculada: ${kwh} kWh`);
               } else toast.error("Completa nº, voltaje y Ah primero");
             }}>
-              <Wand2 className="mr-1.5 h-3.5 w-3.5" /> Calcular kWh
+              <Wand2 className="mr-1 h-3 w-3" /> Calcular kWh
             </Button>
           </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             <Field label="Tipo de batería" hint="La química define la profundidad de descarga útil">
               <select
                 className="h-9 w-full rounded-md border bg-background px-3 text-sm"
@@ -194,9 +194,9 @@ export function PvSystemConfigCard({ siteId, maxAcOutputPower, nominalBatteryV }
         </div>
       </div>
 
-      <div className="mt-5 flex justify-end">
-        <Button onClick={save} disabled={saving}>
-          <Save className="mr-1.5 h-4 w-4" /> {saving ? "Guardando…" : "Guardar"}
+      <div className="mt-3 flex justify-end">
+        <Button onClick={save} disabled={saving} size="sm">
+          <Save className="mr-1.5 h-3.5 w-3.5" /> {saving ? "Guardando…" : "Guardar"}
         </Button>
       </div>
     </div>
@@ -206,9 +206,9 @@ export function PvSystemConfigCard({ siteId, maxAcOutputPower, nominalBatteryV }
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
-      <Label className="text-xs">{label}</Label>
-      <div className="mt-1">{children}</div>
-      {hint && <p className="mt-1 text-[10px] text-muted-foreground">{hint}</p>}
+      <Label className="text-[11px]">{label}</Label>
+      <div className="mt-0.5">{children}</div>
+      {hint && <p className="mt-0.5 text-[10px] leading-tight text-muted-foreground">{hint}</p>}
     </div>
   );
 }

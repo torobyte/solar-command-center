@@ -472,7 +472,7 @@ function ConfigurationView({ site }: { site: Site }) {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3 sm:space-y-4">
       <Section title="General" icon={Info}>
         <Row label="Site ID" value={site.id} />
         <Row label="Plan" value={site.plan} />
@@ -799,23 +799,23 @@ function IconCard({ icon, title, subtitle }: { icon: React.ReactNode; title: str
 
 function Section({ title, children, icon: Icon }: { title: string; children: React.ReactNode; icon?: typeof Cpu }) {
   return (
-    <div className="rounded-2xl border bg-card p-5 sm:p-6 shadow-card animate-fade-up">
-      <div className="mb-4 flex items-center gap-2.5">
+    <div className="rounded-xl border bg-card p-3 sm:p-4 shadow-sm animate-fade-up">
+      <div className="mb-2.5 flex items-center gap-2">
         {Icon && (
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-accent/20 to-accent/5 text-accent ring-1 ring-accent/20">
-            <Icon className="h-4 w-4" strokeWidth={2.2} />
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-accent/20 to-accent/5 text-accent ring-1 ring-accent/20">
+            <Icon className="h-3.5 w-3.5" strokeWidth={2.2} />
           </div>
         )}
-        <h3 className="font-semibold tracking-tight">{title}</h3>
+        <h3 className="text-sm font-semibold tracking-tight sm:text-base">{title}</h3>
       </div>
-      <div className="space-y-2">{children}</div>
+      <div className="space-y-1.5">{children}</div>
     </div>
   );
 }
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-col gap-0.5 text-sm sm:flex-row sm:justify-between sm:gap-2">
+    <div className="flex flex-col gap-0 text-xs sm:flex-row sm:justify-between sm:gap-2 sm:text-sm">
       <span className="text-muted-foreground">{label}</span>
       <span className="font-mono break-all sm:text-right">{value}</span>
     </div>

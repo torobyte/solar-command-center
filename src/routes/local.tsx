@@ -139,11 +139,11 @@ function LocalDashboardPage() {
   const [license, setLicense] = useState<LicenseMeta | null>(null);
   const [pvCfg, setPvCfg] = useState<PvConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [lastTick, setLastTick] = useState<number>(0);
 
   const lastRecordedAt = useRef<string | null>(null);
   const lastLicenseKey = useRef<string>("");
   const bridgedRef = useRef(false);
+  const errorRef = useRef<string | null>(null);
 
   // ---- Bridge postMessage: cuando estamos embebidos en el wrapper HTTP del
   // agente, el padre hace los fetches a /api/* y nos envía los datos por
@@ -151,8 +151,7 @@ function LocalDashboardPage() {
   useEffect(() => {
     function applyState(data: { latest?: DashboardSample | null; license?: LicenseMeta | null } | null) {
       if (!data) return;
-      setError(null);
-      setLastTick(Date.now());
+      if (errorRef.current !== null) { errorRef.current = null; setError(null); }
       const incoming = data.latest ?? null;
       const incomingKey = incoming?.recorded_at ?? null;
       if (incomingKey !== lastRecordedAt.current) {
@@ -231,8 +230,7 @@ function LocalDashboardPage() {
           license?: LicenseMeta | null;
         }>(`${agentBase}/api/state`);
         if (!alive) return;
-        setError(null);
-        setLastTick(Date.now());
+        if (errorRef.current !== null) { errorRef.current = null; setError(null); }
 
         const incoming = data.latest;
         const incomingKey = incoming?.recorded_at ?? null;
@@ -252,7 +250,8 @@ function LocalDashboardPage() {
         // Estamos embebidos esperando el bridge del padre — no mostremos
         // "Failed to fetch" durante los primeros 4s; el bridge ya está en camino.
         if (embedded && (bridgedRef.current || Date.now() - mountedAt < 4000)) return;
-        setError((e as Error).message);
+        const msg = (e as Error).message;
+        if (errorRef.current !== msg) { errorRef.current = msg; setError(msg); }
       }
     }
     async function pullPv() {
@@ -309,9 +308,9 @@ function LocalDashboardPage() {
               <span className="rounded-full bg-muted px-2 py-0.5 font-medium">Plan: {plan}</span>
               <span className="rounded-full bg-muted px-2 py-0.5 font-medium">Modo: {mode.label}</span>
               <CloudPushBadge agentBase={agentBase} />
-              {lastTick > 0 && (
+              {latest?.recorded_at && (
                 <span className="text-muted-foreground/70">
-                  · Última lectura {latest?.recorded_at ? new Date(latest.recorded_at).toLocaleTimeString() : "—"}
+                  · Última lectura {new Date(latest.recorded_at).toLocaleTimeString()}
                 </span>
               )}
             </p>
