@@ -1648,6 +1648,80 @@ def make_app(agent: Agent) -> Flask:
             },
         })
 
+    @app.get("/api/internet")
+    def api_internet():
+        # Probe rápido server-side: evita CORS/mixed-content desde el navegador.
+        return jsonify({"online": internet_up()})
+
+    # ---------- WiFi (estilo Solar Assistant) ----------
+    @app.get("/wifi")
+    def wifi_page():
+        return render_template_string(WIFI_PAGE)
+
+    @app.get("/api/wifi/status")
+    def wifi_status():
+        return jsonify({
+            "ssid": get_ssid(),
+            "ip_wlan": get_ip("wlan0"),
+            "ip_eth": get_ip("eth0"),
+            "internet_up": internet_up(),
+        })
+
+    @app.get("/api/wifi/scan")
+    def wifi_scan():
+        # Forzar rescan y listar — requiere NetworkManager (nmcli)
+        subprocess.run(["nmcli", "device", "wifi", "rescan"],
+                       capture_output=True, timeout=8)
+        out = _run(["nmcli", "-t", "-f", "SSID,SIGNAL,SECURITY,IN-USE",
+                    "device", "wifi", "list"], timeout=8)
+        nets = []
+        seen = set()
+        for ln in out.splitlines():
+            # nmcli -t separa por ':' y escapa ':' literales como '\:'
+            parts = [p.replace("\\:", ":") for p in ln.split(":")]
+            if len(parts) < 3: continue
+            ssid = parts[0].strip()
+            if not ssid or ssid in seen: continue
+            seen.add(ssid)
+            try: signal = int(parts[1])
+            except Exception: signal = 0
+            sec = parts[2].strip() or "—"
+            in_use = (len(parts) > 3 and parts[3].strip() == "*")
+            nets.append({"ssid": ssid, "signal": signal,
+                         "security": sec, "in_use": in_use})
+        nets.sort(key=lambda n: n["signal"], reverse=True)
+        if not nets:
+            return jsonify({"networks": [], "error":
+                "No se pudo escanear (¿NetworkManager/nmcli instalado?)."})
+        return jsonify({"networks": nets})
+
+    @app.post("/api/wifi/connect")
+    def wifi_connect():
+        body = request.get_json(force=True) or {}
+        ssid = (body.get("ssid") or "").strip()
+        pwd = (body.get("password") or "")
+        if not ssid:
+            return jsonify({"error": "missing ssid"}), 400
+        cmd = ["nmcli", "device", "wifi", "connect", ssid]
+        if pwd:
+            cmd += ["password", pwd]
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=45)
+        if r.returncode != 0:
+            return jsonify({"error": (r.stderr or r.stdout or "Error desconocido").strip()}), 400
+        return jsonify({"ok": True, "ssid": ssid, "ip_wlan": get_ip("wlan0")})
+
+    @app.post("/api/wifi/forget")
+    def wifi_forget():
+        body = request.get_json(force=True) or {}
+        ssid = (body.get("ssid") or "").strip()
+        if not ssid:
+            return jsonify({"error": "missing ssid"}), 400
+        r = subprocess.run(["nmcli", "connection", "delete", ssid],
+                           capture_output=True, text=True, timeout=10)
+        if r.returncode != 0:
+            return jsonify({"error": (r.stderr or r.stdout).strip()}), 400
+        return jsonify({"ok": True})
+
     @app.get("/api/mode")
     def get_mode():
         return jsonify({"ui_mode": agent.config.get("ui_mode") or "modern"})
