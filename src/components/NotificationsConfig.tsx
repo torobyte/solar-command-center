@@ -230,17 +230,17 @@ export function NotificationsConfig({ siteId, userId }: { siteId: string; userId
                 const Sev = SEV_META[e.severity] ?? SEV_META.info;
                 const Icon = Sev.icon;
                 return (
-                  <li key={e.id} className="flex items-start gap-3 py-3 animate-fade-in">
-                    <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${e.severity === "critical" ? "bg-red-500/10" : e.severity === "warning" ? "bg-amber-500/10" : "bg-blue-500/10"}`}>
-                      <Icon className={`h-4 w-4 ${Sev.color}`} strokeWidth={2.2} />
+                  <li key={e.id} className="flex items-start gap-2.5 py-2 animate-fade-in">
+                    <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${e.severity === "critical" ? "bg-red-500/10" : e.severity === "warning" ? "bg-amber-500/10" : "bg-blue-500/10"}`}>
+                      <Icon className={`h-3.5 w-3.5 ${Sev.color}`} strokeWidth={2.2} />
                     </span>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{e.title}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-medium truncate">{e.title}</span>
                         {!e.read_at && <Badge variant="default" className="h-4 rounded-full px-1.5 text-[10px]">Nuevo</Badge>}
                       </div>
-                      {e.body && <p className="text-sm text-muted-foreground">{e.body}</p>}
-                      <p className="text-xs text-muted-foreground/70">{new Date(e.created_at).toLocaleString()}</p>
+                      {e.body && <p className="text-xs text-muted-foreground line-clamp-2">{e.body}</p>}
+                      <p className="text-[10px] text-muted-foreground/70">{new Date(e.created_at).toLocaleString()}</p>
                     </div>
                   </li>
                 );
