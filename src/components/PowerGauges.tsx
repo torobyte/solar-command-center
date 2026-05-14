@@ -98,27 +98,24 @@ function RadialGauge({
   const cx = size / 2;
   const cy = size / 2;
   const circ = 2 * Math.PI * r;
-  // 270° arc (3/4 circle), starts at 135°
   const arc = circ * 0.75;
   const offset = arc * (1 - ratio);
   const id = `g-${label}`;
   return (
     <div className="flex flex-col items-center">
-      <div className="relative" style={{ width: size, height: size, color }}>
-        <svg width={size} height={size} className="-rotate-[135deg]">
+      <div className="relative aspect-square w-full max-w-[140px]" style={{ color }}>
+        <svg viewBox={`0 0 ${size} ${size}`} className="h-full w-full -rotate-[135deg]">
           <defs>
             <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
               <stop offset="0%" stopColor={color} stopOpacity="0.6" />
               <stop offset="100%" stopColor={glow} />
             </linearGradient>
           </defs>
-          {/* Track */}
           <circle
             cx={cx} cy={cy} r={r}
             fill="none" stroke="hsl(var(--muted))" strokeWidth={stroke}
             strokeDasharray={`${arc} ${circ}`} strokeLinecap="round" opacity="0.3"
           />
-          {/* Value */}
           <circle
             cx={cx} cy={cy} r={r}
             fill="none" stroke={`url(#${id})`} strokeWidth={stroke}
@@ -131,14 +128,14 @@ function RadialGauge({
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <div className="mb-0.5 opacity-80">{icon}</div>
-          <div className="text-lg font-bold leading-none tabular-nums">
+          <div className="text-base font-bold leading-none tabular-nums @[480px]:text-lg">
             {Math.round(value).toLocaleString()}
-            <span className="ml-0.5 text-xs font-normal text-muted-foreground">{unit}</span>
+            <span className="ml-0.5 text-[10px] font-normal text-muted-foreground @[480px]:text-xs">{unit}</span>
           </div>
-          {subtitle && <div className="mt-0.5 text-[10px] text-muted-foreground">{subtitle}</div>}
+          {subtitle && <div className="mt-0.5 text-[9px] text-muted-foreground @[480px]:text-[10px]">{subtitle}</div>}
         </div>
       </div>
-      <div className="mt-1 text-xs font-medium text-muted-foreground">{label}</div>
+      <div className="mt-1 text-[11px] font-medium text-muted-foreground @[480px]:text-xs">{label}</div>
     </div>
   );
 }
