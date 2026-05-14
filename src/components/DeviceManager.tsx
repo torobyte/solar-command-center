@@ -62,129 +62,74 @@ export function useDevices(siteId: string) {
 }
 
 export function DeviceSelector({ siteId }: { siteId: string }) {
-  const { devices, selectedId, select, refresh } = useDevices(siteId);
-  const [adding, setAdding] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [draftName, setDraftName] = useState("");
-  const [draftModel, setDraftModel] = useState("");
+  const { devices, selectedId, select } = useDevices(siteId);
+  const [specModel, setSpecModel] = useState<string | null>(null);
+  const [specSerial, setSpecSerial] = useState<string | null>(null);
 
-  async function addDevice() {
-    if (!draftName.trim()) { toast.error("Pon un nombre"); return; }
-    const { data, error } = await supabase.from("devices").insert({
-      site_id: siteId,
-      name: draftName.trim(),
-      model: draftModel.trim() || null,
-      is_primary: devices.length === 0,
-      sort_order: devices.length,
-    }).select().single();
-    if (error) { toast.error(error.message); return; }
-    toast.success("Inversor añadido");
-    setAdding(false); setDraftName(""); setDraftModel("");
-    if (data) select((data as Device).id);
-    refresh();
-  }
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("inverter_specs")
+        .select("model_name,serial_number")
+        .eq("site_id", siteId)
+        .maybeSingle();
+      if (!cancelled) {
+        setSpecModel((data?.model_name as string | null) ?? null);
+        setSpecSerial((data?.serial_number as string | null) ?? null);
+      }
+    })();
+    const ch = supabase
+      .channel(`specs-${siteId}-${Math.random().toString(36).slice(2)}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "inverter_specs", filter: `site_id=eq.${siteId}` },
+        (payload) => {
+          const row = (payload.new ?? payload.old) as { model_name?: string | null; serial_number?: string | null } | null;
+          if (row) {
+            setSpecModel(row.model_name ?? null);
+            setSpecSerial(row.serial_number ?? null);
+          }
+        }
+      )
+      .subscribe();
+    return () => { cancelled = true; supabase.removeChannel(ch); };
+  }, [siteId]);
 
-  async function setPrimary(id: string) {
-    await supabase.from("devices").update({ is_primary: false }).eq("site_id", siteId);
-    const { error } = await supabase.from("devices").update({ is_primary: true }).eq("id", id);
-    if (error) toast.error(error.message);
-    else { toast.success("Inversor principal actualizado"); refresh(); }
-  }
-
-  async function rename(id: string) {
-    if (!draftName.trim()) return;
-    const { error } = await supabase.from("devices").update({
-      name: draftName.trim(), model: draftModel.trim() || null,
-    }).eq("id", id);
-    if (error) toast.error(error.message);
-    else { toast.success("Renombrado"); setEditingId(null); refresh(); }
-  }
-
-  async function remove(id: string) {
-    const dev = devices.find((d) => d.id === id);
-    if (!dev) return;
-    if (dev.is_primary && devices.length > 1) {
-      toast.error("Marca otro inversor como principal antes de borrar éste");
-      return;
-    }
-    if (!confirm(`¿Borrar el inversor "${dev.name}" y todos sus datos asociados?`)) return;
-    const { error } = await supabase.from("devices").delete().eq("id", id);
-    if (error) toast.error(error.message);
-    else { toast.success("Inversor borrado"); refresh(); }
-  }
+  const connectedName = specModel || devices.find((d) => d.id === selectedId)?.model || devices[0]?.name || "Sin inversor conectado";
 
   return (
     <div className="rounded-2xl border bg-card/60 p-3 backdrop-blur-sm sm:p-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-          <Cpu className="h-3.5 w-3.5" strokeWidth={2.2} /> Inversor
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+          <Cpu className="h-3.5 w-3.5" strokeWidth={2.2} /> Inversor conectado
         </div>
-        <div className="flex flex-1 flex-wrap gap-1.5">
-          {devices.map((d) => (
-            <button
-              key={d.id}
-              onClick={() => select(d.id)}
-              className={[
-                "group inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-all",
-                d.id === selectedId
-                  ? "border-accent/60 bg-accent/15 text-accent shadow-sm"
-                  : "border-border/60 bg-background text-foreground/80 hover:bg-muted",
-              ].join(" ")}
-              title={d.model ?? ""}
-            >
-              {d.name}
-            </button>
-          ))}
-          <Button variant="outline" size="sm" className="h-7 rounded-full px-3 text-xs" onClick={() => { setAdding(true); setDraftName(""); setDraftModel(""); }}>
-            <Plus className="mr-1 h-3 w-3" /> Añadir
-          </Button>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-semibold text-foreground">{connectedName}</div>
+          {specSerial && (
+            <div className="truncate text-[11px] text-muted-foreground">S/N {specSerial}</div>
+          )}
         </div>
+        {devices.length > 1 && (
+          <div className="flex flex-wrap gap-1.5">
+            {devices.map((d) => (
+              <button
+                key={d.id}
+                onClick={() => select(d.id)}
+                className={[
+                  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-all",
+                  d.id === selectedId
+                    ? "border-accent/60 bg-accent/15 text-accent shadow-sm"
+                    : "border-border/60 bg-background text-foreground/80 hover:bg-muted",
+                ].join(" ")}
+                title={d.model ?? ""}
+              >
+                {d.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
-
-      {adding && (
-        <div className="mt-3 grid gap-2 rounded-lg border bg-background p-3 sm:grid-cols-[1fr_1fr_auto]">
-          <div>
-            <Label className="text-[10px]">Nombre</Label>
-            <Input value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder="ej. Inversor casa principal" className="h-8" />
-          </div>
-          <div>
-            <Label className="text-[10px]">Modelo (opcional)</Label>
-            <Input value={draftModel} onChange={(e) => setDraftModel(e.target.value)} placeholder="ej. Voltronic 5kVA" className="h-8" />
-          </div>
-          <div className="flex items-end gap-1">
-            <Button size="sm" onClick={addDevice}><Check className="mr-1 h-3.5 w-3.5" />Añadir</Button>
-            <Button size="sm" variant="ghost" onClick={() => setAdding(false)}><X className="h-3.5 w-3.5" /></Button>
-          </div>
-        </div>
-      )}
-
-      {devices.length > 1 && (
-        <div className="mt-3 space-y-1">
-          {devices.map((d) => (
-            <div key={d.id} className="flex flex-wrap items-center gap-2 rounded-md border bg-background/50 px-2 py-1.5 text-xs">
-              {editingId === d.id ? (
-                <>
-                  <Input value={draftName} onChange={(e) => setDraftName(e.target.value)} className="h-7 flex-1" />
-                  <Input value={draftModel} onChange={(e) => setDraftModel(e.target.value)} className="h-7 flex-1" />
-                  <Button size="sm" variant="ghost" onClick={() => rename(d.id)}><Check className="h-3.5 w-3.5" /></Button>
-                  <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}><X className="h-3.5 w-3.5" /></Button>
-                </>
-              ) : (
-                <>
-                  <span className="flex-1 font-medium">{d.name}</span>
-                  <span className="text-muted-foreground">{d.model ?? "—"}</span>
-                  <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => { setEditingId(d.id); setDraftName(d.name); setDraftModel(d.model ?? ""); }}>
-                    <Pencil className="h-3 w-3" />
-                  </Button>
-                  <Button size="sm" variant="ghost" className="h-6 px-2 text-destructive hover:text-destructive" onClick={() => remove(d.id)}>
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
