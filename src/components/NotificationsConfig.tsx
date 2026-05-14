@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BellRing, BellOff, Plus, Trash2, AlertTriangle, AlertCircle, Info, Smartphone, Zap, ShieldCheck, History, ChevronDown, BatteryFull } from "lucide-react";
+import { BellRing, BellOff, Plus, Trash2, AlertTriangle, AlertCircle, Info, Smartphone, Zap, ShieldCheck, History, ChevronDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { RuleListSkeleton } from "@/components/LoadingStates";
