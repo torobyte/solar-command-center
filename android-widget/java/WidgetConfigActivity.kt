@@ -81,16 +81,22 @@ class WidgetConfigActivity : Activity() {
 
     private fun selectSite(token: String) {
         if (token.isEmpty()) { finish(); return }
-        getSharedPreferences(SolarOpsWidget.PREFS, MODE_PRIVATE).edit()
-            .putString("${SolarOpsWidget.KEY_TOKEN}.$widgetId", token)
+        getSharedPreferences(WidgetCommon.PREFS, MODE_PRIVATE).edit()
+            .putString("${WidgetCommon.KEY_TOKEN}.$widgetId", token)
             .apply()
 
-        // Trigger immediate refresh + ensure the alarm is scheduled.
-        sendBroadcast(Intent(this, SolarOpsWidget::class.java).apply {
-            action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-            putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(widgetId))
-        })
-        SolarOpsWidget.scheduleAlarm(this)
+        // Trigger immediate refresh on the 3 variants + ensure alarms are scheduled.
+        for (cls in listOf(
+            SolarOpsWidget::class.java,
+            SolarOpsWidgetTiles::class.java,
+            SolarOpsWidgetGauge::class.java,
+        )) {
+            sendBroadcast(Intent(this, cls).apply {
+                action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(widgetId))
+            })
+            WidgetCommon.scheduleAlarmFor(this, cls)
+        }
 
         setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
         finish()
