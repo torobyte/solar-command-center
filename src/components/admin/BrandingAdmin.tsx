@@ -198,6 +198,57 @@ function Field({ label, children, className }: { label: string; children: React.
   );
 }
 
+function ImageUploader({ value, onChange, folder, hint }: { value: string; onChange: (v: string) => void; folder: string; hint?: string }) {
+  const [busy, setBusy] = useState(false);
+  async function pick(file: File) {
+    setBusy(true);
+    try {
+      const ext = (file.name.split(".").pop() || "png").toLowerCase();
+      const path = `${folder}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("branding")
+        .upload(path, file, { upsert: true, contentType: file.type || "image/png", cacheControl: "3600" });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from("branding").getPublicUrl(path);
+      onChange(data.publicUrl);
+      toast.success("Imagen subida");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-3">
+        {value ? (
+          <div className="relative h-16 w-16 overflow-hidden rounded-lg border bg-muted/30">
+            <img src={value} alt="" className="h-full w-full object-contain" />
+          </div>
+        ) : (
+          <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-dashed bg-muted/30 text-xs text-muted-foreground">—</div>
+        )}
+        <div className="flex flex-1 flex-col gap-2">
+          <div className="flex gap-2">
+            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted">
+              <Upload className="h-3.5 w-3.5" />
+              {busy ? "Subiendo…" : "Subir imagen"}
+              <input type="file" accept="image/*" className="hidden" disabled={busy}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) pick(f); e.target.value = ""; }} />
+            </label>
+            {value && (
+              <Button size="sm" variant="ghost" onClick={() => onChange("")}>
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
+          <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder="o pega una URL…" className="h-7 text-xs" />
+        </div>
+      </div>
+      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
+    </div>
+  );
+}
+
 function FontPicker({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   const isCustom = !GOOGLE_FONTS.includes(value as (typeof GOOGLE_FONTS)[number]);
   return (
