@@ -71,14 +71,24 @@ export function BrandingAdmin() {
           <Field label="Tagline">
             <Input value={b.tagline ?? ""} onChange={(e) => update("tagline", e.target.value)} />
           </Field>
-          <Field label="Logo">
-            <ImageUploader value={b.logo_url ?? ""} folder="logo"
-              onChange={(v) => update("logo_url", v)} hint="PNG/SVG transparente · ideal 256×64" />
-          </Field>
-          <Field label="Favicon">
-            <ImageUploader value={b.favicon_url ?? ""} folder="favicon"
-              onChange={(v) => update("favicon_url", v)} hint="32×32 PNG/SVG" />
-          </Field>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Logo (modo claro)">
+              <ImageUploader value={b.logo_url ?? ""} folder="logo"
+                onChange={(v) => update("logo_url", v)} hint="PNG/SVG · ideal 256×64" />
+            </Field>
+            <Field label="Logo (modo oscuro)">
+              <ImageUploader value={b.logo_url_dark ?? ""} folder="logo-dark"
+                onChange={(v) => update("logo_url_dark", v as never)} hint="Versión para fondos oscuros" />
+            </Field>
+            <Field label="Favicon (claro)">
+              <ImageUploader value={b.favicon_url ?? ""} folder="favicon"
+                onChange={(v) => update("favicon_url", v)} hint="32×32 PNG/SVG" />
+            </Field>
+            <Field label="Favicon (oscuro)">
+              <ImageUploader value={b.favicon_url_dark ?? ""} folder="favicon-dark"
+                onChange={(v) => update("favicon_url_dark", v as never)} hint="32×32 PNG/SVG" />
+            </Field>
+          </div>
         </TabsContent>
 
         <TabsContent value="colors" className="mt-6">
