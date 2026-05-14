@@ -44,7 +44,7 @@ class WidgetConfigActivity : Activity() {
             root.addView(this)
         }
 
-        val sites = MainActivity.savedSites(this)
+        val sites = WidgetSetupActivity.savedSites(this)
         if (sites.length() == 0) {
             root.addView(TextView(this).apply {
                 text = "No hay sitios guardados.\nAbre la app SolarOps e inicia sesión primero."
@@ -53,7 +53,7 @@ class WidgetConfigActivity : Activity() {
             root.addView(Button(this).apply {
                 text = "Abrir SolarOps"
                 setOnClickListener {
-                    startActivity(Intent(this@WidgetConfigActivity, MainActivity::class.java))
+                    startActivity(Intent(this@WidgetConfigActivity, WidgetSetupActivity::class.java))
                     finish()
                 }
             })

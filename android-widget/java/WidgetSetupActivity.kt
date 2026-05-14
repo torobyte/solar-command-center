@@ -29,7 +29,7 @@ import kotlin.concurrent.thread
  * own, and stores them locally so WidgetConfigActivity can show a picker
  * instead of asking the user to paste a device_token.
  */
-class MainActivity : Activity() {
+class WidgetSetupActivity : Activity() {
 
     companion object {
         const val SUPABASE_URL = "https://mtsxmdwraxnwobxsdrqr.supabase.co"
