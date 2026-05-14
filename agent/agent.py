@@ -88,8 +88,10 @@ class HidrawTransport:
             except BlockingIOError:
                 time.sleep(0.05)
         raw = buf.split(b"\r", 1)[0]
-        # Strip leading '(' and trailing 2-byte CRC, then decode.
-        if raw.startswith(b"("): raw = raw[1:]
+        # Strip everything before the first '(' (some inverters / HID dongles
+        # prepend stray bytes like '0' or NUL) plus the trailing 2-byte CRC.
+        i = raw.find(b"(")
+        if i >= 0: raw = raw[i+1:]
         if len(raw) >= 2: raw = raw[:-2]
         return raw.decode("ascii", errors="replace").strip()
 
@@ -124,7 +126,8 @@ class SerialTransport:
             else:
                 time.sleep(0.02)
         raw = buf.split(b"\r", 1)[0]
-        if raw.startswith(b"("): raw = raw[1:]
+        i = raw.find(b"(")
+        if i >= 0: raw = raw[i+1:]
         if len(raw) >= 2: raw = raw[:-2]
         return raw.decode("ascii", errors="replace").strip()
 
@@ -586,6 +589,7 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
   <div class="spin"></div>
   <div class="sub" id="bootMsg">Verificando agente local…</div>
   <a class="btn" href="/legacy" id="fallbackBtn" style="display:none">Abrir panel local (offline)</a>
+  <a class="btn" href="#" id="toLegacyBtn" onclick="switchMode('legacy');return false;">Cambiar a modo legacy</a>
   <a class="btn" href="/status" style="background:transparent">Diagnóstico del agente</a>
 </div>
 <iframe id="frame" allow="fullscreen; clipboard-write" referrerpolicy="no-referrer"></iframe>
@@ -619,6 +623,8 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
   fetch("/api/health", { cache:"no-store" })
     .then(function(r){ return r.ok ? r.json() : Promise.reject(new Error("health "+r.status)); })
     .then(function(h){
+      // Si el usuario eligió modo legacy explícitamente, ir directo.
+      if (h && h.ui_mode === "legacy") { window.location.replace("/legacy"); return; }
       if (mixedContent) { goLegacy("Conexión segura no disponible — usando panel local."); return; }
       msg.textContent = h && h.has_inverter_data
         ? "Conectando con el panel cloud…"
@@ -630,10 +636,10 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
       fb.style.display = "inline-block";
     });
 
-  // 2) Probe al cloud con timeout real. Si no responde en 2.5s → fallback.
+  // 2) Probe al cloud con timeout real. Si no responde en 1.5s → fallback.
   function probeCloud(){
     var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
-    var to = setTimeout(function(){ if(ctrl) ctrl.abort(); }, 2500);
+    var to = setTimeout(function(){ if(ctrl) ctrl.abort(); }, 1500);
     fetch(cloud + "/manifest.webmanifest", {
       method:"GET", mode:"no-cors", cache:"no-store",
       signal: ctrl ? ctrl.signal : undefined
@@ -642,8 +648,18 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
       .catch(function(){ clearTimeout(to); goLegacy("Sin internet. Cargando panel local."); });
   }
 
+  // Botón global para alternar modo y persistirlo en el agente.
+  window.switchMode = function(mode){
+    fetch("/api/mode", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ ui_mode: mode })
+    }).finally(function(){
+      window.location.replace(mode === "legacy" ? "/legacy" : "/");
+    });
+  };
+
   function loadIframe(){
-    var deadline = setTimeout(function(){ goLegacy("Cloud no respondió a tiempo."); }, 4000);
+    var deadline = setTimeout(function(){ goLegacy("Cloud no respondió a tiempo."); }, 2500);
     frame.addEventListener("load", function(){
       try {
         var href = frame.contentWindow && frame.contentWindow.location && frame.contentWindow.location.href;
@@ -816,6 +832,10 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:var(--accent);box
     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
       <span class="badge" id="modeBadge">Modo: —</span>
       <span class="badge" id="planBadge">Plan: —</span>
+      <button class="badge" style="cursor:pointer;border:1px solid var(--border);background:var(--card2);color:var(--fg)"
+        onclick="fetch('/api/mode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ui_mode:'modern'})}).finally(function(){window.location.replace('/');});">
+        ↗ Cambiar a modo moderno
+      </button>
     </div>
   </div>
 
@@ -1371,7 +1391,10 @@ def compute_today_totals(samples: list[dict]) -> dict:
         if not ta or not tb: continue
         h = (tb - ta).total_seconds() / 3600.0
         if h <= 0 or h > 0.5: continue  # skip gaps > 30min
-        def avg(k): return (float(a.get(k) or 0) + float(b.get(k) or 0)) / 2.0
+        def _num(v):
+            try: return float(v)
+            except (TypeError, ValueError): return 0.0
+        def avg(k): return (_num(a.get(k)) + _num(b.get(k))) / 2.0
         pv   += avg("pv_input_power") * h
         load += avg("ac_output_active_power") * h
         if avg("grid_voltage") > 50:
@@ -1488,6 +1511,7 @@ def make_app(agent: Agent) -> Flask:
             "plan": license.get("plan"),
             "activated": bool(cfg.get("device_token")),
             "cloud_url": cfg.get("cloud_url"),
+            "ui_mode": cfg.get("ui_mode") or "modern",
             # Diagnóstico del push al cloud — útil para detectar cuándo el
             # inversor está leyendo OK localmente pero el cloud no recibe.
             "push": {
@@ -1500,6 +1524,20 @@ def make_app(agent: Agent) -> Flask:
                 "loop_restarts": agent.push_loop_restarts,
             },
         })
+
+    @app.get("/api/mode")
+    def get_mode():
+        return jsonify({"ui_mode": agent.config.get("ui_mode") or "modern"})
+
+    @app.post("/api/mode")
+    def set_mode():
+        body = request.get_json(force=True) or {}
+        mode = (body.get("ui_mode") or "").strip().lower()
+        if mode not in ("modern", "legacy"):
+            return jsonify({"error": "ui_mode must be 'modern' or 'legacy'"}), 400
+        agent.config["ui_mode"] = mode
+        save_config(agent.config)
+        return jsonify({"ok": True, "ui_mode": mode})
 
     @app.get("/api/state")
     def state():
