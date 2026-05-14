@@ -1,10 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Cpu, Plus, Star, Trash2, Pencil, Check, X } from "lucide-react";
-import { toast } from "sonner";
+import { Cpu } from "lucide-react";
 
 export interface Device {
   id: string;
