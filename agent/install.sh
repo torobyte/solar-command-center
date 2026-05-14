@@ -352,6 +352,7 @@ echo "▶ [8/9] Habilitando servicios en el arranque…"
 systemctl daemon-reload
 systemctl enable --now solarops.service >/dev/null 2>&1
 systemctl enable --now solarops-update.timer >/dev/null 2>&1
+systemctl enable --now solarops-ap.service >/dev/null 2>&1 || true
 if [[ -n "$CHROMIUM_BIN" ]]; then
   systemctl enable solarops-kiosk.service >/dev/null 2>&1
   systemctl start  solarops-kiosk.service >/dev/null 2>&1 || true
