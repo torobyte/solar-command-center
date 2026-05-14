@@ -33,6 +33,21 @@ interface PushHealth {
   loop_restarts: number;
 }
 
+interface InverterHealth {
+  state: "init" | "searching" | "connected" | "stale" | "error";
+  connected: boolean;
+  transport: string | null;
+  port: string | null;
+  connected_at: string | null;
+  reconnect_count: number;
+  consecutive_empty: number;
+  read_count: number;
+  error_count: number;
+  last_sample_at: string | null;
+  last_error: string | null;
+  last_error_at: string | null;
+}
+
 /** Pequeña insignia que muestra si el agente está empujando telemetría al cloud. */
 function CloudPushBadge({ agentBase }: { agentBase: string }) {
   const [push, setPush] = useState<PushHealth | null>(null);
