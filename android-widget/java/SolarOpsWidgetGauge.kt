@@ -8,16 +8,13 @@ import android.os.Handler
 import android.os.Looper
 import android.widget.RemoteViews
 import org.json.JSONObject
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import kotlin.concurrent.thread
 
 /**
- * Variante COMPACTA (3 columnas: Solar / Carga / Batería).
- * Es la opción "limpia y minimal". Layout: R.layout.widget_solarops.
+ * Variante GAUGE — un gran arco circular con % de batería + dos métricas
+ * laterales (Solar / Carga). Similar al "speedometer" de iOS / Google Fit.
  */
-class SolarOpsWidget : AppWidgetProvider() {
+class SolarOpsWidgetGauge : AppWidgetProvider() {
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
@@ -30,12 +27,12 @@ class SolarOpsWidget : AppWidgetProvider() {
 
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
-        WidgetCommon.scheduleAlarmFor(context, SolarOpsWidget::class.java)
+        WidgetCommon.scheduleAlarmFor(context, SolarOpsWidgetGauge::class.java)
     }
 
     override fun onDisabled(context: Context) {
         super.onDisabled(context)
-        WidgetCommon.cancelAlarmFor(context, SolarOpsWidget::class.java)
+        WidgetCommon.cancelAlarmFor(context, SolarOpsWidgetGauge::class.java)
     }
 
     override fun onDeleted(context: Context, ids: IntArray) {
@@ -46,21 +43,19 @@ class SolarOpsWidget : AppWidgetProvider() {
 
     private fun refreshAll(context: Context) {
         val mgr = AppWidgetManager.getInstance(context)
-        for (id in WidgetCommon.widgetIdsFor(context, SolarOpsWidget::class.java))
+        for (id in WidgetCommon.widgetIdsFor(context, SolarOpsWidgetGauge::class.java))
             refresh(context, mgr, id)
     }
 
     private fun refresh(context: Context, mgr: AppWidgetManager, widgetId: Int) {
-        val views = RemoteViews(context.packageName, R.layout.widget_solarops)
+        val views = RemoteViews(context.packageName, R.layout.widget_solarops_gauge)
         views.setOnClickPendingIntent(android.R.id.background, WidgetCommon.openAppIntent(context, widgetId))
 
         val token = WidgetCommon.tokenFor(context, widgetId)
         if (token.isNullOrBlank()) {
-            views.setTextViewText(R.id.widget_title, "SolarOps")
-            views.setTextViewText(R.id.widget_updated, "Configura el token")
+            views.setTextViewText(R.id.gauge_site, "Sin token")
             mgr.updateAppWidget(widgetId, views); return
         }
-
         val base = WidgetCommon.baseUrl(context)
         thread {
             val json = WidgetCommon.fetchSnapshot(token, base)
@@ -70,24 +65,20 @@ class SolarOpsWidget : AppWidgetProvider() {
 
     private fun apply(mgr: AppWidgetManager, id: Int, v: RemoteViews, json: JSONObject?) {
         if (json == null) {
-            v.setTextViewText(R.id.widget_updated, "Sin conexión")
-            v.setInt(R.id.widget_status, "setTextColor", 0xFFEF4444.toInt())
+            v.setTextViewText(R.id.gauge_site, "Sin conexión")
             mgr.updateAppWidget(id, v); return
         }
         val site = json.optJSONObject("site")
-        val sample = json.optJSONObject("sample")
-        val fresh = site?.optBoolean("fresh") ?: false
-        val ageSec = site?.optInt("age_seconds", -1) ?: -1
+        val s = json.optJSONObject("sample")
+        val pv = (s?.optDouble("pv_w", 0.0) ?: 0.0).toInt()
+        val load = (s?.optDouble("load_w", 0.0) ?: 0.0).toInt()
+        val bat = (s?.optDouble("battery_pct", 0.0) ?: 0.0).toInt().coerceIn(0, 100)
 
-        v.setTextViewText(R.id.widget_title, site?.optString("name") ?: "SolarOps")
-        v.setInt(R.id.widget_status, "setTextColor",
-            if (fresh) 0xFF22C55E.toInt() else 0xFFF59E0B.toInt())
-        v.setTextViewText(R.id.widget_updated,
-            "Hace ${WidgetCommon.formatAge(ageSec)} · ${SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())}")
-
-        v.setTextViewText(R.id.widget_pv, "${(sample?.optDouble("pv_w", 0.0) ?: 0.0).toInt()} W")
-        v.setTextViewText(R.id.widget_load, "${(sample?.optDouble("load_w", 0.0) ?: 0.0).toInt()} W")
-        v.setTextViewText(R.id.widget_battery, "${(sample?.optDouble("battery_pct", 0.0) ?: 0.0).toInt()} %")
+        v.setTextViewText(R.id.gauge_site, site?.optString("name") ?: "SolarOps")
+        v.setTextViewText(R.id.gauge_pct, "$bat%")
+        v.setTextViewText(R.id.gauge_pv, "☀ $pv W")
+        v.setTextViewText(R.id.gauge_load, "⚡ $load W")
+        v.setProgressBar(R.id.gauge_ring, 100, bat, false)
         mgr.updateAppWidget(id, v)
     }
 }

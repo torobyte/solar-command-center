@@ -1,10 +1,9 @@
 <!--
   Snippet to merge into android/app/src/main/AndroidManifest.xml inside <application>.
-  Make sure the <application> block has android:usesCleartextTraffic="false" and
-  that <uses-permission android:name="android.permission.INTERNET"/> is present.
+  Make sure <uses-permission android:name="android.permission.INTERNET"/> is present.
 -->
 
-<!-- Launcher: lets the user log in and pick a site to use in widgets. -->
+<!-- Launcher: login + selector de sitio. La app en sí carga el sitio web. -->
 <activity
     android:name=".MainActivity"
     android:exported="true"
@@ -15,19 +14,25 @@
     </intent-filter>
 </activity>
 
-<!-- Real-time home-screen widget. -->
-<receiver
-    android:name=".SolarOpsWidget"
-    android:exported="true">
-    <intent-filter>
-        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-    </intent-filter>
-    <meta-data
-        android:name="android.appwidget.provider"
-        android:resource="@xml/widget_solarops_info" />
+<!-- Variante 1 — Compacto (Solar / Carga / Batería) -->
+<receiver android:name=".SolarOpsWidget" android:exported="true" android:label="SolarOps · Compacto">
+    <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_info" />
 </receiver>
 
-<!-- Picker shown when the widget is dropped on the home screen. -->
+<!-- Variante 2 — Tiles 4 paneles a color -->
+<receiver android:name=".SolarOpsWidgetTiles" android:exported="true" android:label="SolarOps · Tiles">
+    <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_tiles_info" />
+</receiver>
+
+<!-- Variante 3 — Gauge grande de batería -->
+<receiver android:name=".SolarOpsWidgetGauge" android:exported="true" android:label="SolarOps · Gauge">
+    <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_gauge_info" />
+</receiver>
+
+<!-- Picker compartido por las 3 variantes. -->
 <activity
     android:name=".WidgetConfigActivity"
     android:exported="true"
