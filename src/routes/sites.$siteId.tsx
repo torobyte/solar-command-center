@@ -472,7 +472,7 @@ function ConfigurationView({ site }: { site: Site }) {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3 sm:space-y-4">
       <Section title="General" icon={Info}>
         <Row label="Site ID" value={site.id} />
         <Row label="Plan" value={site.plan} />
