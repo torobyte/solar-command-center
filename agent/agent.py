@@ -1008,6 +1008,8 @@ function toggleEdit(){
 // ====== Widget renderers ======
 function fmt(v,d=0){ if(v==null||isNaN(v)) return '—'; return Number(v).toFixed(d); }
 function kw(w){ if(w==null) return '—'; const k=w/1000; return k.toFixed(k>=10?1:2); }
+// Formato completo en W con separador de miles, sin abreviar.
+function wFull(w){ if(w==null||isNaN(w)) return '—'; return Math.round(Number(w)).toLocaleString('es-CL'); }
 
 function widgetHTML(id){
   const L=STATE&&STATE.latest||{};
