@@ -50,7 +50,7 @@ class WidgetConfigActivity : Activity() {
             text = getString(R.string.widget_config_hint); textSize = 12f
             setPadding(0, 12, 0, 12)
         }
-        val input = EditText(this).apply { hint = "device_token" }
+        val input = EditText(this).apply { this.hint = "device_token" }
         val save = Button(this).apply { text = getString(R.string.widget_config_save) }
 
         save.setOnClickListener {
