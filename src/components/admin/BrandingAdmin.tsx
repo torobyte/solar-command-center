@@ -182,6 +182,16 @@ export function BrandingAdmin() {
     applyBrandingToDOM(next, resolved);
   }
 
+  function applyPreset(p: PalettePreset, mode: "light" | "dark" | "both") {
+    if (!b) return;
+    const next = { ...b } as Branding;
+    if (mode === "light" || mode === "both") Object.assign(next, p.light);
+    if (mode === "dark" || mode === "both") Object.assign(next, p.dark);
+    setB(next);
+    applyBrandingToDOM(next, resolved);
+    toast.success(`Paleta "${p.name}" aplicada`);
+  }
+
   async function save() {
     if (!b) return;
     setSaving(true);
