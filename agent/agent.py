@@ -1159,7 +1159,7 @@ function backupCard(soc,loadW,pvW){
       </div>
       <div style="flex:1;min-width:140px" class="rows">
         <div class="rk"><span class="k">Energía útil</span><span class="v">${usable.toFixed(2)} kWh</span></div>
-        <div class="rk"><span class="k">Descarga neta</span><span class="v">${(netW/1000).toFixed(2)} kW</span></div>
+        <div class="rk"><span class="k">Descarga neta</span><span class="v">${wFull(netW)} W</span></div>
         <div class="rk"><span class="k">Banco</span><span class="v">${batKwh||'—'} kWh</span></div>
         <div class="rk"><span class="k">DoD útil</span><span class="v">${(dod*100).toFixed(0)} %</span></div>
       </div>
