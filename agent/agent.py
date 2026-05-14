@@ -659,7 +659,7 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
   };
 
   function loadIframe(){
-    var deadline = setTimeout(function(){ goLegacy("Cloud no respondió a tiempo."); }, 4000);
+    var deadline = setTimeout(function(){ goLegacy("Cloud no respondió a tiempo."); }, 2500);
     frame.addEventListener("load", function(){
       try {
         var href = frame.contentWindow && frame.contentWindow.location && frame.contentWindow.location.href;
