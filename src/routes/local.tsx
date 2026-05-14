@@ -230,8 +230,7 @@ function LocalDashboardPage() {
           license?: LicenseMeta | null;
         }>(`${agentBase}/api/state`);
         if (!alive) return;
-        setError(null);
-        setLastTick(Date.now());
+        if (errorRef.current !== null) { errorRef.current = null; setError(null); }
 
         const incoming = data.latest;
         const incomingKey = incoming?.recorded_at ?? null;
@@ -251,7 +250,8 @@ function LocalDashboardPage() {
         // Estamos embebidos esperando el bridge del padre — no mostremos
         // "Failed to fetch" durante los primeros 4s; el bridge ya está en camino.
         if (embedded && (bridgedRef.current || Date.now() - mountedAt < 4000)) return;
-        setError((e as Error).message);
+        const msg = (e as Error).message;
+        if (errorRef.current !== msg) { errorRef.current = msg; setError(msg); }
       }
     }
     async function pullPv() {
