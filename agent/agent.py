@@ -1064,8 +1064,8 @@ function solarPanelsCard(pvW){
         `}).join('')).join('')}
       </g>
     </svg>
-    <div class="big" style="color:var(--pv);text-shadow:0 0 24px rgba(245,158,11,.35)">${kw(pvW)}<span class="unit">kW</span></div>
-    <div class="sub2">${pvW.toFixed(0)} W instantáneos</div>
+    <div class="big" style="color:var(--pv);text-shadow:0 0 24px rgba(245,158,11,.35)">${wFull(pvW)}<span class="unit">W</span></div>
+    <div class="sub2">${kw(pvW)} kW · arreglo solar</div>
   </div>`;
 }
 
