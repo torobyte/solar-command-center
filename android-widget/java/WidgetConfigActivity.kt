@@ -51,7 +51,7 @@ class WidgetConfigActivity : Activity() {
                 setPadding(0, 0, 0, 16)
             })
             root.addView(Button(this).apply {
-                text = "Abrir SolarOps"
+                text = "Iniciar sesión"
                 setOnClickListener {
                     startActivity(Intent(this@WidgetConfigActivity, WidgetSetupActivity::class.java))
                     finish()
