@@ -138,6 +138,97 @@ function CloudPushBadge({ agentBase }: { agentBase: string }) {
   );
 }
 
+/** Badge de estado del inversor con auto-reintento y diagnóstico expandido. */
+function InverterStatusBadge({ agentBase }: { agentBase: string }) {
+  const [inv, setInv] = useState<InverterHealth | null>(null);
+  const [unreachable, setUnreachable] = useState(false);
+
+  useEffect(() => {
+    if (!agentBase) return;
+    let alive = true;
+    async function tick() {
+      try {
+        const r = await fetch(`${agentBase}/api/health`, { cache: "no-store" });
+        const j = await r.json();
+        if (!alive) return;
+        setUnreachable(false);
+        setInv(j?.inverter ?? null);
+      } catch {
+        if (alive) setUnreachable(true);
+      }
+    }
+    tick();
+    const id = window.setInterval(tick, 2000);
+    return () => { alive = false; window.clearInterval(id); };
+  }, [agentBase]);
+
+  if (unreachable) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2 py-0.5 font-medium text-muted-foreground">
+        <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
+        Inversor: agente no responde
+      </span>
+    );
+  }
+  if (!inv) return null;
+
+  const lastSampleMs = inv.last_sample_at ? Date.now() - new Date(inv.last_sample_at).getTime() : null;
+  const fresh = lastSampleMs != null && lastSampleMs < 5_000;
+
+  let tone: "ok" | "warn" | "err" | "idle" = "idle";
+  let label = "Inversor: buscando…";
+
+  if (inv.state === "searching" || (!inv.connected && inv.reconnect_count === 0)) {
+    tone = "idle";
+    label = "Inversor: buscando puerto…";
+  } else if (!inv.connected) {
+    tone = "err";
+    label = "Inversor: desconectado · reintentando";
+  } else if (inv.state === "error") {
+    tone = "err";
+    label = "Inversor: error de lectura · reintentando";
+  } else if (inv.state === "stale" || inv.consecutive_empty > 0) {
+    tone = "warn";
+    label = `Inversor: lecturas vacías (${inv.consecutive_empty}/3)`;
+  } else if (!fresh) {
+    tone = "warn";
+    label = lastSampleMs != null
+      ? `Inversor: sin datos hace ${Math.round(lastSampleMs / 1000)} s`
+      : "Inversor: esperando primera muestra";
+  } else {
+    tone = "ok";
+    label = `Inversor: en vivo (${inv.transport ?? "—"})`;
+  }
+
+  const toneCls = {
+    ok:   "bg-success/15 text-success",
+    warn: "bg-warning/15 text-warning",
+    err:  "bg-destructive/15 text-destructive",
+    idle: "bg-muted text-muted-foreground",
+  }[tone];
+  const dotCls = {
+    ok:   "bg-success animate-pulse",
+    warn: "bg-warning animate-pulse",
+    err:  "bg-destructive animate-pulse",
+    idle: "bg-muted-foreground/60 animate-pulse",
+  }[tone];
+
+  const tooltip =
+    `${label}\n` +
+    `Puerto: ${inv.port ?? "—"} (${inv.transport ?? "—"})\n` +
+    `Lecturas OK: ${inv.read_count} · Errores: ${inv.error_count}\n` +
+    `Reconexiones: ${inv.reconnect_count}` +
+    (inv.connected_at ? `\nConectado desde ${new Date(inv.connected_at).toLocaleTimeString()}` : "") +
+    (inv.last_error ? `\nÚltimo error: ${inv.last_error}` : "");
+
+  return (
+    <span className={`inline-flex max-w-[420px] items-center gap-1.5 rounded-full px-2 py-0.5 font-medium ${toneCls}`} title={tooltip}>
+      <span className={`h-1.5 w-1.5 rounded-full ${dotCls}`} />
+      <span className="truncate">{label}</span>
+    </span>
+  );
+}
+
 
 function LocalDashboardPage() {
   const search = Route.useSearch();
