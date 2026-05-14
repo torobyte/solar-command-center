@@ -227,7 +227,7 @@ export function DashboardGrid({ defs, state, onChange, render }: GridProps) {
                 </div>
               </div>
 
-              <div className="h-full min-w-0">{render(w.id)}</div>
+              <div className="h-full min-w-0 pt-10 md:pt-0">{render(w.id)}</div>
             </div>
           );
         })}
