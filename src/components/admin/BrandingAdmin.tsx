@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { applyBrandingToDOM, ensureGoogleFont, GOOGLE_FONTS, useBranding, type Branding } from "@/lib/branding";
-import { Save, RotateCcw } from "lucide-react";
+import { Save, RotateCcw, Upload, X } from "lucide-react";
 
 const COLOR_FIELDS: { key: keyof Branding; label: string }[] = [
   { key: "primary_color", label: "Primario" },
@@ -71,11 +71,13 @@ export function BrandingAdmin() {
           <Field label="Tagline">
             <Input value={b.tagline ?? ""} onChange={(e) => update("tagline", e.target.value)} />
           </Field>
-          <Field label="URL del logo">
-            <Input value={b.logo_url ?? ""} onChange={(e) => update("logo_url", e.target.value)} placeholder="https://…" />
+          <Field label="Logo">
+            <ImageUploader value={b.logo_url ?? ""} folder="logo"
+              onChange={(v) => update("logo_url", v)} hint="PNG/SVG transparente · ideal 256×64" />
           </Field>
-          <Field label="URL del favicon">
-            <Input value={b.favicon_url ?? ""} onChange={(e) => update("favicon_url", e.target.value)} placeholder="https://… (32x32 PNG/SVG)" />
+          <Field label="Favicon">
+            <ImageUploader value={b.favicon_url ?? ""} folder="favicon"
+              onChange={(v) => update("favicon_url", v)} hint="32×32 PNG/SVG" />
           </Field>
         </TabsContent>
 
@@ -164,11 +166,13 @@ export function BrandingAdmin() {
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Icono 192×192 (URL PNG)">
-            <Input value={b.pwa_icon_192 ?? ""} onChange={(e) => update("pwa_icon_192", e.target.value)} placeholder="https://… 192x192 PNG" />
+          <Field label="Icono 192×192">
+            <ImageUploader value={b.pwa_icon_192 ?? ""} folder="pwa-192"
+              onChange={(v) => update("pwa_icon_192", v)} hint="192×192 PNG cuadrado" />
           </Field>
-          <Field label="Icono 512×512 (URL PNG)">
-            <Input value={b.pwa_icon_512 ?? ""} onChange={(e) => update("pwa_icon_512", e.target.value)} placeholder="https://… 512x512 PNG" />
+          <Field label="Icono 512×512">
+            <ImageUploader value={b.pwa_icon_512 ?? ""} folder="pwa-512"
+              onChange={(v) => update("pwa_icon_512", v)} hint="512×512 PNG cuadrado" />
           </Field>
         </TabsContent>
       </Tabs>
