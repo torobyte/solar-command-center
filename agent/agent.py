@@ -1272,8 +1272,11 @@ function totalsCard(){
   </div>`;
 }
 
-// ====== Render grid ======
-function renderGrid(){
+// ====== Render grid (sin parpadeo) ======
+// Sólo reconstruye DOM cuando cambia el LAYOUT. Para refrescos de datos
+// reemplaza únicamente el body de cada widget si su HTML cambió.
+let LAST_LAYOUT_KEY = '';
+function buildGrid(){
   const g = document.getElementById('grid');
   g.innerHTML = '';
   LAYOUT.forEach((item,idx)=>{
@@ -1281,14 +1284,15 @@ function renderGrid(){
     tile.className='tile';
     tile.style.gridColumn=`span ${item.w}`;
     tile.dataset.idx=idx;
+    tile.dataset.id=item.id;
     tile.draggable=true;
+    const bodyHTML = widgetHTML(item.id);
     tile.innerHTML = `
       <div class="handle" title="Arrastrar">⋮⋮</div>
       <div class="toolbar">
         ${[3,6,9,12].map(w=>`<button class="tbtn ${item.w===w?'act':''}" onclick="resizeTile(${idx},${w})">${(w/12*100)|0}%</button>`).join('')}
       </div>
-      ${widgetHTML(item.id)}`;
-    // DnD
+      <div class="widget-body" data-rendered="${escapeAttr(bodyHTML)}">${bodyHTML}</div>`;
     tile.addEventListener('dragstart',e=>{ tile.classList.add('dragging'); e.dataTransfer.setData('text/plain',idx); e.dataTransfer.effectAllowed='move';});
     tile.addEventListener('dragend',()=>tile.classList.remove('dragging'));
     tile.addEventListener('dragover',e=>{e.preventDefault();tile.classList.add('over')});
@@ -1298,12 +1302,37 @@ function renderGrid(){
       const from=Number(e.dataTransfer.getData('text/plain')); const to=Number(tile.dataset.idx);
       if(isNaN(from)||from===to) return;
       const next=LAYOUT.slice(); const [m]=next.splice(from,1); next.splice(to,0,m);
-      LAYOUT=next; saveLayout(LAYOUT); renderGrid();
+      LAYOUT=next; saveLayout(LAYOUT); LAST_LAYOUT_KEY=''; renderGrid();
     });
     g.appendChild(tile);
   });
 }
-function resizeTile(idx,w){ LAYOUT[idx].w=w; saveLayout(LAYOUT); renderGrid(); }
+function escapeAttr(s){ return ''; /* sin uso real, sólo para evitar reflow */ }
+function updateGridBodies(){
+  const g = document.getElementById('grid'); if(!g) return;
+  const tiles = g.querySelectorAll('.tile');
+  tiles.forEach((tile,idx)=>{
+    const item = LAYOUT[idx]; if(!item) return;
+    const body = tile.querySelector('.widget-body'); if(!body) return;
+    const next = widgetHTML(item.id);
+    // Sólo reemplaza si realmente cambió el HTML — evita parpadeo cuando
+    // los valores son idénticos entre ticks.
+    if (body.__last !== next) {
+      body.innerHTML = next;
+      body.__last = next;
+    }
+  });
+}
+function renderGrid(){
+  const key = LAYOUT.map(i=>i.id+':'+i.w).join('|');
+  if (key !== LAST_LAYOUT_KEY) {
+    LAST_LAYOUT_KEY = key;
+    buildGrid();
+  } else {
+    updateGridBodies();
+  }
+}
+function resizeTile(idx,w){ LAYOUT[idx].w=w; saveLayout(LAYOUT); LAST_LAYOUT_KEY=''; renderGrid(); }
 window.resizeTile=resizeTile;
 
 // ====== Charts ======
