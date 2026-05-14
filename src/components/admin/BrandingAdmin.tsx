@@ -11,6 +11,144 @@ import { applyBrandingToDOM, ensureGoogleFont, GOOGLE_FONTS, useBranding, type B
 import { useTheme } from "@/lib/theme";
 import { Save, RotateCcw, Upload, X } from "lucide-react";
 
+type PalettePreset = {
+  name: string;
+  description: string;
+  light: Partial<Record<keyof Branding, string>>;
+  dark: Partial<Record<keyof Branding, string>>;
+};
+
+const PALETTE_PRESETS: PalettePreset[] = [
+  {
+    name: "SolarOps Classic",
+    description: "Ámbar solar sobre azul profundo",
+    light: {
+      primary_color: "#f59e0b", primary_foreground: "#0a0a0a", accent_color: "#fbbf24",
+      background_color: "#fafafa", foreground_color: "#0a0a0a", card_color: "#ffffff",
+      muted_color: "#f4f4f5", border_color: "#e4e4e7",
+      success_color: "#16a34a", warning_color: "#f59e0b", destructive_color: "#dc2626",
+    },
+    dark: {
+      primary_color_dark: "#fbbf24", primary_foreground_dark: "#0a0a0a", accent_color_dark: "#f59e0b",
+      background_color_dark: "#0a0a0a", foreground_color_dark: "#fafafa", card_color_dark: "#171717",
+      muted_color_dark: "#262626", border_color_dark: "#404040",
+      success_color_dark: "#22c55e", warning_color_dark: "#fbbf24", destructive_color_dark: "#ef4444",
+    },
+  },
+  {
+    name: "Ocean Deep",
+    description: "Azules marinos profesionales",
+    light: {
+      primary_color: "#0ea5e9", primary_foreground: "#ffffff", accent_color: "#06b6d4",
+      background_color: "#f8fafc", foreground_color: "#0f172a", card_color: "#ffffff",
+      muted_color: "#f1f5f9", border_color: "#e2e8f0",
+      success_color: "#10b981", warning_color: "#f59e0b", destructive_color: "#ef4444",
+    },
+    dark: {
+      primary_color_dark: "#38bdf8", primary_foreground_dark: "#0c2340", accent_color_dark: "#22d3ee",
+      background_color_dark: "#0c2340", foreground_color_dark: "#e2e8f0", card_color_dark: "#1a4a6e",
+      muted_color_dark: "#1e3a5f", border_color_dark: "#2d5a8a",
+      success_color_dark: "#34d399", warning_color_dark: "#fbbf24", destructive_color_dark: "#f87171",
+    },
+  },
+  {
+    name: "Forest Energy",
+    description: "Verdes naturales y orgánicos",
+    light: {
+      primary_color: "#16a34a", primary_foreground: "#ffffff", accent_color: "#65a30d",
+      background_color: "#f7f9f5", foreground_color: "#1a2e1a", card_color: "#ffffff",
+      muted_color: "#ecf0e6", border_color: "#d4ddc9",
+      success_color: "#16a34a", warning_color: "#ca8a04", destructive_color: "#dc2626",
+    },
+    dark: {
+      primary_color_dark: "#4ade80", primary_foreground_dark: "#0a1f0a", accent_color_dark: "#a3e635",
+      background_color_dark: "#0a1f0a", foreground_color_dark: "#e8f0e3", card_color_dark: "#162e16",
+      muted_color_dark: "#1f3a1f", border_color_dark: "#2d5a2d",
+      success_color_dark: "#4ade80", warning_color_dark: "#facc15", destructive_color_dark: "#f87171",
+    },
+  },
+  {
+    name: "Midnight Indigo",
+    description: "Tech sofisticado con índigo eléctrico",
+    light: {
+      primary_color: "#4f46e5", primary_foreground: "#ffffff", accent_color: "#7c3aed",
+      background_color: "#fafafa", foreground_color: "#0a0a1a", card_color: "#ffffff",
+      muted_color: "#f4f4f5", border_color: "#e4e4e7",
+      success_color: "#10b981", warning_color: "#f59e0b", destructive_color: "#ef4444",
+    },
+    dark: {
+      primary_color_dark: "#818cf8", primary_foreground_dark: "#0a0a1a", accent_color_dark: "#a78bfa",
+      background_color_dark: "#0a0a1a", foreground_color_dark: "#e0e7ff", card_color_dark: "#141432",
+      muted_color_dark: "#1e1e5a", border_color_dark: "#312e81",
+      success_color_dark: "#34d399", warning_color_dark: "#fbbf24", destructive_color_dark: "#f87171",
+    },
+  },
+  {
+    name: "Noir & Gold",
+    description: "Negro lujo con dorado editorial",
+    light: {
+      primary_color: "#c9a84c", primary_foreground: "#0d0d0d", accent_color: "#f0d78c",
+      background_color: "#fafaf7", foreground_color: "#0d0d0d", card_color: "#ffffff",
+      muted_color: "#f5f3ee", border_color: "#e8e4dd",
+      success_color: "#15803d", warning_color: "#c9a84c", destructive_color: "#991b1b",
+    },
+    dark: {
+      primary_color_dark: "#f0d78c", primary_foreground_dark: "#0d0d0d", accent_color_dark: "#c9a84c",
+      background_color_dark: "#0d0d0d", foreground_color_dark: "#f0d78c", card_color_dark: "#1a1a1a",
+      muted_color_dark: "#262626", border_color_dark: "#3d3d3d",
+      success_color_dark: "#22c55e", warning_color_dark: "#f0d78c", destructive_color_dark: "#ef4444",
+    },
+  },
+  {
+    name: "Coral Sunset",
+    description: "Coral vibrante y energético",
+    light: {
+      primary_color: "#f43f5e", primary_foreground: "#ffffff", accent_color: "#fb7185",
+      background_color: "#fff8f8", foreground_color: "#1f1015", card_color: "#ffffff",
+      muted_color: "#ffeef0", border_color: "#ffd4da",
+      success_color: "#10b981", warning_color: "#f59e0b", destructive_color: "#dc2626",
+    },
+    dark: {
+      primary_color_dark: "#fb7185", primary_foreground_dark: "#1f1015", accent_color_dark: "#fda4af",
+      background_color_dark: "#1f1015", foreground_color_dark: "#ffe4e8", card_color_dark: "#2d1820",
+      muted_color_dark: "#3d2028", border_color_dark: "#5a2e3a",
+      success_color_dark: "#34d399", warning_color_dark: "#fbbf24", destructive_color_dark: "#f87171",
+    },
+  },
+  {
+    name: "Slate Pro",
+    description: "Grises corporativos minimalistas",
+    light: {
+      primary_color: "#475569", primary_foreground: "#ffffff", accent_color: "#0ea5e9",
+      background_color: "#ffffff", foreground_color: "#0f172a", card_color: "#f8fafc",
+      muted_color: "#f1f5f9", border_color: "#cbd5e1",
+      success_color: "#059669", warning_color: "#d97706", destructive_color: "#dc2626",
+    },
+    dark: {
+      primary_color_dark: "#94a3b8", primary_foreground_dark: "#0f172a", accent_color_dark: "#38bdf8",
+      background_color_dark: "#0f172a", foreground_color_dark: "#f1f5f9", card_color_dark: "#1e293b",
+      muted_color_dark: "#334155", border_color_dark: "#475569",
+      success_color_dark: "#34d399", warning_color_dark: "#fbbf24", destructive_color_dark: "#f87171",
+    },
+  },
+  {
+    name: "Neon Mint",
+    description: "Verde menta brillante y futurista",
+    light: {
+      primary_color: "#10b981", primary_foreground: "#052e16", accent_color: "#06b6d4",
+      background_color: "#f0fdf4", foreground_color: "#052e16", card_color: "#ffffff",
+      muted_color: "#dcfce7", border_color: "#bbf7d0",
+      success_color: "#10b981", warning_color: "#f59e0b", destructive_color: "#dc2626",
+    },
+    dark: {
+      primary_color_dark: "#2dd4a8", primary_foreground_dark: "#0d1b2a", accent_color_dark: "#73ffb8",
+      background_color_dark: "#0d1b2a", foreground_color_dark: "#d1fae5", card_color_dark: "#1b4332",
+      muted_color_dark: "#14532d", border_color_dark: "#166534",
+      success_color_dark: "#73ffb8", warning_color_dark: "#fbbf24", destructive_color_dark: "#f87171",
+    },
+  },
+];
+
 const COLOR_FIELDS: { key: keyof Branding; label: string }[] = [
   { key: "primary_color", label: "Primario" },
   { key: "primary_foreground", label: "Texto sobre primario" },
@@ -42,6 +180,16 @@ export function BrandingAdmin() {
     const next = { ...b, [k]: v };
     setB(next);
     applyBrandingToDOM(next, resolved);
+  }
+
+  function applyPreset(p: PalettePreset, mode: "light" | "dark" | "both") {
+    if (!b) return;
+    const next = { ...b } as Branding;
+    if (mode === "light" || mode === "both") Object.assign(next, p.light);
+    if (mode === "dark" || mode === "both") Object.assign(next, p.dark);
+    setB(next);
+    applyBrandingToDOM(next, resolved);
+    toast.success(`Paleta "${p.name}" aplicada`);
   }
 
   async function save() {
@@ -94,6 +242,45 @@ export function BrandingAdmin() {
         </TabsContent>
 
         <TabsContent value="colors" className="mt-6 space-y-6">
+          <div className="rounded-lg border bg-muted/30 p-4">
+            <h3 className="mb-1 text-sm font-semibold">🎨 Paletas predefinidas</h3>
+            <p className="mb-4 text-xs text-muted-foreground">
+              Aplica una paleta completa con un clic. Puedes ajustar los colores después.
+            </p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {PALETTE_PRESETS.map((p) => (
+                <div key={p.name} className="rounded-lg border bg-card p-3">
+                  <div className="mb-2">
+                    <p className="text-sm font-semibold">{p.name}</p>
+                    <p className="text-[11px] text-muted-foreground">{p.description}</p>
+                  </div>
+                  <div className="mb-2 grid grid-cols-2 gap-1">
+                    <div>
+                      <p className="mb-1 text-[10px] uppercase text-muted-foreground">Claro</p>
+                      <div className="flex h-6 overflow-hidden rounded border">
+                        {[p.light.background_color, p.light.card_color, p.light.primary_color, p.light.accent_color, p.light.foreground_color].map((c, i) => (
+                          <div key={i} className="flex-1" style={{ background: c }} />
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="mb-1 text-[10px] uppercase text-muted-foreground">Oscuro</p>
+                      <div className="flex h-6 overflow-hidden rounded border">
+                        {[p.dark.background_color_dark, p.dark.card_color_dark, p.dark.primary_color_dark, p.dark.accent_color_dark, p.dark.foreground_color_dark].map((c, i) => (
+                          <div key={i} className="flex-1" style={{ background: c }} />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="outline" className="h-7 flex-1 px-1 text-xs" onClick={() => applyPreset(p, "light")}>☀</Button>
+                    <Button size="sm" variant="outline" className="h-7 flex-1 px-1 text-xs" onClick={() => applyPreset(p, "dark")}>🌙</Button>
+                    <Button size="sm" className="h-7 flex-1 px-1 text-xs" onClick={() => applyPreset(p, "both")}>Ambos</Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
           <div>
             <h3 className="mb-3 text-sm font-semibold">☀ Modo claro</h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
