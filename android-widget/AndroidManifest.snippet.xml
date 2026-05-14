@@ -1,9 +1,9 @@
 <!--
-  Snippet to merge into android/app/src/main/AndroidManifest.xml inside <application>.
-  Make sure <uses-permission android:name="android.permission.INTERNET"/> is present.
+  Snippet para fusionar en android/app/src/main/AndroidManifest.xml dentro de <application>.
+  Requiere: <uses-permission android:name="android.permission.INTERNET"/>
 -->
 
-<!-- Launcher: login + selector de sitio. La app en sí carga el sitio web. -->
+<!-- Launcher: WebView a pantalla completa con el sitio publicado. -->
 <activity
     android:name=".MainActivity"
     android:exported="true"
@@ -13,6 +13,12 @@
         <category android:name="android.intent.category.LAUNCHER" />
     </intent-filter>
 </activity>
+
+<!-- Login + lista de sitios. Solo se abre desde el picker del widget. -->
+<activity
+    android:name=".WidgetSetupActivity"
+    android:exported="false"
+    android:label="Configurar widget SolarOps" />
 
 <!-- Variante 1 — Compacto (Solar / Carga / Batería) -->
 <receiver android:name=".SolarOpsWidget" android:exported="true" android:label="SolarOps · Compacto">
