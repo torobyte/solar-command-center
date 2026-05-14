@@ -139,11 +139,11 @@ function LocalDashboardPage() {
   const [license, setLicense] = useState<LicenseMeta | null>(null);
   const [pvCfg, setPvCfg] = useState<PvConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [lastTick, setLastTick] = useState<number>(0);
 
   const lastRecordedAt = useRef<string | null>(null);
   const lastLicenseKey = useRef<string>("");
   const bridgedRef = useRef(false);
+  const errorRef = useRef<string | null>(null);
 
   // ---- Bridge postMessage: cuando estamos embebidos en el wrapper HTTP del
   // agente, el padre hace los fetches a /api/* y nos envía los datos por
