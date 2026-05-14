@@ -91,27 +91,43 @@ export function BrandingAdmin() {
           </div>
         </TabsContent>
 
-        <TabsContent value="colors" className="mt-6">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {COLOR_FIELDS.map((f) => (
-              <Field key={f.key} label={f.label}>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    className="h-10 w-14 cursor-pointer rounded border"
-                    value={(b[f.key] as string) ?? "#000000"}
-                    onChange={(e) => update(f.key, e.target.value as never)}
-                  />
-                  <Input
-                    value={(b[f.key] as string) ?? ""}
-                    onChange={(e) => update(f.key, e.target.value as never)}
-                    className="font-mono"
-                  />
-                </div>
-              </Field>
-            ))}
+        <TabsContent value="colors" className="mt-6 space-y-6">
+          <div>
+            <h3 className="mb-3 text-sm font-semibold">☀ Modo claro</h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {COLOR_FIELDS.map((f) => (
+                <Field key={`light-${f.key}`} label={f.label}>
+                  <div className="flex items-center gap-2">
+                    <input type="color" className="h-10 w-14 cursor-pointer rounded border"
+                      value={(b[f.key] as string) ?? "#000000"}
+                      onChange={(e) => update(f.key, e.target.value as never)} />
+                    <Input value={(b[f.key] as string) ?? ""}
+                      onChange={(e) => update(f.key, e.target.value as never)} className="font-mono" />
+                  </div>
+                </Field>
+              ))}
+            </div>
           </div>
-          <Field label="Border radius" className="mt-4">
+          <div className="border-t pt-6">
+            <h3 className="mb-3 text-sm font-semibold">🌙 Modo oscuro</h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {COLOR_FIELDS.map((f) => {
+                const dk = `${f.key}_dark` as keyof Branding;
+                return (
+                  <Field key={`dark-${f.key}`} label={f.label}>
+                    <div className="flex items-center gap-2">
+                      <input type="color" className="h-10 w-14 cursor-pointer rounded border"
+                        value={(b[dk] as string) ?? "#000000"}
+                        onChange={(e) => update(dk, e.target.value as never)} />
+                      <Input value={(b[dk] as string) ?? ""}
+                        onChange={(e) => update(dk, e.target.value as never)} className="font-mono" />
+                    </div>
+                  </Field>
+                );
+              })}
+            </div>
+          </div>
+          <Field label="Border radius">
             <Input value={b.radius} onChange={(e) => update("radius", e.target.value)} placeholder="0.5rem" />
           </Field>
         </TabsContent>
