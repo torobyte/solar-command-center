@@ -168,16 +168,28 @@ export function BrandingAdmin() {
             <Textarea value={b.pwa_description ?? ""} onChange={(e) => update("pwa_description", e.target.value)} />
           </Field>
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Color tema (barra)">
+            <Field label="Color tema (claro)">
               <div className="flex gap-2">
                 <input type="color" className="h-10 w-14 rounded border" value={b.pwa_theme_color} onChange={(e) => update("pwa_theme_color", e.target.value)} />
                 <Input value={b.pwa_theme_color} onChange={(e) => update("pwa_theme_color", e.target.value)} />
               </div>
             </Field>
-            <Field label="Color de fondo (splash)">
+            <Field label="Color tema (oscuro)">
+              <div className="flex gap-2">
+                <input type="color" className="h-10 w-14 rounded border" value={b.pwa_theme_color_dark} onChange={(e) => update("pwa_theme_color_dark", e.target.value)} />
+                <Input value={b.pwa_theme_color_dark} onChange={(e) => update("pwa_theme_color_dark", e.target.value)} />
+              </div>
+            </Field>
+            <Field label="Fondo splash (claro)">
               <div className="flex gap-2">
                 <input type="color" className="h-10 w-14 rounded border" value={b.pwa_background_color} onChange={(e) => update("pwa_background_color", e.target.value)} />
                 <Input value={b.pwa_background_color} onChange={(e) => update("pwa_background_color", e.target.value)} />
+              </div>
+            </Field>
+            <Field label="Fondo splash (oscuro)">
+              <div className="flex gap-2">
+                <input type="color" className="h-10 w-14 rounded border" value={b.pwa_background_color_dark} onChange={(e) => update("pwa_background_color_dark", e.target.value)} />
+                <Input value={b.pwa_background_color_dark} onChange={(e) => update("pwa_background_color_dark", e.target.value)} />
               </div>
             </Field>
           </div>
@@ -192,14 +204,24 @@ export function BrandingAdmin() {
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Icono 192×192">
-            <ImageUploader value={b.pwa_icon_192 ?? ""} folder="pwa-192"
-              onChange={(v) => update("pwa_icon_192", v)} hint="192×192 PNG cuadrado" />
-          </Field>
-          <Field label="Icono 512×512">
-            <ImageUploader value={b.pwa_icon_512 ?? ""} folder="pwa-512"
-              onChange={(v) => update("pwa_icon_512", v)} hint="512×512 PNG cuadrado" />
-          </Field>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Icono 192×192 (claro)">
+              <ImageUploader value={b.pwa_icon_192 ?? ""} folder="pwa-192"
+                onChange={(v) => update("pwa_icon_192", v)} hint="192×192 PNG" />
+            </Field>
+            <Field label="Icono 192×192 (oscuro)">
+              <ImageUploader value={b.pwa_icon_192_dark ?? ""} folder="pwa-192-dark"
+                onChange={(v) => update("pwa_icon_192_dark", v as never)} hint="192×192 PNG" />
+            </Field>
+            <Field label="Icono 512×512 (claro)">
+              <ImageUploader value={b.pwa_icon_512 ?? ""} folder="pwa-512"
+                onChange={(v) => update("pwa_icon_512", v)} hint="512×512 PNG" />
+            </Field>
+            <Field label="Icono 512×512 (oscuro)">
+              <ImageUploader value={b.pwa_icon_512_dark ?? ""} folder="pwa-512-dark"
+                onChange={(v) => update("pwa_icon_512_dark", v as never)} hint="512×512 PNG" />
+            </Field>
+          </div>
         </TabsContent>
       </Tabs>
 
