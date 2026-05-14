@@ -1184,8 +1184,8 @@ function ringsCard(pvW,loadW,soc){
     <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center">
       <svg viewBox="0 0 160 160" style="width:160px;height:160px">${html}</svg>
       <div class="rows" style="flex:1;min-width:140px">
-        <div class="rk"><span class="k" style="color:var(--pv)">● PV</span><span class="v">${kw(pvW)} kW</span></div>
-        <div class="rk"><span class="k" style="color:var(--load)">● Carga</span><span class="v">${kw(loadW)} kW</span></div>
+        <div class="rk"><span class="k" style="color:var(--pv)">● PV</span><span class="v">${wFull(pvW)} W</span></div>
+        <div class="rk"><span class="k" style="color:var(--load)">● Carga</span><span class="v">${wFull(loadW)} W</span></div>
         <div class="rk"><span class="k" style="color:var(--success)">● SOC</span><span class="v">${soc.toFixed(0)} %</span></div>
       </div>
     </div>
