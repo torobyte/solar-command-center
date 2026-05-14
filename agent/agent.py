@@ -88,8 +88,10 @@ class HidrawTransport:
             except BlockingIOError:
                 time.sleep(0.05)
         raw = buf.split(b"\r", 1)[0]
-        # Strip leading '(' and trailing 2-byte CRC, then decode.
-        if raw.startswith(b"("): raw = raw[1:]
+        # Strip everything before the first '(' (some inverters / HID dongles
+        # prepend stray bytes like '0' or NUL) plus the trailing 2-byte CRC.
+        i = raw.find(b"(")
+        if i >= 0: raw = raw[i+1:]
         if len(raw) >= 2: raw = raw[:-2]
         return raw.decode("ascii", errors="replace").strip()
 
