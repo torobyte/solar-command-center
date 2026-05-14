@@ -211,12 +211,22 @@ QPIGS_FIELDS = [
 ]
 
 def parse_qpigs(reply: str) -> dict:
+    """Parse a QPIGS reply. Skips garbage tokens silently — almacenar
+    strings no-numéricos en campos numéricos rompe los downstream consumers
+    (cloud ingest, compute_today_totals, frontend gauges)."""
     parts = reply.split()
     out: dict = {}
     for i, name in enumerate(QPIGS_FIELDS):
         if name.startswith("_") or i >= len(parts): continue
-        try: out[name] = float(parts[i])
-        except ValueError: out[name] = parts[i]
+        tok = parts[i]
+        try:
+            out[name] = float(tok)
+        except ValueError:
+            # Token corrupto (típico cuando el HID concatena dos respuestas
+            # o el inversor devuelve un byte basura). Lo ignoramos para no
+            # contaminar la muestra; el poll_loop detectará la baja calidad
+            # y forzará reconexión si pasa repetidas veces.
+            continue
     return out
 
 
