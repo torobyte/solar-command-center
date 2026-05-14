@@ -27,6 +27,7 @@ const COLOR_FIELDS: { key: keyof Branding; label: string }[] = [
 
 export function BrandingAdmin() {
   const { reload } = useBranding();
+  const { resolved } = useTheme();
   const [b, setB] = useState<Branding | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -40,7 +41,7 @@ export function BrandingAdmin() {
     if (!b) return;
     const next = { ...b, [k]: v };
     setB(next);
-    applyBrandingToDOM(next);
+    applyBrandingToDOM(next, resolved);
   }
 
   async function save() {
