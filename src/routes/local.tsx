@@ -151,8 +151,7 @@ function LocalDashboardPage() {
   useEffect(() => {
     function applyState(data: { latest?: DashboardSample | null; license?: LicenseMeta | null } | null) {
       if (!data) return;
-      setError(null);
-      setLastTick(Date.now());
+      if (errorRef.current !== null) { errorRef.current = null; setError(null); }
       const incoming = data.latest ?? null;
       const incomingKey = incoming?.recorded_at ?? null;
       if (incomingKey !== lastRecordedAt.current) {
