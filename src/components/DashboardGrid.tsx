@@ -197,17 +197,17 @@ export function DashboardGrid({ defs, state, onChange, render }: GridProps) {
                 isOver ? "ring-2 ring-accent/60 ring-offset-2 ring-offset-background rounded-2xl -translate-y-0.5" : "",
               ].join(" ")}
             >
-              <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between p-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-                <div className="pointer-events-auto flex cursor-grab items-center gap-1 rounded-full border bg-card/90 px-2 py-1 text-[10px] font-medium text-muted-foreground shadow-sm backdrop-blur-sm active:cursor-grabbing">
+              <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between p-2 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100">
+                <div className="pointer-events-auto hidden cursor-grab items-center gap-1 rounded-full border bg-card/90 px-2 py-1 text-[10px] font-medium text-muted-foreground shadow-sm backdrop-blur-sm active:cursor-grabbing md:inline-flex">
                   <GripVertical className="h-3 w-3" /> Mover
                 </div>
-                <div className="pointer-events-auto flex items-center gap-1 rounded-full border bg-card/90 px-1 py-1 shadow-sm backdrop-blur-sm">
+                <div className="pointer-events-auto ml-auto flex items-center gap-1 rounded-full border bg-card/95 px-1 py-1 shadow-sm backdrop-blur-sm">
                   {WIDTH_OPTIONS.map((opt) => (
                     <button
                       key={opt.value}
                       onClick={(e) => { e.stopPropagation(); setWidth(w.id, opt.value); }}
                       className={[
-                        "inline-flex h-6 min-w-[26px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold transition-colors",
+                        "inline-flex h-7 min-w-[28px] items-center justify-center rounded-full px-2 text-[11px] font-bold transition-colors",
                         currentForBp === opt.value
                           ? "bg-accent text-accent-foreground"
                           : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -219,10 +219,10 @@ export function DashboardGrid({ defs, state, onChange, render }: GridProps) {
                   ))}
                   <button
                     onClick={(e) => { e.stopPropagation(); toggleVisible(w.id); }}
-                    className="ml-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                    className="ml-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
                     title="Ocultar widget"
                   >
-                    <EyeOff className="h-3 w-3" />
+                    <EyeOff className="h-3.5 w-3.5" />
                   </button>
                 </div>
               </div>
