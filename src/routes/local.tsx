@@ -430,9 +430,11 @@ function LocalDashboardPage() {
 
         <SiteDashboardView latest={latest} siteId="local" pvConfig={pvCfg} />
 
-        {!latest && !error && (
+        {!latest && (
           <div className="mt-8 rounded-lg border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">
-            Esperando la primera muestra del inversor… (asegúrate de que el cable USB/serial esté conectado)
+            <div className="font-medium text-foreground/90">Esperando datos del inversor…</div>
+            <div className="mt-2">El agente está intentando reconectar automáticamente cada segundo. Revisa el badge <span className="font-medium">"Inversor: …"</span> arriba para ver el estado en detalle (puerto detectado, lecturas OK, último error).</div>
+            <div className="mt-2 text-xs">Verifica que el cable USB/serial esté conectado y que el inversor esté encendido.</div>
           </div>
         )}
       </div>
