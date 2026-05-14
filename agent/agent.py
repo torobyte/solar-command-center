@@ -1990,6 +1990,122 @@ load(); setInterval(load, 5000);
 
 
 
+WIFI_PAGE = r"""<!doctype html>
+<html lang="es"><head><meta charset="utf-8"/>
+<title>WiFi · SolarOps</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--card:#111827;--border:#1f2937;--fg:#e5e7eb;--mut:#9ca3af;--ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--accent:#f59e0b}
+*{box-sizing:border-box}body{margin:0;font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto;background:var(--bg);color:var(--fg)}
+header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:#0f172a}
+h1{margin:0;font-size:18px;font-weight:600}
+a{color:var(--accent);text-decoration:none}
+main{padding:20px;max-width:720px;margin:0 auto;display:grid;gap:16px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+h2{margin:0 0 12px;font-size:13px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
+.row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--border);font-size:13px}
+.row:last-child{border:0}.k{color:var(--mut)}.v{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600}
+.ok{background:rgba(34,197,94,.15);color:var(--ok)}.err{background:rgba(239,68,68,.15);color:var(--err)}.mut{background:rgba(156,163,175,.15);color:var(--mut)}
+button{background:var(--accent);color:#000;border:0;padding:8px 14px;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px}
+button.ghost{background:transparent;color:var(--fg);border:1px solid var(--border)}
+button:disabled{opacity:.5;cursor:not-allowed}
+input{width:100%;background:#0a1018;border:1px solid var(--border);color:var(--fg);padding:9px 11px;border-radius:8px;font-size:13px}
+.net{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;cursor:pointer;background:#0a1018}
+.net:hover{border-color:var(--accent)}.net.active{border-color:var(--ok)}
+.net .ssid{font-weight:600}.meta{font-size:11px;color:var(--mut)}
+.bars{display:inline-block;width:14px;height:14px;border-radius:3px;background:linear-gradient(180deg,var(--ok),transparent)}
+form{display:grid;gap:10px;margin-top:10px}
+.msg{padding:10px;border-radius:8px;font-size:12px;margin-top:8px}
+.msg.err{background:rgba(239,68,68,.1);color:#fecaca;border:1px solid rgba(239,68,68,.3)}
+.msg.ok{background:rgba(34,197,94,.1);color:#bbf7d0;border:1px solid rgba(34,197,94,.3)}
+</style></head><body>
+<header>
+  <h1>📶 WiFi · SolarOps</h1>
+  <div><a href="/status">Estado</a> &nbsp; <a href="/">← Dashboard</a></div>
+</header>
+<main>
+  <section class="card"><h2>Conexión actual</h2><div id="status">Cargando…</div></section>
+  <section class="card">
+    <h2>Redes disponibles</h2>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span class="meta" id="scanInfo">—</span>
+      <button class="ghost" id="scanBtn" onclick="scan()">Re-escanear</button>
+    </div>
+    <div id="nets">Escaneando…</div>
+  </section>
+  <section class="card" id="connectCard" style="display:none">
+    <h2>Conectar a <span id="targetSsid"></span></h2>
+    <form onsubmit="connect(event)">
+      <input id="pwd" type="password" placeholder="Contraseña WiFi" autocomplete="off"/>
+      <div style="display:flex;gap:8px">
+        <button type="submit" id="connectBtn">Conectar</button>
+        <button type="button" class="ghost" onclick="document.getElementById('connectCard').style.display='none'">Cancelar</button>
+      </div>
+      <div id="connectMsg"></div>
+    </form>
+  </section>
+</main>
+<script>
+let selected = null;
+async function loadStatus(){
+  try{
+    const r = await fetch('/api/wifi/status'); const d = await r.json();
+    document.getElementById('status').innerHTML =
+      `<div class="row"><span class="k">SSID</span><span class="v">${d.ssid||'—'}</span></div>
+       <div class="row"><span class="k">IP WiFi</span><span class="v">${d.ip_wlan||'—'}</span></div>
+       <div class="row"><span class="k">IP Ethernet</span><span class="v">${d.ip_eth||'—'}</span></div>
+       <div class="row"><span class="k">Internet</span><span class="v">${d.internet_up?'<span class="pill ok">Conectado</span>':'<span class="pill err">Sin internet</span>'}</span></div>`;
+  }catch(e){ document.getElementById('status').innerHTML='<div class="msg err">Error: '+e.message+'</div>'; }
+}
+async function scan(){
+  const btn=document.getElementById('scanBtn'); btn.disabled=true; btn.textContent='Escaneando…';
+  document.getElementById('scanInfo').textContent='Buscando redes (5-8 s)…';
+  try{
+    const r=await fetch('/api/wifi/scan'); const d=await r.json();
+    if (d.error){ document.getElementById('nets').innerHTML='<div class="msg err">'+d.error+'</div>'; document.getElementById('scanInfo').textContent=''; return; }
+    const nets=d.networks||[];
+    document.getElementById('scanInfo').textContent=nets.length+' red(es) encontrada(s)';
+    document.getElementById('nets').innerHTML=nets.map(n=>{
+      const open = !n.security || n.security==='--' || n.security==='';
+      const ssidJson = JSON.stringify(n.ssid).replace(/"/g,'&quot;');
+      return `<div class="net ${n.in_use?'active':''}" onclick="select(${ssidJson}, ${!open})">
+        <div><div class="ssid">${n.ssid} ${n.in_use?'<span class="pill ok">Conectado</span>':''}</div>
+        <div class="meta">${open?'Abierta':n.security} · señal ${n.signal}%</div></div>
+        <div class="bars" style="opacity:${Math.max(0.2,n.signal/100)}"></div></div>`;
+    }).join('');
+  }catch(e){ document.getElementById('nets').innerHTML='<div class="msg err">Error: '+e.message+'</div>'; }
+  finally{ btn.disabled=false; btn.textContent='Re-escanear'; }
+}
+function select(ssid, needsPwd){
+  selected=ssid;
+  document.getElementById('targetSsid').textContent=ssid;
+  document.getElementById('connectCard').style.display='block';
+  document.getElementById('pwd').value='';
+  document.getElementById('pwd').style.display=needsPwd?'block':'none';
+  document.getElementById('connectMsg').innerHTML='';
+  document.getElementById('pwd').focus();
+  document.getElementById('connectCard').scrollIntoView({behavior:'smooth'});
+}
+async function connect(ev){
+  ev.preventDefault(); if(!selected) return;
+  const btn=document.getElementById('connectBtn'); const msg=document.getElementById('connectMsg');
+  btn.disabled=true; btn.textContent='Conectando…';
+  msg.innerHTML='<div class="msg" style="background:rgba(245,158,11,.1);color:#fde68a;border:1px solid rgba(245,158,11,.3)">Conectando a "'+selected+'"… La página puede demorar si cambia de red.</div>';
+  try{
+    const r=await fetch('/api/wifi/connect',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ssid:selected,password:document.getElementById('pwd').value})});
+    const d=await r.json();
+    if (!r.ok) msg.innerHTML='<div class="msg err">'+(d.error||'Error')+'</div>';
+    else { msg.innerHTML='<div class="msg ok">✓ Conectado. IP: '+(d.ip_wlan||'—')+'</div>'; loadStatus(); }
+  }catch(e){ msg.innerHTML='<div class="msg err">'+e.message+'</div>'; }
+  finally{ btn.disabled=false; btn.textContent='Conectar'; }
+}
+loadStatus(); scan(); setInterval(loadStatus,5000);
+</script>
+</body></html>"""
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--port", type=int, default=int(os.environ.get("SOLAROPS_PORT", "80")))
