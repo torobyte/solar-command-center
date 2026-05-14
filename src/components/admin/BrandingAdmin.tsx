@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { applyBrandingToDOM, ensureGoogleFont, GOOGLE_FONTS, useBranding, type Branding } from "@/lib/branding";
+import { useTheme } from "@/lib/theme";
 import { Save, RotateCcw, Upload, X } from "lucide-react";
 
 const COLOR_FIELDS: { key: keyof Branding; label: string }[] = [
