@@ -3,6 +3,7 @@ import { Sun, LogOut, ShieldCheck, LayoutGrid, Menu, UserCircle2, Sparkles } fro
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
+import { useBranding } from "@/lib/branding";
 import { Button } from "@/components/ui/button";
 import { LangSwitcher } from "@/components/LangSwitcher";
 import { ThemeToggle } from "@/components/ThemeToggle";
