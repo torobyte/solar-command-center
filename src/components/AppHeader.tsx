@@ -14,7 +14,10 @@ export function AppHeader() {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useI18n();
+  const { branding } = useBranding();
   const [open, setOpen] = useState(false);
+  const siteName = branding?.site_name ?? "SolarOps";
+  const logoUrl = branding?.logo_url ?? null;
 
   const onSites = location.pathname.startsWith("/sites") || location.pathname === "/app";
   const onAdmin = location.pathname.startsWith("/admin");
