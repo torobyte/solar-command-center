@@ -1374,7 +1374,10 @@ def compute_today_totals(samples: list[dict]) -> dict:
         if not ta or not tb: continue
         h = (tb - ta).total_seconds() / 3600.0
         if h <= 0 or h > 0.5: continue  # skip gaps > 30min
-        def avg(k): return (float(a.get(k) or 0) + float(b.get(k) or 0)) / 2.0
+        def _num(v):
+            try: return float(v)
+            except (TypeError, ValueError): return 0.0
+        def avg(k): return (_num(a.get(k)) + _num(b.get(k))) / 2.0
         pv   += avg("pv_input_power") * h
         load += avg("ac_output_active_power") * h
         if avg("grid_voltage") > 50:
