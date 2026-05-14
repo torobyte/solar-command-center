@@ -413,6 +413,7 @@ function LocalDashboardPage() {
               </span>
               <span className="rounded-full bg-muted px-2 py-0.5 font-medium">Plan: {plan}</span>
               <span className="rounded-full bg-muted px-2 py-0.5 font-medium">Modo: {mode.label}</span>
+              <InverterStatusBadge agentBase={agentBase} />
               <CloudPushBadge agentBase={agentBase} />
               {latest?.recorded_at && (
                 <span className="text-muted-foreground/70">
