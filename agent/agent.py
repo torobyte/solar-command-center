@@ -1586,6 +1586,21 @@ def make_app(agent: Agent) -> Flask:
                 "last_error": agent.push_last_error,
                 "loop_restarts": agent.push_loop_restarts,
             },
+            # Diagnóstico de la conexión al inversor para el badge del frontend.
+            "inverter": {
+                "state": agent.inverter_state,
+                "connected": bool(agent.transport),
+                "transport": getattr(agent.transport, "kind", None) if agent.transport else None,
+                "port": getattr(agent.transport, "path", None) if agent.transport else cfg.get("inverter_port"),
+                "connected_at": agent.inverter_connected_at,
+                "reconnect_count": agent.inverter_reconnect_count,
+                "consecutive_empty": agent.inverter_consecutive_empty,
+                "read_count": agent.read_count,
+                "error_count": agent.error_count,
+                "last_sample_at": agent.last_sample_at,
+                "last_error": agent.last_error,
+                "last_error_at": agent.last_error_at,
+            },
         })
 
     @app.get("/api/mode")
