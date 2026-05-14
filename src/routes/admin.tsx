@@ -26,6 +26,8 @@ import { formatDistanceToNow } from "date-fns";
 import { BrandingAdmin } from "@/components/admin/BrandingAdmin";
 import { PlansAdmin } from "@/components/admin/PlansAdmin";
 import { LicenseAuditLog } from "@/components/admin/LicenseAuditLog";
+import { SmtpAdmin } from "@/components/admin/SmtpAdmin";
+import { EmailTemplatesAdmin } from "@/components/admin/EmailTemplatesAdmin";
 import { ConfirmDestructiveDialog } from "@/components/ConfirmDestructiveDialog";
 
 export const Route = createFileRoute("/admin")({
@@ -63,6 +65,8 @@ function AdminPanel() {
             <TabsTrigger value="audit">Auditoría</TabsTrigger>
             <TabsTrigger value="plans">Planes</TabsTrigger>
             <TabsTrigger value="branding">Branding & PWA</TabsTrigger>
+            <TabsTrigger value="smtp">SMTP</TabsTrigger>
+            <TabsTrigger value="email-templates">Plantillas correo</TabsTrigger>
           </TabsList>
         </div>
         <TabsContent value="sites" className="mt-6"><SitesAdmin /></TabsContent>
@@ -72,6 +76,8 @@ function AdminPanel() {
         <TabsContent value="audit" className="mt-6"><LicenseAuditLog /></TabsContent>
         <TabsContent value="plans" className="mt-6"><PlansAdmin /></TabsContent>
         <TabsContent value="branding" className="mt-6"><BrandingAdmin /></TabsContent>
+        <TabsContent value="smtp" className="mt-6"><SmtpAdmin /></TabsContent>
+        <TabsContent value="email-templates" className="mt-6"><EmailTemplatesAdmin /></TabsContent>
       </Tabs>
     </>
   );
