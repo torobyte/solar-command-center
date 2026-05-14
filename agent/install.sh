@@ -56,7 +56,16 @@ APT_OPTS=(-y -qq --no-install-recommends \
 echo "▶ [1/9] Instalando dependencias del sistema…"
 apt-get update -qq
 apt-get install "${APT_OPTS[@]}" \
-  python3 python3-pip python3-venv git curl ca-certificates jq sudo >/dev/null
+  python3 python3-pip python3-venv git curl ca-certificates jq sudo \
+  network-manager wireless-tools iw rfkill >/dev/null
+
+# Asegurar que NetworkManager gestione el WiFi (necesario para el modo AP de
+# bootstrap y para la página /wifi del agente). En Raspberry Pi OS Bookworm+
+# ya viene por defecto; en Bullseye y derivados conviene forzarlo.
+systemctl enable --now NetworkManager >/dev/null 2>&1 || true
+# Desactivar dhcpcd si está pisando a NM (típico en Pi OS Bullseye)
+systemctl disable --now dhcpcd >/dev/null 2>&1 || true
+rfkill unblock wifi 2>/dev/null || true
 
 echo "▶ [2/9] Descargando código (rama: $BRANCH)…"
 install -d -m 755 /opt/solarops /etc/solarops /var/lib/solarops
