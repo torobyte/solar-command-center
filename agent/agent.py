@@ -1097,8 +1097,8 @@ function houseCard(loadW){
         ${loadW>1500?`<g opacity=".5"><circle cx="78" cy="14" r="3" fill="#8a8d97"><animate attributeName="cy" values="14;-6" dur="3s" repeatCount="indefinite"/><animate attributeName="opacity" values=".5;0" dur="3s" repeatCount="indefinite"/></circle></g>`:''}
       </g>
     </svg>
-    <div class="big" style="color:var(--load);text-shadow:0 0 24px rgba(59,130,246,.35)">${kw(loadW)}<span class="unit">kW</span></div>
-    <div class="sub2">${loadW.toFixed(0)} W instantáneos</div>
+    <div class="big" style="color:var(--load);text-shadow:0 0 24px rgba(59,130,246,.35)">${wFull(loadW)}<span class="unit">W</span></div>
+    <div class="sub2">${kw(loadW)} kW · consumo actual</div>
   </div>`;
 }
 
