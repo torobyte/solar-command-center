@@ -18,14 +18,14 @@ interface Props {
 export function PowerGauges({ pv, load, gridV, battery, batteryV, pvMax = 5000, loadMax = 5000 }: Props) {
   const gridConnected = gridV > 50;
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-6 animate-fade-in">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="font-semibold">Medidores en tiempo real</h3>
-        <span className="rounded-full bg-[var(--success)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--success)]">
+    <div className="@container rounded-xl border bg-card p-3 shadow-sm sm:p-6 animate-fade-in">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold @[360px]:text-base">Medidores en tiempo real</h3>
+        <span className="shrink-0 rounded-full bg-[var(--success)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--success)]">
           ● EN VIVO
         </span>
       </div>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 @[480px]:grid-cols-4 @[480px]:gap-4">
         <RadialGauge
           label="Solar"
           value={pv}
@@ -33,7 +33,7 @@ export function PowerGauges({ pv, load, gridV, battery, batteryV, pvMax = 5000, 
           ratio={clamp(pv / pvMax)}
           color="var(--solar)"
           glow="var(--accent)"
-          icon={<Sun className="h-5 w-5" />}
+          icon={<Sun className="h-4 w-4 @[480px]:h-5 @[480px]:w-5" />}
         />
         <RadialGauge
           label="Consumo"
@@ -42,7 +42,7 @@ export function PowerGauges({ pv, load, gridV, battery, batteryV, pvMax = 5000, 
           ratio={clamp(load / loadMax)}
           color="var(--load)"
           glow="var(--load)"
-          icon={<Home className="h-5 w-5" />}
+          icon={<Home className="h-4 w-4 @[480px]:h-5 @[480px]:w-5" />}
         />
         <RadialGauge
           label="Batería"
@@ -52,7 +52,7 @@ export function PowerGauges({ pv, load, gridV, battery, batteryV, pvMax = 5000, 
           color="var(--battery)"
           glow="var(--battery)"
           subtitle={`${batteryV.toFixed(1)} V`}
-          icon={<Battery className="h-5 w-5" />}
+          icon={<Battery className="h-4 w-4 @[480px]:h-5 @[480px]:w-5" />}
         />
         <RadialGauge
           label="Red"
@@ -62,19 +62,18 @@ export function PowerGauges({ pv, load, gridV, battery, batteryV, pvMax = 5000, 
           color={gridConnected ? "var(--grid)" : "hsl(var(--muted-foreground))"}
           glow="var(--grid)"
           subtitle={gridConnected ? "Conectada" : "Desconectada"}
-          icon={<Plug className="h-5 w-5" />}
+          icon={<Plug className="h-4 w-4 @[480px]:h-5 @[480px]:w-5" />}
         />
       </div>
 
-      {/* Linear "load bars" */}
-      <div className="mt-5 space-y-3 border-t pt-4">
+      {/* Linear "load bars" — hidden on very narrow containers to keep mobile clean */}
+      <div className="mt-4 hidden space-y-3 border-t pt-4 @[360px]:block">
         <LoadBar label="Generación solar" value={pv} max={pvMax} unit="W" color="var(--solar)" />
         <LoadBar label="Consumo de la casa" value={load} max={loadMax} unit="W" color="var(--load)" />
         <LoadBar label="Estado de carga (SOC)" value={battery} max={100} unit="%" color="var(--battery)" />
       </div>
 
       <style>{`
-        @keyframes gaugeDraw { from { stroke-dashoffset: var(--circ); } }
         @keyframes gaugePulse {
           0%,100% { filter: drop-shadow(0 0 0 transparent); }
           50% { filter: drop-shadow(0 0 6px currentColor); }
