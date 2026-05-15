@@ -210,6 +210,37 @@ QPIGS_FIELDS = [
     "device_status","_b","_c","pv_input_power","_d",
 ]
 
+def _translate_command(cmd: str, payload: dict) -> str | None:
+    """Traduce comandos abstractos del wizard a sentencias Voltronic crudas."""
+    v = payload.get("value")
+    en = bool(payload.get("enabled"))
+    try:
+        if cmd == "set_output_priority": return f"POP{int(v):02d}"
+        if cmd == "set_charger_priority": return f"PCP{int(v):02d}"
+        if cmd == "set_input_range": return "PEa" if v == "appliance" else "PEb"
+        if cmd == "set_output_frequency": return f"F{int(v):02d}"
+        if cmd == "set_max_charge_current": return f"MNCHGC{int(payload.get('amps') or 0):03d}"
+        if cmd == "set_max_ac_charge_current": return f"MUCHGC{int(payload.get('amps') or 0):03d}"
+        if cmd == "set_battery_cutoff_voltage": return f"PSDV{float(payload.get('volts') or 0):.1f}"
+        if cmd == "set_back_to_battery_voltage": return f"PBDV{float(payload.get('volts') or 0):.1f}"
+        if cmd == "set_back_to_grid_voltage": return f"PBCV{float(payload.get('volts') or 0):.1f}"
+        if cmd == "set_bulk_charge_voltage": return f"PCVV{float(payload.get('volts') or 0):.1f}"
+        if cmd == "set_float_charge_voltage": return f"PBFT{float(payload.get('volts') or 0):.1f}"
+        if cmd == "set_battery_type":
+            m = {"AGM": "PBT00", "FLD": "PBT01", "USE": "PBT02", "LIB": "PBT05"}
+            return m.get(str(v), None)
+        if cmd == "set_buzzer_enabled": return "PEa" if en else "PDa"
+        if cmd == "set_lcd_backlight": return "PEb" if en else "PDb"
+        if cmd == "set_overload_bypass": return "PEc" if en else "PDc"
+        if cmd == "set_alarm_on_interrupt": return "PEd" if en else "PDd"
+        if cmd == "set_auto_restart_overload": return "PEe" if en else "PDe"
+        if cmd == "set_auto_restart_overtemp": return "PEf" if en else "PDf"
+        if cmd == "set_lcd_timeout": return "PEg" if en else "PDg"
+    except Exception:
+        return None
+    return None
+
+
 def parse_qpigs(reply: str) -> dict:
     """Parse a QPIGS reply. Skips garbage tokens silently — almacenar
     strings no-numéricos en campos numéricos rompe los downstream consumers
