@@ -672,6 +672,7 @@ class Agent:
             r.raise_for_status()
             data = r.json()
             self._pair_cache = data
+            self._save_pair_cache(data)
             return data
         except Exception as e:
             print(f"[agent] pair-init error: {e}")
