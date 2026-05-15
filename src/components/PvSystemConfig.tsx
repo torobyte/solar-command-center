@@ -190,7 +190,12 @@ export function PvSystemConfigCard({ siteId, maxAcOutputPower, nominalBatteryV }
           <AddressPicker
             lat={form.latitude}
             lon={form.longitude}
-            onPick={(lat, lon) => { set("latitude", +lat.toFixed(4)); set("longitude", +lon.toFixed(4)); }}
+            label={form.location_label ?? null}
+            onPick={(lat, lon, label) => {
+              set("latitude", +lat.toFixed(4));
+              set("longitude", +lon.toFixed(4));
+              if (label !== undefined) set("location_label", label);
+            }}
             onGeolocate={geolocate}
           />
         </div>
@@ -217,33 +222,38 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 
 interface GeoResult { name: string; country?: string; admin1?: string; admin2?: string; latitude: number; longitude: number }
 
-function AddressPicker({ lat, lon, onPick, onGeolocate }: {
+function AddressPicker({ lat, lon, label, onPick, onGeolocate }: {
   lat: number | null; lon: number | null;
+  label: string | null;
   onPick: (lat: number, lon: number, label?: string) => void;
   onGeolocate: () => void;
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GeoResult[]>([]);
   const [searching, setSearching] = useState(false);
-  const [resolvedLabel, setResolvedLabel] = useState<string | null>(null);
+  // Only used as a fallback for legacy rows that have lat/lon but no saved
+  // label. Once the user picks an address (or types a label) we trust the
+  // saved one and never overwrite it.
+  const [reverseLabel, setReverseLabel] = useState<string | null>(null);
   const debRef = useRef<number | null>(null);
 
-  // Reverse-geocode current lat/lon to display a friendly address.
   useEffect(() => {
     let cancelled = false;
-    if (lat == null || lon == null) { setResolvedLabel(null); return; }
+    if (label || lat == null || lon == null) { setReverseLabel(null); return; }
     (async () => {
       try {
         const r = await fetch(`https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&language=es`);
         const j = await r.json();
         const top = j.results?.[0];
         if (!cancelled && top) {
-          setResolvedLabel([top.name, top.admin1, top.country].filter(Boolean).join(", "));
+          setReverseLabel([top.name, top.admin1, top.country].filter(Boolean).join(", "));
         }
       } catch { /* ignore */ }
     })();
     return () => { cancelled = true; };
-  }, [lat, lon]);
+  }, [lat, lon, label]);
+
+  const displayLabel = label ?? reverseLabel;
 
   function search(q: string) {
     setQuery(q);
@@ -261,10 +271,10 @@ function AddressPicker({ lat, lon, onPick, onGeolocate }: {
   }
 
   function pick(r: GeoResult) {
-    onPick(r.latitude, r.longitude, r.name);
+    const fullLabel = [r.name, r.admin1, r.country].filter(Boolean).join(", ");
+    onPick(r.latitude, r.longitude, fullLabel);
     setQuery("");
     setResults([]);
-    setResolvedLabel([r.name, r.admin1, r.country].filter(Boolean).join(", "));
     toast.success(`Ubicación: ${r.name}`);
   }
 
