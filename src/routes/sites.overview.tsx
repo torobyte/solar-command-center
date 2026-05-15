@@ -2,9 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ProtectedLayout } from "@/components/ProtectedLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Sun, Plug, Battery, Cpu, Zap } from "lucide-react";
+import { ArrowLeft, Cpu } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { PageHeaderSkeleton } from "@/components/LoadingStates";
+import { PowerGauges } from "@/components/PowerGauges";
 
 export const Route = createFileRoute("/sites/overview")({
   component: () => <ProtectedLayout><SitesOverview /></ProtectedLayout>,
@@ -28,9 +29,14 @@ interface Latest {
   recorded_at: string;
 }
 
+interface Spec {
+  max_ac_output_power: number | null;
+}
+
 function SitesOverview() {
   const [sites, setSites] = useState<Site[]>([]);
   const [samples, setSamples] = useState<Record<string, Latest | null>>({});
+  const [specs, setSpecs] = useState<Record<string, Spec | null>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,9 +50,8 @@ function SitesOverview() {
       const list = (s ?? []) as Site[];
       setSites(list);
 
-      // Fetch latest sample per site in parallel
-      const results = await Promise.all(
-        list.map(async (site) => {
+      const [sampleResults, specResults] = await Promise.all([
+        Promise.all(list.map(async (site) => {
           const { data } = await supabase
             .from("telemetry_samples")
             .select("pv_input_power,ac_output_active_power,battery_capacity,battery_voltage,grid_voltage,inverter_mode,recorded_at")
@@ -54,14 +59,22 @@ function SitesOverview() {
             .order("recorded_at", { ascending: false })
             .limit(1);
           return [site.id, (data?.[0] ?? null) as Latest | null] as const;
-        })
-      );
+        })),
+        Promise.all(list.map(async (site) => {
+          const { data } = await supabase
+            .from("inverter_specs")
+            .select("max_ac_output_power")
+            .eq("site_id", site.id)
+            .maybeSingle();
+          return [site.id, (data ?? null) as Spec | null] as const;
+        })),
+      ]);
       if (!alive) return;
-      setSamples(Object.fromEntries(results));
+      setSamples(Object.fromEntries(sampleResults));
+      setSpecs(Object.fromEntries(specResults));
       setLoading(false);
     })();
 
-    // Realtime: update on any new sample
     const ch = supabase
       .channel(`overview-${Math.random().toString(36).slice(2)}`)
       .on(
@@ -100,9 +113,9 @@ function SitesOverview() {
           <p className="text-sm text-muted-foreground">No hay sitios para mostrar.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 animate-fade-up">
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-2 animate-fade-up">
           {sites.map((s) => (
-            <SiteCard key={s.id} site={s} latest={samples[s.id] ?? null} />
+            <SiteBlock key={s.id} site={s} latest={samples[s.id] ?? null} spec={specs[s.id] ?? null} />
           ))}
         </div>
       )}
@@ -110,24 +123,25 @@ function SitesOverview() {
   );
 }
 
-function SiteCard({ site, latest }: { site: Site; latest: Latest | null }) {
+function SiteBlock({ site, latest, spec }: { site: Site; latest: Latest | null; spec: Spec | null }) {
   const pv = Number(latest?.pv_input_power ?? 0);
   const load = Number(latest?.ac_output_active_power ?? 0);
   const soc = Number(latest?.battery_capacity ?? 0);
+  const batV = Number(latest?.battery_voltage ?? 0);
   const gridV = Number(latest?.grid_voltage ?? 0);
-  const gridOn = gridV > 50;
   const ageSec = latest ? Math.floor((Date.now() - new Date(latest.recorded_at).getTime()) / 1000) : null;
   const live = ageSec != null && ageSec < 60;
+  const pvMax = Number(spec?.max_ac_output_power ?? 5000);
 
   return (
     <Link
       to="/sites/$siteId"
       params={{ siteId: site.id }}
-      className="group block rounded-2xl border bg-card p-4 shadow-sm transition-all hover:border-accent/50 hover:shadow-md active:scale-[.99]"
+      className="group block rounded-2xl border bg-card shadow-sm transition-all hover:border-accent/50 hover:shadow-md"
     >
-      <div className="mb-3 flex items-start justify-between gap-2">
+      <div className="flex items-start justify-between gap-2 px-4 pt-4 sm:px-6 sm:pt-5">
         <div className="min-w-0">
-          <h3 className="truncate text-base font-bold tracking-tight">{site.name}</h3>
+          <h3 className="truncate text-lg font-bold tracking-tight">{site.name}</h3>
           <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
             <Cpu className="h-3 w-3" />
             <span className="truncate">{site.inverter_model ?? "—"}</span>
@@ -138,34 +152,9 @@ function SiteCard({ site, latest }: { site: Site; latest: Latest | null }) {
           {live ? "En vivo" : ageSec != null ? `${Math.floor(ageSec / 60)}m` : "Sin datos"}
         </Badge>
       </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        <Meter icon={<Sun className="h-3.5 w-3.5" />} label="Solar" value={`${Math.round(pv).toLocaleString()} W`} color="text-[var(--solar)]" />
-        <Meter icon={<Plug className="h-3.5 w-3.5" />} label="Carga" value={`${Math.round(load).toLocaleString()} W`} color="text-[var(--load)]" />
-        <Meter
-          icon={<Battery className="h-3.5 w-3.5" />}
-          label="Batería"
-          value={`${soc.toFixed(0)}%`}
-          color={soc > 50 ? "text-success" : soc > 20 ? "text-warning" : "text-destructive"}
-        />
-        <Meter
-          icon={<Zap className="h-3.5 w-3.5" />}
-          label="Red"
-          value={gridOn ? `${gridV.toFixed(0)} V` : "Off"}
-          color={gridOn ? "text-foreground" : "text-muted-foreground"}
-        />
+      <div className="p-3 sm:p-4">
+        <PowerGauges pv={pv} load={load} gridV={gridV} battery={soc} batteryV={batV} pvMax={pvMax} />
       </div>
     </Link>
-  );
-}
-
-function Meter({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string; color: string }) {
-  return (
-    <div className="rounded-lg border bg-background/60 p-2.5">
-      <div className={`mb-0.5 flex items-center gap-1 text-[10px] uppercase tracking-wide ${color}`}>
-        {icon}{label}
-      </div>
-      <div className="font-mono text-sm font-semibold tabular-nums">{value}</div>
-    </div>
   );
 }

@@ -437,17 +437,23 @@ export type Database = {
       }
       inverter_specs: {
         Row: {
+          battery_type: string | null
+          charger_source_priority: string | null
           device_id: string | null
           driver: string | null
           expected_ac_input_voltage: number | null
           firmware: string | null
+          input_voltage_range: string | null
           machine_type: string | null
+          max_ac_charge_current: number | null
           max_ac_input_current: number | null
           max_ac_output_apparent_power: number | null
           max_ac_output_current: number | null
           max_ac_output_power: number | null
+          max_charge_current: number | null
           model_name: string | null
           nominal_battery_voltage: number | null
+          output_source_priority: string | null
           raw: Json | null
           serial_number: string | null
           site_id: string
@@ -455,17 +461,23 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          battery_type?: string | null
+          charger_source_priority?: string | null
           device_id?: string | null
           driver?: string | null
           expected_ac_input_voltage?: number | null
           firmware?: string | null
+          input_voltage_range?: string | null
           machine_type?: string | null
+          max_ac_charge_current?: number | null
           max_ac_input_current?: number | null
           max_ac_output_apparent_power?: number | null
           max_ac_output_current?: number | null
           max_ac_output_power?: number | null
+          max_charge_current?: number | null
           model_name?: string | null
           nominal_battery_voltage?: number | null
+          output_source_priority?: string | null
           raw?: Json | null
           serial_number?: string | null
           site_id: string
@@ -473,17 +485,23 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          battery_type?: string | null
+          charger_source_priority?: string | null
           device_id?: string | null
           driver?: string | null
           expected_ac_input_voltage?: number | null
           firmware?: string | null
+          input_voltage_range?: string | null
           machine_type?: string | null
+          max_ac_charge_current?: number | null
           max_ac_input_current?: number | null
           max_ac_output_apparent_power?: number | null
           max_ac_output_current?: number | null
           max_ac_output_power?: number | null
+          max_charge_current?: number | null
           model_name?: string | null
           nominal_battery_voltage?: number | null
+          output_source_priority?: string | null
           raw?: Json | null
           serial_number?: string | null
           site_id?: string

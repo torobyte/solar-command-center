@@ -81,14 +81,26 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG }: Qui
   const [confirm, setConfirm] = useState<PendingConfirm | null>(null);
   const [current, setCurrent] = useState<CurrentValues>({});
 
-  // Fetch current values from latest successful commands
+  // Fetch current values: prefer the inverter's own reported config (QPIRI in
+  // inverter_specs), then overlay any newer acknowledged remote command.
   useEffect(() => {
     let cancelled = false;
     async function load() {
+      const next: CurrentValues = {};
+
+      // 1) Live inverter config from QPIRI (snapshot loop)
+      const { data: spec } = await supabase
+        .from("inverter_specs")
+        .select("max_ac_charge_current,output_source_priority,charger_source_priority,updated_at")
+        .eq("site_id", siteId)
+        .maybeSingle();
+      const specUpdatedAt = spec?.updated_at ? new Date(spec.updated_at).getTime() : 0;
+      if (spec?.max_ac_charge_current != null) next.amps = Number(spec.max_ac_charge_current);
+      if (spec?.output_source_priority) next.outputPriority = String(spec.output_source_priority).padStart(2, "0");
+      if (spec?.charger_source_priority) next.chargerPriority = String(spec.charger_source_priority).padStart(2, "0");
+
+      // 2) Override with any acked command newer than the spec snapshot.
       const cmds = ["set_max_ac_charge_current", "set_output_priority", "set_charger_priority", "set_buzzer_enabled"];
-      // Only consider commands the inverter has acknowledged or that the
-      // agent reported as successful — pending/failed commands MUST NOT be
-      // shown as the current setting.
       const { data } = await supabase
         .from("device_commands")
         .select("command,payload,status,acked_at,created_at")
@@ -98,21 +110,29 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG }: Qui
         .order("created_at", { ascending: false })
         .limit(40);
       if (cancelled) return;
-      const next: CurrentValues = {};
+      const seen = new Set<string>();
       for (const row of data ?? []) {
+        if (seen.has(row.command)) continue;
+        const rowTime = new Date(row.acked_at ?? row.created_at).getTime();
         const p = (row.payload ?? {}) as Record<string, unknown>;
-        if (next.amps == null && row.command === "set_max_ac_charge_current" && typeof p.amps === "number") next.amps = p.amps;
-        if (next.outputPriority == null && row.command === "set_output_priority" && typeof p.value === "string") next.outputPriority = p.value;
-        if (next.chargerPriority == null && row.command === "set_charger_priority" && typeof p.value === "string") next.chargerPriority = p.value;
-        if (next.buzzerEnabled == null && row.command === "set_buzzer_enabled" && typeof p.enabled === "boolean") next.buzzerEnabled = p.enabled;
+        if (row.command === "set_max_ac_charge_current" && typeof p.amps === "number" && rowTime >= specUpdatedAt) {
+          next.amps = p.amps; seen.add(row.command);
+        } else if (row.command === "set_output_priority" && typeof p.value === "string" && rowTime >= specUpdatedAt) {
+          next.outputPriority = p.value; seen.add(row.command);
+        } else if (row.command === "set_charger_priority" && typeof p.value === "string" && rowTime >= specUpdatedAt) {
+          next.chargerPriority = p.value; seen.add(row.command);
+        } else if (row.command === "set_buzzer_enabled" && typeof p.enabled === "boolean") {
+          // Buzzer state is not exposed by QPIRI — always trust last acked command.
+          if (next.buzzerEnabled == null) { next.buzzerEnabled = p.enabled; seen.add(row.command); }
+        }
       }
       setCurrent(next);
     }
     load();
-    // refresh on new acked commands
     const ch = supabase
       .channel(`qa-cmds-${siteId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "device_commands", filter: `site_id=eq.${siteId}` }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "inverter_specs", filter: `site_id=eq.${siteId}` }, () => load())
       .subscribe();
     return () => { cancelled = true; supabase.removeChannel(ch); };
   }, [siteId]);
