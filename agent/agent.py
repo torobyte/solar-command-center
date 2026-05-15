@@ -1038,13 +1038,29 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
     setTimeout(function(){ b.disabled = false; b.textContent = t; }, 4000);
   });
   tbUnlink.addEventListener("click", async function(){
-    if (!confirm("¿Desvincular este equipo? Se generará un nuevo código para vincular a otra cuenta.")) return;
-    this.disabled = true;
+    if (!confirm("¿Desvincular este equipo?\n\nSe borrará el token local, se cerrará el panel y se generará un nuevo código de 6 caracteres para vincularlo a otra cuenta.\n\nLos datos históricos en la nube no se eliminan.")) return;
+    var b = this; b.disabled = true; var orig = b.textContent; b.textContent = "Desvinculando…";
+    setStatus("Desvinculando…", "warn");
     try {
-      await fetch("/api/unlink", { method:"POST" });
-      linked = null;
-      setTimeout(function(){ location.reload(); }, 600);
-    } catch(e){ this.disabled = false; }
+      var r = await fetch("/api/unlink", { method:"POST" });
+      var j = await r.json().catch(function(){ return {}; });
+      // Limpiamos estado local y forzamos pantalla de pairing inmediatamente.
+      lastState = null; lastPv = null; iframeLoaded = false; linked = false;
+      try { frame.src = "about:blank"; frame.classList.remove("ready"); } catch(_){}
+      tbUnlink.style.display = "none";
+      showPair(j && j.code, j && j.expires_at);
+      setStatus("Sin vincular", "warn");
+      if (j && j.warning) {
+        msg.textContent = "Aviso: " + j.warning;
+      }
+    } catch(e){
+      setStatus("Error al desvincular", "warn");
+      b.textContent = orig; b.disabled = false;
+      return;
+    }
+    // Tras unlink, el siguiente tick() ya verá pairing.linked=false y
+    // refrescará el código si la nube devolvió uno nuevo más tarde.
+    setTimeout(function(){ b.disabled = false; b.textContent = orig; tick(); }, 800);
   });
 })();
 </script>
