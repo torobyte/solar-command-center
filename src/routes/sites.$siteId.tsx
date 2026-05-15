@@ -28,6 +28,7 @@ import { MobileBottomNav, type SiteTab } from "@/components/MobileBottomNav";
 import { PageHeaderSkeleton, DashboardSkeleton, SectionSkeleton } from "@/components/LoadingStates";
 import { InverterConfigWizard } from "@/components/InverterConfigWizard";
 import { QuickActions, QuickActionsConfigCard, useQuickActionsConfig } from "@/components/QuickActions";
+import { CommandStatusFeed } from "@/components/CommandStatusFeed";
 import { SiteSharing } from "@/components/SiteSharing";
 import { Share2 } from "lucide-react";
 
@@ -652,6 +653,10 @@ function ConfigurationView({ site, subTab, onSubTabChange }: { site: Site; subTa
           </p>
           <InverterConfigWizard siteId={site.id} spec={spec} />
 
+          <div className="mt-4">
+            <CommandStatusFeed siteId={site.id} limit={8} />
+          </div>
+
           <div className="mt-6">
             <QuickActionsConfigCard siteId={site.id} />
           </div>
@@ -889,6 +894,7 @@ function formatInverterMode(raw: string | null | undefined): { label: string; co
 
 const WIDGET_DEFS: WidgetDef[] = [
   { id: "quickactions", label: "Acciones rápidas" },
+  { id: "cmdstatus", label: "Estado de comandos" },
   { id: "mode", label: "Modo del inversor" },
   { id: "icons", label: "Tarjetas resumen" },
   { id: "backup", label: "Tiempo de respaldo" },
@@ -920,6 +926,7 @@ function DashboardView({ latest, siteId, spec: _spec, device: _device }: { lates
 
   const widgets: Record<string, React.ReactNode> = {
     quickactions: <QuickActions siteId={siteId} config={qaConfig} />,
+    cmdstatus: <CommandStatusFeed siteId={siteId} limit={10} />,
     mode: (
       <div className="flex items-center justify-between rounded-xl border bg-card p-4 sm:p-5 animate-fade-in h-full">
         <div className="flex items-center gap-3">
