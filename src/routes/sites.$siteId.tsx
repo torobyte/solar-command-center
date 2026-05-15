@@ -652,6 +652,10 @@ function ConfigurationView({ site, subTab, onSubTabChange }: { site: Site; subTa
           </p>
           <InverterConfigWizard siteId={site.id} spec={spec} />
 
+          <div className="mt-4">
+            <CommandStatusFeed siteId={site.id} limit={8} />
+          </div>
+
           <div className="mt-6">
             <QuickActionsConfigCard siteId={site.id} />
           </div>
