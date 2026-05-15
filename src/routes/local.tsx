@@ -1,397 +1,97 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
+import { LayoutDashboard, LineChart as LineChartIcon, Calculator, Settings2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SiteDashboardView, type DashboardSample, formatInverterMode } from "@/components/SiteDashboardView";
-import type { PvConfig } from "@/components/PvSystemConfig";
+import { InverterConfigWizard } from "@/components/InverterConfigWizard";
+import { PvSystemConfig, type PvConfig } from "@/components/PvSystemConfig";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LangSwitcher } from "@/components/LangSwitcher";
+import {
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
+} from "recharts";
 
 /**
- * Public mirror of /sites/$siteId — designed to be embedded inside an
- * iframe served by the local Raspberry Pi / Orange Pi agent. Reads its
- * data from the agent's HTTP API instead of Supabase, so it works
- * offline (LAN-only) and stays pixel-identical to the cloud dashboard.
+ * Local mirror of /sites/$siteId. Same tabs as the cloud version
+ * (Dashboard, Charts, Totals, Configuration) but reading from the
+ * agent's HTTP API so it works offline.
  *
  * URL: /local?agent=http://192.168.1.42  (defaults to same-origin)
  */
 export const Route = createFileRoute("/local")({
-  validateSearch: z.object({
-    agent: z.string().url().optional(),
-  }),
+  validateSearch: z.object({ agent: z.string().url().optional() }),
   component: LocalDashboardPage,
 });
 
 interface LicenseMeta { plan?: string; site_name?: string; site_id?: string }
-
-interface PushHealth {
-  queue_size: number;
-  ok_count: number;
-  fail_count: number;
-  last_ok_at: string | null;
-  last_attempt_at: string | null;
-  last_error: string | null;
-  loop_restarts: number;
+interface HistPoint { t: string; pv: number | null; load: number | null; soc: number | null; grid: number | null }
+interface TotalsToday {
+  pv_kwh: number; load_kwh: number; grid_used_kwh: number;
+  battery_charged_kwh: number; battery_discharged_kwh: number;
+}
+interface AgentState {
+  latest: DashboardSample | null;
+  license?: LicenseMeta | null;
+  history?: HistPoint[];
+  totals_today?: TotalsToday;
 }
 
-interface InverterHealth {
-  state: "init" | "searching" | "connected" | "stale" | "error";
-  connected: boolean;
-  transport: string | null;
-  port: string | null;
-  connected_at: string | null;
-  reconnect_count: number;
-  consecutive_empty: number;
-  read_count: number;
-  error_count: number;
-  last_sample_at: string | null;
-  last_error: string | null;
-  last_error_at: string | null;
-}
-
-/** Pequeña insignia que muestra si el agente está empujando telemetría al cloud. */
-function CloudPushBadge({ agentBase }: { agentBase: string }) {
-  const [push, setPush] = useState<PushHealth | null>(null);
-  const [unreachable, setUnreachable] = useState(false);
-
-  useEffect(() => {
-    if (!agentBase) return;
-    let alive = true;
-    async function tick() {
-      try {
-        const r = await fetch(`${agentBase}/api/health`, { cache: "no-store" });
-        const j = await r.json();
-        if (!alive) return;
-        setUnreachable(false);
-        setPush(j?.push ?? null);
-      } catch {
-        if (alive) setUnreachable(true);
-      }
-    }
-    tick();
-    const id = window.setInterval(tick, 5000);
-    return () => { alive = false; window.clearInterval(id); };
-  }, [agentBase]);
-
-  if (unreachable) {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2 py-0.5 font-medium text-muted-foreground" title="No se pudo consultar /api/health del agente local">
-        <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
-        Cloud: sin healthcheck
-      </span>
-    );
-  }
-  if (!push) return null;
-
-  const lastOkMs = push.last_ok_at ? Date.now() - new Date(push.last_ok_at).getTime() : null;
-  const lastAttemptMs = push.last_attempt_at ? Date.now() - new Date(push.last_attempt_at).getTime() : null;
-
-  // Estados, en orden de severidad descendente:
-  // - error: último intento falló (last_error presente)
-  // - idle: nunca empujó nada (típico recién arrancado, sin muestras aún)
-  // - stale: último OK > 30 s o cola creciendo
-  // - ok: empujó hace <= 30 s
-  let tone: "ok" | "warn" | "err" | "idle" = "ok";
-  let label = "Cloud: empujando";
-  let detail = "";
-
-  if (push.last_error) {
-    tone = "err";
-    label = "Cloud: fallo";
-    detail = push.last_error;
-  } else if (push.last_ok_at == null && push.last_attempt_at == null) {
-    tone = "idle";
-    label = "Cloud: en espera";
-    detail = "el agente aún no ha intentado empujar (¿sin muestras del inversor?)";
-  } else if (lastOkMs == null || lastOkMs > 30_000 || push.queue_size > 5) {
-    tone = "warn";
-    label = "Cloud: atrasado";
-    detail = `cola=${push.queue_size}` + (lastOkMs != null ? ` · último OK hace ${Math.round(lastOkMs / 1000)} s` : "");
-  } else {
-    detail = `${push.ok_count} muestras · último OK hace ${Math.round((lastOkMs ?? 0) / 1000)} s`;
-  }
-
-  const toneCls = {
-    ok:   "bg-success/15 text-success",
-    warn: "bg-warning/15 text-warning",
-    err:  "bg-destructive/15 text-destructive",
-    idle: "bg-muted text-muted-foreground",
-  }[tone];
-  const dotCls = {
-    ok:   "bg-success animate-pulse",
-    warn: "bg-warning",
-    err:  "bg-destructive",
-    idle: "bg-muted-foreground/60",
-  }[tone];
-
-  const tooltip =
-    `${label}\n` +
-    `${detail}\n` +
-    `OK: ${push.ok_count} · Fallos: ${push.fail_count} · Cola: ${push.queue_size}` +
-    (push.loop_restarts ? ` · Reinicios push_loop: ${push.loop_restarts}` : "") +
-    (push.last_attempt_at && lastAttemptMs != null ? `\nÚltimo intento hace ${Math.round(lastAttemptMs / 1000)} s` : "");
-
-  return (
-    <span className={`inline-flex max-w-[420px] items-center gap-1.5 rounded-full px-2 py-0.5 font-medium ${toneCls}`} title={tooltip}>
-      <span className={`h-1.5 w-1.5 rounded-full ${dotCls}`} />
-      <span className="truncate">{label}{detail ? ` · ${detail}` : ""}</span>
-    </span>
-  );
-}
-
-/** Badge de estado del inversor con auto-reintento y diagnóstico expandido. */
-function InverterStatusBadge({ agentBase }: { agentBase: string }) {
-  const [inv, setInv] = useState<InverterHealth | null>(null);
-  const [unreachable, setUnreachable] = useState(false);
-
-  useEffect(() => {
-    if (!agentBase) return;
-    let alive = true;
-    async function tick() {
-      try {
-        const r = await fetch(`${agentBase}/api/health`, { cache: "no-store" });
-        const j = await r.json();
-        if (!alive) return;
-        setUnreachable(false);
-        setInv(j?.inverter ?? null);
-      } catch {
-        if (alive) setUnreachable(true);
-      }
-    }
-    tick();
-    const id = window.setInterval(tick, 2000);
-    return () => { alive = false; window.clearInterval(id); };
-  }, [agentBase]);
-
-  if (unreachable) {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2 py-0.5 font-medium text-muted-foreground">
-        <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
-        Inversor: agente no responde
-      </span>
-    );
-  }
-  if (!inv) return null;
-
-  const lastSampleMs = inv.last_sample_at ? Date.now() - new Date(inv.last_sample_at).getTime() : null;
-  const fresh = lastSampleMs != null && lastSampleMs < 5_000;
-
-  let tone: "ok" | "warn" | "err" | "idle" = "idle";
-  let label = "Inversor: buscando…";
-
-  if (inv.state === "searching" || (!inv.connected && inv.reconnect_count === 0)) {
-    tone = "idle";
-    label = "Inversor: buscando puerto…";
-  } else if (!inv.connected) {
-    tone = "err";
-    label = "Inversor: desconectado · reintentando";
-  } else if (inv.state === "error") {
-    tone = "err";
-    label = "Inversor: error de lectura · reintentando";
-  } else if (inv.state === "stale" || inv.consecutive_empty > 0) {
-    tone = "warn";
-    label = `Inversor: lecturas vacías (${inv.consecutive_empty}/3)`;
-  } else if (!fresh) {
-    tone = "warn";
-    label = lastSampleMs != null
-      ? `Inversor: sin datos hace ${Math.round(lastSampleMs / 1000)} s`
-      : "Inversor: esperando primera muestra";
-  } else {
-    tone = "ok";
-    label = `Inversor: en vivo (${inv.transport ?? "—"})`;
-  }
-
-  const toneCls = {
-    ok:   "bg-success/15 text-success",
-    warn: "bg-warning/15 text-warning",
-    err:  "bg-destructive/15 text-destructive",
-    idle: "bg-muted text-muted-foreground",
-  }[tone];
-  const dotCls = {
-    ok:   "bg-success animate-pulse",
-    warn: "bg-warning animate-pulse",
-    err:  "bg-destructive animate-pulse",
-    idle: "bg-muted-foreground/60 animate-pulse",
-  }[tone];
-
-  const tooltip =
-    `${label}\n` +
-    `Puerto: ${inv.port ?? "—"} (${inv.transport ?? "—"})\n` +
-    `Lecturas OK: ${inv.read_count} · Errores: ${inv.error_count}\n` +
-    `Reconexiones: ${inv.reconnect_count}` +
-    (inv.connected_at ? `\nConectado desde ${new Date(inv.connected_at).toLocaleTimeString()}` : "") +
-    (inv.last_error ? `\nÚltimo error: ${inv.last_error}` : "");
-
-  return (
-    <span className={`inline-flex max-w-[420px] items-center gap-1.5 rounded-full px-2 py-0.5 font-medium ${toneCls}`} title={tooltip}>
-      <span className={`h-1.5 w-1.5 rounded-full ${dotCls}`} />
-      <span className="truncate">{label}</span>
-    </span>
-  );
-}
-
+type LocalTab = "dashboard" | "charts" | "totals" | "config";
 
 function LocalDashboardPage() {
   const search = Route.useSearch();
-  // Default: same-origin (when the bundle is served from the agent itself).
   const agentBase = useMemo(() => {
     if (search.agent) return search.agent.replace(/\/$/, "");
     if (typeof window !== "undefined") return window.location.origin;
     return "";
   }, [search.agent]);
 
-  // Split state so each piece only re-renders subscribers when it actually
-  // changes — this is what eliminates the 2s "flicker" of the dashboard.
+  const [tab, setTab] = useState<LocalTab>("dashboard");
   const [latest, setLatest] = useState<DashboardSample | null>(null);
+  const [history, setHistory] = useState<HistPoint[]>([]);
+  const [totals, setTotals] = useState<TotalsToday | null>(null);
   const [license, setLicense] = useState<LicenseMeta | null>(null);
   const [pvCfg, setPvCfg] = useState<PvConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const lastRecordedAt = useRef<string | null>(null);
-  const lastLicenseKey = useRef<string>("");
-  const bridgedRef = useRef(false);
-  const errorRef = useRef<string | null>(null);
-
-  // ---- Bridge postMessage: cuando estamos embebidos en el wrapper HTTP del
-  // agente, el padre hace los fetches a /api/* y nos envía los datos por
-  // postMessage. Así evitamos el bloqueo mixed-content HTTPS→HTTP.
-  useEffect(() => {
-    function applyState(data: { latest?: DashboardSample | null; license?: LicenseMeta | null } | null) {
-      if (!data) return;
-      if (errorRef.current !== null) { errorRef.current = null; setError(null); }
-      const incoming = data.latest ?? null;
-      const incomingKey = incoming?.recorded_at ?? null;
-      if (incomingKey !== lastRecordedAt.current) {
-        lastRecordedAt.current = incomingKey;
-        setLatest(incoming);
-      }
-      const lic = data.license ?? null;
-      const licKey = lic ? `${lic.site_id}|${lic.site_name}|${lic.plan}` : "";
-      if (licKey !== lastLicenseKey.current) {
-        lastLicenseKey.current = licKey;
-        setLicense(lic);
-      }
-    }
-    function applyPv(data: Partial<PvConfig> | null) {
-      if (!data) return;
-      setPvCfg({
-        site_id: "local",
-        array_kwp: data.array_kwp ?? null,
-        panel_count: data.panel_count ?? null,
-        panel_watts: data.panel_watts ?? null,
-        azimuth: data.azimuth ?? null,
-        tilt: data.tilt ?? null,
-        battery_kwh: data.battery_kwh ?? null,
-        system_losses_pct: data.system_losses_pct ?? null,
-        latitude: data.latitude ?? null,
-        longitude: data.longitude ?? null,
-        battery_count: data.battery_count ?? null,
-        battery_type: data.battery_type ?? null,
-        battery_voltage_each: data.battery_voltage_each ?? null,
-        battery_ah_each: data.battery_ah_each ?? null,
-        battery_usable_dod_pct: data.battery_usable_dod_pct ?? null,
-      });
-    }
-    function onMessage(ev: MessageEvent) {
-      const d = ev.data as { source?: string; type?: string; payload?: unknown } | null;
-      if (!d || d.source !== "solarops-agent") return;
-      bridgedRef.current = true;
-      if (d.type === "state") applyState(d.payload as Parameters<typeof applyState>[0]);
-      else if (d.type === "pvconfig") applyPv(d.payload as Partial<PvConfig>);
-    }
-    window.addEventListener("message", onMessage);
-    if (window.parent && window.parent !== window) {
-      try { window.parent.postMessage({ source: "solarops-local", type: "ready" }, "*"); } catch { /* ignore */ }
-    }
-    return () => window.removeEventListener("message", onMessage);
-  }, []);
 
   useEffect(() => {
     if (!agentBase) return;
     let alive = true;
-    const mountedAt = Date.now();
-    const embedded = typeof window !== "undefined" && window.parent && window.parent !== window;
-
-    async function fetchJSON<T>(url: string): Promise<T> {
-      const r = await fetch(url, { cache: "no-store" });
-      const ct = (r.headers.get("content-type") || "").toLowerCase();
-      // Si el agente devolvió JSON con `error`, úsalo como mensaje legible
-      // en lugar del genérico "HTTP 500".
-      if (ct.includes("application/json")) {
-        const body = await r.json();
-        if (!r.ok) {
-          const msg = (body && (body.error || body.message)) || `HTTP ${r.status}`;
-          throw new Error(String(msg));
-        }
-        return body as T;
-      }
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      throw new Error("Respuesta no-JSON (¿estás apuntando al agente?)");
-    }
-
-    async function pullState() {
-      if (bridgedRef.current) return;
+    async function pull() {
       try {
-        const data = await fetchJSON<{
-          latest: DashboardSample | null;
-          license?: LicenseMeta | null;
-        }>(`${agentBase}/api/state`);
+        const r = await fetch(`${agentBase}/api/state`, { cache: "no-store" });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const j = (await r.json()) as AgentState;
         if (!alive) return;
-        if (errorRef.current !== null) { errorRef.current = null; setError(null); }
-
-        const incoming = data.latest;
-        const incomingKey = incoming?.recorded_at ?? null;
-        if (incomingKey !== lastRecordedAt.current) {
-          lastRecordedAt.current = incomingKey;
+        setError(null);
+        const incoming = j.latest;
+        const key = incoming?.recorded_at ?? null;
+        if (key !== lastRecordedAt.current) {
+          lastRecordedAt.current = key;
           setLatest(incoming);
         }
-
-        const lic = data.license ?? null;
-        const licKey = lic ? `${lic.site_id}|${lic.site_name}|${lic.plan}` : "";
-        if (licKey !== lastLicenseKey.current) {
-          lastLicenseKey.current = licKey;
-          setLicense(lic);
-        }
+        if (j.history) setHistory(j.history);
+        if (j.totals_today) setTotals(j.totals_today);
+        if (j.license) setLicense(j.license);
       } catch (e) {
-        if (!alive) return;
-        // Estamos embebidos esperando el bridge del padre — no mostremos
-        // "Failed to fetch" durante los primeros 4s; el bridge ya está en camino.
-        if (embedded && (bridgedRef.current || Date.now() - mountedAt < 4000)) return;
-        const msg = (e as Error).message;
-        if (errorRef.current !== msg) { errorRef.current = msg; setError(msg); }
+        if (alive) setError((e as Error).message);
       }
     }
     async function pullPv() {
-      if (bridgedRef.current) return;
       try {
-        const data = await fetchJSON<Partial<PvConfig>>(`${agentBase}/api/pvconfig`);
+        const r = await fetch(`${agentBase}/api/pvconfig`, { cache: "no-store" });
+        if (!r.ok) return;
+        const data = await r.json();
         if (!alive) return;
-        setPvCfg({
-          site_id: "local",
-          array_kwp: data.array_kwp ?? null,
-          panel_count: data.panel_count ?? null,
-          panel_watts: data.panel_watts ?? null,
-          azimuth: data.azimuth ?? null,
-          tilt: data.tilt ?? null,
-          battery_kwh: data.battery_kwh ?? null,
-          system_losses_pct: data.system_losses_pct ?? null,
-          latitude: data.latitude ?? null,
-          longitude: data.longitude ?? null,
-          battery_count: data.battery_count ?? null,
-          battery_type: data.battery_type ?? null,
-          battery_voltage_each: data.battery_voltage_each ?? null,
-          battery_ah_each: data.battery_ah_each ?? null,
-          battery_usable_dod_pct: data.battery_usable_dod_pct ?? null,
-        });
-      } catch {
-        // ignore — pv config is optional; fall back to a stub so children
-        // don't remount later when it finally arrives.
-        if (alive) setPvCfg((prev) => prev ?? ({ site_id: "local" } as PvConfig));
-      }
+        setPvCfg({ site_id: "local", ...data });
+      } catch { /* optional */ }
     }
-
-    pullState();
-    pullPv();
-    const id = window.setInterval(pullState, 1000);
+    pull(); pullPv();
+    const id = window.setInterval(pull, 1000);
     return () => { alive = false; window.clearInterval(id); };
   }, [agentBase]);
 
@@ -413,13 +113,7 @@ function LocalDashboardPage() {
               </span>
               <span className="rounded-full bg-muted px-2 py-0.5 font-medium">Plan: {plan}</span>
               <span className="rounded-full bg-muted px-2 py-0.5 font-medium">Modo: {mode.label}</span>
-              <InverterStatusBadge agentBase={agentBase} />
-              <CloudPushBadge agentBase={agentBase} />
-              {latest?.recorded_at && (
-                <span className="text-muted-foreground/70">
-                  · Última lectura {new Date(latest.recorded_at).toLocaleTimeString()}
-                </span>
-              )}
+              <span className="rounded-full bg-muted px-2 py-0.5 font-medium">Modo local · sincronizando con cloud</span>
             </p>
           </div>
           <div className="flex items-center gap-1">
@@ -428,16 +122,106 @@ function LocalDashboardPage() {
           </div>
         </header>
 
-        <SiteDashboardView latest={latest} siteId="local" pvConfig={pvCfg} />
+        <Tabs value={tab} onValueChange={(v) => setTab(v as LocalTab)} className="pb-8">
+          <TabsList className="h-11 rounded-full bg-muted/60 p-1 inline-flex flex-wrap">
+            <TabsTrigger value="dashboard" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><LayoutDashboard className="h-3.5 w-3.5" strokeWidth={2.2} />Dashboard</TabsTrigger>
+            <TabsTrigger value="charts" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><LineChartIcon className="h-3.5 w-3.5" strokeWidth={2.2} />Charts</TabsTrigger>
+            <TabsTrigger value="totals" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Calculator className="h-3.5 w-3.5" strokeWidth={2.2} />Totals</TabsTrigger>
+            <TabsTrigger value="config" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Settings2 className="h-3.5 w-3.5" strokeWidth={2.2} />Configuración</TabsTrigger>
+          </TabsList>
 
-        {!latest && (
-          <div className="mt-8 rounded-lg border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">
-            <div className="font-medium text-foreground/90">Esperando datos del inversor…</div>
-            <div className="mt-2">El agente está intentando reconectar automáticamente cada segundo. Revisa el badge <span className="font-medium">"Inversor: …"</span> arriba para ver el estado en detalle (puerto detectado, lecturas OK, último error).</div>
-            <div className="mt-2 text-xs">Verifica que el cable USB/serial esté conectado y que el inversor esté encendido.</div>
-          </div>
-        )}
+          <TabsContent value="dashboard" className="mt-6">
+            <SiteDashboardView latest={latest} siteId="local" pvConfig={pvCfg} />
+            {!latest && (
+              <div className="mt-8 rounded-lg border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">
+                <div className="font-medium text-foreground/90">Esperando datos del inversor…</div>
+                <div className="mt-2 text-xs">Verifica que el cable USB/serial esté conectado y el inversor encendido.</div>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="charts" className="mt-6 space-y-6">
+            <ChartCard title="Potencia (W) — últimas muestras" data={history} keys={[
+              { key: "pv", name: "PV", color: "hsl(var(--success))" },
+              { key: "load", name: "Carga", color: "hsl(var(--primary))" },
+            ]} />
+            <ChartCard title="Estado batería (%) y red (V)" data={history} keys={[
+              { key: "soc", name: "SOC %", color: "hsl(var(--accent))" },
+              { key: "grid", name: "Red V", color: "hsl(var(--warning))" },
+            ]} />
+          </TabsContent>
+
+          <TabsContent value="totals" className="mt-6">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+              <TotalCard label="Solar generado" value={totals?.pv_kwh} unit="kWh" tone="success" />
+              <TotalCard label="Consumo" value={totals?.load_kwh} unit="kWh" tone="primary" />
+              <TotalCard label="Red usada" value={totals?.grid_used_kwh} unit="kWh" tone="warning" />
+              <TotalCard label="Batería cargada" value={totals?.battery_charged_kwh} unit="kWh" tone="success" />
+              <TotalCard label="Batería descargada" value={totals?.battery_discharged_kwh} unit="kWh" tone="destructive" />
+            </div>
+            <p className="mt-4 text-xs text-muted-foreground">Totales del día calculados localmente desde las muestras del inversor (aprox. trapezoidal).</p>
+          </TabsContent>
+
+          <TabsContent value="config" className="mt-6 space-y-6">
+            <Card>
+              <CardHeader><CardTitle className="text-base">Configuración del inversor (paso a paso)</CardTitle></CardHeader>
+              <CardContent>
+                <InverterConfigWizard siteId="local" agentBase={agentBase} />
+              </CardContent>
+            </Card>
+            <PvSystemConfig siteId="local" localAgentBase={agentBase} />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
+  );
+}
+
+function TotalCard({ label, value, unit, tone }: { label: string; value: number | undefined; unit: string; tone: "success"|"primary"|"warning"|"destructive" }) {
+  const toneCls = {
+    success: "text-success",
+    primary: "text-primary",
+    warning: "text-warning",
+    destructive: "text-destructive",
+  }[tone];
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="text-xs text-muted-foreground">{label}</div>
+        <div className={`mt-1 text-2xl font-bold ${toneCls}`}>
+          {value != null ? value.toFixed(2) : "—"} <span className="text-sm font-normal text-muted-foreground">{unit}</span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ChartCard({ title, data, keys }: { title: string; data: HistPoint[]; keys: { key: keyof HistPoint; name: string; color: string }[] }) {
+  return (
+    <Card>
+      <CardHeader><CardTitle className="text-base">{title}</CardTitle></CardHeader>
+      <CardContent style={{ width: "100%", height: 280 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data}>
+            <defs>
+              {keys.map((k) => (
+                <linearGradient key={String(k.key)} id={`g-${String(k.key)}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={k.color} stopOpacity={0.5} />
+                  <stop offset="95%" stopColor={k.color} stopOpacity={0} />
+                </linearGradient>
+              ))}
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+            <XAxis dataKey="t" tick={{ fontSize: 10 }} tickFormatter={(v) => v ? new Date(v).toLocaleTimeString().slice(0,5) : ""} />
+            <YAxis tick={{ fontSize: 10 }} />
+            <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", fontSize: 12 }} />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
+            {keys.map((k) => (
+              <Area key={String(k.key)} type="monotone" dataKey={String(k.key)} name={k.name} stroke={k.color} fill={`url(#g-${String(k.key)})`} />
+            ))}
+          </AreaChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
   );
 }
