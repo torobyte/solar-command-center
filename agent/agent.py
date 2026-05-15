@@ -1859,6 +1859,34 @@ def make_app(agent: Agent) -> Flask:
         save_config(agent.config)
         return jsonify({"ok": True, "ui_mode": mode})
 
+    @app.post("/api/command")
+    def api_command():
+        """Envía uno o varios comandos al inversor desde la UI local.
+        Acepta {"command": str, "payload": {...}} o {"commands": [...]}.
+        Traduce comandos abstractos a Voltronic (POPnn, PCPnn, MUCHGCnnn, ...)."""
+        body = request.get_json(force=True) or {}
+        rows = body.get("commands") or [{"command": body.get("command"), "payload": body.get("payload") or {}}]
+        if not agent.transport:
+            agent.ensure_transport()
+        if not agent.transport:
+            return jsonify({"error": "Inversor no disponible"}), 503
+        results = []
+        for r in rows:
+            cmd = (r.get("command") or "").strip()
+            pl = r.get("payload") or {}
+            raw = _translate_command(cmd, pl)
+            if not raw:
+                results.append({"command": cmd, "ok": False, "error": "comando no soportado en local"})
+                continue
+            try:
+                with agent.lock:
+                    reply = agent.transport.send(raw)
+                ok = "ACK" in reply.upper()
+                results.append({"command": cmd, "raw": raw, "ok": ok, "reply": reply})
+            except Exception as e:
+                results.append({"command": cmd, "raw": raw, "ok": False, "error": str(e)})
+        return jsonify({"results": results})
+
     @app.get("/api/state")
     def state():
         with agent.lock:
