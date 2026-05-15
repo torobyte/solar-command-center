@@ -850,26 +850,12 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
   .btn{margin-top:6px;padding:9px 16px;border-radius:10px;border:1px solid #2c2f42;
     background:#1d2030;color:#f5f3ee;font-size:13px;font-weight:600;cursor:pointer;
     text-decoration:none;display:inline-block}
-  .topbar{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;
-    justify-content:space-between;gap:8px;padding:6px 12px;background:rgba(11,13,20,.85);
-    backdrop-filter:blur(8px);border-bottom:1px solid #2c2f42;font-size:11.5px;color:#9aa0ad}
-  .topbar .ver{font-weight:600;color:#f5b945}
-  .topbar .acts{display:flex;gap:6px}
-  .topbar button,.topbar a.tb{padding:4px 10px;border-radius:8px;border:1px solid #2c2f42;
-    background:#1d2030;color:#f5f3ee;font-size:11.5px;font-weight:600;cursor:pointer;text-decoration:none}
-  .topbar button:hover,.topbar a.tb:hover{background:#232739}
-  .topbar .ok{color:#22c55e}.topbar .warn{color:#f59e0b}
+  /* Top bar removed: las acciones (Actualizar / Desvincular / Diagnóstico)
+     viven dentro del panel cloud (tab "Sistema"). El wrapper sólo es ya un
+     iframe pleno. */
 </style>
 </head><body>
-<div class="topbar">
-  <div>SolarOps · <span class="ver" id="tbVer">v{{ agent_version }}</span> · <span id="tbStatus">…</span></div>
-  <div class="acts">
-    <button id="tbUpd" type="button" title="Buscar actualización ahora">⟳ Actualizar</button>
-    <button id="tbUnlink" type="button" title="Olvidar vinculación y generar nuevo código" style="display:none">Desvincular</button>
-    <a class="tb" href="/status">Diagnóstico</a>
-  </div>
-</div>
-<div id="boot" style="padding-top:40px">
+<div id="boot">
   <div class="logo">SolarOps</div>
   <div class="spin"></div>
   <div class="sub" id="bootMsg">Conectando con el panel cloud…</div>
