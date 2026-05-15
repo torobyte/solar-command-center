@@ -319,13 +319,21 @@ function SiteDetail() {
         <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" strokeWidth={2.4} /> Back to sites
       </Link>
 
-      <div className="mb-4 flex items-center justify-between gap-3 animate-fade-up">
+      <div className="mb-4 flex items-start justify-between gap-3 animate-fade-up">
         <div className="min-w-0 flex-1">
           <InlineSiteName site={site} onRenamed={(name) => setSite((s) => s ? { ...s, name } : s)} />
           <p className="mt-1 text-sm text-muted-foreground">
             {site.inverter_model ?? selectedDevice?.name ?? (latest ? "Inversor conectado" : "Esperando datos del inversor…")} · <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${site.status === "online" ? "bg-success/15 text-success" : site.status === "offline" ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground"}`}>● {site.status}</span>
           </p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="rounded-full shrink-0"
+          onClick={() => { setTab("config"); setConfigSubTab("sharing"); }}
+        >
+          <Share2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={2.4} /> Compartir
+        </Button>
       </div>
 
       <div className="mb-6">
