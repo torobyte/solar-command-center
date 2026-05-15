@@ -126,6 +126,8 @@ function LocalDashboardPage() {
         if (j?.license) setLicense(j.license);
         if (j?.pairing !== undefined) setPairing(j.pairing ?? null);
         if (typeof j?.linked === "boolean") setLinked(j.linked);
+        const ag = (j as unknown as { agent?: AgentInfo })?.agent;
+        if (ag) setAgentInfo(ag);
       } else if (d.type === "pvconfig") {
         setPvCfg({ site_id: "local", ...(d.payload as object) } as PvConfig);
       }
