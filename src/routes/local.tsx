@@ -153,8 +153,16 @@ function LocalDashboardPage() {
   // fallan por mixed-content. El padre los hace y nos los envía aquí.
   useEffect(() => {
     function onMsg(ev: MessageEvent) {
-      const d = ev?.data as { source?: string; type?: string; payload?: unknown } | null;
+      const d = ev?.data as { source?: string; type?: string; payload?: unknown; id?: number; ok?: boolean; status?: number; json?: unknown; text?: string; error?: string } | null;
       if (!d || d.source !== "solarops-agent") return;
+      if (d.type === "fetch:result" && typeof d.id === "number") {
+        const resolver = pendingReqs.current.get(d.id);
+        if (resolver) {
+          pendingReqs.current.delete(d.id);
+          resolver({ ok: !!d.ok, status: d.status ?? 0, json: d.json ?? null, text: d.text, error: d.error });
+        }
+        return;
+      }
       bridgeActive.current = true;
       setError(null);
       if (d.type === "state") {
