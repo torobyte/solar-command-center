@@ -518,7 +518,7 @@ interface DeviceCommand {
   created_at: string; sent_at: string | null; acked_at: string | null;
 }
 
-function ConfigurationView({ site }: { site: Site }) {
+function ConfigurationView({ site, subTab, onSubTabChange }: { site: Site; subTab: string; onSubTabChange: (v: string) => void }) {
   const [spec, setSpec] = useState<InverterSpec | null>(null);
   const [snap, setSnap] = useState<DeviceSnapshot | null>(null);
   const [commands, setCommands] = useState<DeviceCommand[]>([]);
