@@ -984,6 +984,32 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
     }
   }
   setInterval(checkVersion, 15000);
+
+  // ---- Botones de la barra superior
+  document.getElementById("tbUpd").addEventListener("click", async function(){
+    var b = this; b.disabled = true; var t = b.textContent; b.textContent = "Buscando…";
+    try {
+      var r = await fetch("/api/update-now", { method:"POST" });
+      var j = await r.json().catch(function(){ return {}; });
+      if (j && j.ok) {
+        b.textContent = "✓ Buscando";
+        setStatus("Comprobando actualizaciones…", "warn");
+      } else {
+        b.textContent = "Error";
+        setStatus("No se pudo lanzar la actualización", "warn");
+      }
+    } catch(e){ b.textContent = "Error"; }
+    setTimeout(function(){ b.disabled = false; b.textContent = t; }, 4000);
+  });
+  tbUnlink.addEventListener("click", async function(){
+    if (!confirm("¿Desvincular este equipo? Se generará un nuevo código para vincular a otra cuenta.")) return;
+    this.disabled = true;
+    try {
+      await fetch("/api/unlink", { method:"POST" });
+      linked = null;
+      setTimeout(function(){ location.reload(); }, 600);
+    } catch(e){ this.disabled = false; }
+  });
 })();
 </script>
 </body></html>"""
