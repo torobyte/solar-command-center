@@ -25,8 +25,9 @@ DB_PATH = Path(os.environ.get("SOLAROPS_DB", "/var/lib/solarops/state.db"))
 POLL_INTERVAL = 1.0  # leer inversor cada 1s para sensación "en vivo"
 PUSH_INTERVAL = 1.0  # empujar al cloud cada 1s
 SNAPSHOT_INTERVAL = 60.0  # send specs/network/system snapshot every 60s
-AGENT_VERSION = "0.8.1"
+AGENT_VERSION = "0.8.2"
 PVCFG_PATH = Path(os.environ.get("SOLAROPS_PVCFG", "/etc/solarops/pv.json"))
+PAIR_CACHE_PATH = Path(os.environ.get("SOLAROPS_PAIR_CACHE", "/etc/solarops/pair.json"))
 
 def load_pvcfg() -> dict:
     if PVCFG_PATH.exists():
@@ -324,6 +325,31 @@ class Agent:
         self.push_last_attempt_at: str | None = None
         self.push_last_error: str | None = None
         self.push_loop_restarts: int = 0
+        # Pairing code cache: persiste a disco para que tras un reinicio del
+        # agente la UI local muestre el código inmediatamente, sin esperar
+        # al primer tick del pairing_loop.
+        self._pair_cache: dict | None = self._load_pair_cache()
+
+    def _load_pair_cache(self) -> dict | None:
+        try:
+            if PAIR_CACHE_PATH.exists():
+                data = json.loads(PAIR_CACHE_PATH.read_text())
+                exp = datetime.fromisoformat(str(data.get("expires_at","")).replace("Z","+00:00"))
+                if exp > datetime.now(timezone.utc) + timedelta(seconds=30):
+                    return data
+        except Exception:
+            pass
+        return None
+
+    def _save_pair_cache(self, data: dict | None) -> None:
+        try:
+            if data is None:
+                if PAIR_CACHE_PATH.exists(): PAIR_CACHE_PATH.unlink()
+                return
+            PAIR_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+            PAIR_CACHE_PATH.write_text(json.dumps(data, indent=2))
+        except Exception as e:
+            print(f"[agent] pair cache save error: {e}")
 
     def ensure_transport(self):
         if self.transport: return
@@ -524,6 +550,7 @@ class Agent:
                         # /local UI shows the new code on its next 5s refresh
                         # without any user action.
                         self._pair_cache = None
+                        self._save_pair_cache(None)
                         try:
                             self.request_pairing_code(force=True)
                             print("[agent] pairing code rotated (previous expired)")
@@ -646,6 +673,7 @@ class Agent:
             r.raise_for_status()
             data = r.json()
             self._pair_cache = data
+            self._save_pair_cache(data)
             return data
         except Exception as e:
             print(f"[agent] pair-init error: {e}")
@@ -874,12 +902,20 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
   var linked = null; // unknown hasta el primer /api/state
 
   function showPair(code, expires){
-    pairCode.textContent = code || "——————";
+    if (code) {
+      pairCode.textContent = code;
+      pairCode.style.opacity = "1";
+    } else {
+      pairCode.textContent = "Generando…";
+      pairCode.style.opacity = ".5";
+    }
     if (expires){
       try {
         var t = new Date(expires);
         pairExp.textContent = "El código expira a las " + t.toLocaleTimeString();
       } catch(_) { pairExp.textContent = ""; }
+    } else {
+      pairExp.textContent = code ? "" : "Conectando con la nube…";
     }
     pair.style.display = "flex";
     boot.style.display = "none";
@@ -1002,13 +1038,29 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
     setTimeout(function(){ b.disabled = false; b.textContent = t; }, 4000);
   });
   tbUnlink.addEventListener("click", async function(){
-    if (!confirm("¿Desvincular este equipo? Se generará un nuevo código para vincular a otra cuenta.")) return;
-    this.disabled = true;
+    if (!confirm("¿Desvincular este equipo?\n\nSe borrará el token local, se cerrará el panel y se generará un nuevo código de 6 caracteres para vincularlo a otra cuenta.\n\nLos datos históricos en la nube no se eliminan.")) return;
+    var b = this; b.disabled = true; var orig = b.textContent; b.textContent = "Desvinculando…";
+    setStatus("Desvinculando…", "warn");
     try {
-      await fetch("/api/unlink", { method:"POST" });
-      linked = null;
-      setTimeout(function(){ location.reload(); }, 600);
-    } catch(e){ this.disabled = false; }
+      var r = await fetch("/api/unlink", { method:"POST" });
+      var j = await r.json().catch(function(){ return {}; });
+      // Limpiamos estado local y forzamos pantalla de pairing inmediatamente.
+      lastState = null; lastPv = null; iframeLoaded = false; linked = false;
+      try { frame.src = "about:blank"; frame.classList.remove("ready"); } catch(_){}
+      tbUnlink.style.display = "none";
+      showPair(j && j.code, j && j.expires_at);
+      setStatus("Sin vincular", "warn");
+      if (j && j.warning) {
+        msg.textContent = "Aviso: " + j.warning;
+      }
+    } catch(e){
+      setStatus("Error al desvincular", "warn");
+      b.textContent = orig; b.disabled = false;
+      return;
+    }
+    // Tras unlink, el siguiente tick() ya verá pairing.linked=false y
+    // refrescará el código si la nube devolvió uno nuevo más tarde.
+    setTimeout(function(){ b.disabled = false; b.textContent = orig; tick(); }, 800);
   });
 })();
 </script>
@@ -2083,13 +2135,30 @@ def make_app(agent: Agent) -> Flask:
                 for s in hist
             ],
             "totals_today": totals,
-            "pairing": {
-                "linked": bool(agent.config.get("device_token")),
-                "site_id": agent.config.get("site_id"),
-                "code": (getattr(agent, "_pair_cache", None) or {}).get("code"),
-                "expires_at": (getattr(agent, "_pair_cache", None) or {}).get("expires_at"),
-            },
+            "pairing": _pairing_payload(),
         })
+
+    def _pairing_payload() -> dict:
+        """Devuelve el bloque pairing para /api/state. Si no hay device_token
+        y todavía no hay código en cache, intenta generarlo en el momento
+        para que la UI local lo muestre incluso justo después de un
+        reinicio del agente (sin esperar al primer tick del pairing_loop)."""
+        linked = bool(agent.config.get("device_token"))
+        cache = getattr(agent, "_pair_cache", None) or {}
+        if not linked and not cache.get("code"):
+            try:
+                fresh = agent.request_pairing_code(force=False)
+                if isinstance(fresh, dict) and fresh.get("code"):
+                    cache = fresh
+            except Exception as e:
+                print(f"[agent] lazy pair-init error: {e}")
+        return {
+            "linked": linked,
+            "site_id": agent.config.get("site_id"),
+            "site_name": agent.config.get("site_name"),
+            "code": cache.get("code"),
+            "expires_at": cache.get("expires_at"),
+        }
 
     @app.post("/api/activate")
     def activate():
@@ -2132,20 +2201,45 @@ def make_app(agent: Agent) -> Flask:
 
     @app.post("/api/unlink")
     def unlink():
-        """Borra el device_token local para forzar la generación de un
-        nuevo código de pairing. Útil cuando el usuario quiere mover el
-        equipo a otra cuenta o vino con datos de un install anterior."""
+        """Borra el device_token local, limpia el estado en memoria y genera
+        un nuevo código de pairing inmediatamente. Devuelve el código nuevo
+        para que la UI lo pinte sin esperar al próximo /api/state."""
         agent.config.pop("device_token", None)
         agent.config.pop("site_id", None)
         agent.config.pop("site_name", None)
         save_config(agent.config)
-        agent.license = {}
+        with agent.lock:
+            agent.license = {}
+            agent.snapshot = {}
+            agent.spec = {}
         agent._pair_cache = None
+        agent._save_pair_cache(None)
+        new_code = None
+        new_exp = None
+        warning = None
         try:
-            agent.request_pairing_code(force=True)
+            data = agent.request_pairing_code(force=True)
+            if isinstance(data, dict):
+                if data.get("error"):
+                    warning = data["error"]
+                else:
+                    new_code = data.get("code")
+                    new_exp = data.get("expires_at")
         except Exception as e:
-            return jsonify({"ok": True, "warning": str(e)})
-        return jsonify({"ok": True})
+            warning = str(e)
+        # Re-arrancamos el pairing_loop: el original sale en cuanto detectó
+        # device_token; sin esto, tras desvincular nadie haría poll a
+        # /pair-status y el agente nunca sabría cuándo se reclama el código.
+        try:
+            threading.Thread(target=agent.pairing_loop, daemon=True).start()
+        except Exception as e:
+            print(f"[agent] could not restart pairing_loop: {e}")
+        return jsonify({
+            "ok": True,
+            "code": new_code,
+            "expires_at": new_exp,
+            "warning": warning,
+        })
 
     @app.post("/api/update-now")
     def update_now():
@@ -2231,12 +2325,7 @@ def make_app(agent: Agent) -> Flask:
                 unit("solarops-update.service"),
                 unit("mosquitto.service"),
             ],
-            "pairing": {
-                "linked": bool(agent.config.get("device_token")),
-                "site_id": agent.config.get("site_id"),
-                "code": (getattr(agent, "_pair_cache", None) or {}).get("code"),
-                "expires_at": (getattr(agent, "_pair_cache", None) or {}).get("expires_at"),
-            },
+            "pairing": _pairing_payload(),
             "agent_time": datetime.now(timezone.utc).isoformat(),
         })
 
