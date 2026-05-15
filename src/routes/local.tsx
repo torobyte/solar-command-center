@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
-import { LayoutDashboard, LineChart as LineChartIcon, Calculator, Settings2, Wrench, RefreshCw, Unlink, ExternalLink } from "lucide-react";
+import { LayoutDashboard, LineChart as LineChartIcon, Calculator, Settings2, Wrench, Unlink, ExternalLink } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -102,8 +102,6 @@ function LocalDashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [trialStart] = useState<number>(() => getLocalTrialStart());
   const [agentInfo, setAgentInfo] = useState<AgentInfo>({});
-  const [updating, setUpdating] = useState<"idle" | "running" | "ok" | "err">("idle");
-
   const lastRecordedAt = useRef<string | null>(null);
   const bridgeActive = useRef(false);
   const reqIdRef = useRef(0);
@@ -155,11 +153,12 @@ function LocalDashboardPage() {
     function onMsg(ev: MessageEvent) {
       const d = ev?.data as { source?: string; type?: string; payload?: unknown; id?: number; ok?: boolean; status?: number; json?: unknown; text?: string; error?: string } | null;
       if (!d || d.source !== "solarops-agent") return;
-      if (d.type === "fetch:result" && typeof d.id === "number") {
-        const resolver = pendingReqs.current.get(d.id);
+      const fetchResult = (d.payload as { id?: number; ok?: boolean; status?: number; json?: unknown; text?: string; error?: string } | null) ?? d;
+      if (d.type === "fetch:result" && typeof fetchResult.id === "number") {
+        const resolver = pendingReqs.current.get(fetchResult.id);
         if (resolver) {
-          pendingReqs.current.delete(d.id);
-          resolver({ ok: !!d.ok, status: d.status ?? 0, json: d.json ?? null, text: d.text, error: d.error });
+          pendingReqs.current.delete(fetchResult.id);
+          resolver({ ok: !!fetchResult.ok, status: fetchResult.status ?? 0, json: fetchResult.json ?? null, text: fetchResult.text, error: fetchResult.error });
         }
         return;
       }
@@ -267,9 +266,7 @@ function LocalDashboardPage() {
               <span className="rounded-full bg-muted px-2 py-0.5 font-medium">Plan: {plan}</span>
               <span className="rounded-full bg-muted px-2 py-0.5 font-medium">Modo: {mode.label}</span>
               <span className={`rounded-full px-2 py-0.5 font-medium ${trialTone}`}>{trialLabel}</span>
-              <span className={`rounded-full px-2 py-0.5 font-medium ${updating === "running" ? "bg-warning/15 text-warning" : updating === "err" ? "bg-destructive/15 text-destructive" : "bg-muted"}`}>
-                {updating === "running" ? "Actualizando…" : updating === "ok" ? "Actualización lanzada" : updating === "err" ? "Error de actualización" : `Agente v${agentInfo.version ?? "?"}`}
-              </span>
+              <span className="rounded-full bg-muted px-2 py-0.5 font-medium">Agente v{agentInfo.version ?? "?"}</span>
               {!isLinked && (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary">
                   Código:
@@ -347,23 +344,6 @@ function LocalDashboardPage() {
                   {license?.site_id && <div className="col-span-2"><div className="text-xs text-muted-foreground">Site ID</div><div className="font-mono text-xs">{license.site_id}</div></div>}
                 </div>
                 <div className="flex flex-wrap gap-2 pt-2">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    disabled={updating === "running"}
-                    onClick={async () => {
-                      setUpdating("running");
-                      try {
-                        const res = await agentFetch("/api/update-now", { method: "POST" });
-                        const j = (res.json as { ok?: boolean; error?: string } | null) ?? {};
-                        if (res.ok && j?.ok) { setUpdating("ok"); toast.success("Actualización lanzada"); }
-                        else { setUpdating("err"); toast.error(j?.error || res.error || `HTTP ${res.status}`); }
-                      } catch (e) { setUpdating("err"); toast.error((e as Error).message); }
-                      setTimeout(() => setUpdating("idle"), 6000);
-                    }}
-                  >
-                    <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Buscar actualización
-                  </Button>
                   {isLinked && (
                     <Button
                       variant="destructive"
@@ -388,9 +368,6 @@ function LocalDashboardPage() {
                     </a>
                   </Button>
                 </div>
-                <p className="text-[11px] text-muted-foreground">
-                  La actualización descarga e instala la última versión del agente desde el repositorio. Tras instalar, el panel se recarga automáticamente.
-                </p>
               </CardContent>
             </Card>
           </TabsContent>
