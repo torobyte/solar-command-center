@@ -46,6 +46,13 @@ export const Route = createFileRoute("/api/public/snapshot")({
               .upsert({ site_id: site.id, ...body.device, updated_at: now } as never,
                       { onConflict: "site_id" });
           }
+          // Mark the site as online so the cloud UI can show end-to-end
+          // sync health (last seen / clock / errors) even when telemetry
+          // ingestion is paused (e.g. inverter unplugged but agent alive).
+          await supabaseAdmin
+            .from("sites")
+            .update({ status: "online", last_seen_at: now } as never)
+            .eq("id", site.id);
           return Response.json({ ok: true });
         } catch (e) {
           return Response.json({ error: (e as Error).message }, { status: 500 });
