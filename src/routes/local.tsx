@@ -215,6 +215,9 @@ function LocalDashboardPage() {
               <span className="rounded-full bg-muted px-2 py-0.5 font-medium">Plan: {plan}</span>
               <span className="rounded-full bg-muted px-2 py-0.5 font-medium">Modo: {mode.label}</span>
               <span className={`rounded-full px-2 py-0.5 font-medium ${trialTone}`}>{trialLabel}</span>
+              <span className={`rounded-full px-2 py-0.5 font-medium ${updating === "running" ? "bg-warning/15 text-warning" : updating === "err" ? "bg-destructive/15 text-destructive" : "bg-muted"}`}>
+                {updating === "running" ? "Actualizando…" : updating === "ok" ? "Actualización lanzada" : updating === "err" ? "Error de actualización" : `Agente v${agentInfo.version ?? "?"}`}
+              </span>
               {!isLinked && (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary">
                   Código:
