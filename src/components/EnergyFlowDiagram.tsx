@@ -1,4 +1,5 @@
-import { Sun, Plug, Battery, Home } from "lucide-react";
+import { Sun, Plug, Battery, Home, Zap } from "lucide-react";
+import { useMemo } from "react";
 
 interface Props {
   pv: number;        // W
@@ -9,135 +10,234 @@ interface Props {
 }
 
 /**
- * Animated energy-flow diagram inspired by Enphase / SolarEdge.
- * Shows PV, Grid, Battery → House with animated dashed lines whose
- * direction reflects real power flow.
+ * Premium energy-flow visualization with animated particles, gradient nodes,
+ * pulsing rings and a dynamic glass-card aesthetic. Inspired by Tesla / Enphase.
  */
 export function EnergyFlowDiagram({ pv, load, gridV, battery, batteryV }: Props) {
   const gridConnected = gridV > 50;
 
-  // Naïve flow estimation
-  const pvToLoad = Math.min(pv, load);
-  const surplus = Math.max(0, pv - load);
-  const deficit = Math.max(0, load - pv);
-  const pvToBattery = battery < 100 ? surplus : 0;
-  const gridToLoad = gridConnected ? deficit : 0;
-  const batteryToLoad = !gridConnected ? deficit : 0;
+  const flows = useMemo(() => {
+    const pvToLoad = Math.min(pv, load);
+    const surplus = Math.max(0, pv - load);
+    const deficit = Math.max(0, load - pv);
+    const pvToBattery = battery < 100 ? surplus : 0;
+    const gridToLoad = gridConnected ? deficit : 0;
+    const batteryToLoad = !gridConnected ? deficit : 0;
+    return { pvToLoad, pvToBattery, gridToLoad, batteryToLoad };
+  }, [pv, load, battery, gridConnected]);
+
+  // Path coordinates
+  const PV = { x: 90, y: 80 };
+  const HOUSE = { x: 250, y: 180 };
+  const GRID = { x: 90, y: 290 };
+  const BAT = { x: 410, y: 290 };
 
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-6 animate-fade-in">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="font-semibold">Flujo de energía en tiempo real</h3>
-        <span className="rounded-full bg-[var(--success)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--success)]">
-          ● EN VIVO
+    <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-card via-card to-muted/30 p-4 shadow-lg sm:p-6 animate-fade-in">
+      {/* Decorative background blobs */}
+      <div className="pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-[var(--solar)]/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-[var(--battery)]/10 blur-3xl" />
+
+      <div className="relative mb-4 flex items-center justify-between">
+        <div>
+          <h3 className="flex items-center gap-2 font-semibold tracking-tight">
+            <Zap className="h-4 w-4 text-[var(--solar)]" />
+            Flujo de energía
+          </h3>
+          <p className="text-[11px] text-muted-foreground">Distribución en tiempo real</p>
+        </div>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--success)]/30 bg-[var(--success)]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--success)]">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--success)] opacity-75" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
+          </span>
+          En vivo
         </span>
       </div>
 
-      <svg viewBox="0 0 400 320" className="w-full max-w-[520px] mx-auto">
+      <svg viewBox="0 0 500 380" className="relative w-full max-w-[600px] mx-auto">
         <defs>
-          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="4" result="blur" />
+          {/* Gradients for nodes */}
+          <radialGradient id="solarGrad" cx="30%" cy="30%">
+            <stop offset="0%" stopColor="#fde68a" />
+            <stop offset="60%" stopColor="var(--solar)" />
+            <stop offset="100%" stopColor="#b45309" />
+          </radialGradient>
+          <radialGradient id="houseGrad" cx="30%" cy="30%">
+            <stop offset="0%" stopColor="#67e8f9" />
+            <stop offset="60%" stopColor="var(--accent)" />
+            <stop offset="100%" stopColor="#0e7490" />
+          </radialGradient>
+          <radialGradient id="batGrad" cx="30%" cy="30%">
+            <stop offset="0%" stopColor="#86efac" />
+            <stop offset="60%" stopColor="var(--battery)" />
+            <stop offset="100%" stopColor="#15803d" />
+          </radialGradient>
+          <radialGradient id="gridGrad" cx="30%" cy="30%">
+            <stop offset="0%" stopColor={gridConnected ? "#fca5a5" : "#cbd5e1"} />
+            <stop offset="60%" stopColor={gridConnected ? "var(--grid)" : "#94a3b8"} />
+            <stop offset="100%" stopColor={gridConnected ? "#991b1b" : "#475569"} />
+          </radialGradient>
+
+          {/* Glow filter */}
+          <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="b" />
             <feMerge>
-              <feMergeNode in="blur" />
+              <feMergeNode in="b" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <filter id="strongGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="6" result="b" />
+            <feMerge>
+              <feMergeNode in="b" />
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
         </defs>
 
-        {/* PV → House (top) */}
-        <FlowPath d="M 80 60 Q 200 60 200 150" active={pvToLoad > 0} color="var(--solar)" />
-        {/* Grid → House (left) */}
-        <FlowPath d="M 80 260 Q 200 260 200 180" active={gridToLoad > 0} color="var(--grid)" />
-        {/* Battery → House (right) */}
-        <FlowPath d="M 320 260 Q 200 260 200 180" active={batteryToLoad > 0} color="var(--battery)" reverse />
-        {/* PV → Battery (top→right) */}
-        <FlowPath d="M 80 60 Q 320 60 320 240" active={pvToBattery > 0} color="var(--solar)" />
+        {/* Connection paths */}
+        <FlowPath id="pv-house" from={PV} to={HOUSE} active={flows.pvToLoad > 0} color="var(--solar)" watts={flows.pvToLoad} />
+        <FlowPath id="pv-bat" from={PV} to={BAT} active={flows.pvToBattery > 0} color="var(--solar)" watts={flows.pvToBattery} curved />
+        <FlowPath id="grid-house" from={GRID} to={HOUSE} active={flows.gridToLoad > 0} color="var(--grid)" watts={flows.gridToLoad} />
+        <FlowPath id="bat-house" from={BAT} to={HOUSE} active={flows.batteryToLoad > 0} color="var(--battery)" watts={flows.batteryToLoad} reverse />
 
-        {/* House (center) */}
-        <Node x={200} y={165} color="var(--accent)" label="Casa" value={`${load.toFixed(0)} W`} bigIcon>
-          <Home className="h-7 w-7 text-white" strokeWidth={2.5} />
+        {/* Nodes */}
+        <Node {...PV} gradient="url(#solarGrad)" label="Solar" value={`${Math.round(pv).toLocaleString()} W`} active={pv > 0}>
+          <Sun className="h-7 w-7 text-white" strokeWidth={2.5} />
         </Node>
-
-        {/* Solar (top-left) */}
-        <Node x={80} y={60} color="var(--solar)" label="Solar" value={`${Math.round(pv).toLocaleString()} W`}>
-          <Sun className="h-5 w-5 text-white" strokeWidth={2.5} />
+        <Node {...HOUSE} gradient="url(#houseGrad)" label="Casa" value={`${Math.round(load).toLocaleString()} W`} big active>
+          <Home className="h-9 w-9 text-white" strokeWidth={2.5} />
         </Node>
-
-        {/* Grid (bottom-left) */}
-        <Node x={80} y={260} color={gridConnected ? "var(--grid)" : "hsl(var(--muted-foreground))"} label="Red" value={`${gridV.toFixed(0)} V`}>
-          <Plug className="h-5 w-5 text-white" strokeWidth={2.5} />
+        <Node {...GRID} gradient="url(#gridGrad)" label="Red" value={gridConnected ? `${gridV.toFixed(0)} V` : "Desconectada"} active={gridConnected}>
+          <Plug className="h-7 w-7 text-white" strokeWidth={2.5} />
         </Node>
-
-        {/* Battery (bottom-right) */}
-        <Node x={320} y={260} color="var(--battery)" label="Batería" value={`${battery.toFixed(0)}% · ${batteryV.toFixed(1)}V`}>
-          <Battery className="h-5 w-5 text-white" strokeWidth={2.5} />
+        <Node {...BAT} gradient="url(#batGrad)" label="Batería" value={`${battery.toFixed(0)}% · ${batteryV.toFixed(1)} V`} active={battery > 0}>
+          <Battery className="h-7 w-7 text-white" strokeWidth={2.5} />
         </Node>
       </svg>
 
-      <div className="mt-2 grid grid-cols-3 gap-2 text-center text-xs">
-        <Legend color="var(--solar)" label="Solar" />
-        <Legend color="var(--battery)" label="Batería" />
-        <Legend color="var(--grid)" label="Red" />
+      {/* Stats row */}
+      <div className="relative mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <Stat color="var(--solar)" label="Solar" value={`${Math.round(pv)} W`} icon={<Sun className="h-3.5 w-3.5" />} />
+        <Stat color="var(--accent)" label="Consumo" value={`${Math.round(load)} W`} icon={<Home className="h-3.5 w-3.5" />} />
+        <Stat color="var(--battery)" label="Batería" value={`${battery.toFixed(0)}%`} icon={<Battery className="h-3.5 w-3.5" />} />
+        <Stat color={gridConnected ? "var(--grid)" : "hsl(var(--muted-foreground))"} label="Red" value={gridConnected ? `${gridV.toFixed(0)} V` : "Off"} icon={<Plug className="h-3.5 w-3.5" />} />
       </div>
 
       <style>{`
-        @keyframes flowDash { to { stroke-dashoffset: -24; } }
-        @keyframes flowDashRev { to { stroke-dashoffset: 24; } }
-        @keyframes pulseRing {
-          0% { r: 26; opacity: 0.5; }
-          100% { r: 38; opacity: 0; }
+        @keyframes flowDash { to { stroke-dashoffset: -32; } }
+        @keyframes flowDashRev { to { stroke-dashoffset: 32; } }
+        @keyframes nodePulse {
+          0%, 100% { opacity: 0.35; transform: scale(1); }
+          50% { opacity: 0.15; transform: scale(1.15); }
+        }
+        @keyframes particleMove {
+          from { offset-distance: 0%; opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          to { offset-distance: 100%; opacity: 0; }
         }
       `}</style>
     </div>
   );
 }
 
-function FlowPath({ d, active, color, reverse }: { d: string; active: boolean; color: string; reverse?: boolean }) {
-  return (
-    <>
-      <path d={d} fill="none" stroke="hsl(var(--muted))" strokeWidth="3" opacity="0.3" />
-      {active && (
-        <path
-          d={d}
-          fill="none"
-          stroke={color}
-          strokeWidth="3"
-          strokeDasharray="8 4"
-          strokeLinecap="round"
-          style={{ animation: `${reverse ? "flowDashRev" : "flowDash"} 1s linear infinite` }}
-          filter="url(#glow)"
-        />
-      )}
-    </>
-  );
-}
-
-function Node({
-  x, y, color, label, value, children, bigIcon,
+function FlowPath({
+  id, from, to, active, color, reverse, curved, watts,
 }: {
-  x: number; y: number; color: string; label: string; value: string;
-  children: React.ReactNode; bigIcon?: boolean;
+  id: string;
+  from: { x: number; y: number };
+  to: { x: number; y: number };
+  active: boolean;
+  color: string;
+  reverse?: boolean;
+  curved?: boolean;
+  watts?: number;
 }) {
-  const r = bigIcon ? 32 : 26;
+  // Build a smooth curve through a control point near the house
+  const cx = curved ? (from.x + to.x) / 2 : to.x;
+  const cy = curved ? from.y : from.y + (to.y - from.y) * 0.6;
+  const d = `M ${from.x} ${from.y} Q ${cx} ${cy} ${to.x} ${to.y}`;
+  const midX = (from.x + to.x) / 2;
+  const midY = (from.y + to.y) / 2;
+
   return (
     <g>
-      {/* pulse ring */}
-      <circle cx={x} cy={y} r={r} fill={color} opacity="0.3" style={{ animation: "pulseRing 2s ease-out infinite" }} />
-      <circle cx={x} cy={y} r={r} fill={color} />
-      <foreignObject x={x - 12} y={y - 12} width="24" height="24" style={{ pointerEvents: "none" }}>
-        <div className="flex h-full w-full items-center justify-center">{children}</div>
-      </foreignObject>
-      <text x={x} y={y + r + 16} textAnchor="middle" className="fill-foreground" fontSize="12" fontWeight="600">{label}</text>
-      <text x={x} y={y + r + 30} textAnchor="middle" className="fill-muted-foreground" fontSize="11">{value}</text>
+      <path d={d} fill="none" stroke="hsl(var(--muted))" strokeWidth="2.5" opacity="0.25" strokeDasharray="2 4" />
+      {active && (
+        <>
+          <path
+            id={id}
+            d={d}
+            fill="none"
+            stroke={color}
+            strokeWidth="3"
+            strokeDasharray="10 6"
+            strokeLinecap="round"
+            opacity="0.9"
+            style={{ animation: `${reverse ? "flowDashRev" : "flowDash"} 1.2s linear infinite` }}
+            filter="url(#softGlow)"
+          />
+          {/* Traveling particle */}
+          <circle r="3.5" fill={color} filter="url(#strongGlow)">
+            <animateMotion dur="2.2s" repeatCount="indefinite" path={d} rotate="auto" keyPoints={reverse ? "1;0" : "0;1"} keyTimes="0;1" />
+          </circle>
+          {watts != null && watts > 5 && (
+            <g transform={`translate(${midX},${midY})`}>
+              <rect x="-22" y="-9" width="44" height="18" rx="9" fill="hsl(var(--background))" stroke={color} strokeWidth="1" opacity="0.95" />
+              <text textAnchor="middle" y="4" fontSize="10" fontWeight="700" fill={color}>
+                {Math.round(watts)}W
+              </text>
+            </g>
+          )}
+        </>
+      )}
     </g>
   );
 }
 
-function Legend({ color, label }: { color: string; label: string }) {
+function Node({
+  x, y, gradient, label, value, children, big, active,
+}: {
+  x: number; y: number; gradient: string; label: string; value: string;
+  children: React.ReactNode; big?: boolean; active?: boolean;
+}) {
+  const r = big ? 38 : 30;
   return (
-    <div className="flex items-center justify-center gap-1.5">
-      <span className="inline-block h-2 w-4 rounded-full" style={{ background: color }} />
-      <span className="text-muted-foreground">{label}</span>
+    <g>
+      {/* Outer pulse ring */}
+      {active && (
+        <circle cx={x} cy={y} r={r + 8} fill={gradient} opacity="0.25"
+          style={{ animation: "nodePulse 2.5s ease-in-out infinite", transformOrigin: `${x}px ${y}px` }} />
+      )}
+      {/* Glow halo */}
+      <circle cx={x} cy={y} r={r + 4} fill={gradient} opacity="0.3" filter="url(#strongGlow)" />
+      {/* Main circle */}
+      <circle cx={x} cy={y} r={r} fill={gradient} stroke="hsl(var(--background))" strokeWidth="2" />
+      {/* Inner highlight */}
+      <circle cx={x - r * 0.3} cy={y - r * 0.3} r={r * 0.35} fill="white" opacity="0.25" />
+      {/* Icon */}
+      <foreignObject x={x - r * 0.55} y={y - r * 0.55} width={r * 1.1} height={r * 1.1} style={{ pointerEvents: "none" }}>
+        <div className="flex h-full w-full items-center justify-center">{children}</div>
+      </foreignObject>
+      {/* Labels */}
+      <text x={x} y={y + r + 18} textAnchor="middle" className="fill-foreground" fontSize="13" fontWeight="700">{label}</text>
+      <text x={x} y={y + r + 33} textAnchor="middle" className="fill-muted-foreground" fontSize="11" fontWeight="500">{value}</text>
+    </g>
+  );
+}
+
+function Stat({ color, label, value, icon }: { color: string; label: string; value: string; icon: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg border bg-background/60 px-2.5 py-2 backdrop-blur-sm">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white" style={{ background: color }}>
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <div className="truncate text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
+        <div className="truncate text-sm font-bold tabular-nums">{value}</div>
+      </div>
     </div>
   );
 }
