@@ -1690,7 +1690,7 @@ def make_app(agent: Agent) -> Flask:
     def _no_store_and_cors(resp):
         path = request.path or ""
         # Evita que el navegador sirva /api/* desde caché.
-        if path.startswith("/api/") or path in ("/", "/status", "/legacy"):
+        if path.startswith("/api/") or path in ("/", "/status"):
             resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
             resp.headers["Pragma"] = "no-cache"
             resp.headers["Expires"] = "0"
