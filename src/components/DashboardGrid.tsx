@@ -148,23 +148,38 @@ export function DashboardGrid({ defs, state, onChange, render }: GridProps) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <div className="text-xs text-muted-foreground">
-            Edita anchos para:
+            Vista previa / edición:
           </div>
           <div className="inline-flex rounded-full border bg-card p-0.5 text-xs">
+            <button
+              onClick={() => setPreviewMode(false)}
+              className={[
+                "inline-flex items-center gap-1 rounded-full px-2.5 py-1 transition-colors",
+                !previewMode ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted",
+              ].join(" ")}
+              title="Layout responsivo automático según el tamaño real de la ventana"
+            >
+              <LayoutGrid className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Auto</span>
+            </button>
             {BP_TABS.map((b) => (
               <button
                 key={b.id}
-                onClick={() => setEditBp(b.id)}
+                onClick={() => { setEditBp(b.id); setPreviewMode(true); }}
                 className={[
                   "inline-flex items-center gap-1 rounded-full px-2.5 py-1 transition-colors",
-                  editBp === b.id ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted",
+                  previewMode && editBp === b.id ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted",
                 ].join(" ")}
-                title={`Editar anchos de ${b.label}`}
+                title={`Previsualizar y editar como ${b.label}`}
               >
                 {b.icon} <span className="hidden sm:inline">{b.label}</span>
               </button>
             ))}
           </div>
+          {previewMode && (
+            <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">
+              Previsualización {editBp}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1.5">
           {hidden.length > 0 && (
