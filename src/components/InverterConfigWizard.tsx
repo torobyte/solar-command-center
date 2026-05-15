@@ -364,6 +364,9 @@ export function InverterConfigWizard({ siteId, agentBase, spec, agentFetch }: { 
         if (error) toast.error(error.message);
         else toast.success(`${field.label} encolado`);
       }
+      // Comando enviado: liberar el campo para que el próximo refresh del
+      // inversor lo sincronice con el valor real.
+      setTouched((t) => { const n = { ...t }; delete n[field.key]; return n; });
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
