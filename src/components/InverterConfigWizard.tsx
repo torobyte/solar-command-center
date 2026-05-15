@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -159,19 +159,29 @@ const STEPS: Step[] = [
   {
     id: "charging",
     title: "Corrientes de carga",
-    subtitle: "Limita cuánta corriente entra a las baterías.",
+    subtitle: "Limita cuánta corriente entra a las baterías. Los valores disponibles dependen del modelo del inversor.",
     icon: Plug,
     fields: [
       {
-        kind: "number", key: "max_chg", label: "Corriente máx. de carga total",
-        description: "Suma de Solar + Red.",
-        command: "set_max_charge_current", payloadKey: "amps",
-        min: 10, max: 120, step: 10, unit: "A", defaultValue: 60,
+        kind: "select", key: "max_chg", label: "Corriente máx. de carga total",
+        description: "Suma de Solar + Red. Lista de valores soportados por Voltronic.",
+        command: "set_max_charge_current", payloadKey: "amps", defaultValue: "060",
+        options: [
+          { v: "010", l: "10 A" }, { v: "020", l: "20 A" }, { v: "030", l: "30 A" },
+          { v: "040", l: "40 A" }, { v: "050", l: "50 A" }, { v: "060", l: "60 A" },
+          { v: "070", l: "70 A" }, { v: "080", l: "80 A" }, { v: "100", l: "100 A" },
+          { v: "120", l: "120 A" },
+        ],
       },
       {
-        kind: "number", key: "max_ac_chg", label: "Corriente máx. carga desde Red",
-        command: "set_max_ac_charge_current", payloadKey: "amps",
-        min: 2, max: 60, step: 2, unit: "A", defaultValue: 20,
+        kind: "select", key: "max_ac_chg", label: "Corriente máx. carga desde Red",
+        description: "Valores discretos aceptados por el inversor (MUCHGC).",
+        command: "set_max_ac_charge_current", payloadKey: "amps", defaultValue: "020",
+        options: [
+          { v: "002", l: "2 A" }, { v: "010", l: "10 A" }, { v: "020", l: "20 A" },
+          { v: "030", l: "30 A" }, { v: "040", l: "40 A" }, { v: "060", l: "60 A" },
+          { v: "080", l: "80 A" }, { v: "100", l: "100 A" },
+        ],
       },
     ],
   },
@@ -229,14 +239,81 @@ const STEPS: Step[] = [
   },
 ];
 
-export function InverterConfigWizard({ siteId, agentBase }: { siteId: string; agentBase?: string }) {
+interface SpecHint {
+  output_source_priority?: string | null;
+  charger_source_priority?: string | null;
+  battery_type?: string | null;
+  input_voltage_range?: string | null;
+  max_ac_charge_current?: number | null;
+  max_charge_current?: number | null;
+  expected_ac_input_voltage?: number | null;
+  nominal_battery_voltage?: number | null;
+}
+
+function pad2(s: string | null | undefined): string | undefined {
+  if (s == null) return undefined;
+  const t = String(s).trim();
+  return t.length === 1 ? `0${t}` : t;
+}
+function pad3(n: number | null | undefined): string | undefined {
+  if (n == null) return undefined;
+  return String(Math.round(n)).padStart(3, "0");
+}
+const BATTERY_TYPE_FROM_CODE: Record<string, string> = {
+  "0": "AGM", "1": "FLD", "2": "USE", "3": "LIB",
+};
+const INPUT_RANGE_FROM_CODE: Record<string, string> = {
+  "0": "appliance", "1": "ups",
+};
+
+function seedFromSpec(spec: SpecHint | null | undefined): Record<string, string | number | boolean> {
+  const v: Record<string, string | number | boolean> = {};
+  for (const s of STEPS) for (const f of s.fields) v[f.key] = f.defaultValue;
+  if (!spec) return v;
+  // Modes
+  const pop = pad2(spec.output_source_priority);
+  if (pop && ["00", "01", "02"].includes(pop)) v.pop = pop;
+  const pcp = pad2(spec.charger_source_priority);
+  if (pcp && ["00", "01", "02", "03"].includes(pcp)) v.pcp = pcp;
+  const range = INPUT_RANGE_FROM_CODE[String(spec.input_voltage_range ?? "").trim()];
+  if (range) v.range = range;
+  if (spec.expected_ac_input_voltage != null) {
+    const av = String(Math.round(spec.expected_ac_input_voltage));
+    if (["220", "230", "240"].includes(av)) v.voltage = av;
+  }
+  // Battery
+  const bt = BATTERY_TYPE_FROM_CODE[String(spec.battery_type ?? "").trim()];
+  if (bt) v.btype = bt;
+  // Charging — match nearest available option
+  const acChg = pad3(spec.max_ac_charge_current);
+  if (acChg) v.max_ac_chg = acChg;
+  const totChg = pad3(spec.max_charge_current);
+  if (totChg) v.max_chg = totChg;
+  return v;
+}
+
+export function InverterConfigWizard({ siteId, agentBase, spec }: { siteId: string; agentBase?: string; spec?: SpecHint | null }) {
   const [step, setStep] = useState(0);
-  const [values, setValues] = useState<Record<string, string | number | boolean>>(() => {
-    const v: Record<string, string | number | boolean> = {};
-    for (const s of STEPS) for (const f of s.fields) v[f.key] = f.defaultValue;
-    return v;
-  });
+  const [values, setValues] = useState<Record<string, string | number | boolean>>(() => seedFromSpec(spec));
   const [pending, setPending] = useState<string | null>(null);
+
+  // Re-seed when fresh spec arrives (avoid clobbering user edits — only fill
+  // keys that still hold the static defaults).
+  const specKey = spec ? `${spec.output_source_priority}|${spec.charger_source_priority}|${spec.max_ac_charge_current}|${spec.max_charge_current}|${spec.battery_type}|${spec.input_voltage_range}` : "";
+  useEffect(() => {
+    if (!spec) return;
+    setValues((prev) => {
+      const seeded = seedFromSpec(spec);
+      const next = { ...prev };
+      const defaults: Record<string, string | number | boolean> = {};
+      for (const s of STEPS) for (const f of s.fields) defaults[f.key] = f.defaultValue;
+      for (const k of Object.keys(seeded)) {
+        if (next[k] === defaults[k]) next[k] = seeded[k];
+      }
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [specKey]);
 
   const current = STEPS[step];
   const Icon = current.icon;

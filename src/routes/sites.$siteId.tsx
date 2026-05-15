@@ -505,42 +505,41 @@ interface InverterSpec {
 const QPIRI_LABELS: Record<number, { label: string; unit?: string; map?: Record<string, string> }> = {
   0: { label: "Voltaje AC nominal entrada", unit: "V" },
   1: { label: "Corriente AC nominal entrada", unit: "A" },
-  2: { label: "Max corriente AC entrada", unit: "A" },
-  3: { label: "Frecuencia AC nominal entrada", unit: "Hz" },
-  4: { label: "Voltaje nominal batería", unit: "V" },
-  5: { label: "Voltaje de carga flotación", unit: "V" },
-  6: { label: "Voltaje de carga absorción (bulk)", unit: "V" },
-  7: { label: "Max corriente AC salida", unit: "A" },
-  8: { label: "Max potencia aparente AC salida", unit: "VA" },
-  9: { label: "Max potencia activa AC salida", unit: "W" },
-  10: { label: "Voltaje AC nominal salida", unit: "V" },
-  11: { label: "Frecuencia AC nominal salida", unit: "Hz" },
-  12: { label: "Voltaje de re-descarga batería", unit: "V" },
-  13: {
+  2: { label: "Voltaje AC nominal salida", unit: "V" },
+  3: { label: "Frecuencia AC nominal salida", unit: "Hz" },
+  4: { label: "Corriente AC nominal salida", unit: "A" },
+  5: { label: "Potencia aparente AC salida", unit: "VA" },
+  6: { label: "Potencia activa AC salida", unit: "W" },
+  7: { label: "Voltaje nominal batería", unit: "V" },
+  8: { label: "Voltaje re-carga batería", unit: "V" },
+  9: { label: "Voltaje sub-tensión batería", unit: "V" },
+  10: { label: "Voltaje de carga absorción (bulk)", unit: "V" },
+  11: { label: "Voltaje de flotación", unit: "V" },
+  12: {
     label: "Tipo de batería",
     map: { "0": "AGM", "1": "Flooded", "2": "User", "3": "Pylontech (LIB)" },
   },
-  14: { label: "Max corriente carga AC", unit: "A" },
-  15: { label: "Max corriente carga total", unit: "A" },
-  16: {
+  13: { label: "Max corriente carga AC", unit: "A" },
+  14: { label: "Max corriente carga total", unit: "A" },
+  15: {
     label: "Rango voltaje entrada",
     map: { "0": "Appliance (90-280V)", "1": "UPS (170-280V)" },
   },
-  17: {
+  16: {
     label: "Prioridad de salida (POP)",
     map: { "00": "Utility", "01": "Solar", "02": "SBU" },
   },
-  18: {
+  17: {
     label: "Prioridad de carga (PCP)",
     map: { "00": "Utility", "01": "Solar primero", "02": "Solar+Utility", "03": "Solo solar" },
   },
-  19: { label: "Tipo de paralelo máx" },
-  20: { label: "Tipo de máquina", map: { "00": "Grid-tie", "01": "Off-grid", "10": "Hybrid" } },
-  21: { label: "Topología", map: { "0": "Transformerless", "1": "Transformer" } },
-  22: { label: "Modo de salida", map: { "0": "Single", "1": "Parallel", "2": "Phase 1 of 3", "3": "Phase 2 of 3", "4": "Phase 3 of 3" } },
-  23: { label: "Voltaje re-carga batería", unit: "V" },
-  24: { label: "PV OK condition" },
-  25: { label: "PV power balance" },
+  18: { label: "Paralelo máx num" },
+  19: { label: "Tipo de máquina", map: { "00": "Grid-tie", "01": "Off-grid", "10": "Hybrid" } },
+  20: { label: "Topología", map: { "0": "Transformerless", "1": "Transformer" } },
+  21: { label: "Modo de salida", map: { "0": "Single", "1": "Parallel", "2": "Phase 1 of 3", "3": "Phase 2 of 3", "4": "Phase 3 of 3" } },
+  22: { label: "Voltaje re-descarga batería", unit: "V" },
+  23: { label: "PV OK condition" },
+  24: { label: "PV power balance" },
 };
 
 function formatQpiriRow(i: number, raw: string): { label: string; value: string } {
@@ -638,14 +637,50 @@ function ConfigurationView({ site, subTab, onSubTabChange }: { site: Site; subTa
   return (
     <Tabs value={subTab} onValueChange={onSubTabChange} className="w-full">
       <TabsList className="flex w-full flex-wrap gap-1 rounded-full bg-muted/50 p-1 h-auto">
-        <TabsTrigger value="inverter" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Cpu className="h-3.5 w-3.5" strokeWidth={2.2} />Inversor</TabsTrigger>
-        <TabsTrigger value="pv" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={2.2} />Sistema PV</TabsTrigger>
+        <TabsTrigger value="inverter" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={2.2} />Inversor</TabsTrigger>
+        <TabsTrigger value="spec" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Cpu className="h-3.5 w-3.5" strokeWidth={2.2} />Especificaciones</TabsTrigger>
+        <TabsTrigger value="pv" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Sun className="h-3.5 w-3.5" strokeWidth={2.2} />Sistema PV</TabsTrigger>
         <TabsTrigger value="diagnostics" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Wifi className="h-3.5 w-3.5" strokeWidth={2.2} />Diagnóstico</TabsTrigger>
         <TabsTrigger value="sharing" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Share2 className="h-3.5 w-3.5" strokeWidth={2.2} />Compartir</TabsTrigger>
         <TabsTrigger value="install" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Download className="h-3.5 w-3.5" strokeWidth={2.2} />Instalación</TabsTrigger>
       </TabsList>
 
       <TabsContent value="inverter" className="mt-6 space-y-4">
+        <Section title="Configuración remota del inversor" icon={SlidersHorizontal}>
+          <p className="mb-4 text-sm text-muted-foreground">
+            Asistente paso a paso. Los valores iniciales se cargan desde el inversor (QPIRI). Cambia solo lo que necesites y aplícalo.
+          </p>
+          <InverterConfigWizard siteId={site.id} spec={spec} />
+
+          <div className="mt-6">
+            <QuickActionsConfigCard siteId={site.id} />
+          </div>
+
+          <div className="mt-6">
+            <h4 className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><Terminal className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2.2} /> Últimos comandos</h4>
+            {commands.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Sin comandos enviados todavía.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {commands.map((c) => (
+                  <div key={c.id} className="flex items-center justify-between rounded-lg border bg-background px-3 py-2 text-xs">
+                    <div className="font-mono truncate">{c.command} {JSON.stringify(c.payload)}</div>
+                    <span className={`ml-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium ${
+                      c.status === "done" ? "bg-success/15 text-success" :
+                      c.status === "failed" ? "bg-destructive/15 text-destructive" :
+                      "bg-muted text-muted-foreground"
+                    }`}>
+                      {c.status}{c.error ? ` — ${c.error}` : ""}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Section>
+      </TabsContent>
+
+      <TabsContent value="spec" className="mt-6 space-y-4">
         <Section title="Especificación del inversor" icon={Cpu}>
           {spec ? (
             <div className="space-y-5">
@@ -705,39 +740,6 @@ function ConfigurationView({ site, subTab, onSubTabChange }: { site: Site; subTa
           ) : (
             <SectionSkeleton />
           )}
-        </Section>
-
-        <Section title="Configuración remota del inversor" icon={SlidersHorizontal}>
-          <p className="mb-4 text-sm text-muted-foreground">
-            Asistente paso a paso. Los cambios se envían a la Raspberry y se aplican al inversor mediante comandos Voltronic.
-          </p>
-          <InverterConfigWizard siteId={site.id} />
-
-          <div className="mt-6">
-            <QuickActionsConfigCard siteId={site.id} />
-          </div>
-
-          <div className="mt-6">
-            <h4 className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><Terminal className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2.2} /> Últimos comandos</h4>
-            {commands.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Sin comandos enviados todavía.</p>
-            ) : (
-              <div className="space-y-1.5">
-                {commands.map((c) => (
-                  <div key={c.id} className="flex items-center justify-between rounded-lg border bg-background px-3 py-2 text-xs">
-                    <div className="font-mono truncate">{c.command} {JSON.stringify(c.payload)}</div>
-                    <span className={`ml-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium ${
-                      c.status === "done" ? "bg-success/15 text-success" :
-                      c.status === "failed" ? "bg-destructive/15 text-destructive" :
-                      "bg-muted text-muted-foreground"
-                    }`}>
-                      {c.status}{c.error ? ` — ${c.error}` : ""}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </Section>
       </TabsContent>
 
