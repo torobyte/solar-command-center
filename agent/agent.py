@@ -1715,7 +1715,7 @@ def make_app(agent: Agent) -> Flask:
         # (parity 100% con la UI online). Si no hay internet o el cloud no
         # responde en 4 s, caemos automáticamente a /legacy (la UI Flask
         # local que funciona 100% offline).
-        return render_template_string(WRAPPER_PAGE, cloud_base=CLOUD_BASE, boot_id=BOOT_ID)
+        return render_template_string(WRAPPER_PAGE, cloud_base=CLOUD_BASE, boot_id=BOOT_ID, agent_version=AGENT_VERSION)
 
     @app.get("/legacy")
     def legacy_index():
