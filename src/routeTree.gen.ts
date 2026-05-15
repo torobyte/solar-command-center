@@ -17,7 +17,9 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SitesOverviewRouteImport } from './routes/sites.overview'
 import { Route as SitesSiteIdRouteImport } from './routes/sites.$siteId'
+import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as ApiPublicWidgetRouteImport } from './routes/api/public/widget'
 import { Route as ApiPublicSnapshotRouteImport } from './routes/api/public/snapshot'
 import { Route as ApiPublicPushDispatchRouteImport } from './routes/api/public/push-dispatch'
@@ -73,9 +75,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SitesOverviewRoute = SitesOverviewRouteImport.update({
+  id: '/sites/overview',
+  path: '/sites/overview',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitesSiteIdRoute = SitesSiteIdRouteImport.update({
   id: '/sites/$siteId',
   path: '/sites/$siteId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InviteTokenRoute = InviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicWidgetRoute = ApiPublicWidgetRouteImport.update({
@@ -158,7 +170,9 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/sites/$siteId': typeof SitesSiteIdRoute
+  '/sites/overview': typeof SitesOverviewRoute
   '/api/admin/smtp-test': typeof ApiAdminSmtpTestRoute
   '/api/public/activate': typeof ApiPublicActivateRoute
   '/api/public/commands': typeof ApiPublicCommandsRoute
@@ -183,7 +197,9 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/sites/$siteId': typeof SitesSiteIdRoute
+  '/sites/overview': typeof SitesOverviewRoute
   '/api/admin/smtp-test': typeof ApiAdminSmtpTestRoute
   '/api/public/activate': typeof ApiPublicActivateRoute
   '/api/public/commands': typeof ApiPublicCommandsRoute
@@ -209,7 +225,9 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/sites/$siteId': typeof SitesSiteIdRoute
+  '/sites/overview': typeof SitesOverviewRoute
   '/api/admin/smtp-test': typeof ApiAdminSmtpTestRoute
   '/api/public/activate': typeof ApiPublicActivateRoute
   '/api/public/commands': typeof ApiPublicCommandsRoute
@@ -236,7 +254,9 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/invite/$token'
     | '/sites/$siteId'
+    | '/sites/overview'
     | '/api/admin/smtp-test'
     | '/api/public/activate'
     | '/api/public/commands'
@@ -261,7 +281,9 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/invite/$token'
     | '/sites/$siteId'
+    | '/sites/overview'
     | '/api/admin/smtp-test'
     | '/api/public/activate'
     | '/api/public/commands'
@@ -286,7 +308,9 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/invite/$token'
     | '/sites/$siteId'
+    | '/sites/overview'
     | '/api/admin/smtp-test'
     | '/api/public/activate'
     | '/api/public/commands'
@@ -312,7 +336,9 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  InviteTokenRoute: typeof InviteTokenRoute
   SitesSiteIdRoute: typeof SitesSiteIdRoute
+  SitesOverviewRoute: typeof SitesOverviewRoute
   ApiAdminSmtpTestRoute: typeof ApiAdminSmtpTestRoute
   ApiPublicActivateRoute: typeof ApiPublicActivateRoute
   ApiPublicCommandsRoute: typeof ApiPublicCommandsRoute
@@ -387,11 +413,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sites/overview': {
+      id: '/sites/overview'
+      path: '/sites/overview'
+      fullPath: '/sites/overview'
+      preLoaderRoute: typeof SitesOverviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sites/$siteId': {
       id: '/sites/$siteId'
       path: '/sites/$siteId'
       fullPath: '/sites/$siteId'
       preLoaderRoute: typeof SitesSiteIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invite/$token': {
+      id: '/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/invite/$token'
+      preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/widget': {
@@ -504,7 +544,9 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  InviteTokenRoute: InviteTokenRoute,
   SitesSiteIdRoute: SitesSiteIdRoute,
+  SitesOverviewRoute: SitesOverviewRoute,
   ApiAdminSmtpTestRoute: ApiAdminSmtpTestRoute,
   ApiPublicActivateRoute: ApiPublicActivateRoute,
   ApiPublicCommandsRoute: ApiPublicCommandsRoute,
@@ -523,3 +565,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
