@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
-import { LayoutDashboard, LineChart as LineChartIcon, Calculator, Settings2 } from "lucide-react";
+import { LayoutDashboard, LineChart as LineChartIcon, Calculator, Settings2, Wrench, RefreshCw, Unlink, ExternalLink } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { SiteDashboardView, type DashboardSample, formatInverterMode } from "@/components/SiteDashboardView";
 import { InverterConfigWizard } from "@/components/InverterConfigWizard";
 import { PvSystemConfigCard, type PvConfig } from "@/components/PvSystemConfig";
@@ -41,7 +43,27 @@ interface AgentState {
   linked?: boolean;
 }
 
-type LocalTab = "dashboard" | "charts" | "totals" | "config";
+/** Carry forward last known non-null fields so a transient bad QPIGS read
+ *  doesn't blank the whole dashboard to 0. */
+function mergeDashboardSample(prev: DashboardSample | null, next: DashboardSample | null): DashboardSample | null {
+  if (!next) return prev;
+  if (!prev) return next;
+  const keys: (keyof DashboardSample)[] = [
+    "ac_output_active_power", "pv_input_power", "battery_capacity",
+    "battery_voltage", "grid_voltage", "inverter_mode",
+  ];
+  const merged: DashboardSample = { ...next };
+  for (const k of keys) {
+    if (next[k] == null && prev[k] != null) {
+      (merged as unknown as Record<string, unknown>)[k as string] = prev[k];
+    }
+  }
+  return merged;
+}
+
+type LocalTab = "dashboard" | "charts" | "totals" | "config" | "system";
+
+interface AgentInfo { version?: string; boot_id?: string }
 
 const TRIAL_DAYS = 30;
 const TRIAL_KEY = "local.trialStartedAt";
@@ -76,6 +98,8 @@ function LocalDashboardPage() {
   const [pvCfg, setPvCfg] = useState<PvConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [trialStart] = useState<number>(() => getLocalTrialStart());
+  const [agentInfo, setAgentInfo] = useState<AgentInfo>({});
+  const [updating, setUpdating] = useState<"idle" | "running" | "ok" | "err">("idle");
 
   const lastRecordedAt = useRef<string | null>(null);
   const bridgeActive = useRef(false);
@@ -95,13 +119,15 @@ function LocalDashboardPage() {
         const key = incoming?.recorded_at ?? null;
         if (key !== lastRecordedAt.current) {
           lastRecordedAt.current = key;
-          setLatest(incoming);
+          setLatest((prev) => mergeDashboardSample(prev, incoming));
         }
         if (j?.history) setHistory(j.history);
         if (j?.totals_today) setTotals(j.totals_today);
         if (j?.license) setLicense(j.license);
         if (j?.pairing !== undefined) setPairing(j.pairing ?? null);
         if (typeof j?.linked === "boolean") setLinked(j.linked);
+        const ag = (j as unknown as { agent?: AgentInfo })?.agent;
+        if (ag) setAgentInfo(ag);
       } else if (d.type === "pvconfig") {
         setPvCfg({ site_id: "local", ...(d.payload as object) } as PvConfig);
       }
@@ -129,7 +155,7 @@ function LocalDashboardPage() {
         const key = incoming?.recorded_at ?? null;
         if (key !== lastRecordedAt.current) {
           lastRecordedAt.current = key;
-          setLatest(incoming);
+          setLatest((prev) => mergeDashboardSample(prev, incoming));
         }
         if (j.history) setHistory(j.history);
         if (j.totals_today) setTotals(j.totals_today);
@@ -189,6 +215,9 @@ function LocalDashboardPage() {
               <span className="rounded-full bg-muted px-2 py-0.5 font-medium">Plan: {plan}</span>
               <span className="rounded-full bg-muted px-2 py-0.5 font-medium">Modo: {mode.label}</span>
               <span className={`rounded-full px-2 py-0.5 font-medium ${trialTone}`}>{trialLabel}</span>
+              <span className={`rounded-full px-2 py-0.5 font-medium ${updating === "running" ? "bg-warning/15 text-warning" : updating === "err" ? "bg-destructive/15 text-destructive" : "bg-muted"}`}>
+                {updating === "running" ? "Actualizando…" : updating === "ok" ? "Actualización lanzada" : updating === "err" ? "Error de actualización" : `Agente v${agentInfo.version ?? "?"}`}
+              </span>
               {!isLinked && (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary">
                   Código:
@@ -211,6 +240,7 @@ function LocalDashboardPage() {
             <TabsTrigger value="charts" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><LineChartIcon className="h-3.5 w-3.5" strokeWidth={2.2} />Charts</TabsTrigger>
             <TabsTrigger value="totals" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Calculator className="h-3.5 w-3.5" strokeWidth={2.2} />Totals</TabsTrigger>
             <TabsTrigger value="config" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Settings2 className="h-3.5 w-3.5" strokeWidth={2.2} />Configuración</TabsTrigger>
+            <TabsTrigger value="system" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Wrench className="h-3.5 w-3.5" strokeWidth={2.2} />Sistema</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="mt-6">
@@ -253,6 +283,63 @@ function LocalDashboardPage() {
               </CardContent>
             </Card>
             <PvSystemConfigCard siteId="local" />
+          </TabsContent>
+
+          <TabsContent value="system" className="mt-6 space-y-4">
+            <Card>
+              <CardHeader><CardTitle className="text-base">Sistema y vinculación</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><div className="text-xs text-muted-foreground">Versión del agente</div><div className="font-mono">v{agentInfo.version ?? "?"}</div></div>
+                  <div><div className="text-xs text-muted-foreground">Estado</div><div>{isLinked ? "Vinculado" : "Sin vincular"}</div></div>
+                  {license?.site_id && <div className="col-span-2"><div className="text-xs text-muted-foreground">Site ID</div><div className="font-mono text-xs">{license.site_id}</div></div>}
+                </div>
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    disabled={updating === "running"}
+                    onClick={async () => {
+                      setUpdating("running");
+                      try {
+                        const r = await fetch(`${agentBase}/api/update-now`, { method: "POST" });
+                        const j = await r.json().catch(() => ({}));
+                        if (j?.ok) { setUpdating("ok"); toast.success("Actualización lanzada"); }
+                        else { setUpdating("err"); toast.error(j?.error || "No se pudo lanzar"); }
+                      } catch (e) { setUpdating("err"); toast.error((e as Error).message); }
+                      setTimeout(() => setUpdating("idle"), 6000);
+                    }}
+                  >
+                    <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Buscar actualización
+                  </Button>
+                  {isLinked && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={async () => {
+                        if (!confirm("¿Desvincular este equipo? Se generará un nuevo código de pairing.")) return;
+                        try {
+                          const r = await fetch(`${agentBase}/api/unlink`, { method: "POST" });
+                          const j = await r.json().catch(() => ({}));
+                          if (j?.code) toast.success(`Nuevo código: ${j.code}`);
+                          else toast.success("Desvinculado");
+                        } catch (e) { toast.error((e as Error).message); }
+                      }}
+                    >
+                      <Unlink className="mr-1.5 h-3.5 w-3.5" /> Desvincular equipo
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={`${agentBase}/status`} target="_blank" rel="noreferrer">
+                      <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Diagnóstico del agente
+                    </a>
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  La actualización descarga e instala la última versión del agente desde el repositorio. Tras instalar, el panel se recarga automáticamente.
+                </p>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

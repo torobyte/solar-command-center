@@ -850,26 +850,12 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
   .btn{margin-top:6px;padding:9px 16px;border-radius:10px;border:1px solid #2c2f42;
     background:#1d2030;color:#f5f3ee;font-size:13px;font-weight:600;cursor:pointer;
     text-decoration:none;display:inline-block}
-  .topbar{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;
-    justify-content:space-between;gap:8px;padding:6px 12px;background:rgba(11,13,20,.85);
-    backdrop-filter:blur(8px);border-bottom:1px solid #2c2f42;font-size:11.5px;color:#9aa0ad}
-  .topbar .ver{font-weight:600;color:#f5b945}
-  .topbar .acts{display:flex;gap:6px}
-  .topbar button,.topbar a.tb{padding:4px 10px;border-radius:8px;border:1px solid #2c2f42;
-    background:#1d2030;color:#f5f3ee;font-size:11.5px;font-weight:600;cursor:pointer;text-decoration:none}
-  .topbar button:hover,.topbar a.tb:hover{background:#232739}
-  .topbar .ok{color:#22c55e}.topbar .warn{color:#f59e0b}
+  /* Top bar removed: las acciones (Actualizar / Desvincular / Diagnóstico)
+     viven dentro del panel cloud (tab "Sistema"). El wrapper sólo es ya un
+     iframe pleno. */
 </style>
 </head><body>
-<div class="topbar">
-  <div>SolarOps · <span class="ver" id="tbVer">v{{ agent_version }}</span> · <span id="tbStatus">…</span></div>
-  <div class="acts">
-    <button id="tbUpd" type="button" title="Buscar actualización ahora">⟳ Actualizar</button>
-    <button id="tbUnlink" type="button" title="Olvidar vinculación y generar nuevo código" style="display:none">Desvincular</button>
-    <a class="tb" href="/status">Diagnóstico</a>
-  </div>
-</div>
-<div id="boot" style="padding-top:40px">
+<div id="boot">
   <div class="logo">SolarOps</div>
   <div class="spin"></div>
   <div class="sub" id="bootMsg">Conectando con el panel cloud…</div>
@@ -973,32 +959,24 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
       return await r.json();
     } catch(_) { return null; }
   }
-  var tbStatus = document.getElementById("tbStatus");
-  var tbUnlink = document.getElementById("tbUnlink");
-  function setStatus(txt, cls){
-    tbStatus.textContent = txt;
-    tbStatus.className = cls || "";
-  }
+  function setStatus(){ /* topbar removed */ }
   async function tick(){
     var s = await pull("/api/state");
     if (s) {
       lastState = s;
+      // Embellece el state con la versión actual del agente para que la
+      // pestaña "Sistema" del panel pueda mostrarla sin /api/version extra.
+      s.agent = { version: "{{ agent_version }}", boot_id: "{{ boot_id }}" };
       var p = (s && s.pairing) || {};
       if (p.linked === false) {
         showPair(p.code, p.expires_at);
         linked = false;
-        tbUnlink.style.display = "none";
-        setStatus("Sin vincular", "warn");
       } else if (p.linked === true) {
         if (linked === false) hidePair();
         linked = true;
         loadIframe();
-        tbUnlink.style.display = "inline-block";
-        setStatus("Vinculado · " + (p.site_id ? p.site_id.slice(0,8) : "ok"), "ok");
         var w = frame.contentWindow; if (w) postTo(w, "state", s);
       }
-    } else {
-      setStatus("Sin conexión con el agente", "warn");
     }
     if (!lastPv) {
       var pv = await pull("/api/pvconfig");
@@ -1034,48 +1012,6 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
     }
   }
   setInterval(checkVersion, 15000);
-
-  // ---- Botones de la barra superior
-  document.getElementById("tbUpd").addEventListener("click", async function(){
-    var b = this; b.disabled = true; var t = b.textContent; b.textContent = "Buscando…";
-    try {
-      var r = await fetch("/api/update-now", { method:"POST" });
-      var j = await r.json().catch(function(){ return {}; });
-      if (j && j.ok) {
-        b.textContent = "✓ Buscando";
-        setStatus("Comprobando actualizaciones…", "warn");
-      } else {
-        b.textContent = "Error";
-        setStatus("No se pudo lanzar la actualización", "warn");
-      }
-    } catch(e){ b.textContent = "Error"; }
-    setTimeout(function(){ b.disabled = false; b.textContent = t; }, 4000);
-  });
-  tbUnlink.addEventListener("click", async function(){
-    if (!confirm("¿Desvincular este equipo?\n\nSe borrará el token local, se cerrará el panel y se generará un nuevo código de 6 caracteres para vincularlo a otra cuenta.\n\nLos datos históricos en la nube no se eliminan.")) return;
-    var b = this; b.disabled = true; var orig = b.textContent; b.textContent = "Desvinculando…";
-    setStatus("Desvinculando…", "warn");
-    try {
-      var r = await fetch("/api/unlink", { method:"POST" });
-      var j = await r.json().catch(function(){ return {}; });
-      // Limpiamos estado local y forzamos pantalla de pairing inmediatamente.
-      lastState = null; lastPv = null; iframeLoaded = false; linked = false;
-      try { frame.src = "about:blank"; frame.classList.remove("ready"); } catch(_){}
-      tbUnlink.style.display = "none";
-      showPair(j && j.code, j && j.expires_at);
-      setStatus("Sin vincular", "warn");
-      if (j && j.warning) {
-        msg.textContent = "Aviso: " + j.warning;
-      }
-    } catch(e){
-      setStatus("Error al desvincular", "warn");
-      b.textContent = orig; b.disabled = false;
-      return;
-    }
-    // Tras unlink, el siguiente tick() ya verá pairing.linked=false y
-    // refrescará el código si la nube devolvió uno nuevo más tarde.
-    setTimeout(function(){ b.disabled = false; b.textContent = orig; tick(); }, 800);
-  });
 })();
 </script>
 </body></html>"""
@@ -2202,6 +2138,14 @@ def make_app(agent: Agent) -> Flask:
     @app.get("/api/pvconfig")
     def get_pvcfg():
         return jsonify(load_pvcfg())
+
+    @app.get("/api/spec")
+    def get_spec():
+        """Devuelve la última lectura QPIRI del inversor (max_ac_charge_current,
+        prioridades, etc.) para que la UI local muestre el valor 'Actual' real
+        sin depender del cloud. Ya viene poblado por snapshot_loop()."""
+        with agent.lock:
+            return jsonify(dict(agent.spec or {}))
 
     @app.post("/api/pvconfig")
     def set_pvcfg():

@@ -223,7 +223,10 @@ function SiteDetail() {
     const { data: t } = await tq.order("recorded_at", { ascending: false }).limit(720);
     const rows = (t ?? []).reverse() as Sample[];
     setHistory(rows);
-    setLatest(rows.length ? rows[rows.length - 1] : null);
+    // Fold from oldest → newest preserving the last known non-null value per
+    // metric, so a single bad sample at the end doesn't show a dashboard of 0s.
+    const folded = rows.reduce<Sample | null>((acc, r) => mergeSample(acc, r), null);
+    setLatest(folded);
 
     const { data: dt } = await supabase
       .from("daily_totals")
