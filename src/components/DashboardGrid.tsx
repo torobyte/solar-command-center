@@ -25,6 +25,26 @@ const COL_MAP: Record<Breakpoint, Record<WidgetWidth, string>> = {
   desktop: { 25: "lg:col-span-3", 50: "lg:col-span-6", 75: "lg:col-span-9", 100: "lg:col-span-12" },
 };
 
+// Cuando el usuario fuerza una vista de previsualización (mobile/tablet/desktop)
+// usamos clases sin prefijo responsivo para forzar ese layout exacto.
+const COL_MAP_FORCED: Record<Breakpoint, Record<WidgetWidth, string>> = {
+  mobile: { 25: "col-span-1", 50: "col-span-2", 75: "col-span-3", 100: "col-span-4" },
+  tablet: { 25: "col-span-2", 50: "col-span-4", 75: "col-span-6", 100: "col-span-8" },
+  desktop: { 25: "col-span-3", 50: "col-span-6", 75: "col-span-9", 100: "col-span-12" },
+};
+
+const GRID_COLS_FORCED: Record<Breakpoint, string> = {
+  mobile: "grid-cols-4 gap-2",
+  tablet: "grid-cols-8 gap-3",
+  desktop: "grid-cols-12 gap-4",
+};
+
+const PREVIEW_MAX_WIDTH: Record<Breakpoint, string> = {
+  mobile: "max-w-[420px]",
+  tablet: "max-w-[820px]",
+  desktop: "",
+};
+
 const WIDTH_OPTIONS: { value: WidgetWidth; label: string }[] = [
   { value: 25, label: "¼" }, { value: 50, label: "½" }, { value: 75, label: "¾" }, { value: 100, label: "1/1" },
 ];
@@ -64,13 +84,16 @@ export function DashboardGrid({ defs, state, onChange, render }: GridProps) {
   const dragId = useRef<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const [showHidden, setShowHidden] = useState(false);
-  // Which breakpoint width controls are currently editing.
+  // Selected breakpoint for editing widths AND for previewing the layout.
+  // `previewMode = true` (default cuando se elige un BP) fuerza la grilla a
+  // mostrarse exactamente como se vería en ese tamaño, ignorando el viewport real.
   const [editBp, setEditBp] = useState<Breakpoint>(() => {
     if (typeof window === "undefined") return "desktop";
     if (window.matchMedia("(max-width: 767px)").matches) return "mobile";
     if (window.matchMedia("(max-width: 1023px)").matches) return "tablet";
     return "desktop";
   });
+  const [previewMode, setPreviewMode] = useState(false);
 
   const visible = state.filter((w) => w.visible);
   const hidden = state.filter((w) => !w.visible);
@@ -125,23 +148,38 @@ export function DashboardGrid({ defs, state, onChange, render }: GridProps) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <div className="text-xs text-muted-foreground">
-            Edita anchos para:
+            Vista previa / edición:
           </div>
           <div className="inline-flex rounded-full border bg-card p-0.5 text-xs">
+            <button
+              onClick={() => setPreviewMode(false)}
+              className={[
+                "inline-flex items-center gap-1 rounded-full px-2.5 py-1 transition-colors",
+                !previewMode ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted",
+              ].join(" ")}
+              title="Layout responsivo automático según el tamaño real de la ventana"
+            >
+              <LayoutGrid className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Auto</span>
+            </button>
             {BP_TABS.map((b) => (
               <button
                 key={b.id}
-                onClick={() => setEditBp(b.id)}
+                onClick={() => { setEditBp(b.id); setPreviewMode(true); }}
                 className={[
                   "inline-flex items-center gap-1 rounded-full px-2.5 py-1 transition-colors",
-                  editBp === b.id ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted",
+                  previewMode && editBp === b.id ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted",
                 ].join(" ")}
-                title={`Editar anchos de ${b.label}`}
+                title={`Previsualizar y editar como ${b.label}`}
               >
                 {b.icon} <span className="hidden sm:inline">{b.label}</span>
               </button>
             ))}
           </div>
+          {previewMode && (
+            <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">
+              Previsualización {editBp}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1.5">
           {hidden.length > 0 && (
@@ -173,7 +211,14 @@ export function DashboardGrid({ defs, state, onChange, render }: GridProps) {
         </div>
       )}
 
-      <div className="grid grid-cols-4 gap-2 md:grid-cols-8 md:gap-3 lg:grid-cols-12 lg:gap-4">
+      <div className={previewMode ? "mx-auto " + PREVIEW_MAX_WIDTH[editBp] : ""}>
+        <div
+          className={
+            previewMode
+              ? `grid ${GRID_COLS_FORCED[editBp]} rounded-2xl border border-dashed border-accent/30 bg-muted/10 p-2`
+              : "grid grid-cols-4 gap-2 md:grid-cols-8 md:gap-3 lg:grid-cols-12 lg:gap-4"
+          }
+        >
         {visible.map((w) => {
           const def = defs.find((d) => d.id === w.id);
           if (!def) return null;
@@ -182,6 +227,9 @@ export function DashboardGrid({ defs, state, onChange, render }: GridProps) {
           const wd = getWidth(w, "desktop");
           const isOver = overId === w.id;
           const currentForBp = getWidth(w, editBp);
+          const colClasses = previewMode
+            ? COL_MAP_FORCED[editBp][getWidth(w, editBp)]
+            : `${COL_MAP.mobile[wm]} ${COL_MAP.tablet[wt]} ${COL_MAP.desktop[wd]}`;
           return (
             <div
               key={w.id}
@@ -193,7 +241,7 @@ export function DashboardGrid({ defs, state, onChange, render }: GridProps) {
               onDragEnd={() => { dragId.current = null; setOverId(null); }}
               className={[
                 "@container group relative transition-all min-w-0",
-                COL_MAP.mobile[wm], COL_MAP.tablet[wt], COL_MAP.desktop[wd],
+                colClasses,
                 isOver ? "ring-2 ring-accent/60 ring-offset-2 ring-offset-background rounded-2xl -translate-y-0.5" : "",
               ].join(" ")}
             >
@@ -231,6 +279,7 @@ export function DashboardGrid({ defs, state, onChange, render }: GridProps) {
             </div>
           );
         })}
+        </div>
       </div>
     </div>
   );
