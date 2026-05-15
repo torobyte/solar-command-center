@@ -100,11 +100,9 @@ function SitesIndex() {
           <p className="mt-1 text-sm text-muted-foreground">{t("sites.subtitle")}</p>
         </div>
         <div className="flex gap-2">
-          {sites.length > 1 && (
-            <Link to="/sites/overview">
-              <Button variant="outline" className="rounded-full"><CpuIcon className="mr-1.5 h-4 w-4" strokeWidth={2.4} />Vista global</Button>
-            </Link>
-          )}
+          <Link to="/sites/overview">
+            <Button variant="outline" className="rounded-full"><CpuIcon className="mr-1.5 h-4 w-4" strokeWidth={2.4} />Vista global</Button>
+          </Link>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button className="rounded-full shadow-glow"><Plus className="mr-1.5 h-4 w-4" strokeWidth={2.4} />{t("sites.new")}</Button>
