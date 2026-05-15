@@ -169,7 +169,7 @@ function LocalDashboardPage() {
                 <InverterConfigWizard siteId="local" agentBase={agentBase} />
               </CardContent>
             </Card>
-            <PvSystemConfig siteId="local" localAgentBase={agentBase} />
+            <PvSystemConfigCard siteId="local" />
           </TabsContent>
         </Tabs>
       </div>
