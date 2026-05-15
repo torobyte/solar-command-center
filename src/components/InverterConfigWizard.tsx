@@ -485,7 +485,7 @@ export function InverterConfigWizard({ siteId, agentBase, spec, agentFetch }: { 
                         type="number"
                         min={field.min} max={field.max} step={field.step}
                         value={Number(values[field.key])}
-                        onChange={(e) => setValues((v) => ({ ...v, [field.key]: parseFloat(e.target.value) || field.defaultValue }))}
+                        onChange={(e) => setField(field.key, parseFloat(e.target.value) || field.defaultValue)}
                         className="h-9"
                       />
                       <span className="text-xs text-muted-foreground w-8">{field.unit}</span>
