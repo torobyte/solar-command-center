@@ -427,6 +427,7 @@ export function SolarForecastWidget({ pvConfig }: { pvConfig?: ForecastPvConfig 
       <style>{`
         @keyframes growUp { from { height: 0%; opacity: 0; } }
       `}</style>
+      </div>
     </div>
   );
 }
