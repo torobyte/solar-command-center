@@ -159,19 +159,29 @@ const STEPS: Step[] = [
   {
     id: "charging",
     title: "Corrientes de carga",
-    subtitle: "Limita cuánta corriente entra a las baterías.",
+    subtitle: "Limita cuánta corriente entra a las baterías. Los valores disponibles dependen del modelo del inversor.",
     icon: Plug,
     fields: [
       {
-        kind: "number", key: "max_chg", label: "Corriente máx. de carga total",
-        description: "Suma de Solar + Red.",
-        command: "set_max_charge_current", payloadKey: "amps",
-        min: 10, max: 120, step: 10, unit: "A", defaultValue: 60,
+        kind: "select", key: "max_chg", label: "Corriente máx. de carga total",
+        description: "Suma de Solar + Red. Lista de valores soportados por Voltronic.",
+        command: "set_max_charge_current", payloadKey: "amps", defaultValue: "060",
+        options: [
+          { v: "010", l: "10 A" }, { v: "020", l: "20 A" }, { v: "030", l: "30 A" },
+          { v: "040", l: "40 A" }, { v: "050", l: "50 A" }, { v: "060", l: "60 A" },
+          { v: "070", l: "70 A" }, { v: "080", l: "80 A" }, { v: "100", l: "100 A" },
+          { v: "120", l: "120 A" },
+        ],
       },
       {
-        kind: "number", key: "max_ac_chg", label: "Corriente máx. carga desde Red",
-        command: "set_max_ac_charge_current", payloadKey: "amps",
-        min: 2, max: 60, step: 2, unit: "A", defaultValue: 20,
+        kind: "select", key: "max_ac_chg", label: "Corriente máx. carga desde Red",
+        description: "Valores discretos aceptados por el inversor (MUCHGC).",
+        command: "set_max_ac_charge_current", payloadKey: "amps", defaultValue: "020",
+        options: [
+          { v: "002", l: "2 A" }, { v: "010", l: "10 A" }, { v: "020", l: "20 A" },
+          { v: "030", l: "30 A" }, { v: "040", l: "40 A" }, { v: "060", l: "60 A" },
+          { v: "080", l: "80 A" }, { v: "100", l: "100 A" },
+        ],
       },
     ],
   },
