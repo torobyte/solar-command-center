@@ -550,6 +550,7 @@ class Agent:
                         # /local UI shows the new code on its next 5s refresh
                         # without any user action.
                         self._pair_cache = None
+                        self._save_pair_cache(None)
                         try:
                             self.request_pairing_code(force=True)
                             print("[agent] pairing code rotated (previous expired)")
