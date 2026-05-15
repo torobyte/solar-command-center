@@ -43,6 +43,9 @@ interface AgentState {
   linked?: boolean;
 }
 
+interface BridgeFetchResult { ok: boolean; status: number; json: unknown; text?: string; error?: string }
+export type AgentFetcher = (path: string, init?: { method?: string; body?: unknown }) => Promise<BridgeFetchResult>;
+
 /** Carry forward last known non-null fields so a transient bad QPIGS read
  *  doesn't blank the whole dashboard to 0. */
 function mergeDashboardSample(prev: DashboardSample | null, next: DashboardSample | null): DashboardSample | null {
