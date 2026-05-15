@@ -505,42 +505,41 @@ interface InverterSpec {
 const QPIRI_LABELS: Record<number, { label: string; unit?: string; map?: Record<string, string> }> = {
   0: { label: "Voltaje AC nominal entrada", unit: "V" },
   1: { label: "Corriente AC nominal entrada", unit: "A" },
-  2: { label: "Max corriente AC entrada", unit: "A" },
-  3: { label: "Frecuencia AC nominal entrada", unit: "Hz" },
-  4: { label: "Voltaje nominal batería", unit: "V" },
-  5: { label: "Voltaje de carga flotación", unit: "V" },
-  6: { label: "Voltaje de carga absorción (bulk)", unit: "V" },
-  7: { label: "Max corriente AC salida", unit: "A" },
-  8: { label: "Max potencia aparente AC salida", unit: "VA" },
-  9: { label: "Max potencia activa AC salida", unit: "W" },
-  10: { label: "Voltaje AC nominal salida", unit: "V" },
-  11: { label: "Frecuencia AC nominal salida", unit: "Hz" },
-  12: { label: "Voltaje de re-descarga batería", unit: "V" },
-  13: {
+  2: { label: "Voltaje AC nominal salida", unit: "V" },
+  3: { label: "Frecuencia AC nominal salida", unit: "Hz" },
+  4: { label: "Corriente AC nominal salida", unit: "A" },
+  5: { label: "Potencia aparente AC salida", unit: "VA" },
+  6: { label: "Potencia activa AC salida", unit: "W" },
+  7: { label: "Voltaje nominal batería", unit: "V" },
+  8: { label: "Voltaje re-carga batería", unit: "V" },
+  9: { label: "Voltaje sub-tensión batería", unit: "V" },
+  10: { label: "Voltaje de carga absorción (bulk)", unit: "V" },
+  11: { label: "Voltaje de flotación", unit: "V" },
+  12: {
     label: "Tipo de batería",
     map: { "0": "AGM", "1": "Flooded", "2": "User", "3": "Pylontech (LIB)" },
   },
-  14: { label: "Max corriente carga AC", unit: "A" },
-  15: { label: "Max corriente carga total", unit: "A" },
-  16: {
+  13: { label: "Max corriente carga AC", unit: "A" },
+  14: { label: "Max corriente carga total", unit: "A" },
+  15: {
     label: "Rango voltaje entrada",
     map: { "0": "Appliance (90-280V)", "1": "UPS (170-280V)" },
   },
-  17: {
+  16: {
     label: "Prioridad de salida (POP)",
     map: { "00": "Utility", "01": "Solar", "02": "SBU" },
   },
-  18: {
+  17: {
     label: "Prioridad de carga (PCP)",
     map: { "00": "Utility", "01": "Solar primero", "02": "Solar+Utility", "03": "Solo solar" },
   },
-  19: { label: "Tipo de paralelo máx" },
-  20: { label: "Tipo de máquina", map: { "00": "Grid-tie", "01": "Off-grid", "10": "Hybrid" } },
-  21: { label: "Topología", map: { "0": "Transformerless", "1": "Transformer" } },
-  22: { label: "Modo de salida", map: { "0": "Single", "1": "Parallel", "2": "Phase 1 of 3", "3": "Phase 2 of 3", "4": "Phase 3 of 3" } },
-  23: { label: "Voltaje re-carga batería", unit: "V" },
-  24: { label: "PV OK condition" },
-  25: { label: "PV power balance" },
+  18: { label: "Paralelo máx num" },
+  19: { label: "Tipo de máquina", map: { "00": "Grid-tie", "01": "Off-grid", "10": "Hybrid" } },
+  20: { label: "Topología", map: { "0": "Transformerless", "1": "Transformer" } },
+  21: { label: "Modo de salida", map: { "0": "Single", "1": "Parallel", "2": "Phase 1 of 3", "3": "Phase 2 of 3", "4": "Phase 3 of 3" } },
+  22: { label: "Voltaje re-descarga batería", unit: "V" },
+  23: { label: "PV OK condition" },
+  24: { label: "PV power balance" },
 };
 
 function formatQpiriRow(i: number, raw: string): { label: string; value: string } {
