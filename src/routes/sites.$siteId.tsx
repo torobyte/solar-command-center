@@ -27,7 +27,7 @@ import { BellRing } from "lucide-react";
 import { MobileBottomNav, type SiteTab } from "@/components/MobileBottomNav";
 import { PageHeaderSkeleton, DashboardSkeleton, SectionSkeleton } from "@/components/LoadingStates";
 import { InverterConfigWizard } from "@/components/InverterConfigWizard";
-import { QuickActions } from "@/components/QuickActions";
+import { QuickActions, QuickActionsConfigCard, useQuickActionsConfig } from "@/components/QuickActions";
 import { SiteSharing } from "@/components/SiteSharing";
 import { Share2 } from "lucide-react";
 
@@ -342,7 +342,6 @@ function SiteDetail() {
         </TabsList>
 
         <TabsContent value="dashboard" className="mt-6 space-y-6">
-          <QuickActions siteId={siteId} />
           <DashboardView latest={latest} siteId={siteId} spec={null} device={selectedDevice} />
           {!latest && (
             <div className="mt-8 rounded-lg border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">
@@ -609,6 +608,10 @@ function ConfigurationView({ site }: { site: Site }) {
           <InverterConfigWizard siteId={site.id} />
 
           <div className="mt-6">
+            <QuickActionsConfigCard siteId={site.id} />
+          </div>
+
+          <div className="mt-6">
             <h4 className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><Terminal className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2.2} /> Últimos comandos</h4>
             {commands.length === 0 ? (
               <p className="text-xs text-muted-foreground">Sin comandos enviados todavía.</p>
@@ -777,6 +780,7 @@ function formatInverterMode(raw: string | null | undefined): { label: string; co
 }
 
 const WIDGET_DEFS: WidgetDef[] = [
+  { id: "quickactions", label: "Acciones rápidas" },
   { id: "mode", label: "Modo del inversor" },
   { id: "icons", label: "Tarjetas resumen" },
   { id: "backup", label: "Tiempo de respaldo" },
@@ -795,6 +799,7 @@ function DashboardView({ latest, siteId, spec: _spec, device: _device }: { lates
   const { t } = useI18n();
   const { state, persist } = useDashboardLayout(siteId, WIDGET_DEFS);
   const { config: pv } = usePvConfig(siteId);
+  const { config: qaConfig } = useQuickActionsConfig(siteId);
   const pv_W = Number(latest?.pv_input_power ?? 0);
   const load = Number(latest?.ac_output_active_power ?? 0);
   const battery = Number(latest?.battery_capacity ?? 0);
@@ -806,6 +811,7 @@ function DashboardView({ latest, siteId, spec: _spec, device: _device }: { lates
   const pvMax = (pv?.array_kwp ?? 5) * 1000;
 
   const widgets: Record<string, React.ReactNode> = {
+    quickactions: <QuickActions siteId={siteId} config={qaConfig} />,
     mode: (
       <div className="flex items-center justify-between rounded-xl border bg-card p-4 sm:p-5 animate-fade-in h-full">
         <div className="flex items-center gap-3">

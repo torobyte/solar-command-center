@@ -36,7 +36,7 @@ export function defaultWidth(id: string): WidgetWidth {
 
 function defaultMobile(id: string): WidgetWidth {
   // Heavy widgets full width on mobile; numeric summaries in 2 columns of 4 (=50%).
-  if (["icons", "mode", "flow", "forecast", "history", "gauges", "advanced"].includes(id)) return 100;
+  if (["icons", "mode", "flow", "forecast", "history", "gauges", "advanced", "quickactions"].includes(id)) return 100;
   return 50;
 }
 
