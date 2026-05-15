@@ -83,21 +83,40 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG }: Qui
 
   // Fetch current values: prefer the inverter's own reported config (QPIRI in
   // inverter_specs), then overlay any newer acknowledged remote command.
+  // En modo local, además consulta /api/spec del agente para reflejar QPIRI
+  // en vivo aunque el cloud no haya sincronizado todavía.
   useEffect(() => {
     let cancelled = false;
     async function load() {
       const next: CurrentValues = {};
+      let bestSpecTime = 0;
 
-      // 1) Live inverter config from QPIRI (snapshot loop)
+      // 1a) Live inverter config from QPIRI (snapshot loop) — cloud
       const { data: spec } = await supabase
         .from("inverter_specs")
         .select("max_ac_charge_current,output_source_priority,charger_source_priority,updated_at")
         .eq("site_id", siteId)
         .maybeSingle();
-      const specUpdatedAt = spec?.updated_at ? new Date(spec.updated_at).getTime() : 0;
-      if (spec?.max_ac_charge_current != null) next.amps = Number(spec.max_ac_charge_current);
-      if (spec?.output_source_priority) next.outputPriority = String(spec.output_source_priority).padStart(2, "0");
-      if (spec?.charger_source_priority) next.chargerPriority = String(spec.charger_source_priority).padStart(2, "0");
+      if (spec) {
+        bestSpecTime = spec.updated_at ? new Date(spec.updated_at).getTime() : 0;
+        if (spec.max_ac_charge_current != null) next.amps = Number(spec.max_ac_charge_current);
+        if (spec.output_source_priority) next.outputPriority = String(spec.output_source_priority).padStart(2, "0");
+        if (spec.charger_source_priority) next.chargerPriority = String(spec.charger_source_priority).padStart(2, "0");
+      }
+
+      // 1b) Local agent /api/spec — always fresher than cloud snapshot push.
+      if (agentBase) {
+        try {
+          const r = await fetch(`${agentBase}/api/spec`, { cache: "no-store" });
+          if (r.ok) {
+            const s = await r.json() as Record<string, unknown>;
+            if (typeof s.max_ac_charge_current === "number") next.amps = s.max_ac_charge_current;
+            if (typeof s.output_source_priority === "string") next.outputPriority = s.output_source_priority.padStart(2, "0");
+            if (typeof s.charger_source_priority === "string") next.chargerPriority = s.charger_source_priority.padStart(2, "0");
+            bestSpecTime = Math.max(bestSpecTime, Date.now());
+          }
+        } catch { /* offline or mixed-content; ignore */ }
+      }
 
       // 2) Override with any acked command newer than the spec snapshot.
       const cmds = ["set_max_ac_charge_current", "set_output_priority", "set_charger_priority", "set_buzzer_enabled"];
@@ -115,11 +134,11 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG }: Qui
         if (seen.has(row.command)) continue;
         const rowTime = new Date(row.acked_at ?? row.created_at).getTime();
         const p = (row.payload ?? {}) as Record<string, unknown>;
-        if (row.command === "set_max_ac_charge_current" && typeof p.amps === "number" && rowTime >= specUpdatedAt) {
+        if (row.command === "set_max_ac_charge_current" && typeof p.amps === "number" && rowTime >= bestSpecTime) {
           next.amps = p.amps; seen.add(row.command);
-        } else if (row.command === "set_output_priority" && typeof p.value === "string" && rowTime >= specUpdatedAt) {
+        } else if (row.command === "set_output_priority" && typeof p.value === "string" && rowTime >= bestSpecTime) {
           next.outputPriority = p.value; seen.add(row.command);
-        } else if (row.command === "set_charger_priority" && typeof p.value === "string" && rowTime >= specUpdatedAt) {
+        } else if (row.command === "set_charger_priority" && typeof p.value === "string" && rowTime >= bestSpecTime) {
           next.chargerPriority = p.value; seen.add(row.command);
         } else if (row.command === "set_buzzer_enabled" && typeof p.enabled === "boolean") {
           // Buzzer state is not exposed by QPIRI — always trust last acked command.
@@ -129,13 +148,19 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG }: Qui
       setCurrent(next);
     }
     load();
+    // Re-poll local agent often so user sees updates promptly after applying.
+    const localPoll = agentBase ? window.setInterval(load, 5000) : null;
     const ch = supabase
       .channel(`qa-cmds-${siteId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "device_commands", filter: `site_id=eq.${siteId}` }, () => load())
       .on("postgres_changes", { event: "*", schema: "public", table: "inverter_specs", filter: `site_id=eq.${siteId}` }, () => load())
       .subscribe();
-    return () => { cancelled = true; supabase.removeChannel(ch); };
-  }, [siteId]);
+    return () => {
+      cancelled = true;
+      if (localPoll) window.clearInterval(localPoll);
+      supabase.removeChannel(ch);
+    };
+  }, [siteId, agentBase]);
 
   async function execute(cmd: PendingConfirm) {
     setPending(cmd.key);
