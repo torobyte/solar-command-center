@@ -2177,20 +2177,38 @@ def make_app(agent: Agent) -> Flask:
 
     @app.post("/api/unlink")
     def unlink():
-        """Borra el device_token local para forzar la generación de un
-        nuevo código de pairing. Útil cuando el usuario quiere mover el
-        equipo a otra cuenta o vino con datos de un install anterior."""
+        """Borra el device_token local, limpia el estado en memoria y genera
+        un nuevo código de pairing inmediatamente. Devuelve el código nuevo
+        para que la UI lo pinte sin esperar al próximo /api/state."""
         agent.config.pop("device_token", None)
         agent.config.pop("site_id", None)
         agent.config.pop("site_name", None)
         save_config(agent.config)
-        agent.license = {}
+        with agent.lock:
+            agent.license = {}
+            agent.snapshot = {}
+            agent.spec = {}
         agent._pair_cache = None
+        agent._save_pair_cache(None)
+        new_code = None
+        new_exp = None
+        warning = None
         try:
-            agent.request_pairing_code(force=True)
+            data = agent.request_pairing_code(force=True)
+            if isinstance(data, dict):
+                if data.get("error"):
+                    warning = data["error"]
+                else:
+                    new_code = data.get("code")
+                    new_exp = data.get("expires_at")
         except Exception as e:
-            return jsonify({"ok": True, "warning": str(e)})
-        return jsonify({"ok": True})
+            warning = str(e)
+        return jsonify({
+            "ok": True,
+            "code": new_code,
+            "expires_at": new_exp,
+            "warning": warning,
+        })
 
     @app.post("/api/update-now")
     def update_now():
