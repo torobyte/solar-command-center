@@ -2203,6 +2203,13 @@ def make_app(agent: Agent) -> Flask:
                     new_exp = data.get("expires_at")
         except Exception as e:
             warning = str(e)
+        # Re-arrancamos el pairing_loop: el original sale en cuanto detectó
+        # device_token; sin esto, tras desvincular nadie haría poll a
+        # /pair-status y el agente nunca sabría cuándo se reclama el código.
+        try:
+            threading.Thread(target=agent.pairing_loop, daemon=True).start()
+        except Exception as e:
+            print(f"[agent] could not restart pairing_loop: {e}")
         return jsonify({
             "ok": True,
             "code": new_code,
