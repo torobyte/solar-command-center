@@ -292,7 +292,9 @@ function seedFromSpec(spec: SpecHint | null | undefined): Record<string, string 
   return v;
 }
 
-export function InverterConfigWizard({ siteId, agentBase, spec }: { siteId: string; agentBase?: string; spec?: SpecHint | null }) {
+type AgentFetcher = (path: string, init?: { method?: string; body?: unknown }) => Promise<{ ok: boolean; status: number; json: unknown; text?: string; error?: string }>;
+
+export function InverterConfigWizard({ siteId, agentBase, spec, agentFetch }: { siteId: string; agentBase?: string; spec?: SpecHint | null; agentFetch?: AgentFetcher }) {
   const [step, setStep] = useState(0);
   const [values, setValues] = useState<Record<string, string | number | boolean>>(() => seedFromSpec(spec));
   const [pending, setPending] = useState<string | null>(null);
@@ -319,6 +321,11 @@ export function InverterConfigWizard({ siteId, agentBase, spec }: { siteId: stri
   const Icon = current.icon;
 
   async function postLocal(rows: { command: string; payload: Record<string, unknown> }[]) {
+    if (agentFetch) {
+      const res = await agentFetch("/api/command", { method: "POST", body: { commands: rows } });
+      if (!res.ok) throw new Error(res.error || `HTTP ${res.status}`);
+      return;
+    }
     const r = await fetch(`${agentBase}/api/command`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

@@ -43,6 +43,9 @@ interface AgentState {
   linked?: boolean;
 }
 
+interface BridgeFetchResult { ok: boolean; status: number; json: unknown; text?: string; error?: string }
+export type AgentFetcher = (path: string, init?: { method?: string; body?: unknown }) => Promise<BridgeFetchResult>;
+
 /** Carry forward last known non-null fields so a transient bad QPIGS read
  *  doesn't blank the whole dashboard to 0. */
 function mergeDashboardSample(prev: DashboardSample | null, next: DashboardSample | null): DashboardSample | null {
@@ -103,14 +106,63 @@ function LocalDashboardPage() {
 
   const lastRecordedAt = useRef<string | null>(null);
   const bridgeActive = useRef(false);
+  const reqIdRef = useRef(0);
+  const pendingReqs = useRef(new Map<number, (v: BridgeFetchResult) => void>());
+
+  const agentFetch = useMemo(() => {
+    return async (path: string, init?: { method?: string; body?: unknown }): Promise<BridgeFetchResult> => {
+      const method = init?.method || "GET";
+      const bodyStr = init?.body != null ? JSON.stringify(init.body) : null;
+      if (bridgeActive.current && typeof window !== "undefined" && window.parent && window.parent !== window) {
+        return new Promise<BridgeFetchResult>((resolve) => {
+          const id = ++reqIdRef.current;
+          pendingReqs.current.set(id, resolve);
+          try {
+            window.parent.postMessage({ source: "solarops-local", type: "fetch", id, path, method, body: bodyStr }, "*");
+          } catch {
+            pendingReqs.current.delete(id);
+            resolve({ ok: false, status: 0, json: null });
+          }
+          window.setTimeout(() => {
+            if (pendingReqs.current.has(id)) {
+              pendingReqs.current.delete(id);
+              resolve({ ok: false, status: 0, json: null, error: "timeout" });
+            }
+          }, 15000);
+        });
+      }
+      try {
+        const r = await fetch(`${agentBase}${path}`, {
+          method,
+          headers: bodyStr ? { "Content-Type": "application/json" } : undefined,
+          body: bodyStr ?? undefined,
+          cache: "no-store",
+        });
+        const text = await r.text();
+        let json: unknown = null;
+        try { json = JSON.parse(text); } catch { /* noop */ }
+        return { ok: r.ok, status: r.status, json, text };
+      } catch (e) {
+        return { ok: false, status: 0, json: null, error: (e as Error).message };
+      }
+    };
+  }, [agentBase]);
 
   // ---- Bridge postMessage: cuando esta página se carga dentro del wrapper
   // del agente (HTTP) en un iframe HTTPS, los fetch directos al agente
   // fallan por mixed-content. El padre los hace y nos los envía aquí.
   useEffect(() => {
     function onMsg(ev: MessageEvent) {
-      const d = ev?.data as { source?: string; type?: string; payload?: unknown } | null;
+      const d = ev?.data as { source?: string; type?: string; payload?: unknown; id?: number; ok?: boolean; status?: number; json?: unknown; text?: string; error?: string } | null;
       if (!d || d.source !== "solarops-agent") return;
+      if (d.type === "fetch:result" && typeof d.id === "number") {
+        const resolver = pendingReqs.current.get(d.id);
+        if (resolver) {
+          pendingReqs.current.delete(d.id);
+          resolver({ ok: !!d.ok, status: d.status ?? 0, json: d.json ?? null, text: d.text, error: d.error });
+        }
+        return;
+      }
       bridgeActive.current = true;
       setError(null);
       if (d.type === "state") {
@@ -279,7 +331,7 @@ function LocalDashboardPage() {
             <Card>
               <CardHeader><CardTitle className="text-base">Configuración del inversor (paso a paso)</CardTitle></CardHeader>
               <CardContent>
-                <InverterConfigWizard siteId="local" agentBase={agentBase} />
+                <InverterConfigWizard siteId="local" agentBase={agentBase} agentFetch={agentFetch} />
               </CardContent>
             </Card>
             <PvSystemConfigCard siteId="local" />
@@ -302,10 +354,10 @@ function LocalDashboardPage() {
                     onClick={async () => {
                       setUpdating("running");
                       try {
-                        const r = await fetch(`${agentBase}/api/update-now`, { method: "POST" });
-                        const j = await r.json().catch(() => ({}));
-                        if (j?.ok) { setUpdating("ok"); toast.success("Actualización lanzada"); }
-                        else { setUpdating("err"); toast.error(j?.error || "No se pudo lanzar"); }
+                        const res = await agentFetch("/api/update-now", { method: "POST" });
+                        const j = (res.json as { ok?: boolean; error?: string } | null) ?? {};
+                        if (res.ok && j?.ok) { setUpdating("ok"); toast.success("Actualización lanzada"); }
+                        else { setUpdating("err"); toast.error(j?.error || res.error || `HTTP ${res.status}`); }
                       } catch (e) { setUpdating("err"); toast.error((e as Error).message); }
                       setTimeout(() => setUpdating("idle"), 6000);
                     }}
@@ -319,10 +371,11 @@ function LocalDashboardPage() {
                       onClick={async () => {
                         if (!confirm("¿Desvincular este equipo? Se generará un nuevo código de pairing.")) return;
                         try {
-                          const r = await fetch(`${agentBase}/api/unlink`, { method: "POST" });
-                          const j = await r.json().catch(() => ({}));
+                          const res = await agentFetch("/api/unlink", { method: "POST" });
+                          const j = (res.json as { code?: string } | null) ?? {};
                           if (j?.code) toast.success(`Nuevo código: ${j.code}`);
-                          else toast.success("Desvinculado");
+                          else if (res.ok) toast.success("Desvinculado");
+                          else toast.error(res.error || `HTTP ${res.status}`);
                         } catch (e) { toast.error((e as Error).message); }
                       }}
                     >
