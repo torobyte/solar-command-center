@@ -41,6 +41,24 @@ interface AgentState {
   linked?: boolean;
 }
 
+/** Carry forward last known non-null fields so a transient bad QPIGS read
+ *  doesn't blank the whole dashboard to 0. */
+function mergeDashboardSample(prev: DashboardSample | null, next: DashboardSample | null): DashboardSample | null {
+  if (!next) return prev;
+  if (!prev) return next;
+  const keys: (keyof DashboardSample)[] = [
+    "ac_output_active_power", "pv_input_power", "battery_capacity",
+    "battery_voltage", "grid_voltage", "inverter_mode",
+  ];
+  const merged: DashboardSample = { ...next };
+  for (const k of keys) {
+    if (next[k] == null && prev[k] != null) {
+      (merged as unknown as Record<string, unknown>)[k as string] = prev[k];
+    }
+  }
+  return merged;
+}
+
 type LocalTab = "dashboard" | "charts" | "totals" | "config";
 
 const TRIAL_DAYS = 30;
