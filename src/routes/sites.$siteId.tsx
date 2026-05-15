@@ -608,6 +608,10 @@ function ConfigurationView({ site }: { site: Site }) {
           <InverterConfigWizard siteId={site.id} />
 
           <div className="mt-6">
+            <QuickActionsConfigCard siteId={site.id} />
+          </div>
+
+          <div className="mt-6">
             <h4 className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><Terminal className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2.2} /> Últimos comandos</h4>
             {commands.length === 0 ? (
               <p className="text-xs text-muted-foreground">Sin comandos enviados todavía.</p>
