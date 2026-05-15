@@ -466,6 +466,14 @@ interface InverterSpec {
   updated_at: string;
 }
 
+interface SyncMeta {
+  agent_time?: string | null;
+  last_sample_at?: string | null;
+  last_error?: string | null;
+  last_error_at?: string | null;
+  read_count?: number | null;
+  error_count?: number | null;
+}
 interface DeviceSnapshot {
   ssid: string | null; ip_eth: string | null; ip_wlan: string | null;
   ip_public: string | null; internet_up: boolean | null;
@@ -474,6 +482,7 @@ interface DeviceSnapshot {
   usb_devices_list: string[] | null;
   board_model: string | null; agent_version: string | null;
   voltage_dips: number | null; updated_at: string;
+  raw: { sync?: SyncMeta } | null;
 }
 
 interface DeviceCommand {
