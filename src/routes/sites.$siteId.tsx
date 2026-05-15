@@ -495,7 +495,9 @@ function ConfigurationView({ site }: { site: Site }) {
   const [spec, setSpec] = useState<InverterSpec | null>(null);
   const [snap, setSnap] = useState<DeviceSnapshot | null>(null);
   const [commands, setCommands] = useState<DeviceCommand[]>([]);
+  const [lastSampleAt, setLastSampleAt] = useState<string | null>(null);
   const [user, setUser] = useState<{ id: string; email: string | null } | null>(null);
+  const [now, setNow] = useState<number>(Date.now());
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -506,20 +508,26 @@ function ConfigurationView({ site }: { site: Site }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "inverter_specs", filter: `site_id=eq.${site.id}` }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "device_snapshots", filter: `site_id=eq.${site.id}` }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "device_commands", filter: `site_id=eq.${site.id}` }, refresh)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "telemetry_samples", filter: `site_id=eq.${site.id}` }, (p) => {
+        setLastSampleAt((p.new as { recorded_at: string }).recorded_at);
+      })
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => { supabase.removeChannel(ch); clearInterval(tick); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [site.id]);
 
   async function refresh() {
-    const [{ data: sp }, { data: sn }, { data: cm }] = await Promise.all([
+    const [{ data: sp }, { data: sn }, { data: cm }, { data: ts }] = await Promise.all([
       supabase.from("inverter_specs").select("*").eq("site_id", site.id).maybeSingle(),
       supabase.from("device_snapshots").select("*").eq("site_id", site.id).maybeSingle(),
       supabase.from("device_commands").select("*").eq("site_id", site.id).order("created_at", { ascending: false }).limit(10),
+      supabase.from("telemetry_samples").select("recorded_at").eq("site_id", site.id).order("recorded_at", { ascending: false }).limit(1),
     ]);
     setSpec(sp as InverterSpec | null);
     setSnap(sn as DeviceSnapshot | null);
     setCommands((cm ?? []) as DeviceCommand[]);
+    setLastSampleAt((ts && ts[0]?.recorded_at) ?? null);
   }
 
   async function sendCommand(command: string, payload: Record<string, unknown>) {
@@ -530,6 +538,17 @@ function ConfigurationView({ site }: { site: Site }) {
     if (error) toast.error(error.message);
     else toast.success("Comando encolado — la Raspberry lo aplicará en breve");
   }
+
+  const sync = snap?.raw?.sync ?? null;
+  const agentSkewSec = sync?.agent_time ? Math.round((now - new Date(sync.agent_time).getTime()) / 1000) : null;
+  const sampleAge = lastSampleAt ? Math.floor((now - new Date(lastSampleAt).getTime()) / 1000) : null;
+  const seenAge = site.last_seen_at ? Math.floor((now - new Date(site.last_seen_at).getTime()) / 1000) : null;
+  const fmtAge = (s: number | null) => s == null ? "—" : s < 60 ? `hace ${s}s` : s < 3600 ? `hace ${Math.floor(s/60)}m` : s < 86400 ? `hace ${Math.floor(s/3600)}h` : `hace ${Math.floor(s/86400)}d`;
+  const liveBadge = sampleAge != null && sampleAge < 30
+    ? <span className="rounded-full bg-success/15 px-2 py-0.5 text-xs font-semibold text-success">En vivo</span>
+    : sampleAge != null && sampleAge < 300
+    ? <span className="rounded-full bg-warning/15 px-2 py-0.5 text-xs font-semibold text-warning">Atrasado</span>
+    : <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-xs font-semibold text-destructive">Sin datos</span>;
 
   return (
     <div className="space-y-3 sm:space-y-4">
