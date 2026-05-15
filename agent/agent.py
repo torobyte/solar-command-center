@@ -530,6 +530,82 @@ class Agent:
         save_config(self.config)
         return data
 
+    # ---------- Pairing (6-char code) ----------
+    def request_pairing_code(self, force: bool = False) -> dict:
+        """Ask the cloud for a 6-char pairing code that the user types in 'Add site'.
+        The cloud is idempotent: if there's a live code for this hardware, it returns it.
+        We cache the result in agent state for the local UI to show."""
+        cached = getattr(self, "_pair_cache", None)
+        if cached and not force:
+            try:
+                exp = datetime.fromisoformat(cached["expires_at"].replace("Z","+00:00"))
+                if exp > datetime.now(timezone.utc) + timedelta(minutes=1):
+                    return cached
+            except Exception:
+                pass
+        try:
+            r = requests.post(
+                f"{self.config['cloud_url']}/api/public/pair-init",
+                json={
+                    "hardware_id": hardware_id(),
+                    "board_model": board_model(),
+                    "agent_version": AGENT_VERSION,
+                    "inverter_model": (self.snapshot or {}).get("inverter_model"),
+                    "inverter_serial": (self.snapshot or {}).get("inverter_serial"),
+                },
+                timeout=15,
+            )
+            r.raise_for_status()
+            data = r.json()
+            self._pair_cache = data
+            return data
+        except Exception as e:
+            print(f"[agent] pair-init error: {e}")
+            return {"error": str(e)}
+
+    # ---------- MQTT publisher (port 1883, e.g. Home Assistant) ----------
+    def start_mqtt_publisher(self):
+        """Publish telemetry to a local MQTT broker on 127.0.0.1:1883.
+        Topics: solarops/<hardware_id>/state (JSON snapshot every sample)."""
+        try:
+            import paho.mqtt.client as mqtt  # type: ignore
+        except Exception:
+            print("[agent] paho-mqtt not installed; MQTT disabled")
+            return
+
+        host = self.config.get("mqtt_host", "127.0.0.1")
+        port = int(self.config.get("mqtt_port", 1883))
+        hid = hardware_id()
+        topic_state = f"solarops/{hid}/state"
+        topic_avail = f"solarops/{hid}/availability"
+
+        def loop():
+            client = mqtt.Client(client_id=f"solarops-{hid}")
+            client.will_set(topic_avail, payload="offline", retain=True)
+            connected = False
+            while True:
+                if not connected:
+                    try:
+                        client.connect(host, port, keepalive=60)
+                        client.loop_start()
+                        client.publish(topic_avail, "online", retain=True)
+                        connected = True
+                        print(f"[agent] MQTT connected to {host}:{port}")
+                    except Exception as e:
+                        print(f"[agent] MQTT connect failed: {e}; retry in 30s")
+                        time.sleep(30)
+                        continue
+                try:
+                    with self.lock:
+                        payload = json.dumps(dict(self.latest))
+                    client.publish(topic_state, payload, retain=True)
+                except Exception as e:
+                    print(f"[agent] MQTT publish error: {e}")
+                    connected = False
+                time.sleep(int(self.config.get("mqtt_interval", 5)))
+
+        threading.Thread(target=loop, daemon=True).start()
+
 
 def hardware_id() -> str:
     for p in ("/sys/firmware/devicetree/base/serial-number","/etc/machine-id"):
