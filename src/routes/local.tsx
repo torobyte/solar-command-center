@@ -57,11 +57,45 @@ function LocalDashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   const lastRecordedAt = useRef<string | null>(null);
+  const bridgeActive = useRef(false);
+
+  // ---- Bridge postMessage: cuando esta página se carga dentro del wrapper
+  // del agente (HTTP) en un iframe HTTPS, los fetch directos al agente
+  // fallan por mixed-content. El padre los hace y nos los envía aquí.
+  useEffect(() => {
+    function onMsg(ev: MessageEvent) {
+      const d = ev?.data as { source?: string; type?: string; payload?: unknown } | null;
+      if (!d || d.source !== "solarops-agent") return;
+      bridgeActive.current = true;
+      setError(null);
+      if (d.type === "state") {
+        const j = d.payload as AgentState;
+        const incoming = j?.latest ?? null;
+        const key = incoming?.recorded_at ?? null;
+        if (key !== lastRecordedAt.current) {
+          lastRecordedAt.current = key;
+          setLatest(incoming);
+        }
+        if (j?.history) setHistory(j.history);
+        if (j?.totals_today) setTotals(j.totals_today);
+        if (j?.license) setLicense(j.license);
+      } else if (d.type === "pvconfig") {
+        setPvCfg({ site_id: "local", ...(d.payload as object) } as PvConfig);
+      }
+    }
+    window.addEventListener("message", onMsg);
+    // Avisamos al padre que estamos listos para recibir el último snapshot.
+    try { window.parent?.postMessage({ source: "solarops-local", type: "ready" }, "*"); } catch { /* noop */ }
+    return () => window.removeEventListener("message", onMsg);
+  }, []);
 
   useEffect(() => {
     if (!agentBase) return;
     let alive = true;
     async function pull() {
+      // Si el bridge está enviando datos, no compitas con fetches que el
+      // navegador bloquea por mixed-content.
+      if (bridgeActive.current) return;
       try {
         const r = await fetch(`${agentBase}/api/state`, { cache: "no-store" });
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -78,10 +112,11 @@ function LocalDashboardPage() {
         if (j.totals_today) setTotals(j.totals_today);
         if (j.license) setLicense(j.license);
       } catch (e) {
-        if (alive) setError((e as Error).message);
+        if (alive && !bridgeActive.current) setError((e as Error).message);
       }
     }
     async function pullPv() {
+      if (bridgeActive.current) return;
       try {
         const r = await fetch(`${agentBase}/api/pvconfig`, { cache: "no-store" });
         if (!r.ok) return;
@@ -94,6 +129,7 @@ function LocalDashboardPage() {
     const id = window.setInterval(pull, 1000);
     return () => { alive = false; window.clearInterval(id); };
   }, [agentBase]);
+
 
   const mode = formatInverterMode(latest?.inverter_mode);
   const fresh = latest?.recorded_at && (Date.now() - new Date(latest.recorded_at).getTime() < 60_000);
