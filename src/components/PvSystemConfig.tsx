@@ -319,7 +319,7 @@ function AddressPicker({ lat, lon, label, onPick, onGeolocate }: {
         {(lat != null && lon != null) && (
           <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 text-xs">
             <MapPin className="h-3.5 w-3.5 text-[var(--solar)]" />
-            <span className="font-medium">{resolvedLabel ?? "Ubicación seleccionada"}</span>
+            <span className="font-medium">{displayLabel ?? "Ubicación seleccionada"}</span>
             <span className="text-muted-foreground">· {lat.toFixed(4)}, {lon.toFixed(4)}</span>
           </div>
         )}
