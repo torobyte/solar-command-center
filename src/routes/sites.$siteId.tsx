@@ -202,9 +202,13 @@ function SiteDetail() {
     return q.eq("device_id", selectedDevice.id);
   }
 
-  async function load() {
+  async function loadSite() {
     const { data: s } = await supabase.from("sites").select("*").eq("id", siteId).maybeSingle();
     setSite(s as Site | null);
+  }
+
+  async function load() {
+    await loadSite();
 
     let tq = supabase
       .from("telemetry_samples")
@@ -224,6 +228,11 @@ function SiteDetail() {
       .limit(30);
     setTotals(((dt ?? []) as DailyTotal[]).reverse());
   }
+
+  // Always load the site row so the page renders even if no device has
+  // been registered yet (e.g. immediately after pairing, before the agent
+  // has pushed its first sample / device row).
+  useEffect(() => { loadSite(); }, [siteId]);
 
   useEffect(() => {
     if (!selectedDevice) return;
