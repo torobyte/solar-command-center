@@ -2029,7 +2029,14 @@ def make_app(agent: Agent) -> Flask:
                 unit("solarops-kiosk.service"),
                 unit("solarops-update.timer"),
                 unit("solarops-update.service"),
+                unit("mosquitto.service"),
             ],
+            "pairing": {
+                "linked": bool(agent.config.get("device_token")),
+                "site_id": agent.config.get("site_id"),
+                "code": (getattr(agent, "_pair_cache", None) or {}).get("code"),
+                "expires_at": (getattr(agent, "_pair_cache", None) or {}).get("expires_at"),
+            },
         })
 
     @app.get("/manifest.webmanifest")
