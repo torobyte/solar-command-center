@@ -71,8 +71,11 @@ function LocalDashboardPage() {
   const [history, setHistory] = useState<HistPoint[]>([]);
   const [totals, setTotals] = useState<TotalsToday | null>(null);
   const [license, setLicense] = useState<LicenseMeta | null>(null);
+  const [pairing, setPairing] = useState<PairInfo | null>(null);
+  const [linked, setLinked] = useState<boolean>(false);
   const [pvCfg, setPvCfg] = useState<PvConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [trialStart] = useState<number>(() => getLocalTrialStart());
 
   const lastRecordedAt = useRef<string | null>(null);
   const bridgeActive = useRef(false);
@@ -97,6 +100,8 @@ function LocalDashboardPage() {
         if (j?.history) setHistory(j.history);
         if (j?.totals_today) setTotals(j.totals_today);
         if (j?.license) setLicense(j.license);
+        if (j?.pairing !== undefined) setPairing(j.pairing ?? null);
+        if (typeof j?.linked === "boolean") setLinked(j.linked);
       } else if (d.type === "pvconfig") {
         setPvCfg({ site_id: "local", ...(d.payload as object) } as PvConfig);
       }
@@ -129,6 +134,8 @@ function LocalDashboardPage() {
         if (j.history) setHistory(j.history);
         if (j.totals_today) setTotals(j.totals_today);
         if (j.license) setLicense(j.license);
+        if (j.pairing !== undefined) setPairing(j.pairing ?? null);
+        if (typeof j.linked === "boolean") setLinked(j.linked);
       } catch (e) {
         if (alive && !bridgeActive.current) setError((e as Error).message);
       }
