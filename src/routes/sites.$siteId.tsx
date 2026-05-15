@@ -176,7 +176,7 @@ function SiteDetail() {
   const { siteId } = Route.useParams();
   const { t } = useI18n();
   const { user } = useAuth();
-  const { devices, selected: selectedDevice } = useDevices(siteId);
+  const { devices, selected: selectedDevice, loaded: devicesLoaded } = useDevices(siteId);
   const [site, setSite] = useState<Site | null>(null);
   const [latest, setLatest] = useState<Sample | null>(null);
   const [history, setHistory] = useState<Sample[]>([]);
@@ -185,9 +185,10 @@ function SiteDetail() {
 
   useNotificationWatcher(siteId, user?.id);
 
-  // device_id NULL on a row = legacy / primary device. So when the
-  // selected device is the primary one, accept rows whose device_id
-  // matches OR is NULL. Otherwise filter strictly to that device.
+  // device_id NULL on a row = legacy / primary device or rows ingested
+  // before any "devices" row existed. Treat the primary device — and the
+  // case where no device row exists at all — as "match device_id == id OR
+  // device_id IS NULL". Otherwise filter strictly to that device.
   const deviceFilter = useMemo(() => {
     if (!selectedDevice) return null;
     if (selectedDevice.is_primary) {
@@ -196,8 +197,8 @@ function SiteDetail() {
     return null; // non-primary handled with .eq below
   }, [selectedDevice]);
 
-  function applyDeviceFilter<T extends { eq: (col: string, v: unknown) => T; or: (q: string) => T }>(q: T): T {
-    if (!selectedDevice) return q;
+  function applyDeviceFilter<T extends { eq: (col: string, v: unknown) => T; or: (q: string) => T; is: (col: string, v: unknown) => T }>(q: T): T {
+    if (!selectedDevice) return q.is("device_id", null);
     if (selectedDevice.is_primary && deviceFilter) return q.or(deviceFilter);
     return q.eq("device_id", selectedDevice.id);
   }
@@ -235,22 +236,27 @@ function SiteDetail() {
   useEffect(() => { loadSite(); }, [siteId]);
 
   useEffect(() => {
-    if (!selectedDevice) return;
+    // Wait until useDevices has resolved so we know whether to filter by a
+    // device id or by "device_id IS NULL". Without this, samples ingested
+    // by the agent (which sends device_id=NULL) would never show up on
+    // sites that don't have a devices row yet.
+    if (!devicesLoaded) return;
     let alive = true;
     load();
 
-    // Unique channel name per effect run prevents reuse of an already-
-    // subscribed channel object (which silently fails to re-subscribe).
-    const chanName = `site-${siteId}-${selectedDevice.id}-${Math.random().toString(36).slice(2, 8)}`;
+    const devKey = selectedDevice?.id ?? "none";
+    const chanName = `site-${siteId}-${devKey}-${Math.random().toString(36).slice(2, 8)}`;
     const channel = supabase
       .channel(chanName)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "telemetry_samples", filter: `site_id=eq.${siteId}` },
         (payload) => {
           if (!alive) return;
           const row = payload.new as Sample & { device_id: string | null };
-          const matches = selectedDevice.is_primary
-            ? (row.device_id === selectedDevice.id || row.device_id == null)
-            : row.device_id === selectedDevice.id;
+          const matches = !selectedDevice
+            ? row.device_id == null
+            : selectedDevice.is_primary
+              ? (row.device_id === selectedDevice.id || row.device_id == null)
+              : row.device_id === selectedDevice.id;
           if (!matches) return;
           setLatest((prev) => mergeSample(prev, row));
           setHistory((h) => (h.length && h[h.length - 1].recorded_at === row.recorded_at) ? h : [...h.slice(-719), row]);
@@ -277,7 +283,7 @@ function SiteDetail() {
     const pollId = setInterval(poll, 1000);
     return () => { alive = false; supabase.removeChannel(channel); clearInterval(pollId); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [siteId, selectedDevice?.id, selectedDevice?.is_primary]);
+  }, [siteId, devicesLoaded, selectedDevice?.id, selectedDevice?.is_primary]);
 
   // Persisted smoothing options (per-browser).
   const [smoothMode, setSmoothMode] = useState<"off" | "mean" | "median">(
