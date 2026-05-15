@@ -462,6 +462,37 @@ class Agent:
                 print(f"[agent] license check error: {e}")
             time.sleep(60)
 
+    def pairing_loop(self):
+        """If we don't have a device_token, request a 6-char pairing code from the
+        cloud and poll /api/public/pair-status until the user claims it. Once
+        claimed, save the device_token + site_id and the loop exits."""
+        while True:
+            try:
+                if self.config.get("device_token"):
+                    return  # already linked
+                pc = self.request_pairing_code(force=False)
+                code = pc.get("code")
+                if not code:
+                    time.sleep(15); continue
+                r = requests.get(
+                    f"{self.config['cloud_url']}/api/public/pair-status",
+                    params={"code": code}, timeout=10,
+                )
+                if r.status_code == 200:
+                    body = r.json()
+                    if body.get("status") == "claimed":
+                        self.config["device_token"] = body["device_token"]
+                        self.config["site_id"] = body["site_id"]
+                        self.config["site_name"] = body.get("site_name") or self.config.get("site_name")
+                        save_config(self.config)
+                        print(f"[agent] paired \u2714 site={body['site_id']}")
+                        return
+                    if body.get("status") == "expired":
+                        self._pair_cache = None
+            except Exception as e:
+                print(f"[agent] pairing loop error: {e}")
+            time.sleep(5)
+
     def snapshot_loop(self):
         """Periodically push device snapshot (network/system/USB) and inverter
         spec (QPIRI/QID/QVFW) to the cloud so the Configuration tab fills in."""
