@@ -1075,10 +1075,32 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
   }
   window.addEventListener("message", function(ev){
     var d = ev && ev.data;
-    if (!d || d.source !== "solarops-local" || d.type !== "ready") return;
-    var w = frame.contentWindow; if (!w) return;
-    if (lastState) postTo(w, "state", lastState);
-    if (lastPv)    postTo(w, "pvconfig", lastPv);
+    if (!d || d.source !== "solarops-local") return;
+    var w = frame.contentWindow;
+    if (d.type === "ready") {
+      if (!w) return;
+      if (lastState) postTo(w, "state", lastState);
+      if (lastPv)    postTo(w, "pvconfig", lastPv);
+      return;
+    }
+    if (d.type === "fetch") {
+      (async () => {
+        try {
+          var init = { method: d.method || "GET", cache: "no-store" };
+          if (d.body != null) {
+            init.body = d.body;
+            init.headers = { "Content-Type": "application/json" };
+          }
+          var r = await fetch(d.path, init);
+          var text = await r.text();
+          var json = null;
+          try { json = JSON.parse(text); } catch(_) {}
+          if (w) postTo(w, "fetch:result", { id: d.id, ok: r.ok, status: r.status, json: json, text: text });
+        } catch(e) {
+          if (w) postTo(w, "fetch:result", { id: d.id, ok: false, status: 0, error: String((e && e.message) || e) });
+        }
+      })();
+    }
   });
   tick();
   setInterval(tick, 2000);
