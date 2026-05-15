@@ -2257,6 +2257,8 @@ def main():
     threading.Thread(target=agent.push_loop, daemon=True).start()
     threading.Thread(target=agent.license_loop, daemon=True).start()
     threading.Thread(target=agent.snapshot_loop, daemon=True).start()
+    if agent.config.get("mqtt_enabled", True):
+        agent.start_mqtt_publisher()
 
     app = make_app(agent)
     app.run(host="0.0.0.0", port=args.port, debug=False, use_reloader=False)
