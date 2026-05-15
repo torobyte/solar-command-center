@@ -84,13 +84,16 @@ export function DashboardGrid({ defs, state, onChange, render }: GridProps) {
   const dragId = useRef<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const [showHidden, setShowHidden] = useState(false);
-  // Which breakpoint width controls are currently editing.
+  // Selected breakpoint for editing widths AND for previewing the layout.
+  // `previewMode = true` (default cuando se elige un BP) fuerza la grilla a
+  // mostrarse exactamente como se vería en ese tamaño, ignorando el viewport real.
   const [editBp, setEditBp] = useState<Breakpoint>(() => {
     if (typeof window === "undefined") return "desktop";
     if (window.matchMedia("(max-width: 767px)").matches) return "mobile";
     if (window.matchMedia("(max-width: 1023px)").matches) return "tablet";
     return "desktop";
   });
+  const [previewMode, setPreviewMode] = useState(false);
 
   const visible = state.filter((w) => w.visible);
   const hidden = state.filter((w) => !w.visible);
