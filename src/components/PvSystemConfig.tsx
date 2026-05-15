@@ -22,6 +22,7 @@ export interface PvConfig {
   battery_voltage_each: number | null;
   battery_ah_each: number | null;
   battery_usable_dod_pct: number | null;
+  location_label?: string | null;
 }
 
 const BATTERY_TYPES: { v: string; l: string; dod: number }[] = [
@@ -71,6 +72,7 @@ export function PvSystemConfigCard({ siteId, maxAcOutputPower, nominalBatteryV }
     latitude: null, longitude: null,
     battery_count: null, battery_type: "lithium",
     battery_voltage_each: null, battery_ah_each: null, battery_usable_dod_pct: 90,
+    location_label: null,
   });
   const [saving, setSaving] = useState(false);
 
