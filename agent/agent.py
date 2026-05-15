@@ -2165,6 +2165,11 @@ def make_app(agent: Agent) -> Flask:
                 results.append({"command": cmd, "raw": raw, "ok": ok, "reply": reply})
             except Exception as e:
                 results.append({"command": cmd, "raw": raw, "ok": False, "error": str(e)})
+        try:
+            if any(r.get("ok") for r in results):
+                agent._refresh_spec_now()
+        except Exception:
+            pass
         return jsonify({"results": results})
 
     @app.get("/api/state")
