@@ -229,7 +229,7 @@ const STEPS: Step[] = [
   },
 ];
 
-export function InverterConfigWizard({ siteId }: { siteId: string }) {
+export function InverterConfigWizard({ siteId, agentBase }: { siteId: string; agentBase?: string }) {
   const [step, setStep] = useState(0);
   const [values, setValues] = useState<Record<string, string | number | boolean>>(() => {
     const v: Record<string, string | number | boolean> = {};
