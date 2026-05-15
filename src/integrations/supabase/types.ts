@@ -719,6 +719,59 @@ export type Database = {
           },
         ]
       }
+      pairing_codes: {
+        Row: {
+          agent_version: string | null
+          board_model: string | null
+          claimed_at: string | null
+          claimed_by_site: string | null
+          claimed_by_user: string | null
+          code: string
+          created_at: string
+          expires_at: string
+          hardware_id: string
+          id: string
+          inverter_model: string | null
+          inverter_serial: string | null
+        }
+        Insert: {
+          agent_version?: string | null
+          board_model?: string | null
+          claimed_at?: string | null
+          claimed_by_site?: string | null
+          claimed_by_user?: string | null
+          code: string
+          created_at?: string
+          expires_at?: string
+          hardware_id: string
+          id?: string
+          inverter_model?: string | null
+          inverter_serial?: string | null
+        }
+        Update: {
+          agent_version?: string | null
+          board_model?: string | null
+          claimed_at?: string | null
+          claimed_by_site?: string | null
+          claimed_by_user?: string | null
+          code?: string
+          created_at?: string
+          expires_at?: string
+          hardware_id?: string
+          id?: string
+          inverter_model?: string | null
+          inverter_serial?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pairing_codes_claimed_by_site_fkey"
+            columns: ["claimed_by_site"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plans: {
         Row: {
           active: boolean
@@ -836,6 +889,7 @@ export type Database = {
           battery_voltage_each: number | null
           device_id: string | null
           latitude: number | null
+          location_label: string | null
           longitude: number | null
           panel_count: number | null
           panel_watts: number | null
@@ -855,6 +909,7 @@ export type Database = {
           battery_voltage_each?: number | null
           device_id?: string | null
           latitude?: number | null
+          location_label?: string | null
           longitude?: number | null
           panel_count?: number | null
           panel_watts?: number | null
@@ -874,6 +929,7 @@ export type Database = {
           battery_voltage_each?: number | null
           device_id?: string | null
           latitude?: number | null
+          location_label?: string | null
           longitude?: number | null
           panel_count?: number | null
           panel_watts?: number | null
