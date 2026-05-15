@@ -292,7 +292,9 @@ function seedFromSpec(spec: SpecHint | null | undefined): Record<string, string 
   return v;
 }
 
-export function InverterConfigWizard({ siteId, agentBase, spec }: { siteId: string; agentBase?: string; spec?: SpecHint | null }) {
+type AgentFetcher = (path: string, init?: { method?: string; body?: unknown }) => Promise<{ ok: boolean; status: number; json: unknown; text?: string; error?: string }>;
+
+export function InverterConfigWizard({ siteId, agentBase, spec, agentFetch }: { siteId: string; agentBase?: string; spec?: SpecHint | null; agentFetch?: AgentFetcher }) {
   const [step, setStep] = useState(0);
   const [values, setValues] = useState<Record<string, string | number | boolean>>(() => seedFromSpec(spec));
   const [pending, setPending] = useState<string | null>(null);
