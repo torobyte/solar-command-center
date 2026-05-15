@@ -185,9 +185,10 @@ function SiteDetail() {
 
   useNotificationWatcher(siteId, user?.id);
 
-  // device_id NULL on a row = legacy / primary device. So when the
-  // selected device is the primary one, accept rows whose device_id
-  // matches OR is NULL. Otherwise filter strictly to that device.
+  // device_id NULL on a row = legacy / primary device or rows ingested
+  // before any "devices" row existed. Treat the primary device — and the
+  // case where no device row exists at all — as "match device_id == id OR
+  // device_id IS NULL". Otherwise filter strictly to that device.
   const deviceFilter = useMemo(() => {
     if (!selectedDevice) return null;
     if (selectedDevice.is_primary) {
@@ -196,8 +197,8 @@ function SiteDetail() {
     return null; // non-primary handled with .eq below
   }, [selectedDevice]);
 
-  function applyDeviceFilter<T extends { eq: (col: string, v: unknown) => T; or: (q: string) => T }>(q: T): T {
-    if (!selectedDevice) return q;
+  function applyDeviceFilter<T extends { eq: (col: string, v: unknown) => T; or: (q: string) => T; is: (col: string, v: unknown) => T }>(q: T): T {
+    if (!selectedDevice) return q.is("device_id", null);
     if (selectedDevice.is_primary && deviceFilter) return q.or(deviceFilter);
     return q.eq("device_id", selectedDevice.id);
   }
