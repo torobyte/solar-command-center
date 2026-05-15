@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SiteDashboardView, type DashboardSample, formatInverterMode } from "@/components/SiteDashboardView";
 import { InverterConfigWizard } from "@/components/InverterConfigWizard";
-import { PvSystemConfig, type PvConfig } from "@/components/PvSystemConfig";
+import { PvSystemConfigCard, type PvConfig } from "@/components/PvSystemConfig";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LangSwitcher } from "@/components/LangSwitcher";
 import {
