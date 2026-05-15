@@ -147,7 +147,7 @@ function LocalDashboardPage() {
         const key = incoming?.recorded_at ?? null;
         if (key !== lastRecordedAt.current) {
           lastRecordedAt.current = key;
-          setLatest(incoming);
+          setLatest((prev) => mergeDashboardSample(prev, incoming));
         }
         if (j.history) setHistory(j.history);
         if (j.totals_today) setTotals(j.totals_today);
