@@ -22,6 +22,8 @@ import { Route as ApiPublicWidgetRouteImport } from './routes/api/public/widget'
 import { Route as ApiPublicSnapshotRouteImport } from './routes/api/public/snapshot'
 import { Route as ApiPublicRegisterRouteImport } from './routes/api/public/register'
 import { Route as ApiPublicPushDispatchRouteImport } from './routes/api/public/push-dispatch'
+import { Route as ApiPublicPairStatusRouteImport } from './routes/api/public/pair-status'
+import { Route as ApiPublicPairInitRouteImport } from './routes/api/public/pair-init'
 import { Route as ApiPublicManifestRouteImport } from './routes/api/public/manifest'
 import { Route as ApiPublicLicenseStatusRouteImport } from './routes/api/public/license-status'
 import { Route as ApiPublicIngestRouteImport } from './routes/api/public/ingest'
@@ -94,6 +96,16 @@ const ApiPublicPushDispatchRoute = ApiPublicPushDispatchRouteImport.update({
   path: '/api/public/push-dispatch',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPairStatusRoute = ApiPublicPairStatusRouteImport.update({
+  id: '/api/public/pair-status',
+  path: '/api/public/pair-status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicPairInitRoute = ApiPublicPairInitRouteImport.update({
+  id: '/api/public/pair-init',
+  path: '/api/public/pair-init',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicManifestRoute = ApiPublicManifestRouteImport.update({
   id: '/api/public/manifest',
   path: '/api/public/manifest',
@@ -141,6 +153,8 @@ export interface FileRoutesByFullPath {
   '/api/public/ingest': typeof ApiPublicIngestRoute
   '/api/public/license-status': typeof ApiPublicLicenseStatusRoute
   '/api/public/manifest': typeof ApiPublicManifestRoute
+  '/api/public/pair-init': typeof ApiPublicPairInitRoute
+  '/api/public/pair-status': typeof ApiPublicPairStatusRoute
   '/api/public/push-dispatch': typeof ApiPublicPushDispatchRoute
   '/api/public/register': typeof ApiPublicRegisterRoute
   '/api/public/snapshot': typeof ApiPublicSnapshotRoute
@@ -162,6 +176,8 @@ export interface FileRoutesByTo {
   '/api/public/ingest': typeof ApiPublicIngestRoute
   '/api/public/license-status': typeof ApiPublicLicenseStatusRoute
   '/api/public/manifest': typeof ApiPublicManifestRoute
+  '/api/public/pair-init': typeof ApiPublicPairInitRoute
+  '/api/public/pair-status': typeof ApiPublicPairStatusRoute
   '/api/public/push-dispatch': typeof ApiPublicPushDispatchRoute
   '/api/public/register': typeof ApiPublicRegisterRoute
   '/api/public/snapshot': typeof ApiPublicSnapshotRoute
@@ -184,6 +200,8 @@ export interface FileRoutesById {
   '/api/public/ingest': typeof ApiPublicIngestRoute
   '/api/public/license-status': typeof ApiPublicLicenseStatusRoute
   '/api/public/manifest': typeof ApiPublicManifestRoute
+  '/api/public/pair-init': typeof ApiPublicPairInitRoute
+  '/api/public/pair-status': typeof ApiPublicPairStatusRoute
   '/api/public/push-dispatch': typeof ApiPublicPushDispatchRoute
   '/api/public/register': typeof ApiPublicRegisterRoute
   '/api/public/snapshot': typeof ApiPublicSnapshotRoute
@@ -207,6 +225,8 @@ export interface FileRouteTypes {
     | '/api/public/ingest'
     | '/api/public/license-status'
     | '/api/public/manifest'
+    | '/api/public/pair-init'
+    | '/api/public/pair-status'
     | '/api/public/push-dispatch'
     | '/api/public/register'
     | '/api/public/snapshot'
@@ -228,6 +248,8 @@ export interface FileRouteTypes {
     | '/api/public/ingest'
     | '/api/public/license-status'
     | '/api/public/manifest'
+    | '/api/public/pair-init'
+    | '/api/public/pair-status'
     | '/api/public/push-dispatch'
     | '/api/public/register'
     | '/api/public/snapshot'
@@ -249,6 +271,8 @@ export interface FileRouteTypes {
     | '/api/public/ingest'
     | '/api/public/license-status'
     | '/api/public/manifest'
+    | '/api/public/pair-init'
+    | '/api/public/pair-status'
     | '/api/public/push-dispatch'
     | '/api/public/register'
     | '/api/public/snapshot'
@@ -271,6 +295,8 @@ export interface RootRouteChildren {
   ApiPublicIngestRoute: typeof ApiPublicIngestRoute
   ApiPublicLicenseStatusRoute: typeof ApiPublicLicenseStatusRoute
   ApiPublicManifestRoute: typeof ApiPublicManifestRoute
+  ApiPublicPairInitRoute: typeof ApiPublicPairInitRoute
+  ApiPublicPairStatusRoute: typeof ApiPublicPairStatusRoute
   ApiPublicPushDispatchRoute: typeof ApiPublicPushDispatchRoute
   ApiPublicRegisterRoute: typeof ApiPublicRegisterRoute
   ApiPublicSnapshotRoute: typeof ApiPublicSnapshotRoute
@@ -370,6 +396,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPushDispatchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/pair-status': {
+      id: '/api/public/pair-status'
+      path: '/api/public/pair-status'
+      fullPath: '/api/public/pair-status'
+      preLoaderRoute: typeof ApiPublicPairStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/pair-init': {
+      id: '/api/public/pair-init'
+      path: '/api/public/pair-init'
+      fullPath: '/api/public/pair-init'
+      preLoaderRoute: typeof ApiPublicPairInitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/manifest': {
       id: '/api/public/manifest'
       path: '/api/public/manifest'
@@ -431,6 +471,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicIngestRoute: ApiPublicIngestRoute,
   ApiPublicLicenseStatusRoute: ApiPublicLicenseStatusRoute,
   ApiPublicManifestRoute: ApiPublicManifestRoute,
+  ApiPublicPairInitRoute: ApiPublicPairInitRoute,
+  ApiPublicPairStatusRoute: ApiPublicPairStatusRoute,
   ApiPublicPushDispatchRoute: ApiPublicPushDispatchRoute,
   ApiPublicRegisterRoute: ApiPublicRegisterRoute,
   ApiPublicSnapshotRoute: ApiPublicSnapshotRoute,
