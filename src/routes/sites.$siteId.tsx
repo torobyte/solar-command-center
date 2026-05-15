@@ -341,7 +341,8 @@ function SiteDetail() {
           <TabsTrigger value="config" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Settings2 className="h-3.5 w-3.5" strokeWidth={2.2} />Configuration</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="dashboard" className="mt-6">
+        <TabsContent value="dashboard" className="mt-6 space-y-6">
+          <QuickActions siteId={siteId} />
           <DashboardView latest={latest} siteId={siteId} spec={null} device={selectedDevice} />
           {!latest && (
             <div className="mt-8 rounded-lg border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">
