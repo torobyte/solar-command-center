@@ -211,7 +211,14 @@ export function DashboardGrid({ defs, state, onChange, render }: GridProps) {
         </div>
       )}
 
-      <div className="grid grid-cols-4 gap-2 md:grid-cols-8 md:gap-3 lg:grid-cols-12 lg:gap-4">
+      <div className={previewMode ? "mx-auto " + PREVIEW_MAX_WIDTH[editBp] : ""}>
+        <div
+          className={
+            previewMode
+              ? `grid ${GRID_COLS_FORCED[editBp]} rounded-2xl border border-dashed border-accent/30 bg-muted/10 p-2`
+              : "grid grid-cols-4 gap-2 md:grid-cols-8 md:gap-3 lg:grid-cols-12 lg:gap-4"
+          }
+        >
         {visible.map((w) => {
           const def = defs.find((d) => d.id === w.id);
           if (!def) return null;
@@ -220,6 +227,9 @@ export function DashboardGrid({ defs, state, onChange, render }: GridProps) {
           const wd = getWidth(w, "desktop");
           const isOver = overId === w.id;
           const currentForBp = getWidth(w, editBp);
+          const colClasses = previewMode
+            ? COL_MAP_FORCED[editBp][getWidth(w, editBp)]
+            : `${COL_MAP.mobile[wm]} ${COL_MAP.tablet[wt]} ${COL_MAP.desktop[wd]}`;
           return (
             <div
               key={w.id}
@@ -231,7 +241,7 @@ export function DashboardGrid({ defs, state, onChange, render }: GridProps) {
               onDragEnd={() => { dragId.current = null; setOverId(null); }}
               className={[
                 "@container group relative transition-all min-w-0",
-                COL_MAP.mobile[wm], COL_MAP.tablet[wt], COL_MAP.desktop[wd],
+                colClasses,
                 isOver ? "ring-2 ring-accent/60 ring-offset-2 ring-offset-background rounded-2xl -translate-y-0.5" : "",
               ].join(" ")}
             >
