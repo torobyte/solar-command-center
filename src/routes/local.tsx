@@ -25,20 +25,38 @@ export const Route = createFileRoute("/local")({
   component: LocalDashboardPage,
 });
 
-interface LicenseMeta { plan?: string; site_name?: string; site_id?: string }
+interface LicenseMeta { plan?: string; site_name?: string; site_id?: string; license_expires_at?: string | null }
 interface HistPoint { t: string; pv: number | null; load: number | null; soc: number | null; grid: number | null }
 interface TotalsToday {
   pv_kwh: number; load_kwh: number; grid_used_kwh: number;
   battery_charged_kwh: number; battery_discharged_kwh: number;
 }
+interface PairInfo { code?: string | null; expires_at?: string | null; linked?: boolean }
 interface AgentState {
   latest: DashboardSample | null;
   license?: LicenseMeta | null;
   history?: HistPoint[];
   totals_today?: TotalsToday;
+  pairing?: PairInfo | null;
+  linked?: boolean;
 }
 
 type LocalTab = "dashboard" | "charts" | "totals" | "config";
+
+const TRIAL_DAYS = 30;
+const TRIAL_KEY = "local.trialStartedAt";
+
+function getLocalTrialStart(): number {
+  if (typeof window === "undefined") return Date.now();
+  const stored = localStorage.getItem(TRIAL_KEY);
+  if (stored) {
+    const n = Number(stored);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  const now = Date.now();
+  localStorage.setItem(TRIAL_KEY, String(now));
+  return now;
+}
 
 function LocalDashboardPage() {
   const search = Route.useSearch();
