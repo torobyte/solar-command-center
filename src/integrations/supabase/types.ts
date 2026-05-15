@@ -948,6 +948,69 @@ export type Database = {
           },
         ]
       }
+      site_invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          role: Database["public"]["Enums"]["site_member_role"]
+          site_id: string
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          role?: Database["public"]["Enums"]["site_member_role"]
+          site_id: string
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          role?: Database["public"]["Enums"]["site_member_role"]
+          site_id?: string
+          token?: string
+        }
+        Relationships: []
+      }
+      site_members: {
+        Row: {
+          created_at: string
+          id: string
+          invited_email: string | null
+          role: Database["public"]["Enums"]["site_member_role"]
+          site_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invited_email?: string | null
+          role?: Database["public"]["Enums"]["site_member_role"]
+          site_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invited_email?: string | null
+          role?: Database["public"]["Enums"]["site_member_role"]
+          site_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sites: {
         Row: {
           created_at: string
@@ -1171,10 +1234,27 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_site_access: {
+        Args: {
+          _min_role?: Database["public"]["Enums"]["site_member_role"]
+          _site: string
+          _user: string
+        }
+        Returns: boolean
+      }
+      is_site_member: {
+        Args: {
+          _min_role?: Database["public"]["Enums"]["site_member_role"]
+          _site: string
+          _user: string
+        }
+        Returns: boolean
+      }
       refresh_all_today_totals: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "superadmin" | "user"
+      site_member_role: "viewer" | "operator" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1303,6 +1383,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["superadmin", "user"],
+      site_member_role: ["viewer", "operator", "admin"],
     },
   },
 } as const
