@@ -298,19 +298,25 @@ export function InverterConfigWizard({ siteId, agentBase, spec, agentFetch }: { 
   const [step, setStep] = useState(0);
   const [values, setValues] = useState<Record<string, string | number | boolean>>(() => seedFromSpec(spec));
   const [pending, setPending] = useState<string | null>(null);
+  // Keys que el usuario tocó manualmente — NO se sobrescriben con datos del inversor
+  // hasta que se aplique el comando (entonces se limpia el touched para ese key).
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
-  // Re-seed when fresh spec arrives (avoid clobbering user edits — only fill
-  // keys that still hold the static defaults).
-  const specKey = spec ? `${spec.output_source_priority}|${spec.charger_source_priority}|${spec.max_ac_charge_current}|${spec.max_charge_current}|${spec.battery_type}|${spec.input_voltage_range}` : "";
+  function setField(key: string, val: string | number | boolean) {
+    setValues((v) => ({ ...v, [key]: val }));
+    setTouched((t) => ({ ...t, [key]: true }));
+  }
+
+  // Re-seed cuando llega spec fresco. Respeta cualquier campo que el usuario
+  // haya tocado pero aún no aplicado, para que las selecciones no "salten".
+  const specKey = spec ? `${spec.output_source_priority}|${spec.charger_source_priority}|${spec.max_ac_charge_current}|${spec.max_charge_current}|${spec.battery_type}|${spec.input_voltage_range}|${spec.expected_ac_input_voltage}` : "";
   useEffect(() => {
     if (!spec) return;
     setValues((prev) => {
       const seeded = seedFromSpec(spec);
       const next = { ...prev };
-      const defaults: Record<string, string | number | boolean> = {};
-      for (const s of STEPS) for (const f of s.fields) defaults[f.key] = f.defaultValue;
       for (const k of Object.keys(seeded)) {
-        if (next[k] === defaults[k]) next[k] = seeded[k];
+        if (!touched[k]) next[k] = seeded[k];
       }
       return next;
     });
@@ -358,6 +364,9 @@ export function InverterConfigWizard({ siteId, agentBase, spec, agentFetch }: { 
         if (error) toast.error(error.message);
         else toast.success(`${field.label} encolado`);
       }
+      // Comando enviado: liberar el campo para que el próximo refresh del
+      // inversor lo sincronice con el valor real.
+      setTouched((t) => { const n = { ...t }; delete n[field.key]; return n; });
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -386,6 +395,12 @@ export function InverterConfigWizard({ siteId, agentBase, spec, agentFetch }: { 
         if (error) toast.error(error.message);
         else toast.success(`${rows.length} comando(s) encolado(s)`);
       }
+      // Liberar todos los campos del paso para que el próximo refresh los sincronice.
+      setTouched((t) => {
+        const n = { ...t };
+        for (const f of current.fields) delete n[f.key];
+        return n;
+      });
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -456,7 +471,7 @@ export function InverterConfigWizard({ siteId, agentBase, spec, agentFetch }: { 
                   {field.kind === "select" && (
                     <select
                       value={String(values[field.key])}
-                      onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))}
+                      onChange={(e) => setField(field.key, e.target.value)}
                       className="flex-1 rounded-md border bg-background px-3 py-2 text-sm"
                     >
                       {field.options.map((o) => (
@@ -470,7 +485,7 @@ export function InverterConfigWizard({ siteId, agentBase, spec, agentFetch }: { 
                         type="number"
                         min={field.min} max={field.max} step={field.step}
                         value={Number(values[field.key])}
-                        onChange={(e) => setValues((v) => ({ ...v, [field.key]: parseFloat(e.target.value) || field.defaultValue }))}
+                        onChange={(e) => setField(field.key, parseFloat(e.target.value) || field.defaultValue)}
                         className="h-9"
                       />
                       <span className="text-xs text-muted-foreground w-8">{field.unit}</span>
@@ -481,7 +496,7 @@ export function InverterConfigWizard({ siteId, agentBase, spec, agentFetch }: { 
                       <input
                         type="checkbox"
                         checked={!!values[field.key]}
-                        onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.checked }))}
+                        onChange={(e) => setField(field.key, e.target.checked)}
                         className="h-4 w-4"
                       />
                       <span className="text-sm">{values[field.key] ? "Habilitado" : "Deshabilitado"}</span>
