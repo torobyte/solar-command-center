@@ -783,9 +783,8 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
 <div id="boot">
   <div class="logo">SolarOps</div>
   <div class="spin"></div>
-  <div class="sub" id="bootMsg">Verificando agente local…</div>
-  <a class="btn" href="/legacy" id="fallbackBtn" style="display:none">Abrir panel local (offline)</a>
-  <a class="btn" href="#" id="toLegacyBtn" onclick="switchMode('legacy');return false;">Cambiar a modo legacy</a>
+  <div class="sub" id="bootMsg">Conectando con el panel cloud…</div>
+  <a class="btn" href="#" onclick="location.reload();return false;">Reintentar</a>
   <a class="btn" href="/status" style="background:transparent">Diagnóstico del agente</a>
 </div>
 <iframe id="frame" allow="fullscreen; clipboard-write" referrerpolicy="no-referrer"></iframe>
@@ -797,83 +796,28 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
   var frame  = document.getElementById("frame");
   var boot   = document.getElementById("boot");
   var msg    = document.getElementById("bootMsg");
-  var fb     = document.getElementById("fallbackBtn");
+  var ready  = false;
 
-  // Mixed content: si esta página se sirvió por HTTPS pero el agente vive
-  // en HTTP (caso típico en LAN), el navegador bloqueará los fetch
-  // HTTPS→HTTP del iframe cloud. Detectamos eso y vamos directo al panel
-  // local — sin iframe, sin esperar timeouts.
-  var pageIsHttps  = window.location.protocol === "https:";
-  var agentIsHttp  = origin.indexOf("http://") === 0;
-  var mixedContent = pageIsHttps && agentIsHttp;
-
-  var ready = false;
-  function goLegacy(reason){
-    if (ready) return;
-    msg.textContent = reason || "Mostrando el panel local.";
-    fb.style.display = "inline-block";
-    setTimeout(function(){ if(!ready) window.location.replace("/legacy"); }, 800);
-  }
-
-  // 1) Healthcheck del propio agente. Si esto falla, nada más tiene sentido.
-  fetch("/api/health", { cache:"no-store" })
-    .then(function(r){ return r.ok ? r.json() : Promise.reject(new Error("health "+r.status)); })
-    .then(function(h){
-      // Si el usuario eligió modo legacy explícitamente, ir directo.
-      if (h && h.ui_mode === "legacy") { window.location.replace("/legacy"); return; }
-      if (mixedContent) { goLegacy("Conexión segura no disponible — usando panel local."); return; }
-      msg.textContent = h && h.has_inverter_data
-        ? "Conectando con el panel cloud…"
-        : "Esperando primer dato del inversor…";
-      probeCloud();
-    })
-    .catch(function(e){
-      msg.textContent = "Agente local no responde (" + (e && e.message || "error") + ").";
-      fb.style.display = "inline-block";
-    });
-
-  // 2) Probe de internet hecho desde el AGENTE (TCP a 1.1.1.1:53). Esto
-  // evita falsos negativos por CORS / mixed-content / DNS lento del navegador
-  // que aparecían cuando se hacía el probe directo al cloud desde el cliente.
-  function probeCloud(){
-    var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
-    var to = setTimeout(function(){ if(ctrl) ctrl.abort(); }, 6000);
-    fetch("/api/internet", { cache:"no-store", signal: ctrl ? ctrl.signal : undefined })
-      .then(function(r){ return r.json(); })
-      .then(function(j){
-        clearTimeout(to);
-        if (j && j.online) loadIframe();
-        else goLegacy("Sin internet en el dispositivo. Cargando panel local.");
-      })
-      .catch(function(){ clearTimeout(to); goLegacy("No se pudo verificar internet. Cargando panel local."); });
-  }
-
-  // Botón global para alternar modo y persistirlo en el agente.
-  window.switchMode = function(mode){
-    fetch("/api/mode", {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ ui_mode: mode })
-    }).finally(function(){
-      window.location.replace(mode === "legacy" ? "/legacy" : "/");
-    });
-  };
-
+  // Cargamos directo el cloud /local. Si el navegador bloquea por
+  // mixed-content (HTTPS->HTTP del agente), aún así el iframe se intentará
+  // cargar y los fetches se harán mediante el bridge postMessage.
   function loadIframe(){
-    var deadline = setTimeout(function(){ goLegacy("Cloud no respondió a tiempo."); }, 2500);
+    var deadline = setTimeout(function(){
+      msg.textContent = "El panel cloud no respondió. Verifica conexión a internet y reintenta.";
+    }, 8000);
     frame.addEventListener("load", function(){
-      try {
-        var href = frame.contentWindow && frame.contentWindow.location && frame.contentWindow.location.href;
-        if (href && href.indexOf("about:blank") === 0) return;
-      } catch(_) { /* cross-origin = bien, cargó el cloud */ }
       clearTimeout(deadline);
       ready = true;
       frame.classList.add("ready");
       boot.style.display = "none";
     });
-    frame.addEventListener("error", function(){ goLegacy("Error cargando el panel cloud."); });
+    frame.addEventListener("error", function(){
+      msg.textContent = "Error cargando el panel cloud.";
+    });
     frame.src = url;
     setTimeout(tick, 500);
   }
+  loadIframe();
 
   // ---- Bridge postMessage: el padre (mismo origen que /api/*) hace los
   // fetches y se los pasa al iframe HTTPS para sortear mixed-content.
