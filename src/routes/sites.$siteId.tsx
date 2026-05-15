@@ -559,34 +559,9 @@ function ConfigurationView({ site }: { site: Site }) {
 
       <Section title="Configuración remota del inversor" icon={SlidersHorizontal}>
         <p className="mb-4 text-sm text-muted-foreground">
-          Los cambios se envían a la Raspberry y se aplican al inversor mediante comandos Voltronic.
+          Asistente paso a paso. Los cambios se envían a la Raspberry y se aplican al inversor mediante comandos Voltronic.
         </p>
-        <SettingControl label="Prioridad de salida (POP)"
-          options={[
-            { v: "00", l: "Utility first" },
-            { v: "01", l: "Solar first" },
-            { v: "02", l: "SBU (Solar→Batería→Utility)" },
-          ]}
-          onApply={(v) => sendCommand("set_output_priority", { value: v })} />
-        <SettingControl label="Prioridad de carga (PCP)"
-          options={[
-            { v: "00", l: "Utility first" },
-            { v: "01", l: "Solar first" },
-            { v: "02", l: "Solar y Utility" },
-            { v: "03", l: "Solo Solar" },
-          ]}
-          onApply={(v) => sendCommand("set_charger_priority", { value: v })} />
-        <SettingControl label="Rango voltaje AC entrada"
-          options={[{ v: "appliance", l: "Appliance (170–280 V)" }, { v: "ups", l: "UPS (90–280 V)" }]}
-          onApply={(v) => sendCommand("set_input_range", { value: v })} />
-        <NumberControl label="Corriente máx. de carga (A)" min={10} max={100} step={10} defaultValue={40}
-          onApply={(n) => sendCommand("set_max_charge_current", { amps: n })} />
-        <NumberControl label="Corriente máx. carga AC (A)" min={2} max={30} step={2} defaultValue={20}
-          onApply={(n) => sendCommand("set_max_ac_charge_current", { amps: n })} />
-        <NumberControl label="Voltaje volver a batería (V)" min={44} max={51} step={0.1} defaultValue={48}
-          onApply={(n) => sendCommand("set_back_to_battery_voltage", { volts: n })} />
-        <NumberControl label="Voltaje a red (V)" min={44} max={51} step={0.1} defaultValue={47}
-          onApply={(n) => sendCommand("set_back_to_grid_voltage", { volts: n })} />
+        <InverterConfigWizard siteId={site.id} />
 
         <div className="mt-6">
           <h4 className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><Terminal className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2.2} /> Últimos comandos</h4>
@@ -610,6 +585,7 @@ function ConfigurationView({ site }: { site: Site }) {
           )}
         </div>
       </Section>
+
 
       <Section title="Estado de red" icon={Wifi}>
         {snap ? (
