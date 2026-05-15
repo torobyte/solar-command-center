@@ -20,7 +20,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as SitesSiteIdRouteImport } from './routes/sites.$siteId'
 import { Route as ApiPublicWidgetRouteImport } from './routes/api/public/widget'
 import { Route as ApiPublicSnapshotRouteImport } from './routes/api/public/snapshot'
-import { Route as ApiPublicRegisterRouteImport } from './routes/api/public/register'
 import { Route as ApiPublicPushDispatchRouteImport } from './routes/api/public/push-dispatch'
 import { Route as ApiPublicPairStatusRouteImport } from './routes/api/public/pair-status'
 import { Route as ApiPublicPairInitRouteImport } from './routes/api/public/pair-init'
@@ -87,11 +86,6 @@ const ApiPublicWidgetRoute = ApiPublicWidgetRouteImport.update({
 const ApiPublicSnapshotRoute = ApiPublicSnapshotRouteImport.update({
   id: '/api/public/snapshot',
   path: '/api/public/snapshot',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicRegisterRoute = ApiPublicRegisterRouteImport.update({
-  id: '/api/public/register',
-  path: '/api/public/register',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicPushDispatchRoute = ApiPublicPushDispatchRouteImport.update({
@@ -174,7 +168,6 @@ export interface FileRoutesByFullPath {
   '/api/public/pair-init': typeof ApiPublicPairInitRoute
   '/api/public/pair-status': typeof ApiPublicPairStatusRoute
   '/api/public/push-dispatch': typeof ApiPublicPushDispatchRoute
-  '/api/public/register': typeof ApiPublicRegisterRoute
   '/api/public/snapshot': typeof ApiPublicSnapshotRoute
   '/api/public/widget': typeof ApiPublicWidgetRoute
   '/api/public/agent/agent': typeof ApiPublicAgentAgentRoute
@@ -200,7 +193,6 @@ export interface FileRoutesByTo {
   '/api/public/pair-init': typeof ApiPublicPairInitRoute
   '/api/public/pair-status': typeof ApiPublicPairStatusRoute
   '/api/public/push-dispatch': typeof ApiPublicPushDispatchRoute
-  '/api/public/register': typeof ApiPublicRegisterRoute
   '/api/public/snapshot': typeof ApiPublicSnapshotRoute
   '/api/public/widget': typeof ApiPublicWidgetRoute
   '/api/public/agent/agent': typeof ApiPublicAgentAgentRoute
@@ -227,7 +219,6 @@ export interface FileRoutesById {
   '/api/public/pair-init': typeof ApiPublicPairInitRoute
   '/api/public/pair-status': typeof ApiPublicPairStatusRoute
   '/api/public/push-dispatch': typeof ApiPublicPushDispatchRoute
-  '/api/public/register': typeof ApiPublicRegisterRoute
   '/api/public/snapshot': typeof ApiPublicSnapshotRoute
   '/api/public/widget': typeof ApiPublicWidgetRoute
   '/api/public/agent/agent': typeof ApiPublicAgentAgentRoute
@@ -255,7 +246,6 @@ export interface FileRouteTypes {
     | '/api/public/pair-init'
     | '/api/public/pair-status'
     | '/api/public/push-dispatch'
-    | '/api/public/register'
     | '/api/public/snapshot'
     | '/api/public/widget'
     | '/api/public/agent/agent'
@@ -281,7 +271,6 @@ export interface FileRouteTypes {
     | '/api/public/pair-init'
     | '/api/public/pair-status'
     | '/api/public/push-dispatch'
-    | '/api/public/register'
     | '/api/public/snapshot'
     | '/api/public/widget'
     | '/api/public/agent/agent'
@@ -307,7 +296,6 @@ export interface FileRouteTypes {
     | '/api/public/pair-init'
     | '/api/public/pair-status'
     | '/api/public/push-dispatch'
-    | '/api/public/register'
     | '/api/public/snapshot'
     | '/api/public/widget'
     | '/api/public/agent/agent'
@@ -334,7 +322,6 @@ export interface RootRouteChildren {
   ApiPublicPairInitRoute: typeof ApiPublicPairInitRoute
   ApiPublicPairStatusRoute: typeof ApiPublicPairStatusRoute
   ApiPublicPushDispatchRoute: typeof ApiPublicPushDispatchRoute
-  ApiPublicRegisterRoute: typeof ApiPublicRegisterRoute
   ApiPublicSnapshotRoute: typeof ApiPublicSnapshotRoute
   ApiPublicWidgetRoute: typeof ApiPublicWidgetRoute
   ApiPublicAgentAgentRoute: typeof ApiPublicAgentAgentRoute
@@ -419,13 +406,6 @@ declare module '@tanstack/react-router' {
       path: '/api/public/snapshot'
       fullPath: '/api/public/snapshot'
       preLoaderRoute: typeof ApiPublicSnapshotRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/register': {
-      id: '/api/public/register'
-      path: '/api/public/register'
-      fullPath: '/api/public/register'
-      preLoaderRoute: typeof ApiPublicRegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/push-dispatch': {
@@ -534,7 +514,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicPairInitRoute: ApiPublicPairInitRoute,
   ApiPublicPairStatusRoute: ApiPublicPairStatusRoute,
   ApiPublicPushDispatchRoute: ApiPublicPushDispatchRoute,
-  ApiPublicRegisterRoute: ApiPublicRegisterRoute,
   ApiPublicSnapshotRoute: ApiPublicSnapshotRoute,
   ApiPublicWidgetRoute: ApiPublicWidgetRoute,
   ApiPublicAgentAgentRoute: ApiPublicAgentAgentRoute,
@@ -544,3 +523,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
