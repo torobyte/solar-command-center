@@ -637,14 +637,50 @@ function ConfigurationView({ site, subTab, onSubTabChange }: { site: Site; subTa
   return (
     <Tabs value={subTab} onValueChange={onSubTabChange} className="w-full">
       <TabsList className="flex w-full flex-wrap gap-1 rounded-full bg-muted/50 p-1 h-auto">
-        <TabsTrigger value="inverter" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Cpu className="h-3.5 w-3.5" strokeWidth={2.2} />Inversor</TabsTrigger>
-        <TabsTrigger value="pv" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={2.2} />Sistema PV</TabsTrigger>
+        <TabsTrigger value="inverter" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={2.2} />Inversor</TabsTrigger>
+        <TabsTrigger value="spec" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Cpu className="h-3.5 w-3.5" strokeWidth={2.2} />Especificaciones</TabsTrigger>
+        <TabsTrigger value="pv" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Sun className="h-3.5 w-3.5" strokeWidth={2.2} />Sistema PV</TabsTrigger>
         <TabsTrigger value="diagnostics" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Wifi className="h-3.5 w-3.5" strokeWidth={2.2} />Diagnóstico</TabsTrigger>
         <TabsTrigger value="sharing" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Share2 className="h-3.5 w-3.5" strokeWidth={2.2} />Compartir</TabsTrigger>
         <TabsTrigger value="install" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Download className="h-3.5 w-3.5" strokeWidth={2.2} />Instalación</TabsTrigger>
       </TabsList>
 
       <TabsContent value="inverter" className="mt-6 space-y-4">
+        <Section title="Configuración remota del inversor" icon={SlidersHorizontal}>
+          <p className="mb-4 text-sm text-muted-foreground">
+            Asistente paso a paso. Los valores iniciales se cargan desde el inversor (QPIRI). Cambia solo lo que necesites y aplícalo.
+          </p>
+          <InverterConfigWizard siteId={site.id} spec={spec} />
+
+          <div className="mt-6">
+            <QuickActionsConfigCard siteId={site.id} />
+          </div>
+
+          <div className="mt-6">
+            <h4 className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><Terminal className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2.2} /> Últimos comandos</h4>
+            {commands.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Sin comandos enviados todavía.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {commands.map((c) => (
+                  <div key={c.id} className="flex items-center justify-between rounded-lg border bg-background px-3 py-2 text-xs">
+                    <div className="font-mono truncate">{c.command} {JSON.stringify(c.payload)}</div>
+                    <span className={`ml-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium ${
+                      c.status === "done" ? "bg-success/15 text-success" :
+                      c.status === "failed" ? "bg-destructive/15 text-destructive" :
+                      "bg-muted text-muted-foreground"
+                    }`}>
+                      {c.status}{c.error ? ` — ${c.error}` : ""}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Section>
+      </TabsContent>
+
+      <TabsContent value="spec" className="mt-6 space-y-4">
         <Section title="Especificación del inversor" icon={Cpu}>
           {spec ? (
             <div className="space-y-5">
@@ -704,39 +740,6 @@ function ConfigurationView({ site, subTab, onSubTabChange }: { site: Site; subTa
           ) : (
             <SectionSkeleton />
           )}
-        </Section>
-
-        <Section title="Configuración remota del inversor" icon={SlidersHorizontal}>
-          <p className="mb-4 text-sm text-muted-foreground">
-            Asistente paso a paso. Los cambios se envían a la Raspberry y se aplican al inversor mediante comandos Voltronic.
-          </p>
-          <InverterConfigWizard siteId={site.id} />
-
-          <div className="mt-6">
-            <QuickActionsConfigCard siteId={site.id} />
-          </div>
-
-          <div className="mt-6">
-            <h4 className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><Terminal className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2.2} /> Últimos comandos</h4>
-            {commands.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Sin comandos enviados todavía.</p>
-            ) : (
-              <div className="space-y-1.5">
-                {commands.map((c) => (
-                  <div key={c.id} className="flex items-center justify-between rounded-lg border bg-background px-3 py-2 text-xs">
-                    <div className="font-mono truncate">{c.command} {JSON.stringify(c.payload)}</div>
-                    <span className={`ml-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium ${
-                      c.status === "done" ? "bg-success/15 text-success" :
-                      c.status === "failed" ? "bg-destructive/15 text-destructive" :
-                      "bg-muted text-muted-foreground"
-                    }`}>
-                      {c.status}{c.error ? ` — ${c.error}` : ""}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </Section>
       </TabsContent>
 
