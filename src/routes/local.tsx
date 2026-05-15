@@ -98,6 +98,8 @@ function LocalDashboardPage() {
   const [pvCfg, setPvCfg] = useState<PvConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [trialStart] = useState<number>(() => getLocalTrialStart());
+  const [agentInfo, setAgentInfo] = useState<AgentInfo>({});
+  const [updating, setUpdating] = useState<"idle" | "running" | "ok" | "err">("idle");
 
   const lastRecordedAt = useRef<string | null>(null);
   const bridgeActive = useRef(false);
