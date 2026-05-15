@@ -103,6 +103,47 @@ function LocalDashboardPage() {
 
   const lastRecordedAt = useRef<string | null>(null);
   const bridgeActive = useRef(false);
+  const reqIdRef = useRef(0);
+  const pendingReqs = useRef(new Map<number, (v: BridgeFetchResult) => void>());
+
+  const agentFetch = useMemo(() => {
+    return async (path: string, init?: { method?: string; body?: unknown }): Promise<BridgeFetchResult> => {
+      const method = init?.method || "GET";
+      const bodyStr = init?.body != null ? JSON.stringify(init.body) : null;
+      if (bridgeActive.current && typeof window !== "undefined" && window.parent && window.parent !== window) {
+        return new Promise<BridgeFetchResult>((resolve) => {
+          const id = ++reqIdRef.current;
+          pendingReqs.current.set(id, resolve);
+          try {
+            window.parent.postMessage({ source: "solarops-local", type: "fetch", id, path, method, body: bodyStr }, "*");
+          } catch {
+            pendingReqs.current.delete(id);
+            resolve({ ok: false, status: 0, json: null });
+          }
+          window.setTimeout(() => {
+            if (pendingReqs.current.has(id)) {
+              pendingReqs.current.delete(id);
+              resolve({ ok: false, status: 0, json: null, error: "timeout" });
+            }
+          }, 15000);
+        });
+      }
+      try {
+        const r = await fetch(`${agentBase}${path}`, {
+          method,
+          headers: bodyStr ? { "Content-Type": "application/json" } : undefined,
+          body: bodyStr ?? undefined,
+          cache: "no-store",
+        });
+        const text = await r.text();
+        let json: unknown = null;
+        try { json = JSON.parse(text); } catch { /* noop */ }
+        return { ok: r.ok, status: r.status, json, text };
+      } catch (e) {
+        return { ok: false, status: 0, json: null, error: (e as Error).message };
+      }
+    };
+  }, [agentBase]);
 
   // ---- Bridge postMessage: cuando esta página se carga dentro del wrapper
   // del agente (HTTP) en un iframe HTTPS, los fetch directos al agente
