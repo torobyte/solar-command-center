@@ -325,6 +325,31 @@ class Agent:
         self.push_last_attempt_at: str | None = None
         self.push_last_error: str | None = None
         self.push_loop_restarts: int = 0
+        # Pairing code cache: persiste a disco para que tras un reinicio del
+        # agente la UI local muestre el código inmediatamente, sin esperar
+        # al primer tick del pairing_loop.
+        self._pair_cache: dict | None = self._load_pair_cache()
+
+    def _load_pair_cache(self) -> dict | None:
+        try:
+            if PAIR_CACHE_PATH.exists():
+                data = json.loads(PAIR_CACHE_PATH.read_text())
+                exp = datetime.fromisoformat(str(data.get("expires_at","")).replace("Z","+00:00"))
+                if exp > datetime.now(timezone.utc) + timedelta(seconds=30):
+                    return data
+        except Exception:
+            pass
+        return None
+
+    def _save_pair_cache(self, data: dict | None) -> None:
+        try:
+            if data is None:
+                if PAIR_CACHE_PATH.exists(): PAIR_CACHE_PATH.unlink()
+                return
+            PAIR_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+            PAIR_CACHE_PATH.write_text(json.dumps(data, indent=2))
+        except Exception as e:
+            print(f"[agent] pair cache save error: {e}")
 
     def ensure_transport(self):
         if self.transport: return
