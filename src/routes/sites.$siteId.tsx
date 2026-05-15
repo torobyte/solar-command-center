@@ -474,7 +474,7 @@ function SiteDetail() {
         </TabsContent>
 
         <TabsContent value="config" className="mt-6 space-y-6">
-          <ConfigurationView site={site} />
+          <ConfigurationView site={site} subTab={configSubTab} onSubTabChange={setConfigSubTab} />
         </TabsContent>
       </Tabs>
       <MobileBottomNav value={tab} onChange={setTab} />
