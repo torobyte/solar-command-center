@@ -1717,10 +1717,10 @@ def make_app(agent: Agent) -> Flask:
         # local que funciona 100% offline).
         return render_template_string(WRAPPER_PAGE, cloud_base=CLOUD_BASE, boot_id=BOOT_ID, agent_version=AGENT_VERSION)
 
-    @app.get("/legacy")
-    def legacy_index():
-        # UI Flask local — fallback offline / sin internet.
-        return render_template_string(PAGE, boot_id=BOOT_ID)
+    # NOTA: el modo "legacy" (UI Flask local) fue eliminado a petición
+    # del usuario. La única UI es el wrapper que carga el dashboard cloud
+    # (mismo look & feel que la versión online). Si no hay pairing,
+    # el wrapper muestra el código de 6 caracteres en pantalla completa.
 
     @app.get("/api/version")
     def api_version():
