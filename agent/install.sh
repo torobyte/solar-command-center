@@ -93,7 +93,7 @@ install -m 755 "$REPO_DIR/agent/update.sh" /opt/solarops/update.sh
 echo "▶ [3/9] Instalando dependencias Python…"
 python3 -m venv /opt/solarops/venv
 /opt/solarops/venv/bin/pip install --quiet --upgrade pip wheel
-/opt/solarops/venv/bin/pip install --quiet --upgrade flask requests pyserial
+/opt/solarops/venv/bin/pip install --quiet --upgrade flask requests pyserial paho-mqtt
 
 echo "▶ [4/9] Configurando permisos USB/RS485 del inversor…"
 cat >/etc/udev/rules.d/99-solarops.rules <<'EOF'
