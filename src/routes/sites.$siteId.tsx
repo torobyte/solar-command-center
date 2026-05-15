@@ -703,6 +703,10 @@ function ConfigurationView({ site }: { site: Site }) {
         )}
       </Section>
 
+      <Section title="Compartir sitio" icon={Share2}>
+        <SiteSharing siteId={site.id} isOwnerOrAdmin={true} />
+      </Section>
+
       <Section title="Instalación del dispositivo" icon={Download}>
         <p className="mb-3 text-sm text-muted-foreground">
           Ejecuta esto en tu Raspberry Pi para instalar el agente y vincularlo a este sitio:
