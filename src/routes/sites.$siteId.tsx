@@ -26,6 +26,7 @@ import { useAuth } from "@/lib/auth";
 import { BellRing } from "lucide-react";
 import { MobileBottomNav, type SiteTab } from "@/components/MobileBottomNav";
 import { PageHeaderSkeleton, DashboardSkeleton, SectionSkeleton } from "@/components/LoadingStates";
+import { InverterConfigWizard } from "@/components/InverterConfigWizard";
 
 function SiteDetailSkeleton() {
   return (
