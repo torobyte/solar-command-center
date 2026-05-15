@@ -1901,6 +1901,20 @@ def make_app(agent: Agent) -> Flask:
             return jsonify({"ok": True})
         except requests.HTTPError as e:
             return jsonify({"error": e.response.text}), e.response.status_code
+
+    @app.get("/api/pair")
+    def get_pair():
+        """Return a 6-char pairing code the user types in 'Add site'."""
+        force = request.args.get("force") in ("1", "true")
+        data = agent.request_pairing_code(force=force)
+        if "error" in data:
+            return jsonify(data), 502
+        return jsonify({
+            "code": data.get("code"),
+            "expires_at": data.get("expires_at"),
+            "hardware_id": hardware_id(),
+        })
+
     @app.get("/api/pvconfig")
     def get_pvcfg():
         return jsonify(load_pvcfg())
