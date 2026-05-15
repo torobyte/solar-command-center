@@ -575,30 +575,58 @@ class Agent:
                         qpiri = self.transport.send("QPIRI")
                         parts = qpiri.split()
                         if len(parts) >= 10:
+                            # Standard Voltronic QPIRI layout:
+                            #   0 grid V, 1 grid A, 2 out V, 3 out Hz, 4 out A,
+                            #   5 VA,     6 W,     7 batt nominal V,
+                            #   8 recharge V, 9 under V, 10 bulk V, 11 float V,
+                            #   12 battery type (0/1/2/3),
+                            #   13 max AC charge A (PPP),
+                            #   14 max charge A,
+                            #   15 input voltage range,
+                            #   16 output source priority,
+                            #   17 charger source priority, ...
+                            #
+                            # Some PIPxx-MS firmwares omit one battery voltage,
+                            # shifting fields 12+ by -1. Detect by checking
+                            # parts[12]: standard = single digit code; short
+                            # format = multi-digit current value.
+                            shift = 0
+                            try:
+                                p12 = parts[12]
+                                if len(p12) >= 2 and p12.lstrip("0").isdigit() and int(p12) >= 5:
+                                    shift = -1
+                            except IndexError:
+                                pass
+
+                            def at(i):
+                                j = i + shift
+                                try:
+                                    return parts[j] if 0 <= j < len(parts) else None
+                                except IndexError:
+                                    return None
                             def fnum(i):
-                                try: return float(parts[i])
-                                except (ValueError, IndexError): return None
+                                v = at(i)
+                                try: return float(v) if v is not None else None
+                                except ValueError: return None
                             def sval(i):
-                                try: return str(parts[i]).strip()
-                                except IndexError: return None
+                                v = at(i)
+                                return v.strip() if v else None
+                            # Indices below are STANDARD positions; `shift`
+                            # only affects fields 12+ (handled inside at()).
                             spec.update({
                                 "expected_ac_input_voltage": fnum(0),
-                                "max_ac_input_current": fnum(2),
-                                "nominal_battery_voltage": fnum(4),
-                                "max_ac_output_current": fnum(7),
-                                "max_ac_output_apparent_power": fnum(8),
-                                "max_ac_output_power": fnum(9),
-                                # QPIRI extended fields (Voltronic / PIPxx-MS):
-                                #  13: battery type, 14: max AC charge current,
-                                #  15: max charge current, 16: input voltage range,
-                                #  17: output source priority, 18: charger source priority
-                                "battery_type": sval(13),
-                                "max_ac_charge_current": fnum(14),
-                                "max_charge_current": fnum(15),
-                                "input_voltage_range": sval(16),
-                                "output_source_priority": sval(17),
-                                "charger_source_priority": sval(18),
-                                "raw": {"qpiri": parts},
+                                "max_ac_input_current": fnum(1),
+                                "max_ac_output_current": fnum(4),
+                                "max_ac_output_apparent_power": fnum(5),
+                                "max_ac_output_power": fnum(6),
+                                "nominal_battery_voltage": fnum(7),
+                                "battery_type": sval(12),
+                                "max_ac_charge_current": fnum(13),
+                                "max_charge_current": fnum(14),
+                                "input_voltage_range": sval(15),
+                                "output_source_priority": sval(16),
+                                "charger_source_priority": sval(17),
+                                "raw": {"qpiri": parts, "qpiri_shift": shift},
                             })
                     except Exception: pass
                     try:
