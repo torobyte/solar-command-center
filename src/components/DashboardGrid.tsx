@@ -25,6 +25,26 @@ const COL_MAP: Record<Breakpoint, Record<WidgetWidth, string>> = {
   desktop: { 25: "lg:col-span-3", 50: "lg:col-span-6", 75: "lg:col-span-9", 100: "lg:col-span-12" },
 };
 
+// Cuando el usuario fuerza una vista de previsualización (mobile/tablet/desktop)
+// usamos clases sin prefijo responsivo para forzar ese layout exacto.
+const COL_MAP_FORCED: Record<Breakpoint, Record<WidgetWidth, string>> = {
+  mobile: { 25: "col-span-1", 50: "col-span-2", 75: "col-span-3", 100: "col-span-4" },
+  tablet: { 25: "col-span-2", 50: "col-span-4", 75: "col-span-6", 100: "col-span-8" },
+  desktop: { 25: "col-span-3", 50: "col-span-6", 75: "col-span-9", 100: "col-span-12" },
+};
+
+const GRID_COLS_FORCED: Record<Breakpoint, string> = {
+  mobile: "grid-cols-4 gap-2",
+  tablet: "grid-cols-8 gap-3",
+  desktop: "grid-cols-12 gap-4",
+};
+
+const PREVIEW_MAX_WIDTH: Record<Breakpoint, string> = {
+  mobile: "max-w-[420px]",
+  tablet: "max-w-[820px]",
+  desktop: "",
+};
+
 const WIDTH_OPTIONS: { value: WidgetWidth; label: string }[] = [
   { value: 25, label: "¼" }, { value: 50, label: "½" }, { value: 75, label: "¾" }, { value: 100, label: "1/1" },
 ];
