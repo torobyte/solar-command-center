@@ -284,6 +284,63 @@ function LocalDashboardPage() {
             </Card>
             <PvSystemConfigCard siteId="local" />
           </TabsContent>
+
+          <TabsContent value="system" className="mt-6 space-y-4">
+            <Card>
+              <CardHeader><CardTitle className="text-base">Sistema y vinculación</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><div className="text-xs text-muted-foreground">Versión del agente</div><div className="font-mono">v{agentInfo.version ?? "?"}</div></div>
+                  <div><div className="text-xs text-muted-foreground">Estado</div><div>{isLinked ? "Vinculado" : "Sin vincular"}</div></div>
+                  {license?.site_id && <div className="col-span-2"><div className="text-xs text-muted-foreground">Site ID</div><div className="font-mono text-xs">{license.site_id}</div></div>}
+                </div>
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    disabled={updating === "running"}
+                    onClick={async () => {
+                      setUpdating("running");
+                      try {
+                        const r = await fetch(`${agentBase}/api/update-now`, { method: "POST" });
+                        const j = await r.json().catch(() => ({}));
+                        if (j?.ok) { setUpdating("ok"); toast.success("Actualización lanzada"); }
+                        else { setUpdating("err"); toast.error(j?.error || "No se pudo lanzar"); }
+                      } catch (e) { setUpdating("err"); toast.error((e as Error).message); }
+                      setTimeout(() => setUpdating("idle"), 6000);
+                    }}
+                  >
+                    <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Buscar actualización
+                  </Button>
+                  {isLinked && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={async () => {
+                        if (!confirm("¿Desvincular este equipo? Se generará un nuevo código de pairing.")) return;
+                        try {
+                          const r = await fetch(`${agentBase}/api/unlink`, { method: "POST" });
+                          const j = await r.json().catch(() => ({}));
+                          if (j?.code) toast.success(`Nuevo código: ${j.code}`);
+                          else toast.success("Desvinculado");
+                        } catch (e) { toast.error((e as Error).message); }
+                      }}
+                    >
+                      <Unlink className="mr-1.5 h-3.5 w-3.5" /> Desvincular equipo
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={`${agentBase}/status`} target="_blank" rel="noreferrer">
+                      <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Diagnóstico del agente
+                    </a>
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  La actualización descarga e instala la última versión del agente desde el repositorio. Tras instalar, el panel se recarga automáticamente.
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
     </div>
