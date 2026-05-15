@@ -902,12 +902,20 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
   var linked = null; // unknown hasta el primer /api/state
 
   function showPair(code, expires){
-    pairCode.textContent = code || "——————";
+    if (code) {
+      pairCode.textContent = code;
+      pairCode.style.opacity = "1";
+    } else {
+      pairCode.textContent = "Generando…";
+      pairCode.style.opacity = ".5";
+    }
     if (expires){
       try {
         var t = new Date(expires);
         pairExp.textContent = "El código expira a las " + t.toLocaleTimeString();
       } catch(_) { pairExp.textContent = ""; }
+    } else {
+      pairExp.textContent = code ? "" : "Conectando con la nube…";
     }
     pair.style.display = "flex";
     boot.style.display = "none";
