@@ -882,6 +882,29 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
     if (lastPv)    postTo(w, "pvconfig", lastPv);
   });
   setInterval(tick, 2000);
+
+  // ---- Auto-reload cuando el auto-updater instala una versión nueva.
+  // Comparamos agent_version + boot_id contra el que vimos al cargar:
+  // si cualquiera cambia, recargamos para traer la UI nueva sin que el
+  // usuario tenga que refrescar manualmente ni reinstalar.
+  var initialVer = "{{ agent_version }}";
+  var initialBoot = "{{ boot_id }}";
+  var reloadScheduled = false;
+  async function checkVersion(){
+    if (reloadScheduled) return;
+    var v = await pull("/api/version");
+    if (!v) return;
+    var changed = (v.agent_version && v.agent_version !== initialVer) ||
+                  (v.boot_id && v.boot_id !== initialBoot);
+    if (changed) {
+      reloadScheduled = true;
+      msg.textContent = "Actualización detectada (v" + v.agent_version + "). Recargando…";
+      boot.style.display = "flex";
+      frame.classList.remove("ready");
+      setTimeout(function(){ location.reload(true); }, 1200);
+    }
+  }
+  setInterval(checkVersion, 15000);
 })();
 </script>
 </body></html>"""
