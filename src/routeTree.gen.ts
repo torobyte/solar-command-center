@@ -30,6 +30,9 @@ import { Route as ApiPublicIngestRouteImport } from './routes/api/public/ingest'
 import { Route as ApiPublicCommandsRouteImport } from './routes/api/public/commands'
 import { Route as ApiPublicActivateRouteImport } from './routes/api/public/activate'
 import { Route as ApiAdminSmtpTestRouteImport } from './routes/api/admin/smtp-test'
+import { Route as ApiPublicAgentUpdateRouteImport } from './routes/api/public/agent.update'
+import { Route as ApiPublicAgentInstallRouteImport } from './routes/api/public/agent.install'
+import { Route as ApiPublicAgentAgentRouteImport } from './routes/api/public/agent.agent'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -136,6 +139,21 @@ const ApiAdminSmtpTestRoute = ApiAdminSmtpTestRouteImport.update({
   path: '/api/admin/smtp-test',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicAgentUpdateRoute = ApiPublicAgentUpdateRouteImport.update({
+  id: '/api/public/agent/update',
+  path: '/api/public/agent/update',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicAgentInstallRoute = ApiPublicAgentInstallRouteImport.update({
+  id: '/api/public/agent/install',
+  path: '/api/public/agent/install',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicAgentAgentRoute = ApiPublicAgentAgentRouteImport.update({
+  id: '/api/public/agent/agent',
+  path: '/api/public/agent/agent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -159,6 +177,9 @@ export interface FileRoutesByFullPath {
   '/api/public/register': typeof ApiPublicRegisterRoute
   '/api/public/snapshot': typeof ApiPublicSnapshotRoute
   '/api/public/widget': typeof ApiPublicWidgetRoute
+  '/api/public/agent/agent': typeof ApiPublicAgentAgentRoute
+  '/api/public/agent/install': typeof ApiPublicAgentInstallRoute
+  '/api/public/agent/update': typeof ApiPublicAgentUpdateRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -182,6 +203,9 @@ export interface FileRoutesByTo {
   '/api/public/register': typeof ApiPublicRegisterRoute
   '/api/public/snapshot': typeof ApiPublicSnapshotRoute
   '/api/public/widget': typeof ApiPublicWidgetRoute
+  '/api/public/agent/agent': typeof ApiPublicAgentAgentRoute
+  '/api/public/agent/install': typeof ApiPublicAgentInstallRoute
+  '/api/public/agent/update': typeof ApiPublicAgentUpdateRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -206,6 +230,9 @@ export interface FileRoutesById {
   '/api/public/register': typeof ApiPublicRegisterRoute
   '/api/public/snapshot': typeof ApiPublicSnapshotRoute
   '/api/public/widget': typeof ApiPublicWidgetRoute
+  '/api/public/agent/agent': typeof ApiPublicAgentAgentRoute
+  '/api/public/agent/install': typeof ApiPublicAgentInstallRoute
+  '/api/public/agent/update': typeof ApiPublicAgentUpdateRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -231,6 +258,9 @@ export interface FileRouteTypes {
     | '/api/public/register'
     | '/api/public/snapshot'
     | '/api/public/widget'
+    | '/api/public/agent/agent'
+    | '/api/public/agent/install'
+    | '/api/public/agent/update'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -254,6 +284,9 @@ export interface FileRouteTypes {
     | '/api/public/register'
     | '/api/public/snapshot'
     | '/api/public/widget'
+    | '/api/public/agent/agent'
+    | '/api/public/agent/install'
+    | '/api/public/agent/update'
   id:
     | '__root__'
     | '/'
@@ -277,6 +310,9 @@ export interface FileRouteTypes {
     | '/api/public/register'
     | '/api/public/snapshot'
     | '/api/public/widget'
+    | '/api/public/agent/agent'
+    | '/api/public/agent/install'
+    | '/api/public/agent/update'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -301,6 +337,9 @@ export interface RootRouteChildren {
   ApiPublicRegisterRoute: typeof ApiPublicRegisterRoute
   ApiPublicSnapshotRoute: typeof ApiPublicSnapshotRoute
   ApiPublicWidgetRoute: typeof ApiPublicWidgetRoute
+  ApiPublicAgentAgentRoute: typeof ApiPublicAgentAgentRoute
+  ApiPublicAgentInstallRoute: typeof ApiPublicAgentInstallRoute
+  ApiPublicAgentUpdateRoute: typeof ApiPublicAgentUpdateRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -452,6 +491,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminSmtpTestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/agent/update': {
+      id: '/api/public/agent/update'
+      path: '/api/public/agent/update'
+      fullPath: '/api/public/agent/update'
+      preLoaderRoute: typeof ApiPublicAgentUpdateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/agent/install': {
+      id: '/api/public/agent/install'
+      path: '/api/public/agent/install'
+      fullPath: '/api/public/agent/install'
+      preLoaderRoute: typeof ApiPublicAgentInstallRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/agent/agent': {
+      id: '/api/public/agent/agent'
+      path: '/api/public/agent/agent'
+      fullPath: '/api/public/agent/agent'
+      preLoaderRoute: typeof ApiPublicAgentAgentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -477,6 +537,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicRegisterRoute: ApiPublicRegisterRoute,
   ApiPublicSnapshotRoute: ApiPublicSnapshotRoute,
   ApiPublicWidgetRoute: ApiPublicWidgetRoute,
+  ApiPublicAgentAgentRoute: ApiPublicAgentAgentRoute,
+  ApiPublicAgentInstallRoute: ApiPublicAgentInstallRoute,
+  ApiPublicAgentUpdateRoute: ApiPublicAgentUpdateRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

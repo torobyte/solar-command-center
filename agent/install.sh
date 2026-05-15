@@ -2,19 +2,17 @@
 # SolarOps — Instalador automático para Raspberry Pi y Orange Pi
 # (Raspberry Pi OS, Debian, Ubuntu, Armbian).
 #
-# ┌─ INSTALACIÓN EN UNA LÍNEA ────────────────────────────────────────────────┐
-# │  curl -fsSL https://raw.githubusercontent.com/torobyte/solar-command-center/main/agent/install.sh | sudo bash
-# └───────────────────────────────────────────────────────────────────────────┘
+# ┌─ INSTALACIÓN EN UNA LÍNEA ─────────────────────────────────────────────────┐
+# │  curl -fsSL https://appsolar.torobyte.com/api/public/agent/install | sudo bash
+# └────────────────────────────────────────────────────────────────────────────┘
 #
-# 100% desatendido: no pregunta usuario/contraseña, no requiere interacción.
-# Al terminar, la plataforma queda accesible localmente en http://<ip>/ y se
-# inicia automáticamente en pantalla completa (modo kiosko) si hay monitor.
+# 100% desatendido: no usa GitHub, no pide usuario/contraseña, no requiere
+# interacción. Descarga el agente directamente desde la nube de SolarOps
+# (este mismo servidor) y lo deja corriendo como servicio systemd con
+# auto-actualización horaria.
 #
 # Argumentos opcionales:
-#   sudo bash -s -- [DEVICE_TOKEN] [BRANCH]
-#
-# Para repos privados:
-#   GITHUB_TOKEN=ghp_xxx curl -fsSL .../install.sh | sudo -E bash
+#   sudo bash -s -- [DEVICE_TOKEN]
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 export NEEDRESTART_MODE=a
@@ -23,12 +21,11 @@ export APT_LISTCHANGES_FRONTEND=none
 # ---------------------------------------------------------------------------
 # CONFIGURACIÓN
 # ---------------------------------------------------------------------------
-REPO_HTTPS="https://github.com/torobyte/solar-command-center.git"
-BRANCH_DEFAULT="main"
-CLOUD_URL="https://project--7cb3041b-eb20-43aa-ba17-b0848cb53051.lovable.app"
+CLOUD_URL="${SOLAROPS_CLOUD_URL:-https://appsolar.torobyte.com}"
+AGENT_URL="${CLOUD_URL}/api/public/agent/agent"
+UPDATE_URL="${CLOUD_URL}/api/public/agent/update"
 
 DEVICE_TOKEN="${1:-}"
-BRANCH="${2:-$BRANCH_DEFAULT}"
 
 if [[ $EUID -ne 0 ]]; then echo "❌ Ejecuta con sudo."; exit 1; fi
 
@@ -43,11 +40,7 @@ if [[ -f /proc/device-tree/model ]]; then
   esac
 fi
 echo "▶ Placa detectada: $BOARD"
-
-REPO_URL="$REPO_HTTPS"
-if [[ -n "${GITHUB_TOKEN:-}" ]]; then
-  REPO_URL="${REPO_HTTPS/https:\/\//https://x-access-token:${GITHUB_TOKEN}@}"
-fi
+echo "▶ Servidor de actualización: $CLOUD_URL"
 
 APT_OPTS=(-y -qq --no-install-recommends \
   -o Dpkg::Options::=--force-confdef \
@@ -56,10 +49,10 @@ APT_OPTS=(-y -qq --no-install-recommends \
 echo "▶ [1/9] Instalando dependencias del sistema…"
 apt-get update -qq
 apt-get install "${APT_OPTS[@]}" \
-  python3 python3-pip python3-venv git curl ca-certificates jq sudo \
+  python3 python3-pip python3-venv curl ca-certificates jq sudo \
   network-manager wireless-tools iw rfkill mosquitto >/dev/null
 
-# Habilitar broker MQTT local (puerto 1883) para integración con Home Assistant u otras apps
+# Habilitar broker MQTT local (puerto 1883) para integración con Home Assistant
 mkdir -p /etc/mosquitto/conf.d
 cat >/etc/mosquitto/conf.d/solarops.conf <<'MQTT'
 listener 1883
@@ -70,25 +63,39 @@ MQTT
 systemctl enable --now mosquitto >/dev/null 2>&1 || true
 
 # Asegurar que NetworkManager gestione el WiFi (necesario para el modo AP de
-# bootstrap y para la página /wifi del agente). En Raspberry Pi OS Bookworm+
-# ya viene por defecto; en Bullseye y derivados conviene forzarlo.
+# bootstrap y para la página /wifi del agente).
 systemctl enable --now NetworkManager >/dev/null 2>&1 || true
-# Desactivar dhcpcd si está pisando a NM (típico en Pi OS Bullseye)
 systemctl disable --now dhcpcd >/dev/null 2>&1 || true
 rfkill unblock wifi 2>/dev/null || true
 
-echo "▶ [2/9] Descargando código (rama: $BRANCH)…"
+echo "▶ [2/9] Descargando agente desde la nube…"
 install -d -m 755 /opt/solarops /etc/solarops /var/lib/solarops
-REPO_DIR="/opt/solarops/repo"
-if [[ -d "$REPO_DIR/.git" ]]; then
-  git -C "$REPO_DIR" remote set-url origin "$REPO_URL"
-  git -C "$REPO_DIR" fetch --quiet origin
-  git -C "$REPO_DIR" reset --hard --quiet "origin/$BRANCH"
-else
-  git clone --quiet --branch "$BRANCH" "$REPO_URL" "$REPO_DIR"
+
+# Descarga atómica de agent.py
+TMP_AGENT=$(mktemp)
+if ! curl -fsSL --max-time 60 "$AGENT_URL" -o "$TMP_AGENT"; then
+  echo "❌ No se pudo descargar el agente desde $AGENT_URL"
+  rm -f "$TMP_AGENT"
+  exit 1
 fi
-install -m 755 "$REPO_DIR/agent/agent.py"  /opt/solarops/agent.py
-install -m 755 "$REPO_DIR/agent/update.sh" /opt/solarops/update.sh
+# Validación mínima: el archivo debe parecer Python
+if ! head -n 5 "$TMP_AGENT" | grep -q -E "^(#!.*python|from |import )"; then
+  echo "❌ El archivo descargado no parece ser el agente Python."
+  rm -f "$TMP_AGENT"
+  exit 1
+fi
+install -m 755 "$TMP_AGENT" /opt/solarops/agent.py
+rm -f "$TMP_AGENT"
+
+# Descarga del auto-updater
+TMP_UPD=$(mktemp)
+if curl -fsSL --max-time 30 "$UPDATE_URL" -o "$TMP_UPD"; then
+  install -m 755 "$TMP_UPD" /opt/solarops/update.sh
+fi
+rm -f "$TMP_UPD"
+
+# Guardar URL de actualización para que update.sh la use
+echo "$CLOUD_URL" > /etc/solarops/cloud_url
 
 echo "▶ [3/9] Instalando dependencias Python…"
 python3 -m venv /opt/solarops/venv
@@ -107,8 +114,6 @@ EOF
 udevadm control --reload-rules || true
 udevadm trigger || true
 
-# Permitir que el agente escuche en el puerto 80 sin ser root estrictamente
-# (el servicio corre como root igualmente, pero esto evita sorpresas).
 setcap 'cap_net_bind_service=+ep' "$(readlink -f /opt/solarops/venv/bin/python3)" 2>/dev/null || true
 
 # ---------------------------------------------------------------------------
@@ -167,7 +172,7 @@ EOF
 
 cat >/etc/systemd/system/solarops-update.service <<'EOF'
 [Unit]
-Description=SolarOps auto-update (git pull)
+Description=SolarOps auto-update (cloud-hosted)
 After=network-online.target
 Wants=network-online.target
 
@@ -191,19 +196,14 @@ WantedBy=timers.target
 EOF
 
 # ---------------------------------------------------------------------------
-# [6.5/9] AP DE BOOTSTRAP — si el dispositivo no tiene internet, levanta una
-# red WiFi propia ("SolarOps-Setup") para que el usuario se conecte desde su
-# móvil y configure el WiFi real desde http://10.42.0.1/wifi (estilo Solar
-# Assistant). Cuando hay internet, el AP se apaga solo.
+# [6.5/9] AP DE BOOTSTRAP — WiFi propio "SolarOps-Setup" cuando no hay internet
 # ---------------------------------------------------------------------------
 echo "▶ [6.5/9] Configurando modo AP de bootstrap (WiFi de configuración)…"
 
 AP_SSID="${SOLAROPS_AP_SSID:-SolarOps-Setup}"
-AP_PASSWORD="${SOLAROPS_AP_PASSWORD:-solarops1234}"   # mínimo 8 caracteres (WPA2)
+AP_PASSWORD="${SOLAROPS_AP_PASSWORD:-solarops1234}"
 AP_CONN_NAME="solarops-ap"
 
-# Pre-crear el perfil de hotspot en NetworkManager (no lo activamos aún —
-# eso lo decide el watchdog según haya o no internet).
 if command -v nmcli >/dev/null 2>&1; then
   WIFI_IFACE=$(nmcli -t -f DEVICE,TYPE device | awk -F: '$2=="wifi"{print $1; exit}')
   if [[ -n "$WIFI_IFACE" ]]; then
@@ -222,33 +222,22 @@ else
   echo "   ⚠ nmcli no está disponible — modo AP no disponible."
 fi
 
-# DNS hijack: en modo AP (NetworkManager "shared"), redirigir TODAS las
-# consultas DNS a 10.42.0.1 → así cualquier URL en el navegador del cliente
-# (Android/iOS/Win) cae en nuestro captive portal y abre /wifi.
 install -d -m 755 /etc/NetworkManager/dnsmasq-shared.d
 cat >/etc/NetworkManager/dnsmasq-shared.d/solarops-captive.conf <<'EOF'
-# SolarOps captive portal — resuelve cualquier dominio al gateway del AP
 address=/#/10.42.0.1
-# TTL corto para que el cliente se "despegue" rápido cuando vuelva el WiFi real
 local-ttl=2
 EOF
 
-# Watchdog: cada 30 s, si no hay internet y no hay AP activo → activa AP.
-# Si hay internet → desactiva AP. Esto da el comportamiento "auto-bootstrap"
-# de Solar Assistant: el dispositivo siempre es accesible, sea por WiFi del
-# cliente o por su propio AP.
 cat >/opt/solarops/ap-watchdog.sh <<EOF
 #!/usr/bin/env bash
-# SolarOps AP-bootstrap watchdog
 set -u
 AP_CONN_NAME="${AP_CONN_NAME}"
-GRACE_BOOT=60   # esperar a que NM termine de intentar conectar al WiFi guardado
-COOLDOWN=20     # segundos entre transiciones
+GRACE_BOOT=60
+COOLDOWN=20
 sleep "\$GRACE_BOOT"
 last_change=0
 while true; do
   now=\$(date +%s)
-  # ¿Hay internet?
   if timeout 3 bash -c 'echo > /dev/tcp/1.1.1.1/53' 2>/dev/null; then
     online=1
   else
@@ -291,7 +280,7 @@ WantedBy=multi-user.target
 EOF
 
 # ---------------------------------------------------------------------------
-# [7/9] MODO KIOSKO (Chromium pantalla completa con la plataforma local)
+# [7/9] MODO KIOSKO (Chromium pantalla completa)
 # ---------------------------------------------------------------------------
 echo "▶ [7/9] Instalando modo kiosko (Chromium → http://localhost)…"
 apt-get install "${APT_OPTS[@]}" \
@@ -302,11 +291,9 @@ echo "   ⚠ No se pudo instalar Chromium (placa sin GUI). El kiosko se omite."
 
 CHROMIUM_BIN="$(command -v chromium-browser || command -v chromium || true)"
 
-# Usuario de kiosko sin privilegios y SIN contraseña
 if ! id -u solarkiosk &>/dev/null; then
   useradd -m -s /bin/bash solarkiosk
 fi
-# Cuenta sin contraseña — login automático en TTY
 passwd -d solarkiosk >/dev/null 2>&1 || true
 usermod -aG dialout,video,tty,input solarkiosk 2>/dev/null || true
 
@@ -320,7 +307,6 @@ xset s off
 xset s noblank
 unclutter -idle 0.1 -root &
 openbox-session &
-# Espera a que el agente local responda antes de abrir Chromium
 for i in \$(seq 1 30); do
   curl -sf http://localhost/ >/dev/null && break || sleep 2
 done
@@ -360,7 +346,6 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-  # Autologin del usuario solarkiosk en tty1 (sin pedir password)
   install -d -m 755 /etc/systemd/system/getty@tty1.service.d
   cat >/etc/systemd/system/getty@tty1.service.d/override.conf <<'EOF'
 [Service]
@@ -379,7 +364,6 @@ if [[ -n "$CHROMIUM_BIN" ]]; then
   systemctl start  solarops-kiosk.service >/dev/null 2>&1 || true
 fi
 
-# Espera corta para confirmar que el agente responde
 echo "▶ [9/9] Verificando que la plataforma local responde…"
 OK="no"
 for i in $(seq 1 20); do
@@ -398,10 +382,8 @@ echo "   🌐 Plataforma local: http://${IP}/   (también http://localhost/)"
 echo "   ☁  Dashboard nube:   ${CLOUD_URL}/app"
 echo "   🖥  Kiosko:           systemctl status solarops-kiosk"
 echo "   📜 Logs agente:      journalctl -u solarops -f"
-echo "   🔄 Auto-update:      cada hora (systemctl list-timers solarops-update)"
+echo "   🔄 Auto-update:      cada hora desde ${CLOUD_URL}/api/public/agent/agent"
 echo "   📶 AP de bootstrap:  SSID=${AP_SSID:-SolarOps-Setup}  contraseña=${AP_PASSWORD:-solarops1234}"
-echo "                        (se activa solo cuando el dispositivo no tiene internet)"
-echo "                        Conéctate y abre http://10.42.0.1/wifi para configurar el WiFi real"
 echo "   🆔 hardware_id:      ${HARDWARE_ID}"
 echo "   🧩 Placa:            ${BOARD}"
 if [[ -n "${DEVICE_TOKEN:-}" ]]; then
