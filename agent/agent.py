@@ -2203,6 +2203,14 @@ def make_app(agent: Agent) -> Flask:
     def get_pvcfg():
         return jsonify(load_pvcfg())
 
+    @app.get("/api/spec")
+    def get_spec():
+        """Devuelve la última lectura QPIRI del inversor (max_ac_charge_current,
+        prioridades, etc.) para que la UI local muestre el valor 'Actual' real
+        sin depender del cloud. Ya viene poblado por snapshot_loop()."""
+        with agent.lock:
+            return jsonify(dict(agent.spec or {}))
+
     @app.post("/api/pvconfig")
     def set_pvcfg():
         body = request.get_json(force=True) or {}
