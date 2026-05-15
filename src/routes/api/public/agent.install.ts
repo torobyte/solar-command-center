@@ -1,0 +1,21 @@
+// Sirve el script de instalación del agente embebido en el bundle.
+// Uso desde Raspberry/Orange Pi:
+//   curl -fsSL https://<host>/api/public/agent/install.sh | sudo bash
+import { createFileRoute } from "@tanstack/react-router";
+// @ts-expect-error - Vite raw import
+import installScript from "../../../../agent/install.sh?raw";
+
+export const Route = createFileRoute("/api/public/agent/install.sh")({
+  server: {
+    handlers: {
+      GET: async () => {
+        return new Response(installScript as string, {
+          headers: {
+            "content-type": "text/x-shellscript; charset=utf-8",
+            "cache-control": "no-store",
+          },
+        });
+      },
+    },
+  },
+});
