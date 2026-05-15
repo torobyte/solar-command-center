@@ -342,7 +342,6 @@ function SiteDetail() {
         </TabsList>
 
         <TabsContent value="dashboard" className="mt-6 space-y-6">
-          <QuickActions siteId={siteId} />
           <DashboardView latest={latest} siteId={siteId} spec={null} device={selectedDevice} />
           {!latest && (
             <div className="mt-8 rounded-lg border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">
