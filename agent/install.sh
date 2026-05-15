@@ -381,5 +381,7 @@ echo "   📶 AP de bootstrap:  SSID=${AP_SSID:-SolarOps-Setup}  contraseña=${A
 echo "   🆔 hardware_id:      ${HARDWARE_ID}"
 echo "   🧩 Placa:            ${BOARD}"
 if [[ -n "${DEVICE_TOKEN:-}" ]]; then
-  echo "   🎁 Plan inicial:     TRIAL 30 días activado automáticamente"
+  echo "   🎁 Token explícito vinculado en este install."
+else
+  echo "   🔗 Vinculación: abre la pantalla del equipo y escribe el código de 6 caracteres en 'Agregar sitio' del portal."
 fi
