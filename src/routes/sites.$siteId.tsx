@@ -894,6 +894,7 @@ function formatInverterMode(raw: string | null | undefined): { label: string; co
 
 const WIDGET_DEFS: WidgetDef[] = [
   { id: "quickactions", label: "Acciones rápidas" },
+  { id: "cmdstatus", label: "Estado de comandos" },
   { id: "mode", label: "Modo del inversor" },
   { id: "icons", label: "Tarjetas resumen" },
   { id: "backup", label: "Tiempo de respaldo" },
