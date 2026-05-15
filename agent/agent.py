@@ -1699,6 +1699,13 @@ def make_app(agent: Agent) -> Flask:
         # UI Flask local — fallback offline / sin internet.
         return render_template_string(PAGE, boot_id=BOOT_ID)
 
+    @app.get("/api/version")
+    def api_version():
+        # Endpoint ultraliviano para que la UI local detecte cuando el
+        # auto-updater (solarops-update.timer) instala una versión nueva
+        # y se recargue sola sin intervención del usuario.
+        return jsonify({"agent_version": AGENT_VERSION, "boot_id": BOOT_ID})
+
     @app.get("/api/health")
     def health():
         # Endpoint ligero para validar que el agente está vivo antes de
