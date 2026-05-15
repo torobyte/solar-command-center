@@ -795,6 +795,7 @@ function DashboardView({ latest, siteId, spec: _spec, device: _device }: { lates
   const { t } = useI18n();
   const { state, persist } = useDashboardLayout(siteId, WIDGET_DEFS);
   const { config: pv } = usePvConfig(siteId);
+  const { config: qaConfig } = useQuickActionsConfig(siteId);
   const pv_W = Number(latest?.pv_input_power ?? 0);
   const load = Number(latest?.ac_output_active_power ?? 0);
   const battery = Number(latest?.battery_capacity ?? 0);
