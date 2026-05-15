@@ -26,6 +26,7 @@ import { useAuth } from "@/lib/auth";
 import { BellRing } from "lucide-react";
 import { MobileBottomNav, type SiteTab } from "@/components/MobileBottomNav";
 import { PageHeaderSkeleton, DashboardSkeleton, SectionSkeleton } from "@/components/LoadingStates";
+import { InverterConfigWizard } from "@/components/InverterConfigWizard";
 
 function SiteDetailSkeleton() {
   return (
@@ -120,6 +121,55 @@ function smoothSeries(
     }
   }
   return out;
+}
+
+function InlineSiteName({ site, onRenamed }: { site: Site; onRenamed: (name: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(site.name);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { setValue(site.name); }, [site.name]);
+
+  const save = async () => {
+    const trimmed = value.trim();
+    if (!trimmed || trimmed === site.name) { setEditing(false); setValue(site.name); return; }
+    setSaving(true);
+    const { error } = await supabase.from("sites").update({ name: trimmed }).eq("id", site.id);
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    onRenamed(trimmed);
+    setEditing(false);
+    toast.success("Nombre actualizado");
+  };
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-2">
+        <Input
+          autoFocus
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") { setEditing(false); setValue(site.name); } }}
+          className="h-9 max-w-sm text-lg font-semibold"
+          disabled={saving}
+        />
+        <Button size="icon" variant="ghost" onClick={save} disabled={saving}><Check className="h-4 w-4" /></Button>
+        <Button size="icon" variant="ghost" onClick={() => { setEditing(false); setValue(site.name); }} disabled={saving}><X className="h-4 w-4" /></Button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setEditing(true)}
+      className="group inline-flex items-center gap-2 rounded-md text-left hover:bg-muted/40 px-1 -mx-1 py-0.5 transition-colors"
+      title="Renombrar sitio"
+    >
+      <h1 className="truncate text-2xl font-semibold tracking-tight">{site.name}</h1>
+      <Pencil className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+    </button>
+  );
 }
 
 function SiteDetail() {
@@ -510,34 +560,9 @@ function ConfigurationView({ site }: { site: Site }) {
 
       <Section title="Configuración remota del inversor" icon={SlidersHorizontal}>
         <p className="mb-4 text-sm text-muted-foreground">
-          Los cambios se envían a la Raspberry y se aplican al inversor mediante comandos Voltronic.
+          Asistente paso a paso. Los cambios se envían a la Raspberry y se aplican al inversor mediante comandos Voltronic.
         </p>
-        <SettingControl label="Prioridad de salida (POP)"
-          options={[
-            { v: "00", l: "Utility first" },
-            { v: "01", l: "Solar first" },
-            { v: "02", l: "SBU (Solar→Batería→Utility)" },
-          ]}
-          onApply={(v) => sendCommand("set_output_priority", { value: v })} />
-        <SettingControl label="Prioridad de carga (PCP)"
-          options={[
-            { v: "00", l: "Utility first" },
-            { v: "01", l: "Solar first" },
-            { v: "02", l: "Solar y Utility" },
-            { v: "03", l: "Solo Solar" },
-          ]}
-          onApply={(v) => sendCommand("set_charger_priority", { value: v })} />
-        <SettingControl label="Rango voltaje AC entrada"
-          options={[{ v: "appliance", l: "Appliance (170–280 V)" }, { v: "ups", l: "UPS (90–280 V)" }]}
-          onApply={(v) => sendCommand("set_input_range", { value: v })} />
-        <NumberControl label="Corriente máx. de carga (A)" min={10} max={100} step={10} defaultValue={40}
-          onApply={(n) => sendCommand("set_max_charge_current", { amps: n })} />
-        <NumberControl label="Corriente máx. carga AC (A)" min={2} max={30} step={2} defaultValue={20}
-          onApply={(n) => sendCommand("set_max_ac_charge_current", { amps: n })} />
-        <NumberControl label="Voltaje volver a batería (V)" min={44} max={51} step={0.1} defaultValue={48}
-          onApply={(n) => sendCommand("set_back_to_battery_voltage", { volts: n })} />
-        <NumberControl label="Voltaje a red (V)" min={44} max={51} step={0.1} defaultValue={47}
-          onApply={(n) => sendCommand("set_back_to_grid_voltage", { volts: n })} />
+        <InverterConfigWizard siteId={site.id} />
 
         <div className="mt-6">
           <h4 className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><Terminal className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2.2} /> Últimos comandos</h4>
@@ -561,6 +586,7 @@ function ConfigurationView({ site }: { site: Site }) {
           )}
         </div>
       </Section>
+
 
       <Section title="Estado de red" icon={Wifi}>
         {snap ? (
@@ -621,38 +647,6 @@ function ConfigurationView({ site }: { site: Site }) {
   );
 }
 
-function SettingControl({ label, options, onApply }: {
-  label: string; options: Array<{ v: string; l: string }>;
-  onApply: (v: string) => void;
-}) {
-  const [val, setVal] = useState(options[0].v);
-  return (
-    <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-      <Label className="text-sm sm:w-64">{label}</Label>
-      <select value={val} onChange={(e) => setVal(e.target.value)}
-        className="flex-1 rounded-md border bg-background px-3 py-2 text-sm">
-        {options.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
-      </select>
-      <Button size="sm" onClick={() => onApply(val)} className="sm:w-auto">Aplicar</Button>
-    </div>
-  );
-}
-
-function NumberControl({ label, min, max, step, defaultValue, onApply }: {
-  label: string; min: number; max: number; step: number; defaultValue: number;
-  onApply: (n: number) => void;
-}) {
-  const [val, setVal] = useState(defaultValue);
-  return (
-    <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-      <Label className="text-sm sm:w-64">{label}</Label>
-      <input type="number" min={min} max={max} step={step} value={val}
-        onChange={(e) => setVal(parseFloat(e.target.value) || defaultValue)}
-        className="flex-1 rounded-md border bg-background px-3 py-2 text-sm" />
-      <Button size="sm" onClick={() => onApply(val)} className="sm:w-auto">Aplicar</Button>
-    </div>
-  );
-}
 
 
 function ChartCard({ title, children }: { title: string; children: React.ReactElement }) {

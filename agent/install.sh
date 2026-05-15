@@ -57,7 +57,17 @@ echo "▶ [1/9] Instalando dependencias del sistema…"
 apt-get update -qq
 apt-get install "${APT_OPTS[@]}" \
   python3 python3-pip python3-venv git curl ca-certificates jq sudo \
-  network-manager wireless-tools iw rfkill >/dev/null
+  network-manager wireless-tools iw rfkill mosquitto >/dev/null
+
+# Habilitar broker MQTT local (puerto 1883) para integración con Home Assistant u otras apps
+mkdir -p /etc/mosquitto/conf.d
+cat >/etc/mosquitto/conf.d/solarops.conf <<'MQTT'
+listener 1883
+allow_anonymous true
+persistence true
+persistence_location /var/lib/mosquitto/
+MQTT
+systemctl enable --now mosquitto >/dev/null 2>&1 || true
 
 # Asegurar que NetworkManager gestione el WiFi (necesario para el modo AP de
 # bootstrap y para la página /wifi del agente). En Raspberry Pi OS Bookworm+
@@ -83,7 +93,7 @@ install -m 755 "$REPO_DIR/agent/update.sh" /opt/solarops/update.sh
 echo "▶ [3/9] Instalando dependencias Python…"
 python3 -m venv /opt/solarops/venv
 /opt/solarops/venv/bin/pip install --quiet --upgrade pip wheel
-/opt/solarops/venv/bin/pip install --quiet --upgrade flask requests pyserial
+/opt/solarops/venv/bin/pip install --quiet --upgrade flask requests pyserial paho-mqtt
 
 echo "▶ [4/9] Configurando permisos USB/RS485 del inversor…"
 cat >/etc/udev/rules.d/99-solarops.rules <<'EOF'
