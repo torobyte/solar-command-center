@@ -807,6 +807,7 @@ function DashboardView({ latest, siteId, spec: _spec, device: _device }: { lates
   const pvMax = (pv?.array_kwp ?? 5) * 1000;
 
   const widgets: Record<string, React.ReactNode> = {
+    quickactions: <QuickActions siteId={siteId} config={qaConfig} />,
     mode: (
       <div className="flex items-center justify-between rounded-xl border bg-card p-4 sm:p-5 animate-fade-in h-full">
         <div className="flex items-center gap-3">
