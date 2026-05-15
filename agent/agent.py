@@ -2128,6 +2128,10 @@ async function load(){
     const r=await fetch('/api/status'); const d=await r.json();
     const t=d.transport, da=d.data, e=d.errors, ag=d.agent;
     const dataFresh = da.last_sample_at && (Date.now()-new Date(da.last_sample_at).getTime() < 30000);
+    const skew = d.agent_time ? Math.round((Date.now()-new Date(d.agent_time).getTime())/1000) : null;
+    const skewPill = skew==null ? '' : (Math.abs(skew) < 5
+       ? `<span class="pill ok">en hora (±${Math.abs(skew)}s)</span>`
+       : `<span class="pill warn">desfase ${skew>0?'+':''}${skew}s vs navegador</span>`);
     const tStatus = t.connected ? '<span class="pill ok">Conectado</span>' : '<span class="pill err">Sin puerto</span>';
     const dStatus = dataFresh ? '<span class="pill ok">En vivo</span>' : (da.last_sample_at? '<span class="pill warn">Sin datos recientes</span>':'<span class="pill err">Nunca recibió</span>');
     const html = `
