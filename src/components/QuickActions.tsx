@@ -333,16 +333,16 @@ function Chip({ label, onClick, loading, active, warning }: { label: string; onC
       type="button"
       disabled={loading}
       onClick={onClick}
+      title={warning && !active ? "Valor bajo — requiere confirmación" : undefined}
       className={[
         "inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold transition-all",
         "disabled:opacity-50 disabled:cursor-wait active:scale-95",
         active
-          ? "border-accent bg-accent text-accent-foreground shadow-sm"
-          : warning
-            ? "border-warning/50 bg-warning/10 text-warning hover:bg-warning/20"
-            : "border-border bg-card text-foreground hover:bg-muted hover:border-accent/40",
+          ? "border-accent bg-accent text-accent-foreground shadow-md ring-2 ring-accent/30"
+          : "border-border bg-card text-foreground hover:bg-muted hover:border-accent/40",
       ].join(" ")}
     >
+      {warning && !active && <AlertTriangle className="h-3 w-3 text-warning" strokeWidth={2.6} />}
       {loading ? "…" : label}
     </button>
   );
