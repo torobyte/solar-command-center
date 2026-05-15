@@ -331,7 +331,7 @@ function LocalDashboardPage() {
             <Card>
               <CardHeader><CardTitle className="text-base">Configuración del inversor (paso a paso)</CardTitle></CardHeader>
               <CardContent>
-                <InverterConfigWizard siteId="local" agentBase={agentBase} />
+                <InverterConfigWizard siteId="local" agentBase={agentBase} agentFetch={agentFetch} />
               </CardContent>
             </Card>
             <PvSystemConfigCard siteId="local" />
