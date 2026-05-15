@@ -2111,13 +2111,30 @@ def make_app(agent: Agent) -> Flask:
                 for s in hist
             ],
             "totals_today": totals,
-            "pairing": {
-                "linked": bool(agent.config.get("device_token")),
-                "site_id": agent.config.get("site_id"),
-                "code": (getattr(agent, "_pair_cache", None) or {}).get("code"),
-                "expires_at": (getattr(agent, "_pair_cache", None) or {}).get("expires_at"),
-            },
+            "pairing": _pairing_payload(),
         })
+
+    def _pairing_payload() -> dict:
+        """Devuelve el bloque pairing para /api/state. Si no hay device_token
+        y todavía no hay código en cache, intenta generarlo en el momento
+        para que la UI local lo muestre incluso justo después de un
+        reinicio del agente (sin esperar al primer tick del pairing_loop)."""
+        linked = bool(agent.config.get("device_token"))
+        cache = getattr(agent, "_pair_cache", None) or {}
+        if not linked and not cache.get("code"):
+            try:
+                fresh = agent.request_pairing_code(force=False)
+                if isinstance(fresh, dict) and fresh.get("code"):
+                    cache = fresh
+            except Exception as e:
+                print(f"[agent] lazy pair-init error: {e}")
+        return {
+            "linked": linked,
+            "site_id": agent.config.get("site_id"),
+            "site_name": agent.config.get("site_name"),
+            "code": cache.get("code"),
+            "expires_at": cache.get("expires_at"),
+        }
 
     @app.post("/api/activate")
     def activate():
