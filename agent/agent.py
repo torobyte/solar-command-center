@@ -487,8 +487,17 @@ class Agent:
                         save_config(self.config)
                         print(f"[agent] paired \u2714 site={body['site_id']}")
                         return
-                    if body.get("status") == "expired":
+                    if body.get("status") in ("expired", "unknown"):
+                        # Code expired or was deleted server-side: drop the
+                        # cache and request a fresh one IMMEDIATELY so the
+                        # /local UI shows the new code on its next 5s refresh
+                        # without any user action.
                         self._pair_cache = None
+                        try:
+                            self.request_pairing_code(force=True)
+                            print("[agent] pairing code rotated (previous expired)")
+                        except Exception as e:
+                            print(f"[agent] pairing rotate error: {e}")
             except Exception as e:
                 print(f"[agent] pairing loop error: {e}")
             time.sleep(5)
