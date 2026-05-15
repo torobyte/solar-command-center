@@ -53,7 +53,7 @@ export function AppHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 glass-strong">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-        <Link to="/" className="group flex items-center gap-2.5">
+        <Link to={user ? "/app" : "/"} className="group flex items-center gap-2.5">
           {logoUrl ? (
             <img src={logoUrl} alt={siteName} className="h-10 max-w-[180px] object-contain" />
           ) : (

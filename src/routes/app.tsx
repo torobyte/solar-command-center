@@ -4,7 +4,6 @@ import { ProtectedLayout } from "@/components/ProtectedLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter,
   DialogHeader, DialogTitle, DialogTrigger,
@@ -13,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
+import { useServerFn } from "@tanstack/react-start";
+import { claimPairingCode } from "@/lib/pairing.functions";
 import { Plus, Cpu as CpuIcon, Sparkles, KeyRound, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { TableSkeleton, PageHeaderSkeleton } from "@/components/LoadingStates";
@@ -40,8 +41,10 @@ function SitesIndex() {
   const [licenses, setLicenses] = useState<MyLicense[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+  const [code, setCode] = useState("");
+  const [siteName, setSiteName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const claim = useServerFn(claimPairingCode);
 
   async function load() {
     setLoading(true);
@@ -59,16 +62,25 @@ function SitesIndex() {
 
   useEffect(() => { load(); }, []);
 
-  async function createSite(e: React.FormEvent) {
+  async function addSite(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
-    const { error } = await supabase.from("sites").insert({
-      owner_id: user.id, name, description: description || null,
-    });
-    if (error) return toast.error(error.message);
-    toast.success(t("sites.created"));
-    setOpen(false); setName(""); setDescription("");
-    load();
+    const cleanCode = code.trim().toUpperCase();
+    if (!/^[A-Z0-9]{6}$/.test(cleanCode)) {
+      toast.error("El código debe tener 6 letras o números");
+      return;
+    }
+    setBusy(true);
+    try {
+      await claim({ data: { code: cleanCode, site_name: siteName.trim() || undefined } });
+      toast.success(t("sites.created"));
+      setOpen(false); setCode(""); setSiteName("");
+      load();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (loading) {
@@ -93,20 +105,49 @@ function SitesIndex() {
           </DialogTrigger>
           <DialogContent className="rounded-2xl">
             <DialogHeader>
-              <DialogTitle>{t("sites.newDialog.title")}</DialogTitle>
-              <DialogDescription>{t("sites.newDialog.desc")}</DialogDescription>
+              <DialogTitle>Vincular un dispositivo</DialogTitle>
+              <DialogDescription>
+                Introduce el código de 6 caracteres que aparece en la pantalla de tu Raspberry / Orange Pi.
+                Si aún no tienes uno, instala el agente con <code className="font-mono text-xs">install.sh</code> y enciéndelo.
+              </DialogDescription>
             </DialogHeader>
-            <form onSubmit={createSite} className="space-y-4">
+            <form onSubmit={addSite} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">{t("common.name")}</Label>
-                <Input id="name" required value={name} onChange={(e) => setName(e.target.value)} placeholder={t("sites.namePh")} />
+                <Label htmlFor="pair-code">Código de vinculación</Label>
+                <Input
+                  id="pair-code"
+                  required
+                  inputMode="text"
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))}
+                  placeholder="A1B2C3"
+                  className="text-center font-mono text-2xl tracking-[0.5em] uppercase"
+                  maxLength={6}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  El código aparece en la pantalla local del equipo (o en <code className="font-mono">/local</code>).
+                  Caduca a los 30 minutos — genera otro si expira.
+                </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="desc">{t("common.description")}</Label>
-                <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} />
+                <Label htmlFor="site-name">Nombre del sitio (opcional)</Label>
+                <Input
+                  id="site-name"
+                  value={siteName}
+                  onChange={(e) => setSiteName(e.target.value)}
+                  placeholder="Ej. Casa Chillán, Bodega norte…"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Podrás cambiarlo en cualquier momento desde el detalle del sitio.
+                </p>
               </div>
               <DialogFooter>
-                <Button type="submit" className="rounded-full">{t("common.create")}</Button>
+                <Button type="submit" className="rounded-full" disabled={busy}>
+                  {busy ? "Vinculando…" : "Vincular"}
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -122,10 +163,10 @@ function SitesIndex() {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-success/15 text-success">
                 <Sparkles className="h-4 w-4" strokeWidth={2.4} />
               </div>
-              <h3 className="font-semibold">Tienes {pending.length} licencia{pending.length > 1 ? "s" : ""} lista{pending.length > 1 ? "s" : ""} para activar</h3>
+              <h3 className="font-semibold">Tienes {pending.length} licencia{pending.length > 1 ? "s" : ""} pendiente{pending.length > 1 ? "s" : ""}</h3>
             </div>
             <p className="mb-3 text-sm text-muted-foreground">
-              Instala el agente en tu Raspberry Pi y, en su pantalla local, ingresa uno de estos códigos:
+              Estos códigos de licencia se aplican automáticamente cuando vinculas un dispositivo a tu cuenta.
             </p>
             <div className="space-y-2">
               {pending.map((l) => (
@@ -157,6 +198,9 @@ function SitesIndex() {
           </div>
           <h3 className="mt-4 font-semibold">{t("sites.empty.title")}</h3>
           <p className="mt-1 text-sm text-muted-foreground">{t("sites.empty.body")}</p>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Enciende tu Raspberry, abre <code className="font-mono">/local</code> y verás un código de 6 caracteres para vincularlo aquí.
+          </p>
         </div>
       ) : (
         <>

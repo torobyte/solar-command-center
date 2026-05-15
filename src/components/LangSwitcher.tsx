@@ -1,4 +1,4 @@
-import { Languages } from "lucide-react";
+import { Globe } from "lucide-react";
 import { useI18n, type Lang } from "@/lib/i18n";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -11,7 +11,7 @@ export function LangSwitcher({ size = "sm" }: { size?: "sm" | "default" }) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size={size} className="gap-1.5">
-          <Languages className="h-4 w-4" />
+          <Globe className="h-4 w-4" />
           <span className="text-xs font-semibold uppercase">{lang}</span>
         </Button>
       </DropdownMenuTrigger>
