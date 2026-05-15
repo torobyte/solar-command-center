@@ -25,7 +25,7 @@ DB_PATH = Path(os.environ.get("SOLAROPS_DB", "/var/lib/solarops/state.db"))
 POLL_INTERVAL = 1.0  # leer inversor cada 1s para sensación "en vivo"
 PUSH_INTERVAL = 1.0  # empujar al cloud cada 1s
 SNAPSHOT_INTERVAL = 60.0  # send specs/network/system snapshot every 60s
-AGENT_VERSION = "0.7.0"
+AGENT_VERSION = "0.7.1"
 PVCFG_PATH = Path(os.environ.get("SOLAROPS_PVCFG", "/etc/solarops/pv.json"))
 
 def load_pvcfg() -> dict:
@@ -882,6 +882,29 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
     if (lastPv)    postTo(w, "pvconfig", lastPv);
   });
   setInterval(tick, 2000);
+
+  // ---- Auto-reload cuando el auto-updater instala una versión nueva.
+  // Comparamos agent_version + boot_id contra el que vimos al cargar:
+  // si cualquiera cambia, recargamos para traer la UI nueva sin que el
+  // usuario tenga que refrescar manualmente ni reinstalar.
+  var initialVer = "{{ agent_version }}";
+  var initialBoot = "{{ boot_id }}";
+  var reloadScheduled = false;
+  async function checkVersion(){
+    if (reloadScheduled) return;
+    var v = await pull("/api/version");
+    if (!v) return;
+    var changed = (v.agent_version && v.agent_version !== initialVer) ||
+                  (v.boot_id && v.boot_id !== initialBoot);
+    if (changed) {
+      reloadScheduled = true;
+      msg.textContent = "Actualización detectada (v" + v.agent_version + "). Recargando…";
+      boot.style.display = "flex";
+      frame.classList.remove("ready");
+      setTimeout(function(){ location.reload(true); }, 1200);
+    }
+  }
+  setInterval(checkVersion, 15000);
 })();
 </script>
 </body></html>"""
@@ -1692,12 +1715,19 @@ def make_app(agent: Agent) -> Flask:
         # (parity 100% con la UI online). Si no hay internet o el cloud no
         # responde en 4 s, caemos automáticamente a /legacy (la UI Flask
         # local que funciona 100% offline).
-        return render_template_string(WRAPPER_PAGE, cloud_base=CLOUD_BASE, boot_id=BOOT_ID)
+        return render_template_string(WRAPPER_PAGE, cloud_base=CLOUD_BASE, boot_id=BOOT_ID, agent_version=AGENT_VERSION)
 
     @app.get("/legacy")
     def legacy_index():
         # UI Flask local — fallback offline / sin internet.
         return render_template_string(PAGE, boot_id=BOOT_ID)
+
+    @app.get("/api/version")
+    def api_version():
+        # Endpoint ultraliviano para que la UI local detecte cuando el
+        # auto-updater (solarops-update.timer) instala una versión nueva
+        # y se recargue sola sin intervención del usuario.
+        return jsonify({"agent_version": AGENT_VERSION, "boot_id": BOOT_ID})
 
     @app.get("/api/health")
     def health():
