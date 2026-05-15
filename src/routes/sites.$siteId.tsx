@@ -185,6 +185,7 @@ function SiteDetail() {
   const [history, setHistory] = useState<Sample[]>([]);
   const [totals, setTotals] = useState<DailyTotal[]>([]);
   const [tab, setTab] = useState<SiteTab>("dashboard");
+  const [configSubTab, setConfigSubTab] = useState<string>("inverter");
 
   useNotificationWatcher(siteId, user?.id);
 
