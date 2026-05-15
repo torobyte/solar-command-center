@@ -321,6 +321,11 @@ export function InverterConfigWizard({ siteId, agentBase, spec, agentFetch }: { 
   const Icon = current.icon;
 
   async function postLocal(rows: { command: string; payload: Record<string, unknown> }[]) {
+    if (agentFetch) {
+      const res = await agentFetch("/api/command", { method: "POST", body: { commands: rows } });
+      if (!res.ok) throw new Error(res.error || `HTTP ${res.status}`);
+      return;
+    }
     const r = await fetch(`${agentBase}/api/command`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
