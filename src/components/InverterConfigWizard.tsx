@@ -309,24 +309,7 @@ export function InverterConfigWizard({ siteId, agentBase }: { siteId: string; ag
     }
   }
 
-  async function applyAll() {
-    setPending("__all__");
-    try {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) { toast.error("Sesión expirada"); return; }
-      const rows = current.fields.map((f) => {
-        let payload: Record<string, unknown>;
-        if (f.kind === "toggle") payload = { enabled: !!values[f.key] };
-        else payload = { [f.payloadKey]: values[f.key] };
-        return { site_id: siteId, command: f.command, payload: payload as never, created_by: u.user!.id };
-      });
-      const { error } = await supabase.from("device_commands").insert(rows);
-      if (error) toast.error(error.message);
-      else toast.success(`${rows.length} comando(s) encolado(s)`);
-    } finally {
-      setPending(null);
-    }
-  }
+
 
   return (
     <div className="space-y-4">
