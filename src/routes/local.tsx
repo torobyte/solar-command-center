@@ -25,20 +25,38 @@ export const Route = createFileRoute("/local")({
   component: LocalDashboardPage,
 });
 
-interface LicenseMeta { plan?: string; site_name?: string; site_id?: string }
+interface LicenseMeta { plan?: string; site_name?: string; site_id?: string; license_expires_at?: string | null }
 interface HistPoint { t: string; pv: number | null; load: number | null; soc: number | null; grid: number | null }
 interface TotalsToday {
   pv_kwh: number; load_kwh: number; grid_used_kwh: number;
   battery_charged_kwh: number; battery_discharged_kwh: number;
 }
+interface PairInfo { code?: string | null; expires_at?: string | null; linked?: boolean }
 interface AgentState {
   latest: DashboardSample | null;
   license?: LicenseMeta | null;
   history?: HistPoint[];
   totals_today?: TotalsToday;
+  pairing?: PairInfo | null;
+  linked?: boolean;
 }
 
 type LocalTab = "dashboard" | "charts" | "totals" | "config";
+
+const TRIAL_DAYS = 30;
+const TRIAL_KEY = "local.trialStartedAt";
+
+function getLocalTrialStart(): number {
+  if (typeof window === "undefined") return Date.now();
+  const stored = localStorage.getItem(TRIAL_KEY);
+  if (stored) {
+    const n = Number(stored);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  const now = Date.now();
+  localStorage.setItem(TRIAL_KEY, String(now));
+  return now;
+}
 
 function LocalDashboardPage() {
   const search = Route.useSearch();
@@ -53,8 +71,11 @@ function LocalDashboardPage() {
   const [history, setHistory] = useState<HistPoint[]>([]);
   const [totals, setTotals] = useState<TotalsToday | null>(null);
   const [license, setLicense] = useState<LicenseMeta | null>(null);
+  const [pairing, setPairing] = useState<PairInfo | null>(null);
+  const [linked, setLinked] = useState<boolean>(false);
   const [pvCfg, setPvCfg] = useState<PvConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [trialStart] = useState<number>(() => getLocalTrialStart());
 
   const lastRecordedAt = useRef<string | null>(null);
   const bridgeActive = useRef(false);
@@ -79,6 +100,8 @@ function LocalDashboardPage() {
         if (j?.history) setHistory(j.history);
         if (j?.totals_today) setTotals(j.totals_today);
         if (j?.license) setLicense(j.license);
+        if (j?.pairing !== undefined) setPairing(j.pairing ?? null);
+        if (typeof j?.linked === "boolean") setLinked(j.linked);
       } else if (d.type === "pvconfig") {
         setPvCfg({ site_id: "local", ...(d.payload as object) } as PvConfig);
       }
@@ -111,6 +134,8 @@ function LocalDashboardPage() {
         if (j.history) setHistory(j.history);
         if (j.totals_today) setTotals(j.totals_today);
         if (j.license) setLicense(j.license);
+        if (j.pairing !== undefined) setPairing(j.pairing ?? null);
+        if (typeof j.linked === "boolean") setLinked(j.linked);
       } catch (e) {
         if (alive && !bridgeActive.current) setError((e as Error).message);
       }
@@ -134,27 +159,49 @@ function LocalDashboardPage() {
   const mode = formatInverterMode(latest?.inverter_mode);
   const fresh = latest?.recorded_at && (Date.now() - new Date(latest.recorded_at).getTime() < 60_000);
   const siteName = license?.site_name ?? "SolarOps Local";
-  const plan = license?.plan ?? "local";
+  const isLinked = Boolean(pairing?.linked) || linked || Boolean(license?.site_id);
+  const plan = isLinked ? (license?.plan ?? "cloud") : "trial local";
+
+  // Trial countdown (modo local). Si la licencia cloud trae expires_at lo
+  // usamos; si no, calculamos 30 días desde el primer arranque local.
+  const cloudExp = license?.license_expires_at ? new Date(license.license_expires_at).getTime() : null;
+  const localExp = trialStart + TRIAL_DAYS * 86_400_000;
+  const expMs = cloudExp ?? localExp;
+  const daysLeft = Math.max(0, Math.ceil((expMs - Date.now()) / 86_400_000));
+  const trialLabel = isLinked && cloudExp
+    ? (daysLeft > 0 ? `Licencia: ${daysLeft} día${daysLeft === 1 ? "" : "s"}` : "Licencia vencida")
+    : (daysLeft > 0 ? `Prueba: ${daysLeft}/${TRIAL_DAYS} días` : "Prueba vencida");
+  const trialTone = daysLeft > 7 ? "bg-success/15 text-success"
+    : daysLeft > 0 ? "bg-warning/15 text-warning"
+    : "bg-destructive/15 text-destructive";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-[1480px] px-4 py-5 sm:py-6">
         <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{siteName}</h1>
-            <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
               <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 font-medium ${fresh ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${fresh ? "bg-success animate-pulse" : "bg-destructive"}`} />
-                {fresh ? "En vivo · cada 1 s" : error ? `Sin conexión · ${error}` : "Sin datos del inversor"}
+                {fresh ? "En vivo · 1 s" : error ? `Sin conexión` : "Sin datos"}
               </span>
               <span className="rounded-full bg-muted px-2 py-0.5 font-medium">Plan: {plan}</span>
               <span className="rounded-full bg-muted px-2 py-0.5 font-medium">Modo: {mode.label}</span>
-              <span className="rounded-full bg-muted px-2 py-0.5 font-medium">Modo local · sincronizando con cloud</span>
-            </p>
-          </div>
-          <div className="flex items-center gap-1">
-            <LangSwitcher />
-            <ThemeToggle />
+              <span className={`rounded-full px-2 py-0.5 font-medium ${trialTone}`}>{trialLabel}</span>
+              {!isLinked && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary">
+                  Código:
+                  <span className="font-mono tracking-[0.2em] text-foreground">
+                    {pairing?.code ?? "······"}
+                  </span>
+                </span>
+              )}
+              <span className="ml-1 inline-flex items-center gap-0.5 rounded-full border border-border/60 bg-card/60 p-0.5">
+                <LangSwitcher />
+                <ThemeToggle />
+              </span>
+            </div>
           </div>
         </header>
 
