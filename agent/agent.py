@@ -1978,6 +1978,12 @@ def make_app(agent: Agent) -> Flask:
                 for s in hist
             ],
             "totals_today": totals,
+            "pairing": {
+                "linked": bool(agent.config.get("device_token")),
+                "site_id": agent.config.get("site_id"),
+                "code": (getattr(agent, "_pair_cache", None) or {}).get("code"),
+                "expires_at": (getattr(agent, "_pair_cache", None) or {}).get("expires_at"),
+            },
         })
 
     @app.post("/api/activate")
