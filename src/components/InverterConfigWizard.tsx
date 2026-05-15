@@ -395,6 +395,12 @@ export function InverterConfigWizard({ siteId, agentBase, spec, agentFetch }: { 
         if (error) toast.error(error.message);
         else toast.success(`${rows.length} comando(s) encolado(s)`);
       }
+      // Liberar todos los campos del paso para que el próximo refresh los sincronice.
+      setTouched((t) => {
+        const n = { ...t };
+        for (const f of current.fields) delete n[f.key];
+        return n;
+      });
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
