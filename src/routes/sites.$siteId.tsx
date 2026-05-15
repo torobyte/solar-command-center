@@ -559,6 +559,26 @@ function ConfigurationView({ site }: { site: Site }) {
         <Row label="Licencia expira" value={site.license_expires_at ?? "—"} />
       </Section>
 
+      <Section title="Sincronización end-to-end" icon={Wifi}>
+        <div className="mb-3 flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Telemetría:</span>
+          {liveBadge}
+        </div>
+        <div className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
+          <Row label="Último dato (telemetry)" value={`${lastSampleAt ? new Date(lastSampleAt).toLocaleString() : "—"} (${fmtAge(sampleAge)})`} />
+          <Row label="Visto por la nube (last_seen)" value={`${site.last_seen_at ? new Date(site.last_seen_at).toLocaleString() : "—"} (${fmtAge(seenAge)})`} />
+          <Row label="Reloj del agente" value={sync?.agent_time ? `${new Date(sync.agent_time).toLocaleString()}${agentSkewSec != null ? ` (desfase ${agentSkewSec >= 0 ? "+" : ""}${agentSkewSec}s)` : ""}` : "—"} />
+          <Row label="Lecturas OK" value={sync?.read_count?.toString() ?? "—"} />
+          <Row label="Errores totales" value={sync?.error_count?.toString() ?? "—"} />
+          <Row label="Último error agente" value={sync?.last_error_at ? new Date(sync.last_error_at).toLocaleString() : "—"} />
+        </div>
+        {sync?.last_error ? (
+          <div className="mt-3 rounded-lg border border-destructive/40 bg-destructive/5 p-3 font-mono text-xs text-destructive whitespace-pre-wrap break-words">
+            {sync.last_error}
+          </div>
+        ) : null}
+      </Section>
+
       <Section title="Especificación del inversor" icon={Cpu}>
         {spec ? (
           <div className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
