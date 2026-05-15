@@ -176,7 +176,7 @@ function SiteDetail() {
   const { siteId } = Route.useParams();
   const { t } = useI18n();
   const { user } = useAuth();
-  const { devices, selected: selectedDevice } = useDevices(siteId);
+  const { devices, selected: selectedDevice, loaded: devicesLoaded } = useDevices(siteId);
   const [site, setSite] = useState<Site | null>(null);
   const [latest, setLatest] = useState<Sample | null>(null);
   const [history, setHistory] = useState<Sample[]>([]);
