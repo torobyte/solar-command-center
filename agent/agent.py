@@ -2188,6 +2188,7 @@ async function load(){
         <div class="row"><span class="k">Placa</span><span class="v">${ag.board||'—'}</span></div>
         <div class="row"><span class="k">Versión agente</span><span class="v">${ag.version||'—'}</span></div>
         <div class="row"><span class="k">Iniciado</span><span class="v">${fmt(ag.started_at)} (${ago(ag.started_at)} de uptime)</span></div>
+        <div class="row"><span class="k">Reloj del agente</span><span class="v">${fmt(d.agent_time)} ${skewPill}</span></div>
       </section>
       <section class="card">
         <h2>Dispositivos USB</h2>
