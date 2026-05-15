@@ -137,15 +137,9 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG }: Qui
         if (error) throw error;
         toast.success("Comando encolado");
       }
-      // optimistic local update
-      setCurrent((c) => {
-        const n = { ...c };
-        if (cmd.command === "set_max_ac_charge_current") n.amps = cmd.payload.amps as number;
-        if (cmd.command === "set_output_priority") n.outputPriority = cmd.payload.value as string;
-        if (cmd.command === "set_charger_priority") n.chargerPriority = cmd.payload.value as string;
-        if (cmd.command === "set_buzzer_enabled") n.buzzerEnabled = cmd.payload.enabled as boolean;
-        return n;
-      });
+      // No optimistic update: "Actual" only reflects values acknowledged by
+      // the inverter. The card refreshes via realtime when status flips to
+      // ok/acked.
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
