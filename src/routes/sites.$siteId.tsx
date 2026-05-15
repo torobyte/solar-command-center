@@ -323,7 +323,7 @@ function SiteDetail() {
         <div className="min-w-0 flex-1">
           <InlineSiteName site={site} onRenamed={(name) => setSite((s) => s ? { ...s, name } : s)} />
           <p className="mt-1 text-sm text-muted-foreground">
-            {selectedDevice?.name ?? site.inverter_model ?? "Inverter not yet detected"} · <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${site.status === "online" ? "bg-success/15 text-success" : site.status === "offline" ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground"}`}>● {site.status}</span>
+            {site.inverter_model ?? selectedDevice?.name ?? (latest ? "Inversor conectado" : "Esperando datos del inversor…")} · <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${site.status === "online" ? "bg-success/15 text-success" : site.status === "offline" ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground"}`}>● {site.status}</span>
           </p>
         </div>
       </div>
