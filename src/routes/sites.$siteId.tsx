@@ -27,7 +27,7 @@ import { BellRing } from "lucide-react";
 import { MobileBottomNav, type SiteTab } from "@/components/MobileBottomNav";
 import { PageHeaderSkeleton, DashboardSkeleton, SectionSkeleton } from "@/components/LoadingStates";
 import { InverterConfigWizard } from "@/components/InverterConfigWizard";
-import { QuickActions } from "@/components/QuickActions";
+import { QuickActions, QuickActionsConfigCard, useQuickActionsConfig } from "@/components/QuickActions";
 import { SiteSharing } from "@/components/SiteSharing";
 import { Share2 } from "lucide-react";
 
