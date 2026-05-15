@@ -117,35 +117,29 @@ udevadm trigger || true
 setcap 'cap_net_bind_service=+ep' "$(readlink -f /opt/solarops/venv/bin/python3)" 2>/dev/null || true
 
 # ---------------------------------------------------------------------------
-# [5/9] AUTO-REGISTRO (licencia trial 30 días automática, sin user/password)
+# [5/9] CONFIG INICIAL — sin auto-registro: el agente pedirá un código de
+# vinculación de 6 caracteres y lo mostrará en pantalla. El usuario lo
+# escribe en "Agregar sitio" del portal cloud para asociar este equipo a
+# su cuenta. NO se asigna automáticamente a ningún superadmin.
 # ---------------------------------------------------------------------------
-echo "▶ [5/9] Registrando este equipo en la nube (trial 30 días)…"
+echo "▶ [5/9] Generando configuración inicial (modo pairing)…"
 HARDWARE_ID=$(cat /etc/machine-id 2>/dev/null || cat /var/lib/dbus/machine-id 2>/dev/null || hostname)
 HOSTNAME_SAFE=$(hostname)
 
-if [[ -z "$DEVICE_TOKEN" ]] && [[ ! -f /etc/solarops/config.json || -z "$(jq -r '.device_token // empty' /etc/solarops/config.json 2>/dev/null)" ]]; then
-  REG_RESPONSE=$(curl -fsSL --max-time 15 -X POST \
-    -H "Content-Type: application/json" \
-    -d "{\"hardware_id\":\"${HARDWARE_ID}\",\"site_name\":\"${HOSTNAME_SAFE}\",\"board\":\"${BOARD}\"}" \
-    "${CLOUD_URL}/api/public/register" 2>/dev/null || echo '{}')
-  REG_TOKEN=$(echo "$REG_RESPONSE" | jq -r '.device_token // empty')
-  REG_SITE=$(echo "$REG_RESPONSE" | jq -r '.site_id // empty')
-  if [[ -n "$REG_TOKEN" ]]; then
-    DEVICE_TOKEN="$REG_TOKEN"
-    echo "   ✓ Trial activado · site_id=${REG_SITE}"
-  else
-    echo "   ⚠ Sin conexión a la nube. El agente arrancará igual en modo local."
-  fi
-fi
-
+# Si pasaron un DEVICE_TOKEN explícito por argumento, lo respetamos
+# (ej. para reinstalación de un equipo previamente vinculado).
 if [[ -n "$DEVICE_TOKEN" ]]; then
   cat >/etc/solarops/config.json <<EOF
 {"cloud_url":"$CLOUD_URL","device_token":"$DEVICE_TOKEN","hardware_id":"$HARDWARE_ID","board":"$BOARD"}
 EOF
+  echo "   ✓ Token explícito guardado — vinculación previa preservada."
+elif [[ -f /etc/solarops/config.json ]] && [[ -n "$(jq -r '.device_token // empty' /etc/solarops/config.json 2>/dev/null)" ]]; then
+  echo "   ✓ Configuración existente preservada."
 else
-  [[ -f /etc/solarops/config.json ]] || cat >/etc/solarops/config.json <<EOF
+  cat >/etc/solarops/config.json <<EOF
 {"cloud_url":"$CLOUD_URL","device_token":null,"hardware_id":"$HARDWARE_ID","board":"$BOARD"}
 EOF
+  echo "   ✓ Sin vinculación: el agente mostrará un código de 6 caracteres en pantalla."
 fi
 chmod 644 /etc/solarops/config.json
 
@@ -387,5 +381,7 @@ echo "   📶 AP de bootstrap:  SSID=${AP_SSID:-SolarOps-Setup}  contraseña=${A
 echo "   🆔 hardware_id:      ${HARDWARE_ID}"
 echo "   🧩 Placa:            ${BOARD}"
 if [[ -n "${DEVICE_TOKEN:-}" ]]; then
-  echo "   🎁 Plan inicial:     TRIAL 30 días activado automáticamente"
+  echo "   🎁 Token explícito vinculado en este install."
+else
+  echo "   🔗 Vinculación: abre la pantalla del equipo y escribe el código de 6 caracteres en 'Agregar sitio' del portal."
 fi

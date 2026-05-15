@@ -25,7 +25,7 @@ DB_PATH = Path(os.environ.get("SOLAROPS_DB", "/var/lib/solarops/state.db"))
 POLL_INTERVAL = 1.0  # leer inversor cada 1s para sensación "en vivo"
 PUSH_INTERVAL = 1.0  # empujar al cloud cada 1s
 SNAPSHOT_INTERVAL = 60.0  # send specs/network/system snapshot every 60s
-AGENT_VERSION = "0.7.1"
+AGENT_VERSION = "0.8.0"
 PVCFG_PATH = Path(os.environ.get("SOLAROPS_PVCFG", "/etc/solarops/pv.json"))
 
 def load_pvcfg() -> dict:
@@ -818,6 +818,28 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
   <a class="btn" href="#" onclick="location.reload();return false;">Reintentar</a>
   <a class="btn" href="/status" style="background:transparent">Diagnóstico del agente</a>
 </div>
+
+<!-- Pantalla de vinculación: visible cuando el agente todavía no tiene
+     device_token. Muestra el código de 6 caracteres en grande para que
+     el usuario lo escriba en "Agregar sitio" del portal cloud. -->
+<div id="pair" style="position:fixed;inset:0;display:none;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;padding:24px;gap:18px;
+  background:radial-gradient(circle at 50% 30%,#1a1d2c 0%,#0b0d14 100%)">
+  <div style="font-size:22px;font-weight:800;letter-spacing:-.02em;color:#f5b945">SolarOps</div>
+  <div style="font-size:14px;color:#9aa0ad;max-width:520px;line-height:1.5">
+    Vincula este equipo a tu cuenta. Abre el portal en tu computador o teléfono,
+    inicia sesión, pulsa <b>Agregar sitio</b> y escribe este código:
+  </div>
+  <div id="pairCode" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:64px;letter-spacing:.25em;font-weight:800;color:#f5b945;
+    background:#0008;border:1px solid #2c2f42;border-radius:14px;padding:14px 28px">
+    ——————
+  </div>
+  <div id="pairExp" style="font-size:12px;color:#6a6f7c"></div>
+  <a class="btn" id="pairPortal" target="_blank" rel="noopener" href="">Abrir portal cloud</a>
+  <a class="btn" href="/status" style="background:transparent">Diagnóstico del agente</a>
+</div>
+
 <iframe id="frame" allow="fullscreen; clipboard-write" referrerpolicy="no-referrer"></iframe>
 <script>
 (function(){
@@ -826,19 +848,41 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
   var url    = cloud + "/local?agent=" + encodeURIComponent(origin) + "&v={{ boot_id }}";
   var frame  = document.getElementById("frame");
   var boot   = document.getElementById("boot");
+  var pair   = document.getElementById("pair");
+  var pairCode = document.getElementById("pairCode");
+  var pairExp  = document.getElementById("pairExp");
+  var pairPortal = document.getElementById("pairPortal");
+  pairPortal.href = cloud + "/app";
   var msg    = document.getElementById("bootMsg");
-  var ready  = false;
+  var iframeLoaded = false;
+  var linked = null; // unknown hasta el primer /api/state
 
-  // Cargamos directo el cloud /local. Si el navegador bloquea por
-  // mixed-content (HTTPS->HTTP del agente), aún así el iframe se intentará
-  // cargar y los fetches se harán mediante el bridge postMessage.
+  function showPair(code, expires){
+    pairCode.textContent = code || "——————";
+    if (expires){
+      try {
+        var t = new Date(expires);
+        pairExp.textContent = "El código expira a las " + t.toLocaleTimeString();
+      } catch(_) { pairExp.textContent = ""; }
+    }
+    pair.style.display = "flex";
+    boot.style.display = "none";
+    frame.style.display = "none";
+  }
+  function hidePair(){
+    pair.style.display = "none";
+    frame.style.display = "block";
+  }
+
   function loadIframe(){
+    if (iframeLoaded) return;
+    iframeLoaded = true;
     var deadline = setTimeout(function(){
-      msg.textContent = "El panel cloud no respondió. Verifica conexión a internet y reintenta.";
+      if (!frame.classList.contains("ready"))
+        msg.textContent = "El panel cloud no respondió. Verifica conexión a internet y reintenta.";
     }, 8000);
     frame.addEventListener("load", function(){
       clearTimeout(deadline);
-      ready = true;
       frame.classList.add("ready");
       boot.style.display = "none";
     });
@@ -846,9 +890,7 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
       msg.textContent = "Error cargando el panel cloud.";
     });
     frame.src = url;
-    setTimeout(tick, 500);
   }
-  loadIframe();
 
   // ---- Bridge postMessage: el padre (mismo origen que /api/*) hace los
   // fetches y se los pasa al iframe HTTPS para sortear mixed-content.
@@ -866,12 +908,27 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
     } catch(_) { return null; }
   }
   async function tick(){
-    var w = frame.contentWindow; if (!w) return;
     var s = await pull("/api/state");
-    if (s) { lastState = s; postTo(w, "state", s); }
+    if (s) {
+      lastState = s;
+      var p = (s && s.pairing) || {};
+      if (p.linked === false) {
+        // No vinculado → mostrar código en pantalla completa.
+        showPair(p.code, p.expires_at);
+        linked = false;
+      } else if (p.linked === true) {
+        if (linked === false) {
+          // Acaba de vincularse: cargar iframe y ocultar pairing.
+          hidePair();
+        }
+        linked = true;
+        loadIframe();
+        var w = frame.contentWindow; if (w) postTo(w, "state", s);
+      }
+    }
     if (!lastPv) {
-      var p = await pull("/api/pvconfig");
-      if (p) { lastPv = p; postTo(w, "pvconfig", p); }
+      var pv = await pull("/api/pvconfig");
+      if (pv) { lastPv = pv; var w2 = frame.contentWindow; if (w2) postTo(w2, "pvconfig", pv); }
     }
   }
   window.addEventListener("message", function(ev){
@@ -881,12 +938,10 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
     if (lastState) postTo(w, "state", lastState);
     if (lastPv)    postTo(w, "pvconfig", lastPv);
   });
+  tick();
   setInterval(tick, 2000);
 
   // ---- Auto-reload cuando el auto-updater instala una versión nueva.
-  // Comparamos agent_version + boot_id contra el que vimos al cargar:
-  // si cualquiera cambia, recargamos para traer la UI nueva sin que el
-  // usuario tenga que refrescar manualmente ni reinstalar.
   var initialVer = "{{ agent_version }}";
   var initialBoot = "{{ boot_id }}";
   var reloadScheduled = false;
@@ -1690,7 +1745,7 @@ def make_app(agent: Agent) -> Flask:
     def _no_store_and_cors(resp):
         path = request.path or ""
         # Evita que el navegador sirva /api/* desde caché.
-        if path.startswith("/api/") or path in ("/", "/status", "/legacy"):
+        if path.startswith("/api/") or path in ("/", "/status"):
             resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
             resp.headers["Pragma"] = "no-cache"
             resp.headers["Expires"] = "0"
@@ -1717,10 +1772,10 @@ def make_app(agent: Agent) -> Flask:
         # local que funciona 100% offline).
         return render_template_string(WRAPPER_PAGE, cloud_base=CLOUD_BASE, boot_id=BOOT_ID, agent_version=AGENT_VERSION)
 
-    @app.get("/legacy")
-    def legacy_index():
-        # UI Flask local — fallback offline / sin internet.
-        return render_template_string(PAGE, boot_id=BOOT_ID)
+    # NOTA: el modo "legacy" (UI Flask local) fue eliminado a petición
+    # del usuario. La única UI es el wrapper que carga el dashboard cloud
+    # (mismo look & feel que la versión online). Si no hay pairing,
+    # el wrapper muestra el código de 6 caracteres en pantalla completa.
 
     @app.get("/api/version")
     def api_version():
@@ -1978,6 +2033,12 @@ def make_app(agent: Agent) -> Flask:
                 for s in hist
             ],
             "totals_today": totals,
+            "pairing": {
+                "linked": bool(agent.config.get("device_token")),
+                "site_id": agent.config.get("site_id"),
+                "code": (getattr(agent, "_pair_cache", None) or {}).get("code"),
+                "expires_at": (getattr(agent, "_pair_cache", None) or {}).get("expires_at"),
+            },
         })
 
     @app.post("/api/activate")
