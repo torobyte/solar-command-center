@@ -86,16 +86,20 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG }: Qui
     let cancelled = false;
     async function load() {
       const cmds = ["set_max_ac_charge_current", "set_output_priority", "set_charger_priority", "set_buzzer_enabled"];
+      // Only consider commands the inverter has acknowledged or that the
+      // agent reported as successful — pending/failed commands MUST NOT be
+      // shown as the current setting.
       const { data } = await supabase
         .from("device_commands")
-        .select("command,payload,status,created_at")
+        .select("command,payload,status,acked_at,created_at")
         .eq("site_id", siteId)
         .in("command", cmds)
+        .in("status", ["ok", "success", "acked", "done"])
         .order("created_at", { ascending: false })
         .limit(40);
-      if (cancelled || !data) return;
+      if (cancelled) return;
       const next: CurrentValues = {};
-      for (const row of data) {
+      for (const row of data ?? []) {
         const p = (row.payload ?? {}) as Record<string, unknown>;
         if (next.amps == null && row.command === "set_max_ac_charge_current" && typeof p.amps === "number") next.amps = p.amps;
         if (next.outputPriority == null && row.command === "set_output_priority" && typeof p.value === "string") next.outputPriority = p.value;
@@ -105,10 +109,10 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG }: Qui
       setCurrent(next);
     }
     load();
-    // refresh on new commands
+    // refresh on new acked commands
     const ch = supabase
       .channel(`qa-cmds-${siteId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "device_commands", filter: `site_id=eq.${siteId}` }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "device_commands", filter: `site_id=eq.${siteId}` }, () => load())
       .subscribe();
     return () => { cancelled = true; supabase.removeChannel(ch); };
   }, [siteId]);
@@ -133,15 +137,9 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG }: Qui
         if (error) throw error;
         toast.success("Comando encolado");
       }
-      // optimistic local update
-      setCurrent((c) => {
-        const n = { ...c };
-        if (cmd.command === "set_max_ac_charge_current") n.amps = cmd.payload.amps as number;
-        if (cmd.command === "set_output_priority") n.outputPriority = cmd.payload.value as string;
-        if (cmd.command === "set_charger_priority") n.chargerPriority = cmd.payload.value as string;
-        if (cmd.command === "set_buzzer_enabled") n.buzzerEnabled = cmd.payload.enabled as boolean;
-        return n;
-      });
+      // No optimistic update: "Actual" only reflects values acknowledged by
+      // the inverter. The card refreshes via realtime when status flips to
+      // ok/acked.
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -175,7 +173,7 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG }: Qui
             <ActionGroup
               icon={<BatteryCharging className="h-3.5 w-3.5" />}
               title="Carga desde red (A)"
-              hint={current.amps != null ? `Actual: ${current.amps} A` : "Limita cuánta corriente toma de la red"}
+              hint={current.amps != null ? `Actual: ${current.amps} A` : "Sin datos del inversor todavía · al aplicar un valor se confirmará al recibir respuesta"}
             >
               {AC_AMPS.map((a) => (
                 <Chip
@@ -204,7 +202,7 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG }: Qui
             <ActionGroup
               icon={<Power className="h-3.5 w-3.5" />}
               title="Prioridad de salida"
-              hint={current.outputPriority ? `Actual: ${POP_OPTS.find((o) => o.v === current.outputPriority)?.l ?? current.outputPriority}` : "De dónde alimentar las cargas"}
+              hint={current.outputPriority ? `Actual: ${POP_OPTS.find((o) => o.v === current.outputPriority)?.l ?? current.outputPriority}` : "Sin datos del inversor todavía"}
             >
               {POP_OPTS.map((o) => (
                 <Chip
@@ -229,7 +227,7 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG }: Qui
             <ActionGroup
               icon={<Zap className="h-3.5 w-3.5" />}
               title="Prioridad de carga"
-              hint={current.chargerPriority ? `Actual: ${PCP_OPTS.find((o) => o.v === current.chargerPriority)?.l ?? current.chargerPriority}` : "Qué fuente carga la batería"}
+              hint={current.chargerPriority ? `Actual: ${PCP_OPTS.find((o) => o.v === current.chargerPriority)?.l ?? current.chargerPriority}` : "Sin datos del inversor todavía"}
             >
               {PCP_OPTS.map((o) => (
                 <Chip
@@ -254,7 +252,7 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG }: Qui
             <ActionGroup
               icon={current.buzzerEnabled === false ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
               title="Buzzer / alarma"
-              hint={current.buzzerEnabled == null ? "Silenciar la alarma sonora del equipo" : `Actual: ${current.buzzerEnabled ? "Encendido" : "Silenciado"}`}
+              hint={current.buzzerEnabled == null ? "Sin datos del inversor todavía" : `Actual: ${current.buzzerEnabled ? "Encendido" : "Silenciado"}`}
             >
               <Chip
                 label="Encender"
@@ -333,16 +331,16 @@ function Chip({ label, onClick, loading, active, warning }: { label: string; onC
       type="button"
       disabled={loading}
       onClick={onClick}
+      title={warning && !active ? "Valor bajo — requiere confirmación" : undefined}
       className={[
         "inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold transition-all",
         "disabled:opacity-50 disabled:cursor-wait active:scale-95",
         active
-          ? "border-accent bg-accent text-accent-foreground shadow-sm"
-          : warning
-            ? "border-warning/50 bg-warning/10 text-warning hover:bg-warning/20"
-            : "border-border bg-card text-foreground hover:bg-muted hover:border-accent/40",
+          ? "border-accent bg-accent text-accent-foreground shadow-md ring-2 ring-accent/30"
+          : "border-border bg-card text-foreground hover:bg-muted hover:border-accent/40",
       ].join(" ")}
     >
+      {warning && !active && <AlertTriangle className="h-3 w-3 text-warning" strokeWidth={2.6} />}
       {loading ? "…" : label}
     </button>
   );
