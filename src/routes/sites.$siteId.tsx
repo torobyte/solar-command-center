@@ -578,7 +578,7 @@ function ConfigurationView({ site, subTab, onSubTabChange }: { site: Site; subTa
     : <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-xs font-semibold text-destructive">Sin datos</span>;
 
   return (
-    <Tabs defaultValue="inverter" className="w-full">
+    <Tabs value={subTab} onValueChange={onSubTabChange} className="w-full">
       <TabsList className="flex w-full flex-wrap gap-1 rounded-full bg-muted/50 p-1 h-auto">
         <TabsTrigger value="inverter" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Cpu className="h-3.5 w-3.5" strokeWidth={2.2} />Inversor</TabsTrigger>
         <TabsTrigger value="pv" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={2.2} />Sistema PV</TabsTrigger>
