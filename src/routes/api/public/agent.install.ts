@@ -4,7 +4,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import installScript from "../../../../agent/install.sh?raw";
 
-export const Route = createFileRoute("/api/public/agent/install.sh")({
+export const Route = createFileRoute("/api/public/agent/install")({
   server: {
     handlers: {
       GET: async () => {
