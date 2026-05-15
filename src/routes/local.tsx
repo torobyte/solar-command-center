@@ -240,6 +240,7 @@ function LocalDashboardPage() {
             <TabsTrigger value="charts" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><LineChartIcon className="h-3.5 w-3.5" strokeWidth={2.2} />Charts</TabsTrigger>
             <TabsTrigger value="totals" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Calculator className="h-3.5 w-3.5" strokeWidth={2.2} />Totals</TabsTrigger>
             <TabsTrigger value="config" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Settings2 className="h-3.5 w-3.5" strokeWidth={2.2} />Configuración</TabsTrigger>
+            <TabsTrigger value="system" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Wrench className="h-3.5 w-3.5" strokeWidth={2.2} />Sistema</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="mt-6">
