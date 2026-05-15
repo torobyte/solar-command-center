@@ -27,6 +27,9 @@ import { BellRing } from "lucide-react";
 import { MobileBottomNav, type SiteTab } from "@/components/MobileBottomNav";
 import { PageHeaderSkeleton, DashboardSkeleton, SectionSkeleton } from "@/components/LoadingStates";
 import { InverterConfigWizard } from "@/components/InverterConfigWizard";
+import { QuickActions } from "@/components/QuickActions";
+import { SiteSharing } from "@/components/SiteSharing";
+import { Share2 } from "lucide-react";
 
 function SiteDetailSkeleton() {
   return (
@@ -320,7 +323,7 @@ function SiteDetail() {
         <div className="min-w-0 flex-1">
           <InlineSiteName site={site} onRenamed={(name) => setSite((s) => s ? { ...s, name } : s)} />
           <p className="mt-1 text-sm text-muted-foreground">
-            {selectedDevice?.name ?? site.inverter_model ?? "Inverter not yet detected"} · <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${site.status === "online" ? "bg-success/15 text-success" : site.status === "offline" ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground"}`}>● {site.status}</span>
+            {site.inverter_model ?? selectedDevice?.name ?? (latest ? "Inversor conectado" : "Esperando datos del inversor…")} · <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${site.status === "online" ? "bg-success/15 text-success" : site.status === "offline" ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground"}`}>● {site.status}</span>
           </p>
         </div>
       </div>
@@ -338,7 +341,8 @@ function SiteDetail() {
           <TabsTrigger value="config" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Settings2 className="h-3.5 w-3.5" strokeWidth={2.2} />Configuration</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="dashboard" className="mt-6">
+        <TabsContent value="dashboard" className="mt-6 space-y-6">
+          <QuickActions siteId={siteId} />
           <DashboardView latest={latest} siteId={siteId} spec={null} device={selectedDevice} />
           {!latest && (
             <div className="mt-8 rounded-lg border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">
@@ -697,6 +701,10 @@ function ConfigurationView({ site }: { site: Site }) {
         ) : (
           <SectionSkeleton />
         )}
+      </Section>
+
+      <Section title="Compartir sitio" icon={Share2}>
+        <SiteSharing siteId={site.id} isOwnerOrAdmin={true} />
       </Section>
 
       <Section title="Instalación del dispositivo" icon={Download}>
