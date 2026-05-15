@@ -14,7 +14,8 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useServerFn } from "@tanstack/react-start";
 import { claimPairingCode } from "@/lib/pairing.functions";
-import { Plus, Cpu as CpuIcon, Sparkles, KeyRound, Copy } from "lucide-react";
+import { Plus, Cpu as CpuIcon, Sparkles, KeyRound, Copy, Share2 } from "lucide-react";
+import { SiteSharing } from "@/components/SiteSharing";
 import { toast } from "sonner";
 import { TableSkeleton, PageHeaderSkeleton } from "@/components/LoadingStates";
 
@@ -44,6 +45,7 @@ function SitesIndex() {
   const [code, setCode] = useState("");
   const [siteName, setSiteName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [shareSite, setShareSite] = useState<Site | null>(null);
   const claim = useServerFn(claimPairingCode);
 
   async function load() {
