@@ -2,7 +2,6 @@
 // Uso desde Raspberry/Orange Pi:
 //   curl -fsSL https://<host>/api/public/agent/install.sh | sudo bash
 import { createFileRoute } from "@tanstack/react-router";
-// @ts-expect-error - Vite raw import
 import installScript from "../../../../agent/install.sh?raw";
 
 export const Route = createFileRoute("/api/public/agent/install.sh")({
