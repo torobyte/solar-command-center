@@ -86,16 +86,20 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG }: Qui
     let cancelled = false;
     async function load() {
       const cmds = ["set_max_ac_charge_current", "set_output_priority", "set_charger_priority", "set_buzzer_enabled"];
+      // Only consider commands the inverter has acknowledged or that the
+      // agent reported as successful — pending/failed commands MUST NOT be
+      // shown as the current setting.
       const { data } = await supabase
         .from("device_commands")
-        .select("command,payload,status,created_at")
+        .select("command,payload,status,acked_at,created_at")
         .eq("site_id", siteId)
         .in("command", cmds)
+        .in("status", ["ok", "success", "acked", "done"])
         .order("created_at", { ascending: false })
         .limit(40);
-      if (cancelled || !data) return;
+      if (cancelled) return;
       const next: CurrentValues = {};
-      for (const row of data) {
+      for (const row of data ?? []) {
         const p = (row.payload ?? {}) as Record<string, unknown>;
         if (next.amps == null && row.command === "set_max_ac_charge_current" && typeof p.amps === "number") next.amps = p.amps;
         if (next.outputPriority == null && row.command === "set_output_priority" && typeof p.value === "string") next.outputPriority = p.value;
@@ -105,10 +109,10 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG }: Qui
       setCurrent(next);
     }
     load();
-    // refresh on new commands
+    // refresh on new acked commands
     const ch = supabase
       .channel(`qa-cmds-${siteId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "device_commands", filter: `site_id=eq.${siteId}` }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "device_commands", filter: `site_id=eq.${siteId}` }, () => load())
       .subscribe();
     return () => { cancelled = true; supabase.removeChannel(ch); };
   }, [siteId]);
