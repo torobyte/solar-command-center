@@ -2139,6 +2139,18 @@ async function load(){
             <span class="v">${pill(u.active)} ${pill(u.enabled)}</span>
           </div>`).join('')}
       </section>
+      ${d.pairing && !d.pairing.linked && d.pairing.code ? `
+      <section class="card" style="background:linear-gradient(135deg,#f59e0b22,#0b122000);border-color:#f59e0b66">
+        <h2>🔗 Vincula este equipo a tu cuenta</h2>
+        <p style="opacity:.8;margin:.5em 0">Inicia sesión en la plataforma, abre <b>“Nuevo sitio”</b> y escribe este código:</p>
+        <div style="font-family:ui-monospace,monospace;font-size:2.5em;letter-spacing:.3em;text-align:center;padding:.5em;background:#0008;border-radius:.5em;color:#f59e0b">${d.pairing.code}</div>
+        <p style="opacity:.6;font-size:.85em;margin-top:.5em">El código expira a las ${fmt(d.pairing.expires_at)}. Una vez vinculado, esta tarjeta desaparecerá.</p>
+      </section>` : ''}
+      ${d.pairing && d.pairing.linked ? `
+      <section class="card">
+        <h2>✅ Equipo vinculado</h2>
+        <div class="row"><span class="k">Site ID</span><span class="v">${d.pairing.site_id||'—'}</span></div>
+      </section>` : ''}
       <section class="card">
         <h2>Equipo</h2>
         <div class="row"><span class="k">Hardware ID</span><span class="v">${ag.hardware_id||'—'}</span></div>
