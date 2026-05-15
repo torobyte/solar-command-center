@@ -647,38 +647,6 @@ function ConfigurationView({ site }: { site: Site }) {
   );
 }
 
-function SettingControl({ label, options, onApply }: {
-  label: string; options: Array<{ v: string; l: string }>;
-  onApply: (v: string) => void;
-}) {
-  const [val, setVal] = useState(options[0].v);
-  return (
-    <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-      <Label className="text-sm sm:w-64">{label}</Label>
-      <select value={val} onChange={(e) => setVal(e.target.value)}
-        className="flex-1 rounded-md border bg-background px-3 py-2 text-sm">
-        {options.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
-      </select>
-      <Button size="sm" onClick={() => onApply(val)} className="sm:w-auto">Aplicar</Button>
-    </div>
-  );
-}
-
-function NumberControl({ label, min, max, step, defaultValue, onApply }: {
-  label: string; min: number; max: number; step: number; defaultValue: number;
-  onApply: (n: number) => void;
-}) {
-  const [val, setVal] = useState(defaultValue);
-  return (
-    <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-      <Label className="text-sm sm:w-64">{label}</Label>
-      <input type="number" min={min} max={max} step={step} value={val}
-        onChange={(e) => setVal(parseFloat(e.target.value) || defaultValue)}
-        className="flex-1 rounded-md border bg-background px-3 py-2 text-sm" />
-      <Button size="sm" onClick={() => onApply(val)} className="sm:w-auto">Aplicar</Button>
-    </div>
-  );
-}
 
 
 function ChartCard({ title, children }: { title: string; children: React.ReactElement }) {
