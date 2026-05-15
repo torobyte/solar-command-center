@@ -2080,6 +2080,36 @@ def make_app(agent: Agent) -> Flask:
         save_pvcfg(cfg)
         return jsonify({"ok": True, "config": cfg})
 
+    @app.post("/api/unlink")
+    def unlink():
+        """Borra el device_token local para forzar la generación de un
+        nuevo código de pairing. Útil cuando el usuario quiere mover el
+        equipo a otra cuenta o vino con datos de un install anterior."""
+        agent.config.pop("device_token", None)
+        agent.config.pop("site_id", None)
+        agent.config.pop("site_name", None)
+        save_config(agent.config)
+        agent.license = {}
+        agent._pair_cache = None
+        try:
+            agent.request_pairing_code(force=True)
+        except Exception as e:
+            return jsonify({"ok": True, "warning": str(e)})
+        return jsonify({"ok": True})
+
+    @app.post("/api/update-now")
+    def update_now():
+        """Lanza el script de auto-update inmediatamente (no espera al timer)."""
+        try:
+            r = subprocess.run(
+                ["/usr/bin/sudo", "-n", "/usr/bin/systemctl", "start", "solarops-update.service"],
+                capture_output=True, text=True, timeout=10,
+            )
+            ok = r.returncode == 0
+            return jsonify({"ok": ok, "stdout": r.stdout, "stderr": r.stderr})
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
     @app.get("/status")
     def status_page():
         return render_template_string(STATUS_PAGE)
