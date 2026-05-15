@@ -471,7 +471,7 @@ export function InverterConfigWizard({ siteId, agentBase, spec, agentFetch }: { 
                   {field.kind === "select" && (
                     <select
                       value={String(values[field.key])}
-                      onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))}
+                      onChange={(e) => setField(field.key, e.target.value)}
                       className="flex-1 rounded-md border bg-background px-3 py-2 text-sm"
                     >
                       {field.options.map((o) => (
