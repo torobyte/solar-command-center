@@ -2152,7 +2152,7 @@ def make_app(agent: Agent) -> Flask:
         """Lanza el script de auto-update inmediatamente (no espera al timer)."""
         try:
             r = subprocess.run(
-                ["/usr/bin/sudo", "-n", "/usr/bin/systemctl", "start", "solarops-update.service"],
+                ["/usr/bin/systemctl", "start", "solarops-update.service"],
                 capture_output=True, text=True, timeout=10,
             )
             ok = r.returncode == 0
