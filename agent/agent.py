@@ -923,24 +923,32 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
       return await r.json();
     } catch(_) { return null; }
   }
+  var tbStatus = document.getElementById("tbStatus");
+  var tbUnlink = document.getElementById("tbUnlink");
+  function setStatus(txt, cls){
+    tbStatus.textContent = txt;
+    tbStatus.className = cls || "";
+  }
   async function tick(){
     var s = await pull("/api/state");
     if (s) {
       lastState = s;
       var p = (s && s.pairing) || {};
       if (p.linked === false) {
-        // No vinculado → mostrar código en pantalla completa.
         showPair(p.code, p.expires_at);
         linked = false;
+        tbUnlink.style.display = "none";
+        setStatus("Sin vincular", "warn");
       } else if (p.linked === true) {
-        if (linked === false) {
-          // Acaba de vincularse: cargar iframe y ocultar pairing.
-          hidePair();
-        }
+        if (linked === false) hidePair();
         linked = true;
         loadIframe();
+        tbUnlink.style.display = "inline-block";
+        setStatus("Vinculado · " + (p.site_id ? p.site_id.slice(0,8) : "ok"), "ok");
         var w = frame.contentWindow; if (w) postTo(w, "state", s);
       }
+    } else {
+      setStatus("Sin conexión con el agente", "warn");
     }
     if (!lastPv) {
       var pv = await pull("/api/pvconfig");
