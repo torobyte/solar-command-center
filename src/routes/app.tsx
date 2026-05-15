@@ -157,7 +157,8 @@ function SitesIndex() {
               </DialogFooter>
             </form>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
       {(() => {
