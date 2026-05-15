@@ -354,10 +354,10 @@ function LocalDashboardPage() {
                     onClick={async () => {
                       setUpdating("running");
                       try {
-                        const r = await fetch(`${agentBase}/api/update-now`, { method: "POST" });
-                        const j = await r.json().catch(() => ({}));
-                        if (j?.ok) { setUpdating("ok"); toast.success("Actualización lanzada"); }
-                        else { setUpdating("err"); toast.error(j?.error || "No se pudo lanzar"); }
+                        const res = await agentFetch("/api/update-now", { method: "POST" });
+                        const j = (res.json as { ok?: boolean; error?: string } | null) ?? {};
+                        if (res.ok && j?.ok) { setUpdating("ok"); toast.success("Actualización lanzada"); }
+                        else { setUpdating("err"); toast.error(j?.error || res.error || `HTTP ${res.status}`); }
                       } catch (e) { setUpdating("err"); toast.error((e as Error).message); }
                       setTimeout(() => setUpdating("idle"), 6000);
                     }}
@@ -371,10 +371,11 @@ function LocalDashboardPage() {
                       onClick={async () => {
                         if (!confirm("¿Desvincular este equipo? Se generará un nuevo código de pairing.")) return;
                         try {
-                          const r = await fetch(`${agentBase}/api/unlink`, { method: "POST" });
-                          const j = await r.json().catch(() => ({}));
+                          const res = await agentFetch("/api/unlink", { method: "POST" });
+                          const j = (res.json as { code?: string } | null) ?? {};
                           if (j?.code) toast.success(`Nuevo código: ${j.code}`);
-                          else toast.success("Desvinculado");
+                          else if (res.ok) toast.success("Desvinculado");
+                          else toast.error(res.error || `HTTP ${res.status}`);
                         } catch (e) { toast.error((e as Error).message); }
                       }}
                     >
