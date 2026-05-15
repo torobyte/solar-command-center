@@ -2320,13 +2320,32 @@ def make_app(agent: Agent) -> Flask:
     def update_now():
         """Lanza el script de auto-update inmediatamente (no espera al timer)."""
         try:
+            update_script = shutil.which("bash") and "/opt/solarops/update.sh"
+            used = "systemctl"
             r = subprocess.run(
                 ["/usr/bin/systemctl", "start", "solarops-update.service"],
                 capture_output=True, text=True, timeout=10,
             )
+            if r.returncode != 0 and update_script and os.path.exists(update_script):
+                used = "script"
+                r = subprocess.run(
+                    ["/usr/bin/env", "bash", update_script],
+                    capture_output=True, text=True, timeout=180,
+                )
             ok = r.returncode == 0
-            return jsonify({"ok": ok, "stdout": r.stdout, "stderr": r.stderr})
+            return jsonify({"ok": ok, "runner": used, "stdout": r.stdout, "stderr": r.stderr})
         except Exception as e:
+            try:
+                update_script = "/opt/solarops/update.sh"
+                if os.path.exists(update_script):
+                    r = subprocess.run(
+                        ["/usr/bin/env", "bash", update_script],
+                        capture_output=True, text=True, timeout=180,
+                    )
+                    ok = r.returncode == 0
+                    return jsonify({"ok": ok, "runner": "script", "stdout": r.stdout, "stderr": r.stderr, "warning": str(e)})
+            except Exception as inner:
+                return jsonify({"ok": False, "error": str(inner), "warning": str(e)}), 500
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.get("/status")
