@@ -541,7 +541,24 @@ class Agent:
                     with self.lock: self.spec = spec
                 token = self.config.get("device_token")
                 if token:
-                    payload: dict = {"device": snap}
+                    # Embed sync-health metrics inside `device.raw` so the
+                    # cloud can show "last telemetry / agent clock / errors"
+                    # without a schema migration. snapshot.ts persists the
+                    # whole `raw` jsonb column verbatim.
+                    with self.lock:
+                        sync_meta = {
+                            "agent_time": datetime.now(timezone.utc).isoformat(),
+                            "last_sample_at": self.last_sample_at,
+                            "last_error": self.last_error,
+                            "last_error_at": self.last_error_at,
+                            "read_count": self.read_count,
+                            "error_count": self.error_count,
+                        }
+                    snap_with_sync = dict(snap)
+                    raw = dict(snap_with_sync.get("raw") or {})
+                    raw["sync"] = sync_meta
+                    snap_with_sync["raw"] = raw
+                    payload: dict = {"device": snap_with_sync}
                     if spec: payload["spec"] = spec
                     r = requests.post(
                         f"{self.config['cloud_url']}/api/public/snapshot",
