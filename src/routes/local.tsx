@@ -61,7 +61,9 @@ function mergeDashboardSample(prev: DashboardSample | null, next: DashboardSampl
   return merged;
 }
 
-type LocalTab = "dashboard" | "charts" | "totals" | "config";
+type LocalTab = "dashboard" | "charts" | "totals" | "config" | "system";
+
+interface AgentInfo { version?: string; boot_id?: string }
 
 const TRIAL_DAYS = 30;
 const TRIAL_KEY = "local.trialStartedAt";
