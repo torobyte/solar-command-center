@@ -219,55 +219,89 @@ export function SolarForecastWidget({ pvConfig }: { pvConfig?: ForecastPvConfig 
   if (!data) return null;
   const peak = Math.max(1, ...data.hourly.map((h) => h.radiation));
 
+  // Dynamic gradient based on weather
+  const wc = data.current.weatherCode;
+  const isSunny = wc <= 1;
+  const isCloudy = wc >= 2 && wc <= 3;
+  const isRainy = wc >= 51 && wc <= 82;
+  const isStormy = wc >= 95;
+  const heroGradient = isStormy
+    ? "from-slate-900 via-slate-800 to-indigo-950"
+    : isRainy
+    ? "from-slate-700 via-slate-600 to-blue-900"
+    : isCloudy
+    ? "from-slate-500 via-slate-400 to-blue-700"
+    : isSunny
+    ? "from-amber-500 via-orange-500 to-rose-600"
+    : "from-sky-500 via-blue-600 to-indigo-700";
+
   return (
-    <div className="@container rounded-xl border bg-card p-3 shadow-sm sm:p-5 animate-fade-in">
-      <div className="mb-4 flex flex-col gap-3 @[420px]:flex-row @[420px]:items-start @[420px]:justify-between">
-        <div className="min-w-0 flex-1">
-          <button
-            onClick={() => setPickerOpen((v) => !v)}
-            className="flex max-w-full items-center gap-1.5 rounded-md px-1.5 py-1 -mx-1.5 text-[10px] uppercase tracking-wide text-muted-foreground hover:bg-muted/60"
-            title="Cambiar ubicación"
-          >
-            <MapPin className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">{data.city}</span>
-          </button>
-          <div className="mt-1 flex items-center gap-3">
-            {weatherIcon(data.current.weatherCode, "h-9 w-9 @[420px]:h-12 @[420px]:w-12 shrink-0")}
-            <div className="min-w-0">
-              <div className="text-2xl font-bold leading-none @[420px]:text-4xl">
-                {Math.round(data.current.temperature)}°
-              </div>
-              <div className="truncate text-[11px] text-muted-foreground">{weatherLabel(data.current.weatherCode)}</div>
-            </div>
-          </div>
+    <div className="@container relative overflow-hidden rounded-2xl border bg-card shadow-lg animate-fade-in">
+      {/* Hero header with weather-themed gradient */}
+      <div className={`relative overflow-hidden bg-gradient-to-br ${heroGradient} p-4 sm:p-5 text-white`}>
+        {/* Animated decorative elements */}
+        <div className="pointer-events-none absolute inset-0 opacity-30">
+          <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/20 blur-3xl animate-pulse" />
+          <div className="absolute -bottom-10 left-1/3 h-32 w-32 rounded-full bg-white/10 blur-2xl" style={{ animation: "pulse 4s ease-in-out infinite" }} />
         </div>
-        <div className="flex items-center justify-between gap-2 @[420px]:flex-col @[420px]:items-end">
-          <div className="@[420px]:text-right">
-            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Radiación</div>
-            <div className="text-xl font-bold text-[var(--solar)] @[420px]:text-2xl">
-              {Math.round(data.current.radiation)}<span className="ml-1 text-xs font-normal text-muted-foreground">W/m²</span>
+        {isSunny && (
+          <div className="pointer-events-none absolute top-2 right-4 opacity-40">
+            <Sun className="h-32 w-32 text-white" style={{ animation: "spin 60s linear infinite" }} />
+          </div>
+        )}
+
+        <div className="relative flex flex-col gap-3 @[420px]:flex-row @[420px]:items-start @[420px]:justify-between">
+          <div className="min-w-0 flex-1">
+            <button
+              onClick={() => setPickerOpen((v) => !v)}
+              className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white backdrop-blur-sm transition-colors hover:bg-white/30"
+              title="Cambiar ubicación"
+            >
+              <MapPin className="h-3 w-3 shrink-0" />
+              <span className="truncate">{data.city}</span>
+            </button>
+            <div className="mt-3 flex items-end gap-3">
+              <div className="text-5xl font-extrabold leading-none tracking-tighter @[420px]:text-6xl">
+                {Math.round(data.current.temperature)}<span className="text-3xl">°</span>
+              </div>
+              <div className="min-w-0 pb-1">
+                <div className="flex items-center gap-1.5">
+                  {weatherIcon(data.current.weatherCode, "h-5 w-5 text-white")}
+                  <div className="truncate text-sm font-medium">{weatherLabel(data.current.weatherCode)}</div>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="flex gap-1">
-            <button
-              onClick={() => void detectAndLoad()}
-              className="inline-flex items-center gap-1 rounded-md border bg-background px-2 py-1 text-xs hover:bg-muted"
-              title="Usar mi ubicación"
-            >
-              <LocateFixed className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={() => coords && void loadForecast(coords)}
-              className="inline-flex items-center gap-1 rounded-md border bg-background px-2 py-1 text-xs hover:bg-muted"
-              title="Actualizar pronóstico"
-              disabled={loading}
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-              <span className="hidden @[420px]:inline">Actualizar</span>
-            </button>
+
+          <div className="flex items-center justify-between gap-3 @[420px]:flex-col @[420px]:items-end">
+            <div className="rounded-xl bg-white/15 px-3 py-2 backdrop-blur-md @[420px]:text-right">
+              <div className="text-[9px] font-semibold uppercase tracking-wider text-white/80">Radiación</div>
+              <div className="text-2xl font-bold tabular-nums">
+                {Math.round(data.current.radiation)}<span className="ml-1 text-xs font-normal text-white/80">W/m²</span>
+              </div>
+            </div>
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => void detectAndLoad()}
+                className="inline-flex items-center gap-1 rounded-full bg-white/20 p-2 text-xs text-white backdrop-blur-sm transition-colors hover:bg-white/30"
+                title="Usar mi ubicación"
+              >
+                <LocateFixed className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={() => coords && void loadForecast(coords)}
+                className="inline-flex items-center gap-1 rounded-full bg-white/20 p-2 text-xs text-white backdrop-blur-sm transition-colors hover:bg-white/30"
+                title="Actualizar pronóstico"
+                disabled={loading}
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+              </button>
+            </div>
           </div>
         </div>
       </div>
+
+      <div className="p-3 sm:p-5">
 
       {pickerOpen && (
         <div className="mb-4 rounded-lg border bg-background p-3 animate-fade-in">
@@ -393,6 +427,7 @@ export function SolarForecastWidget({ pvConfig }: { pvConfig?: ForecastPvConfig 
       <style>{`
         @keyframes growUp { from { height: 0%; opacity: 0; } }
       `}</style>
+      </div>
     </div>
   );
 }
