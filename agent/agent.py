@@ -25,7 +25,7 @@ DB_PATH = Path(os.environ.get("SOLAROPS_DB", "/var/lib/solarops/state.db"))
 POLL_INTERVAL = 1.0  # leer inversor cada 1s para sensación "en vivo"
 PUSH_INTERVAL = 1.0  # empujar al cloud cada 1s
 SNAPSHOT_INTERVAL = 60.0  # send specs/network/system snapshot every 60s
-AGENT_VERSION = "0.7.0"
+AGENT_VERSION = "0.7.1"
 PVCFG_PATH = Path(os.environ.get("SOLAROPS_PVCFG", "/etc/solarops/pv.json"))
 
 def load_pvcfg() -> dict:
