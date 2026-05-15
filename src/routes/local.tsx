@@ -159,7 +159,7 @@ function LocalDashboardPage() {
   const mode = formatInverterMode(latest?.inverter_mode);
   const fresh = latest?.recorded_at && (Date.now() - new Date(latest.recorded_at).getTime() < 60_000);
   const siteName = license?.site_name ?? "SolarOps Local";
-  const isLinked = linked || Boolean(license?.site_id);
+  const isLinked = Boolean(pairing?.linked) || linked || Boolean(license?.site_id);
   const plan = isLinked ? (license?.plan ?? "cloud") : "trial local";
 
   // Trial countdown (modo local). Si la licencia cloud trae expires_at lo
