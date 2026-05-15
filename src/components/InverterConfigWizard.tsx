@@ -496,7 +496,7 @@ export function InverterConfigWizard({ siteId, agentBase, spec, agentFetch }: { 
                       <input
                         type="checkbox"
                         checked={!!values[field.key]}
-                        onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.checked }))}
+                        onChange={(e) => setField(field.key, e.target.checked)}
                         className="h-4 w-4"
                       />
                       <span className="text-sm">{values[field.key] ? "Habilitado" : "Deshabilitado"}</span>
