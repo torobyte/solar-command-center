@@ -298,19 +298,25 @@ export function InverterConfigWizard({ siteId, agentBase, spec, agentFetch }: { 
   const [step, setStep] = useState(0);
   const [values, setValues] = useState<Record<string, string | number | boolean>>(() => seedFromSpec(spec));
   const [pending, setPending] = useState<string | null>(null);
+  // Keys que el usuario tocó manualmente — NO se sobrescriben con datos del inversor
+  // hasta que se aplique el comando (entonces se limpia el touched para ese key).
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
-  // Re-seed when fresh spec arrives (avoid clobbering user edits — only fill
-  // keys that still hold the static defaults).
-  const specKey = spec ? `${spec.output_source_priority}|${spec.charger_source_priority}|${spec.max_ac_charge_current}|${spec.max_charge_current}|${spec.battery_type}|${spec.input_voltage_range}` : "";
+  function setField(key: string, val: string | number | boolean) {
+    setValues((v) => ({ ...v, [key]: val }));
+    setTouched((t) => ({ ...t, [key]: true }));
+  }
+
+  // Re-seed cuando llega spec fresco. Respeta cualquier campo que el usuario
+  // haya tocado pero aún no aplicado, para que las selecciones no "salten".
+  const specKey = spec ? `${spec.output_source_priority}|${spec.charger_source_priority}|${spec.max_ac_charge_current}|${spec.max_charge_current}|${spec.battery_type}|${spec.input_voltage_range}|${spec.expected_ac_input_voltage}` : "";
   useEffect(() => {
     if (!spec) return;
     setValues((prev) => {
       const seeded = seedFromSpec(spec);
       const next = { ...prev };
-      const defaults: Record<string, string | number | boolean> = {};
-      for (const s of STEPS) for (const f of s.fields) defaults[f.key] = f.defaultValue;
       for (const k of Object.keys(seeded)) {
-        if (next[k] === defaults[k]) next[k] = seeded[k];
+        if (!touched[k]) next[k] = seeded[k];
       }
       return next;
     });
