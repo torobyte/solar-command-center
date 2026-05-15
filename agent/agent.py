@@ -25,7 +25,7 @@ DB_PATH = Path(os.environ.get("SOLAROPS_DB", "/var/lib/solarops/state.db"))
 POLL_INTERVAL = 1.0  # leer inversor cada 1s para sensación "en vivo"
 PUSH_INTERVAL = 1.0  # empujar al cloud cada 1s
 SNAPSHOT_INTERVAL = 60.0  # send specs/network/system snapshot every 60s
-AGENT_VERSION = "0.8.0"
+AGENT_VERSION = "0.8.1"
 PVCFG_PATH = Path(os.environ.get("SOLAROPS_PVCFG", "/etc/solarops/pv.json"))
 
 def load_pvcfg() -> dict:
@@ -808,10 +808,26 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
   .btn{margin-top:6px;padding:9px 16px;border-radius:10px;border:1px solid #2c2f42;
     background:#1d2030;color:#f5f3ee;font-size:13px;font-weight:600;cursor:pointer;
     text-decoration:none;display:inline-block}
-  .btn:hover{background:#232739}
+  .topbar{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;
+    justify-content:space-between;gap:8px;padding:6px 12px;background:rgba(11,13,20,.85);
+    backdrop-filter:blur(8px);border-bottom:1px solid #2c2f42;font-size:11.5px;color:#9aa0ad}
+  .topbar .ver{font-weight:600;color:#f5b945}
+  .topbar .acts{display:flex;gap:6px}
+  .topbar button,.topbar a.tb{padding:4px 10px;border-radius:8px;border:1px solid #2c2f42;
+    background:#1d2030;color:#f5f3ee;font-size:11.5px;font-weight:600;cursor:pointer;text-decoration:none}
+  .topbar button:hover,.topbar a.tb:hover{background:#232739}
+  .topbar .ok{color:#22c55e}.topbar .warn{color:#f59e0b}
 </style>
 </head><body>
-<div id="boot">
+<div class="topbar">
+  <div>SolarOps · <span class="ver" id="tbVer">v{{ agent_version }}</span> · <span id="tbStatus">…</span></div>
+  <div class="acts">
+    <button id="tbUpd" type="button" title="Buscar actualización ahora">⟳ Actualizar</button>
+    <button id="tbUnlink" type="button" title="Olvidar vinculación y generar nuevo código" style="display:none">Desvincular</button>
+    <a class="tb" href="/status">Diagnóstico</a>
+  </div>
+</div>
+<div id="boot" style="padding-top:40px">
   <div class="logo">SolarOps</div>
   <div class="spin"></div>
   <div class="sub" id="bootMsg">Conectando con el panel cloud…</div>
@@ -907,24 +923,32 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
       return await r.json();
     } catch(_) { return null; }
   }
+  var tbStatus = document.getElementById("tbStatus");
+  var tbUnlink = document.getElementById("tbUnlink");
+  function setStatus(txt, cls){
+    tbStatus.textContent = txt;
+    tbStatus.className = cls || "";
+  }
   async function tick(){
     var s = await pull("/api/state");
     if (s) {
       lastState = s;
       var p = (s && s.pairing) || {};
       if (p.linked === false) {
-        // No vinculado → mostrar código en pantalla completa.
         showPair(p.code, p.expires_at);
         linked = false;
+        tbUnlink.style.display = "none";
+        setStatus("Sin vincular", "warn");
       } else if (p.linked === true) {
-        if (linked === false) {
-          // Acaba de vincularse: cargar iframe y ocultar pairing.
-          hidePair();
-        }
+        if (linked === false) hidePair();
         linked = true;
         loadIframe();
+        tbUnlink.style.display = "inline-block";
+        setStatus("Vinculado · " + (p.site_id ? p.site_id.slice(0,8) : "ok"), "ok");
         var w = frame.contentWindow; if (w) postTo(w, "state", s);
       }
+    } else {
+      setStatus("Sin conexión con el agente", "warn");
     }
     if (!lastPv) {
       var pv = await pull("/api/pvconfig");
@@ -960,6 +984,32 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
     }
   }
   setInterval(checkVersion, 15000);
+
+  // ---- Botones de la barra superior
+  document.getElementById("tbUpd").addEventListener("click", async function(){
+    var b = this; b.disabled = true; var t = b.textContent; b.textContent = "Buscando…";
+    try {
+      var r = await fetch("/api/update-now", { method:"POST" });
+      var j = await r.json().catch(function(){ return {}; });
+      if (j && j.ok) {
+        b.textContent = "✓ Buscando";
+        setStatus("Comprobando actualizaciones…", "warn");
+      } else {
+        b.textContent = "Error";
+        setStatus("No se pudo lanzar la actualización", "warn");
+      }
+    } catch(e){ b.textContent = "Error"; }
+    setTimeout(function(){ b.disabled = false; b.textContent = t; }, 4000);
+  });
+  tbUnlink.addEventListener("click", async function(){
+    if (!confirm("¿Desvincular este equipo? Se generará un nuevo código para vincular a otra cuenta.")) return;
+    this.disabled = true;
+    try {
+      await fetch("/api/unlink", { method:"POST" });
+      linked = null;
+      setTimeout(function(){ location.reload(); }, 600);
+    } catch(e){ this.disabled = false; }
+  });
 })();
 </script>
 </body></html>"""
@@ -2079,6 +2129,36 @@ def make_app(agent: Agent) -> Flask:
         cfg = {k: body.get(k) for k in allowed if k in body}
         save_pvcfg(cfg)
         return jsonify({"ok": True, "config": cfg})
+
+    @app.post("/api/unlink")
+    def unlink():
+        """Borra el device_token local para forzar la generación de un
+        nuevo código de pairing. Útil cuando el usuario quiere mover el
+        equipo a otra cuenta o vino con datos de un install anterior."""
+        agent.config.pop("device_token", None)
+        agent.config.pop("site_id", None)
+        agent.config.pop("site_name", None)
+        save_config(agent.config)
+        agent.license = {}
+        agent._pair_cache = None
+        try:
+            agent.request_pairing_code(force=True)
+        except Exception as e:
+            return jsonify({"ok": True, "warning": str(e)})
+        return jsonify({"ok": True})
+
+    @app.post("/api/update-now")
+    def update_now():
+        """Lanza el script de auto-update inmediatamente (no espera al timer)."""
+        try:
+            r = subprocess.run(
+                ["/usr/bin/systemctl", "start", "solarops-update.service"],
+                capture_output=True, text=True, timeout=10,
+            )
+            ok = r.returncode == 0
+            return jsonify({"ok": ok, "stdout": r.stdout, "stderr": r.stderr})
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.get("/status")
     def status_page():
