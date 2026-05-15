@@ -122,6 +122,55 @@ function smoothSeries(
   return out;
 }
 
+function InlineSiteName({ site, onRenamed }: { site: Site; onRenamed: (name: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(site.name);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { setValue(site.name); }, [site.name]);
+
+  const save = async () => {
+    const trimmed = value.trim();
+    if (!trimmed || trimmed === site.name) { setEditing(false); setValue(site.name); return; }
+    setSaving(true);
+    const { error } = await supabase.from("sites").update({ name: trimmed }).eq("id", site.id);
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    onRenamed(trimmed);
+    setEditing(false);
+    toast.success("Nombre actualizado");
+  };
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-2">
+        <Input
+          autoFocus
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") { setEditing(false); setValue(site.name); } }}
+          className="h-9 max-w-sm text-lg font-semibold"
+          disabled={saving}
+        />
+        <Button size="icon" variant="ghost" onClick={save} disabled={saving}><Check className="h-4 w-4" /></Button>
+        <Button size="icon" variant="ghost" onClick={() => { setEditing(false); setValue(site.name); }} disabled={saving}><X className="h-4 w-4" /></Button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setEditing(true)}
+      className="group inline-flex items-center gap-2 rounded-md text-left hover:bg-muted/40 px-1 -mx-1 py-0.5 transition-colors"
+      title="Renombrar sitio"
+    >
+      <h1 className="truncate text-2xl font-semibold tracking-tight">{site.name}</h1>
+      <Pencil className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+    </button>
+  );
+}
+
 function SiteDetail() {
   const { siteId } = Route.useParams();
   const { t } = useI18n();
