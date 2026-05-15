@@ -315,6 +315,9 @@ export function InverterConfigWizard({ siteId, agentBase, spec }: { siteId: stri
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [specKey]);
 
+  const current = STEPS[step];
+  const Icon = current.icon;
+
   async function postLocal(rows: { command: string; payload: Record<string, unknown> }[]) {
     const r = await fetch(`${agentBase}/api/command`, {
       method: "POST",
