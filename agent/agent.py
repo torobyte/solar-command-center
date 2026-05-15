@@ -491,6 +491,68 @@ class Agent:
                     try: self.pending.put_nowait(s)
                     except queue.Full: break
 
+    def command_loop(self):
+        """Poll cloud for queued device_commands, execute them on the inverter
+        in real time, and ACK back the result. Without this loop, commands
+        encolados desde la UI cloud quedan pending para siempre."""
+        while True:
+            try:
+                token = self.config.get("device_token")
+                if not token:
+                    time.sleep(5); continue
+                r = requests.get(
+                    f"{self.config['cloud_url']}/api/public/commands",
+                    headers={"Authorization": f"Bearer {token}"}, timeout=15,
+                )
+                if r.status_code != 200:
+                    time.sleep(5); continue
+                cmds = (r.json() or {}).get("commands") or []
+                for c in cmds:
+                    cid = c.get("id"); cmd = (c.get("command") or "").strip()
+                    pl = c.get("payload") or {}
+                    raw = _translate_command(cmd, pl)
+                    status = "failed"; result = None; err = None
+                    try:
+                        if not raw:
+                            err = "comando no soportado"
+                        else:
+                            if not self.transport:
+                                self.ensure_transport()
+                            if not self.transport:
+                                err = "inversor no disponible"
+                            else:
+                                with self.lock:
+                                    reply = self.transport.send(raw)
+                                ok = "ACK" in (reply or "").upper()
+                                result = {"raw": raw, "reply": reply}
+                                status = "done" if ok else "failed"
+                                if not ok: err = f"NAK: {reply}"
+                    except Exception as e:
+                        err = f"{type(e).__name__}: {e}"
+                    try:
+                        requests.post(
+                            f"{self.config['cloud_url']}/api/public/commands",
+                            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                            json={"id": cid, "status": status, "result": result, "error": err},
+                            timeout=10,
+                        )
+                    except Exception as e:
+                        print(f"[agent] command ack error: {e}", flush=True)
+                    # Trigger immediate spec refresh so UI reflects the new value
+                    if status == "done":
+                        try:
+                            self._refresh_spec_now()
+                        except Exception:
+                            pass
+            except Exception as e:
+                print(f"[agent] command_loop error: {e}", flush=True)
+            time.sleep(2)
+
+    def _refresh_spec_now(self):
+        """Best-effort: force a QPIRI re-read on next snapshot tick."""
+        with self.lock:
+            self.snapshot["_force_spec"] = True
+
     def license_loop(self):
         while True:
             try:
