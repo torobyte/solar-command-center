@@ -173,7 +173,7 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG }: Qui
             <ActionGroup
               icon={<BatteryCharging className="h-3.5 w-3.5" />}
               title="Carga desde red (A)"
-              hint={current.amps != null ? `Actual: ${current.amps} A` : "Limita cuánta corriente toma de la red"}
+              hint={current.amps != null ? `Actual: ${current.amps} A` : "Sin datos del inversor todavía · al aplicar un valor se confirmará al recibir respuesta"}
             >
               {AC_AMPS.map((a) => (
                 <Chip
@@ -202,7 +202,7 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG }: Qui
             <ActionGroup
               icon={<Power className="h-3.5 w-3.5" />}
               title="Prioridad de salida"
-              hint={current.outputPriority ? `Actual: ${POP_OPTS.find((o) => o.v === current.outputPriority)?.l ?? current.outputPriority}` : "De dónde alimentar las cargas"}
+              hint={current.outputPriority ? `Actual: ${POP_OPTS.find((o) => o.v === current.outputPriority)?.l ?? current.outputPriority}` : "Sin datos del inversor todavía"}
             >
               {POP_OPTS.map((o) => (
                 <Chip
@@ -227,7 +227,7 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG }: Qui
             <ActionGroup
               icon={<Zap className="h-3.5 w-3.5" />}
               title="Prioridad de carga"
-              hint={current.chargerPriority ? `Actual: ${PCP_OPTS.find((o) => o.v === current.chargerPriority)?.l ?? current.chargerPriority}` : "Qué fuente carga la batería"}
+              hint={current.chargerPriority ? `Actual: ${PCP_OPTS.find((o) => o.v === current.chargerPriority)?.l ?? current.chargerPriority}` : "Sin datos del inversor todavía"}
             >
               {PCP_OPTS.map((o) => (
                 <Chip
@@ -252,7 +252,7 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG }: Qui
             <ActionGroup
               icon={current.buzzerEnabled === false ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
               title="Buzzer / alarma"
-              hint={current.buzzerEnabled == null ? "Silenciar la alarma sonora del equipo" : `Actual: ${current.buzzerEnabled ? "Encendido" : "Silenciado"}`}
+              hint={current.buzzerEnabled == null ? "Sin datos del inversor todavía" : `Actual: ${current.buzzerEnabled ? "Encendido" : "Silenciado"}`}
             >
               <Chip
                 label="Encender"
