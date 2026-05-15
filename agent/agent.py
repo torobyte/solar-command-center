@@ -2063,6 +2063,7 @@ def make_app(agent: Agent) -> Flask:
                 "code": (getattr(agent, "_pair_cache", None) or {}).get("code"),
                 "expires_at": (getattr(agent, "_pair_cache", None) or {}).get("expires_at"),
             },
+            "agent_time": datetime.now(timezone.utc).isoformat(),
         })
 
     @app.get("/manifest.webmanifest")
