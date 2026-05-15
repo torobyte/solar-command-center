@@ -926,6 +926,7 @@ function DashboardView({ latest, siteId, spec: _spec, device: _device }: { lates
 
   const widgets: Record<string, React.ReactNode> = {
     quickactions: <QuickActions siteId={siteId} config={qaConfig} />,
+    cmdstatus: <CommandStatusFeed siteId={siteId} limit={10} />,
     mode: (
       <div className="flex items-center justify-between rounded-xl border bg-card p-4 sm:p-5 animate-fade-in h-full">
         <div className="flex items-center gap-3">
