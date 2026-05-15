@@ -25,7 +25,7 @@ DB_PATH = Path(os.environ.get("SOLAROPS_DB", "/var/lib/solarops/state.db"))
 POLL_INTERVAL = 1.0  # leer inversor cada 1s para sensación "en vivo"
 PUSH_INTERVAL = 1.0  # empujar al cloud cada 1s
 SNAPSHOT_INTERVAL = 60.0  # send specs/network/system snapshot every 60s
-AGENT_VERSION = "0.6.0"
+AGENT_VERSION = "0.7.0"
 PVCFG_PATH = Path(os.environ.get("SOLAROPS_PVCFG", "/etc/solarops/pv.json"))
 
 def load_pvcfg() -> dict:
@@ -209,6 +209,37 @@ QPIGS_FIELDS = [
     "pv_input_current","pv_input_voltage","battery_voltage_scc","battery_discharge_current",
     "device_status","_b","_c","pv_input_power","_d",
 ]
+
+def _translate_command(cmd: str, payload: dict) -> str | None:
+    """Traduce comandos abstractos del wizard a sentencias Voltronic crudas."""
+    v = payload.get("value")
+    en = bool(payload.get("enabled"))
+    try:
+        if cmd == "set_output_priority": return f"POP{int(v):02d}"
+        if cmd == "set_charger_priority": return f"PCP{int(v):02d}"
+        if cmd == "set_input_range": return "PEa" if v == "appliance" else "PEb"
+        if cmd == "set_output_frequency": return f"F{int(v):02d}"
+        if cmd == "set_max_charge_current": return f"MNCHGC{int(payload.get('amps') or 0):03d}"
+        if cmd == "set_max_ac_charge_current": return f"MUCHGC{int(payload.get('amps') or 0):03d}"
+        if cmd == "set_battery_cutoff_voltage": return f"PSDV{float(payload.get('volts') or 0):.1f}"
+        if cmd == "set_back_to_battery_voltage": return f"PBDV{float(payload.get('volts') or 0):.1f}"
+        if cmd == "set_back_to_grid_voltage": return f"PBCV{float(payload.get('volts') or 0):.1f}"
+        if cmd == "set_bulk_charge_voltage": return f"PCVV{float(payload.get('volts') or 0):.1f}"
+        if cmd == "set_float_charge_voltage": return f"PBFT{float(payload.get('volts') or 0):.1f}"
+        if cmd == "set_battery_type":
+            m = {"AGM": "PBT00", "FLD": "PBT01", "USE": "PBT02", "LIB": "PBT05"}
+            return m.get(str(v), None)
+        if cmd == "set_buzzer_enabled": return "PEa" if en else "PDa"
+        if cmd == "set_lcd_backlight": return "PEb" if en else "PDb"
+        if cmd == "set_overload_bypass": return "PEc" if en else "PDc"
+        if cmd == "set_alarm_on_interrupt": return "PEd" if en else "PDd"
+        if cmd == "set_auto_restart_overload": return "PEe" if en else "PDe"
+        if cmd == "set_auto_restart_overtemp": return "PEf" if en else "PDf"
+        if cmd == "set_lcd_timeout": return "PEg" if en else "PDg"
+    except Exception:
+        return None
+    return None
+
 
 def parse_qpigs(reply: str) -> dict:
     """Parse a QPIGS reply. Skips garbage tokens silently — almacenar
@@ -783,9 +814,8 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
 <div id="boot">
   <div class="logo">SolarOps</div>
   <div class="spin"></div>
-  <div class="sub" id="bootMsg">Verificando agente local…</div>
-  <a class="btn" href="/legacy" id="fallbackBtn" style="display:none">Abrir panel local (offline)</a>
-  <a class="btn" href="#" id="toLegacyBtn" onclick="switchMode('legacy');return false;">Cambiar a modo legacy</a>
+  <div class="sub" id="bootMsg">Conectando con el panel cloud…</div>
+  <a class="btn" href="#" onclick="location.reload();return false;">Reintentar</a>
   <a class="btn" href="/status" style="background:transparent">Diagnóstico del agente</a>
 </div>
 <iframe id="frame" allow="fullscreen; clipboard-write" referrerpolicy="no-referrer"></iframe>
@@ -797,83 +827,28 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
   var frame  = document.getElementById("frame");
   var boot   = document.getElementById("boot");
   var msg    = document.getElementById("bootMsg");
-  var fb     = document.getElementById("fallbackBtn");
+  var ready  = false;
 
-  // Mixed content: si esta página se sirvió por HTTPS pero el agente vive
-  // en HTTP (caso típico en LAN), el navegador bloqueará los fetch
-  // HTTPS→HTTP del iframe cloud. Detectamos eso y vamos directo al panel
-  // local — sin iframe, sin esperar timeouts.
-  var pageIsHttps  = window.location.protocol === "https:";
-  var agentIsHttp  = origin.indexOf("http://") === 0;
-  var mixedContent = pageIsHttps && agentIsHttp;
-
-  var ready = false;
-  function goLegacy(reason){
-    if (ready) return;
-    msg.textContent = reason || "Mostrando el panel local.";
-    fb.style.display = "inline-block";
-    setTimeout(function(){ if(!ready) window.location.replace("/legacy"); }, 800);
-  }
-
-  // 1) Healthcheck del propio agente. Si esto falla, nada más tiene sentido.
-  fetch("/api/health", { cache:"no-store" })
-    .then(function(r){ return r.ok ? r.json() : Promise.reject(new Error("health "+r.status)); })
-    .then(function(h){
-      // Si el usuario eligió modo legacy explícitamente, ir directo.
-      if (h && h.ui_mode === "legacy") { window.location.replace("/legacy"); return; }
-      if (mixedContent) { goLegacy("Conexión segura no disponible — usando panel local."); return; }
-      msg.textContent = h && h.has_inverter_data
-        ? "Conectando con el panel cloud…"
-        : "Esperando primer dato del inversor…";
-      probeCloud();
-    })
-    .catch(function(e){
-      msg.textContent = "Agente local no responde (" + (e && e.message || "error") + ").";
-      fb.style.display = "inline-block";
-    });
-
-  // 2) Probe de internet hecho desde el AGENTE (TCP a 1.1.1.1:53). Esto
-  // evita falsos negativos por CORS / mixed-content / DNS lento del navegador
-  // que aparecían cuando se hacía el probe directo al cloud desde el cliente.
-  function probeCloud(){
-    var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
-    var to = setTimeout(function(){ if(ctrl) ctrl.abort(); }, 6000);
-    fetch("/api/internet", { cache:"no-store", signal: ctrl ? ctrl.signal : undefined })
-      .then(function(r){ return r.json(); })
-      .then(function(j){
-        clearTimeout(to);
-        if (j && j.online) loadIframe();
-        else goLegacy("Sin internet en el dispositivo. Cargando panel local.");
-      })
-      .catch(function(){ clearTimeout(to); goLegacy("No se pudo verificar internet. Cargando panel local."); });
-  }
-
-  // Botón global para alternar modo y persistirlo en el agente.
-  window.switchMode = function(mode){
-    fetch("/api/mode", {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ ui_mode: mode })
-    }).finally(function(){
-      window.location.replace(mode === "legacy" ? "/legacy" : "/");
-    });
-  };
-
+  // Cargamos directo el cloud /local. Si el navegador bloquea por
+  // mixed-content (HTTPS->HTTP del agente), aún así el iframe se intentará
+  // cargar y los fetches se harán mediante el bridge postMessage.
   function loadIframe(){
-    var deadline = setTimeout(function(){ goLegacy("Cloud no respondió a tiempo."); }, 2500);
+    var deadline = setTimeout(function(){
+      msg.textContent = "El panel cloud no respondió. Verifica conexión a internet y reintenta.";
+    }, 8000);
     frame.addEventListener("load", function(){
-      try {
-        var href = frame.contentWindow && frame.contentWindow.location && frame.contentWindow.location.href;
-        if (href && href.indexOf("about:blank") === 0) return;
-      } catch(_) { /* cross-origin = bien, cargó el cloud */ }
       clearTimeout(deadline);
       ready = true;
       frame.classList.add("ready");
       boot.style.display = "none";
     });
-    frame.addEventListener("error", function(){ goLegacy("Error cargando el panel cloud."); });
+    frame.addEventListener("error", function(){
+      msg.textContent = "Error cargando el panel cloud.";
+    });
     frame.src = url;
     setTimeout(tick, 500);
   }
+  loadIframe();
 
   // ---- Bridge postMessage: el padre (mismo origen que /api/*) hace los
   // fetches y se los pasa al iframe HTTPS para sortear mixed-content.
@@ -1914,6 +1889,34 @@ def make_app(agent: Agent) -> Flask:
         agent.config["ui_mode"] = mode
         save_config(agent.config)
         return jsonify({"ok": True, "ui_mode": mode})
+
+    @app.post("/api/command")
+    def api_command():
+        """Envía uno o varios comandos al inversor desde la UI local.
+        Acepta {"command": str, "payload": {...}} o {"commands": [...]}.
+        Traduce comandos abstractos a Voltronic (POPnn, PCPnn, MUCHGCnnn, ...)."""
+        body = request.get_json(force=True) or {}
+        rows = body.get("commands") or [{"command": body.get("command"), "payload": body.get("payload") or {}}]
+        if not agent.transport:
+            agent.ensure_transport()
+        if not agent.transport:
+            return jsonify({"error": "Inversor no disponible"}), 503
+        results = []
+        for r in rows:
+            cmd = (r.get("command") or "").strip()
+            pl = r.get("payload") or {}
+            raw = _translate_command(cmd, pl)
+            if not raw:
+                results.append({"command": cmd, "ok": False, "error": "comando no soportado en local"})
+                continue
+            try:
+                with agent.lock:
+                    reply = agent.transport.send(raw)
+                ok = "ACK" in reply.upper()
+                results.append({"command": cmd, "raw": raw, "ok": ok, "reply": reply})
+            except Exception as e:
+                results.append({"command": cmd, "raw": raw, "ok": False, "error": str(e)})
+        return jsonify({"results": results})
 
     @app.get("/api/state")
     def state():
