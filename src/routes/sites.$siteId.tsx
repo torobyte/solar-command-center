@@ -466,6 +466,14 @@ interface InverterSpec {
   updated_at: string;
 }
 
+interface SyncMeta {
+  agent_time?: string | null;
+  last_sample_at?: string | null;
+  last_error?: string | null;
+  last_error_at?: string | null;
+  read_count?: number | null;
+  error_count?: number | null;
+}
 interface DeviceSnapshot {
   ssid: string | null; ip_eth: string | null; ip_wlan: string | null;
   ip_public: string | null; internet_up: boolean | null;
@@ -474,6 +482,7 @@ interface DeviceSnapshot {
   usb_devices_list: string[] | null;
   board_model: string | null; agent_version: string | null;
   voltage_dips: number | null; updated_at: string;
+  raw: { sync?: SyncMeta } | null;
 }
 
 interface DeviceCommand {
@@ -486,7 +495,9 @@ function ConfigurationView({ site }: { site: Site }) {
   const [spec, setSpec] = useState<InverterSpec | null>(null);
   const [snap, setSnap] = useState<DeviceSnapshot | null>(null);
   const [commands, setCommands] = useState<DeviceCommand[]>([]);
+  const [lastSampleAt, setLastSampleAt] = useState<string | null>(null);
   const [user, setUser] = useState<{ id: string; email: string | null } | null>(null);
+  const [now, setNow] = useState<number>(Date.now());
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -497,20 +508,26 @@ function ConfigurationView({ site }: { site: Site }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "inverter_specs", filter: `site_id=eq.${site.id}` }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "device_snapshots", filter: `site_id=eq.${site.id}` }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "device_commands", filter: `site_id=eq.${site.id}` }, refresh)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "telemetry_samples", filter: `site_id=eq.${site.id}` }, (p) => {
+        setLastSampleAt((p.new as { recorded_at: string }).recorded_at);
+      })
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => { supabase.removeChannel(ch); clearInterval(tick); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [site.id]);
 
   async function refresh() {
-    const [{ data: sp }, { data: sn }, { data: cm }] = await Promise.all([
+    const [{ data: sp }, { data: sn }, { data: cm }, { data: ts }] = await Promise.all([
       supabase.from("inverter_specs").select("*").eq("site_id", site.id).maybeSingle(),
       supabase.from("device_snapshots").select("*").eq("site_id", site.id).maybeSingle(),
       supabase.from("device_commands").select("*").eq("site_id", site.id).order("created_at", { ascending: false }).limit(10),
+      supabase.from("telemetry_samples").select("recorded_at").eq("site_id", site.id).order("recorded_at", { ascending: false }).limit(1),
     ]);
     setSpec(sp as InverterSpec | null);
     setSnap(sn as DeviceSnapshot | null);
     setCommands((cm ?? []) as DeviceCommand[]);
+    setLastSampleAt((ts && ts[0]?.recorded_at) ?? null);
   }
 
   async function sendCommand(command: string, payload: Record<string, unknown>) {
@@ -522,6 +539,17 @@ function ConfigurationView({ site }: { site: Site }) {
     else toast.success("Comando encolado — la Raspberry lo aplicará en breve");
   }
 
+  const sync = snap?.raw?.sync ?? null;
+  const agentSkewSec = sync?.agent_time ? Math.round((now - new Date(sync.agent_time).getTime()) / 1000) : null;
+  const sampleAge = lastSampleAt ? Math.floor((now - new Date(lastSampleAt).getTime()) / 1000) : null;
+  const seenAge = site.last_seen_at ? Math.floor((now - new Date(site.last_seen_at).getTime()) / 1000) : null;
+  const fmtAge = (s: number | null) => s == null ? "—" : s < 60 ? `hace ${s}s` : s < 3600 ? `hace ${Math.floor(s/60)}m` : s < 86400 ? `hace ${Math.floor(s/3600)}h` : `hace ${Math.floor(s/86400)}d`;
+  const liveBadge = sampleAge != null && sampleAge < 30
+    ? <span className="rounded-full bg-success/15 px-2 py-0.5 text-xs font-semibold text-success">En vivo</span>
+    : sampleAge != null && sampleAge < 300
+    ? <span className="rounded-full bg-warning/15 px-2 py-0.5 text-xs font-semibold text-warning">Atrasado</span>
+    : <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-xs font-semibold text-destructive">Sin datos</span>;
+
   return (
     <div className="space-y-3 sm:space-y-4">
       <Section title="General" icon={Info}>
@@ -529,6 +557,26 @@ function ConfigurationView({ site }: { site: Site }) {
         <Row label="Plan" value={site.plan} />
         <Row label="Estado" value={site.status} />
         <Row label="Licencia expira" value={site.license_expires_at ?? "—"} />
+      </Section>
+
+      <Section title="Sincronización end-to-end" icon={Wifi}>
+        <div className="mb-3 flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Telemetría:</span>
+          {liveBadge}
+        </div>
+        <div className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
+          <Row label="Último dato (telemetry)" value={`${lastSampleAt ? new Date(lastSampleAt).toLocaleString() : "—"} (${fmtAge(sampleAge)})`} />
+          <Row label="Visto por la nube (last_seen)" value={`${site.last_seen_at ? new Date(site.last_seen_at).toLocaleString() : "—"} (${fmtAge(seenAge)})`} />
+          <Row label="Reloj del agente" value={sync?.agent_time ? `${new Date(sync.agent_time).toLocaleString()}${agentSkewSec != null ? ` (desfase ${agentSkewSec >= 0 ? "+" : ""}${agentSkewSec}s)` : ""}` : "—"} />
+          <Row label="Lecturas OK" value={sync?.read_count?.toString() ?? "—"} />
+          <Row label="Errores totales" value={sync?.error_count?.toString() ?? "—"} />
+          <Row label="Último error agente" value={sync?.last_error_at ? new Date(sync.last_error_at).toLocaleString() : "—"} />
+        </div>
+        {sync?.last_error ? (
+          <div className="mt-3 rounded-lg border border-destructive/40 bg-destructive/5 p-3 font-mono text-xs text-destructive whitespace-pre-wrap break-words">
+            {sync.last_error}
+          </div>
+        ) : null}
       </Section>
 
       <Section title="Especificación del inversor" icon={Cpu}>

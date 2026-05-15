@@ -487,8 +487,17 @@ class Agent:
                         save_config(self.config)
                         print(f"[agent] paired \u2714 site={body['site_id']}")
                         return
-                    if body.get("status") == "expired":
+                    if body.get("status") in ("expired", "unknown"):
+                        # Code expired or was deleted server-side: drop the
+                        # cache and request a fresh one IMMEDIATELY so the
+                        # /local UI shows the new code on its next 5s refresh
+                        # without any user action.
                         self._pair_cache = None
+                        try:
+                            self.request_pairing_code(force=True)
+                            print("[agent] pairing code rotated (previous expired)")
+                        except Exception as e:
+                            print(f"[agent] pairing rotate error: {e}")
             except Exception as e:
                 print(f"[agent] pairing loop error: {e}")
             time.sleep(5)
@@ -532,7 +541,24 @@ class Agent:
                     with self.lock: self.spec = spec
                 token = self.config.get("device_token")
                 if token:
-                    payload: dict = {"device": snap}
+                    # Embed sync-health metrics inside `device.raw` so the
+                    # cloud can show "last telemetry / agent clock / errors"
+                    # without a schema migration. snapshot.ts persists the
+                    # whole `raw` jsonb column verbatim.
+                    with self.lock:
+                        sync_meta = {
+                            "agent_time": datetime.now(timezone.utc).isoformat(),
+                            "last_sample_at": self.last_sample_at,
+                            "last_error": self.last_error,
+                            "last_error_at": self.last_error_at,
+                            "read_count": self.read_count,
+                            "error_count": self.error_count,
+                        }
+                    snap_with_sync = dict(snap)
+                    raw = dict(snap_with_sync.get("raw") or {})
+                    raw["sync"] = sync_meta
+                    snap_with_sync["raw"] = raw
+                    payload: dict = {"device": snap_with_sync}
                     if spec: payload["spec"] = spec
                     r = requests.post(
                         f"{self.config['cloud_url']}/api/public/snapshot",
@@ -2037,6 +2063,7 @@ def make_app(agent: Agent) -> Flask:
                 "code": (getattr(agent, "_pair_cache", None) or {}).get("code"),
                 "expires_at": (getattr(agent, "_pair_cache", None) or {}).get("expires_at"),
             },
+            "agent_time": datetime.now(timezone.utc).isoformat(),
         })
 
     @app.get("/manifest.webmanifest")
@@ -2101,6 +2128,10 @@ async function load(){
     const r=await fetch('/api/status'); const d=await r.json();
     const t=d.transport, da=d.data, e=d.errors, ag=d.agent;
     const dataFresh = da.last_sample_at && (Date.now()-new Date(da.last_sample_at).getTime() < 30000);
+    const skew = d.agent_time ? Math.round((Date.now()-new Date(d.agent_time).getTime())/1000) : null;
+    const skewPill = skew==null ? '' : (Math.abs(skew) < 5
+       ? `<span class="pill ok">en hora (±${Math.abs(skew)}s)</span>`
+       : `<span class="pill warn">desfase ${skew>0?'+':''}${skew}s vs navegador</span>`);
     const tStatus = t.connected ? '<span class="pill ok">Conectado</span>' : '<span class="pill err">Sin puerto</span>';
     const dStatus = dataFresh ? '<span class="pill ok">En vivo</span>' : (da.last_sample_at? '<span class="pill warn">Sin datos recientes</span>':'<span class="pill err">Nunca recibió</span>');
     const html = `
@@ -2157,6 +2188,7 @@ async function load(){
         <div class="row"><span class="k">Placa</span><span class="v">${ag.board||'—'}</span></div>
         <div class="row"><span class="k">Versión agente</span><span class="v">${ag.version||'—'}</span></div>
         <div class="row"><span class="k">Iniciado</span><span class="v">${fmt(ag.started_at)} (${ago(ag.started_at)} de uptime)</span></div>
+        <div class="row"><span class="k">Reloj del agente</span><span class="v">${fmt(d.agent_time)} ${skewPill}</span></div>
       </section>
       <section class="card">
         <h2>Dispositivos USB</h2>
