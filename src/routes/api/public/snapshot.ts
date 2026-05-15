@@ -7,6 +7,9 @@ interface SpecPayload {
   nominal_battery_voltage?: number; expected_ac_input_voltage?: number;
   max_ac_input_current?: number; max_ac_output_current?: number;
   max_ac_output_power?: number; max_ac_output_apparent_power?: number;
+  max_ac_charge_current?: number; max_charge_current?: number;
+  output_source_priority?: string; charger_source_priority?: string;
+  battery_type?: string; input_voltage_range?: string;
   raw?: unknown;
 }
 

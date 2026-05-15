@@ -578,6 +578,9 @@ class Agent:
                             def fnum(i):
                                 try: return float(parts[i])
                                 except (ValueError, IndexError): return None
+                            def sval(i):
+                                try: return str(parts[i]).strip()
+                                except IndexError: return None
                             spec.update({
                                 "expected_ac_input_voltage": fnum(0),
                                 "max_ac_input_current": fnum(2),
@@ -585,6 +588,17 @@ class Agent:
                                 "max_ac_output_current": fnum(7),
                                 "max_ac_output_apparent_power": fnum(8),
                                 "max_ac_output_power": fnum(9),
+                                # QPIRI extended fields (Voltronic / PIPxx-MS):
+                                #  13: battery type, 14: max AC charge current,
+                                #  15: max charge current, 16: input voltage range,
+                                #  17: output source priority, 18: charger source priority
+                                "battery_type": sval(13),
+                                "max_ac_charge_current": fnum(14),
+                                "max_charge_current": fnum(15),
+                                "input_voltage_range": sval(16),
+                                "output_source_priority": sval(17),
+                                "charger_source_priority": sval(18),
+                                "raw": {"qpiri": parts},
                             })
                     except Exception: pass
                     try:
