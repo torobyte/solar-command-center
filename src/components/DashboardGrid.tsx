@@ -279,6 +279,7 @@ export function DashboardGrid({ defs, state, onChange, render }: GridProps) {
             </div>
           );
         })}
+        </div>
       </div>
     </div>
   );
