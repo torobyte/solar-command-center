@@ -241,25 +241,69 @@ export function InverterConfigWizard({ siteId, agentBase }: { siteId: string; ag
   const current = STEPS[step];
   const Icon = current.icon;
 
+  async function postLocal(rows: { command: string; payload: Record<string, unknown> }[]) {
+    const r = await fetch(`${agentBase}/api/command`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ commands: rows }),
+    });
+    if (!r.ok) {
+      const t = await r.text().catch(() => "");
+      throw new Error(t || `HTTP ${r.status}`);
+    }
+  }
+
   async function applyField(field: Field) {
     setPending(field.key);
     try {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) { toast.error("Sesión expirada"); return; }
       let payload: Record<string, unknown> = {};
-      let cmd = field.command;
-      if (field.kind === "select") {
-        payload = { [field.payloadKey]: values[field.key] };
-      } else if (field.kind === "number") {
+      if (field.kind === "select" || field.kind === "number") {
         payload = { [field.payloadKey]: values[field.key] };
       } else {
         payload = { enabled: !!values[field.key] };
       }
-      const { error } = await supabase.from("device_commands").insert({
-        site_id: siteId, command: cmd, payload: payload as never, created_by: u.user.id,
+      if (agentBase) {
+        await postLocal([{ command: field.command, payload }]);
+        toast.success(`${field.label} enviado al inversor`);
+      } else {
+        const { data: u } = await supabase.auth.getUser();
+        if (!u.user) { toast.error("Sesión expirada"); return; }
+        const { error } = await supabase.from("device_commands").insert({
+          site_id: siteId, command: field.command, payload: payload as never, created_by: u.user.id,
+        });
+        if (error) toast.error(error.message);
+        else toast.success(`${field.label} encolado`);
+      }
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setPending(null);
+    }
+  }
+
+  async function applyAll() {
+    setPending("__all__");
+    try {
+      const rows = current.fields.map((f) => {
+        let payload: Record<string, unknown>;
+        if (f.kind === "toggle") payload = { enabled: !!values[f.key] };
+        else payload = { [f.payloadKey]: values[f.key] };
+        return { command: f.command, payload };
       });
-      if (error) toast.error(error.message);
-      else toast.success(`${field.label} encolado`);
+      if (agentBase) {
+        await postLocal(rows);
+        toast.success(`${rows.length} comando(s) enviados`);
+      } else {
+        const { data: u } = await supabase.auth.getUser();
+        if (!u.user) { toast.error("Sesión expirada"); return; }
+        const { error } = await supabase.from("device_commands").insert(
+          rows.map((r) => ({ site_id: siteId, command: r.command, payload: r.payload as never, created_by: u.user!.id }))
+        );
+        if (error) toast.error(error.message);
+        else toast.success(`${rows.length} comando(s) encolado(s)`);
+      }
+    } catch (e) {
+      toast.error((e as Error).message);
     } finally {
       setPending(null);
     }
