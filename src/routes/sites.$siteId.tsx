@@ -648,19 +648,58 @@ function ConfigurationView({ site, subTab, onSubTabChange }: { site: Site; subTa
       <TabsContent value="inverter" className="mt-6 space-y-4">
         <Section title="Especificación del inversor" icon={Cpu}>
           {spec ? (
-            <div className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
-              <Row label="Driver" value={spec.driver ?? "—"} />
-              <Row label="Modelo" value={spec.model_name ?? "—"} />
-              <Row label="Número de serie" value={spec.serial_number ?? "—"} />
-              <Row label="Firmware" value={spec.firmware ?? "—"} />
-              <Row label="Topología" value={spec.topology ?? "—"} />
-              <Row label="Tipo de máquina" value={spec.machine_type ?? "—"} />
-              <Row label="Voltaje nominal batería" value={spec.nominal_battery_voltage ? `${spec.nominal_battery_voltage} V` : "—"} />
-              <Row label="Voltaje AC esperado" value={spec.expected_ac_input_voltage ? `${spec.expected_ac_input_voltage} V` : "—"} />
-              <Row label="Max corriente AC entrada" value={spec.max_ac_input_current ? `${spec.max_ac_input_current} A` : "—"} />
-              <Row label="Max corriente AC salida" value={spec.max_ac_output_current ? `${spec.max_ac_output_current} A` : "—"} />
-              <Row label="Max potencia AC salida" value={spec.max_ac_output_power ? `${spec.max_ac_output_power} W` : "—"} />
-              <Row label="Max potencia aparente AC" value={spec.max_ac_output_apparent_power ? `${spec.max_ac_output_apparent_power} VA` : "—"} />
+            <div className="space-y-5">
+              <div>
+                <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Identificación</h4>
+                <div className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
+                  <Row label="Driver" value={spec.driver ?? "—"} />
+                  <Row label="Modelo" value={spec.model_name ?? "—"} />
+                  <Row label="Número de serie" value={spec.serial_number ?? "—"} />
+                  <Row label="Firmware" value={spec.firmware ?? "—"} />
+                  <Row label="Topología" value={spec.topology ?? "—"} />
+                  <Row label="Tipo de máquina" value={spec.machine_type ?? "—"} />
+                </div>
+              </div>
+
+              <div>
+                <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Eléctrico (QPIRI)</h4>
+                <div className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
+                  <Row label="Voltaje nominal batería" value={spec.nominal_battery_voltage != null ? `${spec.nominal_battery_voltage} V` : "—"} />
+                  <Row label="Voltaje AC esperado" value={spec.expected_ac_input_voltage != null ? `${spec.expected_ac_input_voltage} V` : "—"} />
+                  <Row label="Max corriente AC entrada" value={spec.max_ac_input_current != null ? `${spec.max_ac_input_current} A` : "—"} />
+                  <Row label="Max corriente AC salida" value={spec.max_ac_output_current != null ? `${spec.max_ac_output_current} A` : "—"} />
+                  <Row label="Max potencia activa AC salida" value={spec.max_ac_output_power != null ? `${spec.max_ac_output_power} W` : "—"} />
+                  <Row label="Max potencia aparente AC" value={spec.max_ac_output_apparent_power != null ? `${spec.max_ac_output_apparent_power} VA` : "—"} />
+                  <Row label="Max corriente carga AC" value={spec.max_ac_charge_current != null ? `${spec.max_ac_charge_current} A` : "—"} />
+                  <Row label="Max corriente carga total" value={spec.max_charge_current != null ? `${spec.max_charge_current} A` : "—"} />
+                  <Row label="Tipo de batería" value={spec.battery_type ?? "—"} />
+                  <Row label="Rango voltaje entrada" value={spec.input_voltage_range ?? "—"} />
+                  <Row label="Prioridad de salida" value={spec.output_source_priority ?? "—"} />
+                  <Row label="Prioridad de carga" value={spec.charger_source_priority ?? "—"} />
+                </div>
+              </div>
+
+              {Array.isArray(spec.raw?.qpiri) && spec.raw!.qpiri!.length > 0 && (
+                <div>
+                  <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Respuesta QPIRI completa ({spec.raw!.qpiri!.length} campos)
+                  </h4>
+                  <div className="grid grid-cols-1 gap-x-8 gap-y-1.5 rounded-lg border bg-muted/20 p-3 sm:grid-cols-2">
+                    {spec.raw!.qpiri!.map((raw, i) => {
+                      const { label, value } = formatQpiriRow(i, raw);
+                      return (
+                        <div key={i} className="flex items-baseline justify-between gap-3 border-b border-dashed border-border/40 py-1 last:border-0">
+                          <span className="text-xs text-muted-foreground">
+                            <span className="font-mono text-[10px] opacity-60">[{i.toString().padStart(2, "0")}]</span> {label}
+                          </span>
+                          <span className="font-mono text-xs font-medium">{value}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <Row label="Última actualización" value={spec.updated_at ? new Date(spec.updated_at).toLocaleString() : "—"} />
             </div>
           ) : (
