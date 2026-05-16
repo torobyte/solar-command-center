@@ -392,14 +392,74 @@ export function ApkAdmin() {
         </section>
       </Card>
 
+      <div className="space-y-3">
+        <Label className="text-sm">Vista previa móvil</Label>
+        <div
+          className="mx-auto rounded-[2.5rem] p-3 shadow-2xl"
+          style={{ width: 340, background: "#111", border: "1px solid #333" }}
+        >
+          <div
+            className="relative rounded-[2rem] overflow-hidden"
+            style={{ height: 640, background: cfg.background_color }}
+          >
+            <div
+              className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-4 py-2 text-[11px] font-medium"
+              style={{
+                background: cfg.background_color,
+                color: cfg.status_bar_style === "light" ? "#fff" : "#000",
+              }}
+            >
+              <span>9:41</span>
+              <span className="h-5 w-20 rounded-full" style={{ background: "#000" }} />
+              <span>100%</span>
+            </div>
 
+            {showSplash ? (
+              <div
+                className="absolute inset-0 flex flex-col items-center justify-center"
+                style={{ background: cfg.splash_color }}
+              >
+                {cfg.icon_url ? (
+                  <img src={cfg.icon_url} alt="" className="h-20 w-20 rounded-2xl" />
+                ) : (
+                  <div
+                    className="h-20 w-20 rounded-2xl flex items-center justify-center text-2xl font-bold"
+                    style={{ background: cfg.primary_color, color: "#fff" }}
+                  >
+                    {cfg.app_name.slice(0, 1).toUpperCase()}
+                  </div>
+                )}
+                <div className="mt-4 text-sm" style={{ color: "#fff" }}>
+                  {cfg.app_name}
+                </div>
+              </div>
+            ) : (
+              <iframe
+                key={previewKey}
+                src={typeof window !== "undefined" ? window.location.origin : "/"}
+                title="preview"
+                className="absolute inset-0 h-full w-full border-0 pt-7"
+              />
+            )}
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground text-center">
+          {cfg.app_name} · v{cfg.version_name} ({cfg.version_code})
+        </p>
+        <p className="text-[10px] text-muted-foreground text-center break-all">
+          URL empaquetada en APK: {cfg.server_url}
+        </p>
+      </div>
+      </TabsContent>
+
+      <TabsContent value="download" className="space-y-4">
       <Card className="p-6 space-y-4">
         <div className="flex items-center gap-2">
           <QrCode className="h-5 w-5 text-accent" />
           <h3 className="text-lg font-semibold">Descarga del APK por QR</h3>
         </div>
         <p className="text-sm text-muted-foreground">
-          El APK se compila automáticamente con GitHub Actions: en cada push a <code>main</code>, todos los días a las 04:00 UTC, o manualmente desde Actions. El admin descubre la última versión del repo y genera el QR sin pegar nada a mano.
+          El APK se compila con GitHub Actions. Lanza el build manualmente y sigue el progreso aquí mismo; cuando termine, el QR se actualiza solo.
         </p>
 
         <div className="grid gap-3 md:grid-cols-2">
@@ -443,6 +503,71 @@ export function ApkAdmin() {
               </Button>
             </div>
           </div>
+        </div>
+
+        {/* Acciones de build + estado en vivo */}
+        <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <PlayCircle className="h-4 w-4 text-accent" />
+              Estado del build
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="default" onClick={onTriggerBuild} disabled={building || !repoUrl}>
+                {building ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Github className="h-4 w-4 mr-2" />}
+                Generar APK ahora
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => refreshBuildStatus(false)} disabled={statusLoading || !repoUrl}>
+                {statusLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
+
+          {!repoUrl ? (
+            <p className="text-xs text-muted-foreground">Configura la URL del repo para ver el estado en vivo.</p>
+          ) : runs.length === 0 ? (
+            <p className="text-xs text-muted-foreground">{statusLoading ? "Consultando…" : "Sin builds recientes."}</p>
+          ) : (
+            <ul className="space-y-2">
+              {runs.map((r) => {
+                const isActive = r.status !== "completed";
+                const failed = r.conclusion && r.conclusion !== "success";
+                const Icon = isActive
+                  ? Loader2
+                  : failed
+                    ? XCircle
+                    : r.conclusion === "success"
+                      ? CheckCircle2
+                      : Clock;
+                const color = isActive
+                  ? "text-amber-500"
+                  : failed
+                    ? "text-destructive"
+                    : r.conclusion === "success"
+                      ? "text-emerald-500"
+                      : "text-muted-foreground";
+                const label = isActive
+                  ? r.status === "queued" ? "En cola" : "En curso"
+                  : r.conclusion === "success" ? "Completado"
+                    : r.conclusion === "failure" ? "Falló"
+                      : r.conclusion === "cancelled" ? "Cancelado"
+                        : r.conclusion ?? "—";
+                return (
+                  <li key={r.id} className="flex items-center justify-between gap-2 rounded-md bg-card/50 px-3 py-2 text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Icon className={`h-4 w-4 shrink-0 ${color} ${isActive ? "animate-spin" : ""}`} />
+                      <span className="font-medium">#{r.run_number}</span>
+                      <span className={color}>{label}</span>
+                      <span className="text-muted-foreground truncate">· {r.event} · {r.head_branch}</span>
+                    </div>
+                    <a href={r.html_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground shrink-0">
+                      ver →
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
 
         {apkUrl ? (
@@ -494,12 +619,6 @@ export function ApkAdmin() {
                     </a>
                   </Button>
                   {repoUrl && (
-                    <Button size="sm" variant="outline" onClick={onTriggerBuild} disabled={building}>
-                      {building ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Github className="h-4 w-4 mr-2" />}
-                      Generar APK ahora
-                    </Button>
-                  )}
-                  {repoUrl && (
                     <Button size="sm" variant="ghost" asChild>
                       <a href={`${repoUrl.replace(/\/$/, "")}/releases`} target="_blank" rel="noopener noreferrer">
                         Ver releases
@@ -509,6 +628,29 @@ export function ApkAdmin() {
                 </div>
               </div>
             </div>
+
+            <details className="rounded-lg border border-border bg-muted/30 p-4 text-sm" open>
+              <summary className="cursor-pointer font-medium">📲 Cómo instalar el APK en tu teléfono</summary>
+              <ol className="mt-3 list-decimal space-y-2 pl-5 text-muted-foreground">
+                <li>Escanea el código QR con la cámara del móvil (o pulsa <strong>Abrir URL de instalación</strong> si ya estás en el teléfono).</li>
+                <li>El navegador descarga <code>app-release-signed.apk</code>. Acepta la descarga.</li>
+                <li>Android pedirá permitir instalación desde esta fuente: <strong>Ajustes → Permitir esta instalación</strong> y vuelve atrás.</li>
+                <li>Pulsa <strong>Instalar</strong>. Si Play Protect avisa "App no reconocida", pulsa <strong>Instalar de todas formas</strong>.</li>
+                <li><strong>Verificar firma (opcional):</strong> compara el SHA-256 mostrado arriba con el del archivo descargado.</li>
+                <li>Abre la app y entra con tu correo y contraseña.</li>
+              </ol>
+            </details>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+            {repoUrl
+              ? "Aún no hay un release publicado. Lanza el build con el botón de arriba."
+              : "Pega la URL del repo de GitHub para detectar el último APK automáticamente."}
+          </div>
+        )}
+      </Card>
+      </TabsContent>
+    </Tabs>
 
             <details className="rounded-lg border border-border bg-muted/30 p-4 text-sm" open>
               <summary className="cursor-pointer font-medium">📲 Cómo instalar el APK en tu teléfono</summary>
