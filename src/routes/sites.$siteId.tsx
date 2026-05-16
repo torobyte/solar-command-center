@@ -894,7 +894,7 @@ function ConfigurationView({ site, subTab, onSubTabChange, role }: { site: Site;
 
       <TabsContent value="sharing" className="mt-6 space-y-4">
         <Section title="Compartir sitio" icon={Share2}>
-          <SiteSharing siteId={site.id} isOwnerOrAdmin={true} />
+          <SiteSharing siteId={site.id} isOwnerOrAdmin={canManageMembers} />
         </Section>
       </TabsContent>
 
