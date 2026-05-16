@@ -736,7 +736,10 @@ class Agent:
                         print(f"[agent] snapshot push {r.status_code}: {r.text[:200]}")
             except Exception as e:
                 print(f"[agent] snapshot error: {e}")
-            time.sleep(SNAPSHOT_INTERVAL)
+            # Espera hasta SNAPSHOT_INTERVAL pero salta inmediatamente si
+            # alguien (command_loop, /api/command) llamó _refresh_spec_now().
+            self._spec_wake.wait(SNAPSHOT_INTERVAL)
+            self._spec_wake.clear()
 
     def activate(self, code: str, name: str) -> dict:
         r = requests.post(
