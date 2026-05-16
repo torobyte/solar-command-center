@@ -16,7 +16,7 @@ const config: CapacitorConfig = {
   // No bundled web assets — we point straight at the published site.
   webDir: "dist",
   server: {
-    url: "https://project--7cb3041b-eb20-43aa-ba17-b0848cb53051.lovable.app",
+    url: "https://appsolar.torobyte.com",
     cleartext: false,
     androidScheme: "https",
   },
