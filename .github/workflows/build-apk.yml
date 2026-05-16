@@ -52,7 +52,7 @@ jobs:
           else
             echo "android/ already present"
           fi
-          npx cap sync android || true
+          npx cap sync android
 
       - name: Merge widget overrides
         run: |
