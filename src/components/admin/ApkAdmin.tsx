@@ -58,6 +58,63 @@ export function ApkAdmin() {
   const [showSplash, setShowSplash] = useState(true);
   const [apkUrl, setApkUrl] = useState<string>(() => localStorage.getItem("apk_download_url") ?? "");
   const [repoUrl, setRepoUrl] = useState<string>(() => localStorage.getItem("apk_repo_url") ?? "");
+  const [latestTag, setLatestTag] = useState<string | null>(null);
+  const [latestSha, setLatestSha] = useState<string | null>(null);
+  const [publishedAt, setPublishedAt] = useState<string | null>(null);
+  const [fetchingRelease, setFetchingRelease] = useState(false);
+  const [autoMode, setAutoMode] = useState<boolean>(() => localStorage.getItem("apk_auto_mode") !== "false");
+  const [copiedSha, setCopiedSha] = useState(false);
+
+  function parseRepo(url: string): { owner: string; repo: string } | null {
+    const m = url.match(/github\.com[/:]([^/]+)\/([^/.]+)/i);
+    return m ? { owner: m[1], repo: m[2].replace(/\.git$/, "") } : null;
+  }
+
+  async function fetchLatestRelease(silent = false) {
+    const parsed = parseRepo(repoUrl);
+    if (!parsed) {
+      if (!silent) toast.error("Configura primero la URL del repo de GitHub");
+      return;
+    }
+    setFetchingRelease(true);
+    try {
+      const r = await fetch(`https://api.github.com/repos/${parsed.owner}/${parsed.repo}/releases/latest`, {
+        headers: { Accept: "application/vnd.github+json" },
+      });
+      if (!r.ok) throw new Error(`GitHub API ${r.status}`);
+      const j = await r.json();
+      const apkAsset = (j.assets ?? []).find((a: any) => a.name.endsWith(".apk"));
+      const shaAsset = (j.assets ?? []).find((a: any) => a.name.endsWith(".sha256"));
+      if (!apkAsset) throw new Error("El último release no contiene .apk");
+      if (autoMode) {
+        setApkUrl(apkAsset.browser_download_url);
+        localStorage.setItem("apk_download_url", apkAsset.browser_download_url);
+      }
+      setLatestTag(j.tag_name ?? null);
+      setPublishedAt(j.published_at ?? null);
+      // Intenta extraer SHA del body, o descargar el .sha256
+      const bodyMatch = (j.body ?? "").match(/[A-Fa-f0-9]{64}/);
+      if (bodyMatch) setLatestSha(bodyMatch[0].toLowerCase());
+      else if (shaAsset) {
+        try {
+          const t = await (await fetch(shaAsset.browser_download_url)).text();
+          const m = t.match(/[A-Fa-f0-9]{64}/);
+          if (m) setLatestSha(m[0].toLowerCase());
+        } catch {}
+      }
+      if (!silent) toast.success(`Última versión: ${j.tag_name}`);
+    } catch (e: any) {
+      if (!silent) toast.error(e.message);
+    } finally {
+      setFetchingRelease(false);
+    }
+  }
+
+  // Auto-fetch al cargar y cuando cambie el repo
+  useEffect(() => {
+    if (repoUrl && autoMode) fetchLatestRelease(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repoUrl, autoMode]);
 
   useEffect(() => {
     (async () => {
