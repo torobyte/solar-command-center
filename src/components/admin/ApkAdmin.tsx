@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { getApkConfig, saveApkConfig, generateApkProject, triggerApkBuild } from "@/lib/apk.functions";
+import { getApkConfig, saveApkConfig, generateApkProject, triggerApkBuild, getApkBuildStatus } from "@/lib/apk.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2, Save, Download, Smartphone, RefreshCw, Upload, X, Github, QrCode, ShieldCheck, Copy, CheckCircle2 } from "lucide-react";
+import { Loader2, Save, Download, Smartphone, RefreshCw, Upload, X, Github, QrCode, ShieldCheck, Copy, CheckCircle2, Clock, XCircle, PlayCircle } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
 interface ApkConfig {
