@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as LocalRouteImport } from './routes/local'
 import { Route as AppLoginRouteImport } from './routes/app-login'
 import { Route as AppRouteImport } from './routes/app'
+import { Route as ApkAuthRouteImport } from './routes/apk-auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
@@ -67,6 +68,11 @@ const AppLoginRoute = AppLoginRouteImport.update({
 const AppRoute = AppRouteImport.update({
   id: '/app',
   path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApkAuthRoute = ApkAuthRouteImport.update({
+  id: '/apk-auth',
+  path: '/apk-auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -189,6 +195,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
+  '/apk-auth': typeof ApkAuthRoute
   '/app': typeof AppRouteWithChildren
   '/app-login': typeof AppLoginRoute
   '/local': typeof LocalRoute
@@ -220,6 +227,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
+  '/apk-auth': typeof ApkAuthRoute
   '/app': typeof AppRouteWithChildren
   '/app-login': typeof AppLoginRoute
   '/local': typeof LocalRoute
@@ -252,6 +260,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
+  '/apk-auth': typeof ApkAuthRoute
   '/app': typeof AppRouteWithChildren
   '/app-login': typeof AppLoginRoute
   '/local': typeof LocalRoute
@@ -285,6 +294,7 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/admin'
+    | '/apk-auth'
     | '/app'
     | '/app-login'
     | '/local'
@@ -316,6 +326,7 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/admin'
+    | '/apk-auth'
     | '/app'
     | '/app-login'
     | '/local'
@@ -347,6 +358,7 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/admin'
+    | '/apk-auth'
     | '/app'
     | '/app-login'
     | '/local'
@@ -379,6 +391,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountRoute: typeof AccountRoute
   AdminRoute: typeof AdminRoute
+  ApkAuthRoute: typeof ApkAuthRoute
   AppRoute: typeof AppRouteWithChildren
   AppLoginRoute: typeof AppLoginRoute
   LocalRoute: typeof LocalRoute
@@ -448,6 +461,13 @@ declare module '@tanstack/react-router' {
       path: '/app'
       fullPath: '/app'
       preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/apk-auth': {
+      id: '/apk-auth'
+      path: '/apk-auth'
+      fullPath: '/apk-auth'
+      preLoaderRoute: typeof ApkAuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -628,6 +648,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRoute,
   AdminRoute: AdminRoute,
+  ApkAuthRoute: ApkAuthRoute,
   AppRoute: AppRouteWithChildren,
   AppLoginRoute: AppLoginRoute,
   LocalRoute: LocalRoute,
