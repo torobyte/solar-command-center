@@ -121,27 +121,51 @@ jobs:
         working-directory: android
         run: ./gradlew assembleRelease --no-daemon --stacktrace
 
-      - name: Sign APK
+      - name: Sign APK (always — uses release keystore if provided, else auto-generated)
         id: sign
-        if: ${{ env.KEYSTORE_BASE64 != '' }}
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          echo "$KEYSTORE_BASE64" | base64 -d > /tmp/release.keystore
+          set -e
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "Using release keystore from secrets"
+            echo "$KEYSTORE_BASE64" | base64 -d > /tmp/release.keystore
+            KS_PASS="$KEYSTORE_PASSWORD"
+            K_PASS="$KEY_PASSWORD"
+            K_ALIAS="$KEY_ALIAS"
+          else
+            echo "::warning::No ANDROID_KEYSTORE_BASE64 secret set — generating a temporary keystore. APK will install, but you cannot upgrade it from a previous signed install without uninstalling first."
+            KS_PASS="solarops"
+            K_PASS="solarops"
+            K_ALIAS="solarops"
+            keytool -genkeypair -v \
+              -keystore /tmp/release.keystore \
+              -storepass "$KS_PASS" -keypass "$K_PASS" \
+              -alias "$K_ALIAS" \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=SolarOps, OU=Dev, O=SolarOps, L=NA, S=NA, C=US"
+          fi
           APK_IN=$(find android/app/build/outputs/apk/release -name "*-unsigned.apk" | head -n1)
+          if [ -z "$APK_IN" ]; then
+            APK_IN=$(find android/app/build/outputs/apk/release -name "*.apk" | head -n1)
+          fi
           APK_OUT=android/app/build/outputs/apk/release/app-release-signed.apk
           BUILD_TOOLS=$(ls "$ANDROID_SDK_ROOT/build-tools" | sort -V | tail -n1)
           "$ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS/zipalign" -f 4 "$APK_IN" /tmp/aligned.apk
           "$ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS/apksigner" sign \
             --ks /tmp/release.keystore \
-            --ks-pass pass:"$KEYSTORE_PASSWORD" \
-            --key-pass pass:"$KEY_PASSWORD" \
-            --ks-key-alias "$KEY_ALIAS" \
+            --ks-pass pass:"$KS_PASS" \
+            --key-pass pass:"$K_PASS" \
+            --ks-key-alias "$K_ALIAS" \
+            --v1-signing-enabled true \
+            --v2-signing-enabled true \
+            --v3-signing-enabled true \
             --out "$APK_OUT" \
             /tmp/aligned.apk
+          "$ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS/apksigner" verify --verbose "$APK_OUT"
           echo "apk_path=$APK_OUT" >> $GITHUB_OUTPUT
 
       - name: Locate APK
