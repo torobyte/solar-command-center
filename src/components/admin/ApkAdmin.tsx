@@ -53,6 +53,21 @@ export function ApkAdmin() {
   const genProj = useServerFn(generateApkProject);
   const dispatchBuild = useServerFn(triggerApkBuild);
   const fetchBuildStatus = useServerFn(getApkBuildStatus);
+
+  const [cfg, setCfg] = useState<ApkConfig>(DEFAULT);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [previewKey, setPreviewKey] = useState(0);
+  const [showSplash, setShowSplash] = useState(true);
+  const [apkUrl, setApkUrl] = useState<string>(() => localStorage.getItem("apk_download_url") ?? "");
+  const [repoUrl, setRepoUrl] = useState<string>(() => localStorage.getItem("apk_repo_url") ?? "");
+  const [latestTag, setLatestTag] = useState<string | null>(null);
+  const [latestSha, setLatestSha] = useState<string | null>(null);
+  const [publishedAt, setPublishedAt] = useState<string | null>(null);
+  const [fetchingRelease, setFetchingRelease] = useState(false);
+  const [autoMode, setAutoMode] = useState<boolean>(() => localStorage.getItem("apk_auto_mode") !== "false");
+  const [copiedSha, setCopiedSha] = useState(false);
   const [building, setBuilding] = useState(false);
 
   type RunInfo = {
@@ -69,77 +84,6 @@ export function ApkAdmin() {
   const [runs, setRuns] = useState<RunInfo[]>([]);
   const [statusLoading, setStatusLoading] = useState(false);
   const [lastSeenRunId, setLastSeenRunId] = useState<number | null>(null);
-
-  async function refreshBuildStatus(silent = true) {
-    const parsed = parseRepo(repoUrl);
-    if (!parsed) return;
-    setStatusLoading(true);
-    try {
-      const r = await fetchBuildStatus({ data: { owner: parsed.owner, repo: parsed.repo, workflow: "build-apk.yml" } });
-      setRuns(r.runs as RunInfo[]);
-      const latest = r.runs[0] as RunInfo | undefined;
-      if (latest && latest.status === "completed" && latest.conclusion === "success" && latest.id !== lastSeenRunId) {
-        setLastSeenRunId(latest.id);
-        toast.success(`Build #${latest.run_number} completado`);
-        fetchLatestRelease(true);
-      }
-    } catch (e: any) {
-      if (!silent) toast.error(e.message);
-    } finally {
-      setStatusLoading(false);
-    }
-  }
-
-  // Poll cada 10s si hay un build activo (queued / in_progress)
-  useEffect(() => {
-    if (!repoUrl) return;
-    const active = runs.some((r) => r.status !== "completed");
-    if (!active && !building) return;
-    const t = setInterval(() => refreshBuildStatus(true), 10000);
-    return () => clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [repoUrl, runs, building]);
-
-  // Carga inicial de estado al tener repo
-  useEffect(() => {
-    if (repoUrl) refreshBuildStatus(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [repoUrl]);
-
-  async function onTriggerBuild() {
-    const parsed = parseRepo(repoUrl);
-    if (!parsed) {
-      toast.error("Configura primero la URL del repo de GitHub");
-      return;
-    }
-    setBuilding(true);
-    try {
-      await dispatchBuild({ data: { owner: parsed.owner, repo: parsed.repo, ref: "main", workflow: "build-apk.yml" } });
-      toast.success("Build lanzado en GitHub Actions. Tardará ~5-8 min.");
-      // Primer refresh tras unos segundos para captar el nuevo run
-      setTimeout(() => refreshBuildStatus(true), 4000);
-      setTimeout(() => fetchLatestRelease(true), 30000);
-    } catch (e: any) {
-      toast.error(e.message);
-    } finally {
-      setBuilding(false);
-    }
-  }
-
-  const [cfg, setCfg] = useState<ApkConfig>(DEFAULT);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [downloading, setDownloading] = useState(false);
-  const [previewKey, setPreviewKey] = useState(0);
-  const [showSplash, setShowSplash] = useState(true);
-  const [apkUrl, setApkUrl] = useState<string>(() => localStorage.getItem("apk_download_url") ?? "");
-  const [repoUrl, setRepoUrl] = useState<string>(() => localStorage.getItem("apk_repo_url") ?? "");
-  const [latestTag, setLatestTag] = useState<string | null>(null);
-  const [latestSha, setLatestSha] = useState<string | null>(null);
-  const [publishedAt, setPublishedAt] = useState<string | null>(null);
-  const [fetchingRelease, setFetchingRelease] = useState(false);
-  const [autoMode, setAutoMode] = useState<boolean>(() => localStorage.getItem("apk_auto_mode") !== "false");
-  const [copiedSha, setCopiedSha] = useState(false);
 
   function parseRepo(url: string): { owner: string; repo: string } | null {
     const m = url.match(/github\.com[/:]([^/]+)\/([^/.]+)/i);
