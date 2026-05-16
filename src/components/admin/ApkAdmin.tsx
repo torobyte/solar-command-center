@@ -56,6 +56,8 @@ export function ApkAdmin() {
   const [downloading, setDownloading] = useState(false);
   const [previewKey, setPreviewKey] = useState(0);
   const [showSplash, setShowSplash] = useState(true);
+  const [apkUrl, setApkUrl] = useState<string>(() => localStorage.getItem("apk_download_url") ?? "");
+  const [repoUrl, setRepoUrl] = useState<string>(() => localStorage.getItem("apk_repo_url") ?? "");
 
   useEffect(() => {
     (async () => {
