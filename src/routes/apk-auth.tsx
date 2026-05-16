@@ -7,20 +7,14 @@ export const Route = createFileRoute("/apk-auth")({
   component: ApkAuthPage,
 });
 
-declare global {
-  interface Window {
-    SolarWidgetBridge?: {
-      saveSession?: (payload: string) => void;
-      clearSession?: () => void;
-    };
-  }
-}
-
 const NATIVE_BOOTSTRAP_KEY = "solarops_native_session_bootstrap";
 
 function ApkAuthPage() {
   const navigate = useNavigate();
   const [message, setMessage] = useState("Validando acceso…");
+  const nativeBridge = typeof window !== "undefined"
+    ? (window.SolarWidgetBridge as { saveSession?: (payload: string) => void; clearSession?: () => void } | undefined)
+    : undefined;
 
   useEffect(() => {
     let cancelled = false;
@@ -45,7 +39,7 @@ function ApkAuthPage() {
             const { data } = await supabase.auth.getSession();
             if (data.session) {
               try {
-                window.SolarWidgetBridge?.saveSession?.(JSON.stringify(data.session));
+                nativeBridge?.saveSession?.(JSON.stringify(data.session));
               } catch {}
             }
           }
@@ -63,7 +57,7 @@ function ApkAuthPage() {
       } catch {
         try {
           localStorage.removeItem(NATIVE_BOOTSTRAP_KEY);
-          window.SolarWidgetBridge?.clearSession?.();
+          nativeBridge?.clearSession?.();
         } catch {}
         if (!cancelled) navigate({ to: "/app-login", replace: true });
       }
