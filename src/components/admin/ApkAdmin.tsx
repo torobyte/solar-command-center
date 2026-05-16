@@ -227,6 +227,101 @@ export function ApkAdmin() {
         </div>
       </Card>
 
+      <Card className="p-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <QrCode className="h-5 w-5 text-accent" />
+          <h3 className="text-lg font-semibold">Descarga del APK por QR</h3>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          El APK se compila automáticamente con GitHub Actions cada vez que cambie el directorio <code>android/</code> o lo ejecutes manualmente desde la pestaña <strong>Actions</strong> del repo. La última versión queda publicada como Release. Pega aquí la URL del APK (o de la página de Releases) y aparecerá un QR para escanear desde el móvil.
+        </p>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label className="text-sm">URL de descarga del APK</Label>
+            <Input
+              placeholder="https://github.com/usuario/repo/releases/latest/download/app-release-signed.apk"
+              value={apkUrl}
+              onChange={(e) => {
+                setApkUrl(e.target.value);
+                localStorage.setItem("apk_download_url", e.target.value);
+              }}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-sm">Repositorio GitHub (opcional)</Label>
+            <Input
+              placeholder="https://github.com/usuario/repo"
+              value={repoUrl}
+              onChange={(e) => {
+                setRepoUrl(e.target.value);
+                localStorage.setItem("apk_repo_url", e.target.value);
+              }}
+            />
+          </div>
+        </div>
+
+        {apkUrl ? (
+          <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 sm:flex-row sm:items-start sm:justify-between">
+            <div className="rounded-lg bg-white p-3">
+              <QRCodeSVG value={apkUrl} size={180} level="M" />
+            </div>
+            <div className="flex-1 space-y-3 text-sm">
+              <p className="text-muted-foreground">
+                Escanea desde el móvil para descargar el APK. Tras descargar, Android pedirá permitir instalación desde orígenes desconocidos.
+              </p>
+              <div className="break-all rounded-md bg-muted/50 p-2 font-mono text-xs">{apkUrl}</div>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="default" asChild>
+                  <a href={apkUrl} target="_blank" rel="noopener noreferrer">
+                    <Download className="h-4 w-4 mr-2" />Descargar APK
+                  </a>
+                </Button>
+                {repoUrl && (
+                  <Button size="sm" variant="outline" asChild>
+                    <a href={`${repoUrl.replace(/\/$/, "")}/actions/workflows/build-apk.yml`} target="_blank" rel="noopener noreferrer">
+                      <Github className="h-4 w-4 mr-2" />Lanzar build
+                    </a>
+                  </Button>
+                )}
+                {repoUrl && (
+                  <Button size="sm" variant="ghost" asChild>
+                    <a href={`${repoUrl.replace(/\/$/, "")}/releases`} target="_blank" rel="noopener noreferrer">
+                      Ver releases
+                    </a>
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+            Configura la URL del APK para generar el código QR.
+          </div>
+        )}
+
+        <details className="rounded-lg border border-border bg-muted/30 p-4 text-sm">
+          <summary className="cursor-pointer font-medium">Configuración inicial (una sola vez)</summary>
+          <ol className="mt-3 list-decimal space-y-2 pl-5 text-muted-foreground">
+            <li>Conecta el proyecto a GitHub desde el menú (+) → GitHub → Connect project.</li>
+            <li>El workflow <code>.github/workflows/build-apk.yml</code> ya está incluido. Se ejecuta solo cuando cambias <code>android/</code> o manualmente desde la pestaña Actions.</li>
+            <li>
+              <strong>Firmar APK (opcional pero recomendado):</strong> añade estos Secrets en
+              GitHub (Settings → Secrets and variables → Actions):
+              <ul className="mt-1 list-disc pl-5">
+                <li><code>ANDROID_KEYSTORE_BASE64</code> — keystore .jks en base64</li>
+                <li><code>ANDROID_KEYSTORE_PASSWORD</code></li>
+                <li><code>ANDROID_KEY_ALIAS</code></li>
+                <li><code>ANDROID_KEY_PASSWORD</code></li>
+              </ul>
+              Sin estos secrets el APK se compila sin firmar (válido para pruebas locales, no instalable directamente).
+            </li>
+            <li>Genera el keystore con: <code>keytool -genkey -v -keystore release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias solarops</code> y luego <code>base64 -w0 release.jks</code>.</li>
+            <li>Para actualizar la app: sube tus cambios, lanza Actions → Run workflow, y el QR seguirá apuntando al último release si usas la URL <code>/releases/latest/download/...</code></li>
+          </ol>
+        </details>
+      </Card>
+
       <div className="space-y-3">
         <Label className="text-sm">Vista previa móvil</Label>
         <div
