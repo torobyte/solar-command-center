@@ -27,6 +27,8 @@ interface Site {
   id: string; name: string; description: string | null;
   inverter_model: string | null; status: string; plan: string;
   last_seen_at: string | null; license_expires_at: string | null;
+  owner_id: string;
+  owner_email?: string | null;
 }
 
 interface MyLicense {
