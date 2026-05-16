@@ -67,6 +67,8 @@ systemctl enable --now mosquitto >/dev/null 2>&1 || true
 systemctl enable --now NetworkManager >/dev/null 2>&1 || true
 systemctl disable --now dhcpcd >/dev/null 2>&1 || true
 rfkill unblock wifi 2>/dev/null || true
+# Asegurar que la radio WiFi esté ENCENDIDA tras la primera instalación
+nmcli radio wifi on 2>/dev/null || true
 
 echo "▶ [2/9] Descargando agente desde la nube…"
 install -d -m 755 /opt/solarops /etc/solarops /var/lib/solarops
