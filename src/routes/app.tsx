@@ -53,6 +53,7 @@ function SitesIndex() {
   const [busy, setBusy] = useState(false);
   const [shareSite, setShareSite] = useState<Site | null>(null);
   const claim = useServerFn(claimPairingCode);
+  const fetchOwners = useServerFn(getSiteOwners);
 
   async function load() {
     setLoading(true);
@@ -65,18 +66,38 @@ function SitesIndex() {
     if (error) toast.error(error.message);
     const list = (s ?? []) as Site[];
     const myId = user?.id;
-    const otherOwners = Array.from(new Set(list.filter(x => x.owner_id !== myId).map(x => x.owner_id)));
-    if (otherOwners.length > 0) {
-      const { data: profs } = await supabase.from("profiles").select("id,email,full_name").in("id", otherOwners);
-      const byId = new Map((profs ?? []).map(p => [p.id, { email: p.email, name: p.full_name }] as const));
+    const siteIds = list.map(x => x.id);
+
+    // Fetch inverter specs for driver/model fallback (RLS allows viewers)
+    if (siteIds.length > 0) {
+      const { data: specs } = await supabase
+        .from("inverter_specs")
+        .select("site_id,driver,model_name")
+        .in("site_id", siteIds);
+      const specById = new Map((specs ?? []).map(sp => [sp.site_id, sp]));
       list.forEach(x => {
-        if (x.owner_id !== myId) {
-          const p = byId.get(x.owner_id);
-          x.owner_email = p?.email ?? null;
-          x.owner_name = p?.name ?? null;
-        }
+        const sp = specById.get(x.id);
+        x.inverter_driver = sp?.driver ?? null;
+        x.inverter_spec_model = sp?.model_name ?? null;
       });
     }
+
+    // Fetch owner names for shared sites via server fn (admin client)
+    const sharedIds = list.filter(x => x.owner_id !== myId).map(x => x.id);
+    if (sharedIds.length > 0) {
+      try {
+        const res = await fetchOwners({ data: { site_ids: sharedIds } });
+        const bySite = new Map(res.owners.map(o => [o.site_id, o]));
+        list.forEach(x => {
+          const o = bySite.get(x.id);
+          if (o) {
+            x.owner_email = o.email;
+            x.owner_name = o.full_name;
+          }
+        });
+      } catch { /* ignore */ }
+    }
+
     setSites(list);
     setLicenses((lic ?? []) as MyLicense[]);
     setLoading(false);
