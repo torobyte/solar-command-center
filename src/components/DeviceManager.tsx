@@ -61,18 +61,20 @@ export function DeviceSelector({ siteId }: { siteId: string }) {
   const { devices, selectedId, select } = useDevices(siteId);
   const [specModel, setSpecModel] = useState<string | null>(null);
   const [specSerial, setSpecSerial] = useState<string | null>(null);
+  const [specDriver, setSpecDriver] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const { data } = await supabase
         .from("inverter_specs")
-        .select("model_name,serial_number")
+        .select("model_name,serial_number,driver")
         .eq("site_id", siteId)
         .maybeSingle();
       if (!cancelled) {
         setSpecModel((data?.model_name as string | null) ?? null);
         setSpecSerial((data?.serial_number as string | null) ?? null);
+        setSpecDriver((data?.driver as string | null) ?? null);
       }
     })();
     const ch = supabase
@@ -81,10 +83,11 @@ export function DeviceSelector({ siteId }: { siteId: string }) {
         "postgres_changes",
         { event: "*", schema: "public", table: "inverter_specs", filter: `site_id=eq.${siteId}` },
         (payload) => {
-          const row = (payload.new ?? payload.old) as { model_name?: string | null; serial_number?: string | null } | null;
+          const row = (payload.new ?? payload.old) as { model_name?: string | null; serial_number?: string | null; driver?: string | null } | null;
           if (row) {
             setSpecModel(row.model_name ?? null);
             setSpecSerial(row.serial_number ?? null);
+            setSpecDriver(row.driver ?? null);
           }
         }
       )
@@ -92,7 +95,7 @@ export function DeviceSelector({ siteId }: { siteId: string }) {
     return () => { cancelled = true; supabase.removeChannel(ch); };
   }, [siteId]);
 
-  const connectedName = specModel || devices.find((d) => d.id === selectedId)?.model || devices[0]?.name || "Sin inversor conectado";
+  const connectedName = specModel || specDriver || devices.find((d) => d.id === selectedId)?.model || devices.find((d) => d.id === selectedId)?.driver || devices[0]?.name || "Sin inversor conectado";
 
   return (
     <div className="rounded-2xl border bg-card/60 p-3 backdrop-blur-sm sm:p-4">

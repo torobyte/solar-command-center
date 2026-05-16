@@ -48,6 +48,7 @@ export interface ForecastPvConfig {
   batteryKwh?: number | null;
   lat?: number | null;
   lon?: number | null;
+  locationLabel?: string | null;
 }
 
 /** Estimate produced kWh from radiation Wh/m² using PVWatts-style formula:
@@ -73,7 +74,7 @@ export function SolarForecastWidget({ pvConfig }: { pvConfig?: ForecastPvConfig 
   useEffect(() => {
     // PV config coords take precedence
     if (pvConfig?.lat != null && pvConfig?.lon != null) {
-      const c: Coords = { lat: pvConfig.lat, lon: pvConfig.lon };
+      const c: Coords = { lat: pvConfig.lat, lon: pvConfig.lon, city: pvConfig.locationLabel ?? undefined };
       setCoords(c);
       void loadForecast(c);
       return;
@@ -89,7 +90,7 @@ export function SolarForecastWidget({ pvConfig }: { pvConfig?: ForecastPvConfig 
     }
     void detectAndLoad();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pvConfig?.lat, pvConfig?.lon]);
+  }, [pvConfig?.lat, pvConfig?.lon, pvConfig?.locationLabel]);
 
   async function detectAndLoad() {
     setLoading(true);

@@ -14,6 +14,7 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useServerFn } from "@tanstack/react-start";
 import { claimPairingCode } from "@/lib/pairing.functions";
+import { getSiteOwners } from "@/lib/sharing.functions";
 import { Plus, Cpu as CpuIcon, Sparkles, KeyRound, Copy, Share2 } from "lucide-react";
 import { SiteSharing } from "@/components/SiteSharing";
 import { toast } from "sonner";
@@ -30,6 +31,8 @@ interface Site {
   owner_id: string;
   owner_email?: string | null;
   owner_name?: string | null;
+  inverter_driver?: string | null;
+  inverter_spec_model?: string | null;
 }
 
 interface MyLicense {
@@ -50,6 +53,7 @@ function SitesIndex() {
   const [busy, setBusy] = useState(false);
   const [shareSite, setShareSite] = useState<Site | null>(null);
   const claim = useServerFn(claimPairingCode);
+  const fetchOwners = useServerFn(getSiteOwners);
 
   async function load() {
     setLoading(true);
@@ -62,18 +66,38 @@ function SitesIndex() {
     if (error) toast.error(error.message);
     const list = (s ?? []) as Site[];
     const myId = user?.id;
-    const otherOwners = Array.from(new Set(list.filter(x => x.owner_id !== myId).map(x => x.owner_id)));
-    if (otherOwners.length > 0) {
-      const { data: profs } = await supabase.from("profiles").select("id,email,full_name").in("id", otherOwners);
-      const byId = new Map((profs ?? []).map(p => [p.id, { email: p.email, name: p.full_name }] as const));
+    const siteIds = list.map(x => x.id);
+
+    // Fetch inverter specs for driver/model fallback (RLS allows viewers)
+    if (siteIds.length > 0) {
+      const { data: specs } = await supabase
+        .from("inverter_specs")
+        .select("site_id,driver,model_name")
+        .in("site_id", siteIds);
+      const specById = new Map((specs ?? []).map(sp => [sp.site_id, sp]));
       list.forEach(x => {
-        if (x.owner_id !== myId) {
-          const p = byId.get(x.owner_id);
-          x.owner_email = p?.email ?? null;
-          x.owner_name = p?.name ?? null;
-        }
+        const sp = specById.get(x.id);
+        x.inverter_driver = sp?.driver ?? null;
+        x.inverter_spec_model = sp?.model_name ?? null;
       });
     }
+
+    // Fetch owner names for shared sites via server fn (admin client)
+    const sharedIds = list.filter(x => x.owner_id !== myId).map(x => x.id);
+    if (sharedIds.length > 0) {
+      try {
+        const res = await fetchOwners({ data: { site_ids: sharedIds } });
+        const bySite = new Map(res.owners.map(o => [o.site_id, o]));
+        list.forEach(x => {
+          const o = bySite.get(x.id);
+          if (o) {
+            x.owner_email = o.email;
+            x.owner_name = o.full_name;
+          }
+        });
+      } catch { /* ignore */ }
+    }
+
     setSites(list);
     setLicenses((lic ?? []) as MyLicense[]);
     setLoading(false);
@@ -252,9 +276,9 @@ function SitesIndex() {
                           {s.plan}
                         </Badge>
                       )}
-                      {s.inverter_model && (
+                      {(s.inverter_spec_model || s.inverter_model || s.inverter_driver) && (
                         <Badge variant="outline" className="rounded-full bg-success/10 text-success border-success/20 px-2.5 py-0.5 text-[11px] gap-1">
-                          <CpuIcon className="h-3 w-3" strokeWidth={2.4} /> {s.inverter_model}
+                          <CpuIcon className="h-3 w-3" strokeWidth={2.4} /> {s.inverter_spec_model || s.inverter_model || s.inverter_driver}
                         </Badge>
                       )}
                     </div>
@@ -313,7 +337,7 @@ function SitesIndex() {
                           <div className="font-medium">{s.name}</div>
                           {s.description && <div className="text-xs text-muted-foreground">{s.description}</div>}
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground">{s.inverter_model ?? "—"}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{s.inverter_spec_model || s.inverter_model || s.inverter_driver || "—"}</td>
                         <td className="px-4 py-3">
                           {isShared ? (
                             <Badge variant="outline" className="rounded-full bg-muted/40 text-muted-foreground border-border">
