@@ -169,13 +169,21 @@ export function ApkAdmin() {
             </Select>
           </div>
 
-          <div className="space-y-2 md:col-span-2">
-            <Label>Ícono (URL PNG 1024×1024)</Label>
-            <Input value={cfg.icon_url ?? ""} onChange={(e) => update("icon_url", e.target.value || null)} placeholder="https://…/icon.png" />
+          <div className="md:col-span-2">
+            <AssetUploader
+              label="Ícono (PNG cuadrado, idealmente 1024×1024)"
+              value={cfg.icon_url}
+              folder="icons"
+              onChange={(url) => update("icon_url", url)}
+            />
           </div>
-          <div className="space-y-2 md:col-span-2">
-            <Label>Splash (URL PNG 2732×2732)</Label>
-            <Input value={cfg.splash_url ?? ""} onChange={(e) => update("splash_url", e.target.value || null)} placeholder="https://…/splash.png" />
+          <div className="md:col-span-2">
+            <AssetUploader
+              label="Splash (PNG cuadrado, idealmente 2732×2732)"
+              value={cfg.splash_url}
+              folder="splash"
+              onChange={(url) => update("splash_url", url)}
+            />
           </div>
 
           <div className="flex items-center justify-between rounded border p-3">
