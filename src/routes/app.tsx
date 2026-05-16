@@ -15,7 +15,6 @@ import { useI18n } from "@/lib/i18n";
 import { useServerFn } from "@tanstack/react-start";
 import { claimPairingCode } from "@/lib/pairing.functions";
 import { getSiteOwners } from "@/lib/sharing.functions";
-import { useServerFn as useServerFn2 } from "@tanstack/react-start";
 import { Plus, Cpu as CpuIcon, Sparkles, KeyRound, Copy, Share2 } from "lucide-react";
 import { SiteSharing } from "@/components/SiteSharing";
 import { toast } from "sonner";
