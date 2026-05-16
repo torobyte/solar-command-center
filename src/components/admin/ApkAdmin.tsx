@@ -35,7 +35,7 @@ const DEFAULT: ApkConfig = {
   version_name: "1.0.0",
   version_code: 1,
   server_url: "https://project--7cb3041b-eb20-43aa-ba17-b0848cb53051.lovable.app",
-  start_path: "/app-login",
+  start_path: "/apk-auth",
   primary_color: "#f59e0b",
   background_color: "#0a0a0a",
   splash_color: "#0a0a0a",
@@ -226,8 +226,8 @@ export function ApkAdmin() {
             </div>
             <div className="space-y-2">
               <Label>Ruta inicial</Label>
-              <Input value={cfg.start_path} onChange={(e) => update("start_path", e.target.value)} placeholder="/app-login" />
-              <p className="text-xs text-muted-foreground">La app abre en <code>{cfg.server_url.replace(/\/$/,"")}{cfg.start_path}</code>. La pantalla <code>/app-login</code> ya trae logo, login y vinculación con el widget.</p>
+              <Input value={cfg.start_path} onChange={(e) => update("start_path", e.target.value)} placeholder="/apk-auth" />
+              <p className="text-xs text-muted-foreground">La app abre en <code>{cfg.server_url.replace(/\/$/,"")}{cfg.start_path}</code>. La ruta <code>/apk-auth</code> sincroniza la sesión nativa y luego entra a <code>/app</code> o <code>/app-login</code>.</p>
             </div>
           </div>
         </section>
