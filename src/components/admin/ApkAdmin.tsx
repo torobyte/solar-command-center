@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getApkConfig, saveApkConfig, generateApkProject } from "@/lib/apk.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, Save, Download, Smartphone, RefreshCw } from "lucide-react";
+import { Loader2, Save, Download, Smartphone, RefreshCw, Upload, X } from "lucide-react";
 
 interface ApkConfig {
   app_id: string;
@@ -168,13 +169,21 @@ export function ApkAdmin() {
             </Select>
           </div>
 
-          <div className="space-y-2 md:col-span-2">
-            <Label>Ícono (URL PNG 1024×1024)</Label>
-            <Input value={cfg.icon_url ?? ""} onChange={(e) => update("icon_url", e.target.value || null)} placeholder="https://…/icon.png" />
+          <div className="md:col-span-2">
+            <AssetUploader
+              label="Ícono (PNG cuadrado, idealmente 1024×1024)"
+              value={cfg.icon_url}
+              folder="icons"
+              onChange={(url) => update("icon_url", url)}
+            />
           </div>
-          <div className="space-y-2 md:col-span-2">
-            <Label>Splash (URL PNG 2732×2732)</Label>
-            <Input value={cfg.splash_url ?? ""} onChange={(e) => update("splash_url", e.target.value || null)} placeholder="https://…/splash.png" />
+          <div className="md:col-span-2">
+            <AssetUploader
+              label="Splash (PNG cuadrado, idealmente 2732×2732)"
+              value={cfg.splash_url}
+              folder="splash"
+              onChange={(url) => update("splash_url", url)}
+            />
           </div>
 
           <div className="flex items-center justify-between rounded border p-3">
@@ -263,6 +272,99 @@ export function ApkAdmin() {
         <p className="text-xs text-muted-foreground text-center">
           {cfg.app_name} · v{cfg.version_name} ({cfg.version_code})
         </p>
+      </div>
+    </div>
+  );
+}
+
+function AssetUploader({
+  label,
+  value,
+  folder,
+  onChange,
+}: {
+  label: string;
+  value: string | null;
+  folder: string;
+  onChange: (url: string | null) => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const onPick = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecciona una imagen PNG o JPG");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Máximo 5 MB");
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error } = await supabase.storage.from("apk-assets").upload(path, file, {
+        upsert: false,
+        contentType: file.type,
+      });
+      if (error) throw error;
+      const { data } = supabase.storage.from("apk-assets").getPublicUrl(path);
+      onChange(data.publicUrl);
+      toast.success("Imagen subida");
+    } catch (e: any) {
+      toast.error(e.message || "Error al subir");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <div className="flex items-center gap-3">
+        {value ? (
+          <div className="relative h-16 w-16 rounded-lg border overflow-hidden bg-muted">
+            <img src={value} alt="" className="h-full w-full object-cover" />
+            <button
+              type="button"
+              onClick={() => onChange(null)}
+              className="absolute -top-1 -right-1 rounded-full bg-destructive text-destructive-foreground p-0.5"
+              aria-label="Quitar"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        ) : (
+          <div className="h-16 w-16 rounded-lg border-2 border-dashed flex items-center justify-center text-muted-foreground text-xs">
+            Sin imagen
+          </div>
+        )}
+        <div className="flex-1 space-y-2">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onPick(f);
+              e.target.value = "";
+            }}
+          />
+          <div className="flex gap-2">
+            <Button type="button" size="sm" variant="secondary" onClick={() => fileRef.current?.click()} disabled={uploading}>
+              {uploading ? <Loader2 className="h-3 w-3 mr-2 animate-spin" /> : <Upload className="h-3 w-3 mr-2" />}
+              Subir archivo
+            </Button>
+          </div>
+          <Input
+            value={value ?? ""}
+            onChange={(e) => onChange(e.target.value || null)}
+            placeholder="o pega una URL https://…"
+            className="text-xs"
+          />
+        </div>
       </div>
     </div>
   );
