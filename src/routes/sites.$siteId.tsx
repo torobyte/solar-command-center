@@ -599,7 +599,9 @@ interface DeviceCommand {
   created_at: string; sent_at: string | null; acked_at: string | null;
 }
 
-function ConfigurationView({ site, subTab, onSubTabChange }: { site: Site; subTab: string; onSubTabChange: (v: string) => void }) {
+function ConfigurationView({ site, subTab, onSubTabChange, role }: { site: Site; subTab: string; onSubTabChange: (v: string) => void; role: SiteRole | null }) {
+  const canConfigure = role === "admin" || role === "owner";
+  const canManageMembers = canConfigure;
   const [spec, setSpec] = useState<InverterSpec | null>(null);
   const [snap, setSnap] = useState<DeviceSnapshot | null>(null);
   const [commands, setCommands] = useState<DeviceCommand[]>([]);
