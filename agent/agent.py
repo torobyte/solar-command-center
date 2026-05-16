@@ -303,6 +303,9 @@ class Agent:
         self.snapshot: dict = {}
         self.history: list[dict] = []  # last ~12h of samples for local charts
         self.lock = threading.Lock()
+        # Permite que command_loop / endpoints despierten al snapshot_loop
+        # de su sleep de 60s para subir el spec recién leído sin esperar.
+        self._spec_wake = threading.Event()
         self.pending: queue.Queue = queue.Queue(maxsize=10000)
         # Diagnóstico para la página de estado local
         self.last_error: str | None = None
