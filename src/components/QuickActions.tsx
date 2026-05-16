@@ -79,7 +79,7 @@ interface PendingConfirm {
   actionLabel: string;
 }
 
-export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG }: QuickActionsProps) {
+export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG, readOnly = false }: QuickActionsProps) {
   const [pending, setPending] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<PendingConfirm | null>(null);
   const [current, setCurrent] = useState<CurrentValues>({});
