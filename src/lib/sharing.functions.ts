@@ -78,3 +78,40 @@ export const getInvitationInfo = createServerFn({ method: "POST" })
       accepted: !!inv.accepted_at,
     };
   });
+
+/**
+ * Fetch owner profile info (id, email, full_name) for sites the requester
+ * has access to. Uses admin to bypass profiles RLS but verifies access via
+ * site membership/ownership first.
+ */
+export const getSiteOwners = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ site_ids: z.array(z.string().uuid()).min(1).max(200) }).parse(input)
+  )
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    const { data: sites } = await supabaseAdmin
+      .from("sites").select("id,owner_id").in("id", data.site_ids);
+    if (!sites?.length) return { owners: [] as Array<{ site_id: string; owner_id: string; email: string | null; full_name: string | null }> };
+
+    // Verify access: owner OR member
+    const ownerIds = Array.from(new Set(sites.map(s => s.owner_id)));
+    const { data: members } = await supabaseAdmin
+      .from("site_members").select("site_id").eq("user_id", userId).in("site_id", data.site_ids);
+    const memberSet = new Set((members ?? []).map(m => m.site_id));
+    const allowed = sites.filter(s => s.owner_id === userId || memberSet.has(s.id));
+    if (!allowed.length) return { owners: [] };
+
+    const { data: profs } = await supabaseAdmin
+      .from("profiles").select("id,email,full_name").in("id", ownerIds);
+    const byId = new Map((profs ?? []).map(p => [p.id, p]));
+    return {
+      owners: allowed.map(s => ({
+        site_id: s.id,
+        owner_id: s.owner_id,
+        email: byId.get(s.owner_id)?.email ?? null,
+        full_name: byId.get(s.owner_id)?.full_name ?? null,
+      })),
+    };
+  });
