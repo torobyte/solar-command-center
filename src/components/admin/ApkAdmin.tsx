@@ -130,7 +130,62 @@ export function ApkAdmin() {
     }
   }
 
-  // Auto-fetch al cargar y cuando cambie el repo
+  async function refreshBuildStatus(silent = true) {
+    const parsed = parseRepo(repoUrl);
+    if (!parsed) return;
+    setStatusLoading(true);
+    try {
+      const r = await fetchBuildStatus({ data: { owner: parsed.owner, repo: parsed.repo, workflow: "build-apk.yml" } });
+      const list = r.runs as RunInfo[];
+      setRuns(list);
+      const latest = list[0];
+      if (latest && latest.status === "completed" && latest.conclusion === "success" && latest.id !== lastSeenRunId) {
+        setLastSeenRunId(latest.id);
+        toast.success(`Build #${latest.run_number} completado`);
+        fetchLatestRelease(true);
+      }
+    } catch (e: any) {
+      if (!silent) toast.error(e.message);
+    } finally {
+      setStatusLoading(false);
+    }
+  }
+
+  async function onTriggerBuild() {
+    const parsed = parseRepo(repoUrl);
+    if (!parsed) {
+      toast.error("Configura primero la URL del repo de GitHub");
+      return;
+    }
+    setBuilding(true);
+    try {
+      await dispatchBuild({ data: { owner: parsed.owner, repo: parsed.repo, ref: "main", workflow: "build-apk.yml" } });
+      toast.success("Build lanzado en GitHub Actions. Tardará ~5-8 min.");
+      setTimeout(() => refreshBuildStatus(true), 4000);
+      setTimeout(() => fetchLatestRelease(true), 30000);
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setBuilding(false);
+    }
+  }
+
+  // Carga inicial de estado al tener repo
+  useEffect(() => {
+    if (repoUrl) refreshBuildStatus(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repoUrl]);
+
+  // Poll cada 10s si hay un build activo
+  useEffect(() => {
+    if (!repoUrl) return;
+    const active = building || runs.some((r) => r.status !== "completed");
+    if (!active) return;
+    const t = setInterval(() => refreshBuildStatus(true), 10000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repoUrl, runs, building]);
+
   useEffect(() => {
     if (repoUrl && autoMode) fetchLatestRelease(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
