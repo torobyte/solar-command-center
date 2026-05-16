@@ -973,6 +973,7 @@ function DashboardView({ latest, siteId, spec: _spec, device: _device }: { lates
   const { state, persist } = useDashboardLayout(siteId, WIDGET_DEFS);
   const { config: pv } = usePvConfig(siteId);
   const { config: qaConfig } = useQuickActionsConfig(siteId);
+  const { canControl } = useSiteRole(siteId);
   const pv_W = Number(latest?.pv_input_power ?? 0);
   const load = Number(latest?.ac_output_active_power ?? 0);
   const battery = Number(latest?.battery_capacity ?? 0);
@@ -984,7 +985,7 @@ function DashboardView({ latest, siteId, spec: _spec, device: _device }: { lates
   const pvMax = (pv?.array_kwp ?? 5) * 1000;
 
   const widgets: Record<string, React.ReactNode> = {
-    quickactions: <QuickActions siteId={siteId} config={qaConfig} />,
+    quickactions: <QuickActions siteId={siteId} config={qaConfig} readOnly={!canControl} />,
     cmdstatus: <CommandStatusFeed siteId={siteId} limit={10} />,
     mode: (
       <div className="flex items-center justify-between rounded-xl border bg-card p-4 sm:p-5 animate-fade-in h-full">
