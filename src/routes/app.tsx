@@ -31,6 +31,8 @@ interface Site {
   owner_id: string;
   owner_email?: string | null;
   owner_name?: string | null;
+  inverter_driver?: string | null;
+  inverter_spec_model?: string | null;
 }
 
 interface MyLicense {
