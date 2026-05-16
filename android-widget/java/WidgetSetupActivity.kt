@@ -42,6 +42,7 @@ class WidgetSetupActivity : Activity() {
         const val PREFS = "solarops_app_prefs"
         const val KEY_SITES_JSON = "sites_json" // JSONArray of {id,name,token}
         const val KEY_USER_EMAIL = "user_email"
+        const val KEY_AUTH_SESSION = "auth_session_json"
 
         fun savedSites(ctx: Context): JSONArray {
             val raw = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -118,7 +119,7 @@ class WidgetSetupActivity : Activity() {
 
     private fun doLogout() {
         getSharedPreferences(PREFS, MODE_PRIVATE).edit()
-            .remove(KEY_SITES_JSON).remove(KEY_USER_EMAIL).apply()
+            .remove(KEY_SITES_JSON).remove(KEY_USER_EMAIL).remove(KEY_AUTH_SESSION).apply()
         renderSites()
         status.text = "Sesión cerrada."
     }
@@ -139,10 +140,13 @@ class WidgetSetupActivity : Activity() {
                     getSharedPreferences(PREFS, MODE_PRIVATE).edit()
                         .putString(KEY_SITES_JSON, sites.toString())
                         .putString(KEY_USER_EMAIL, email)
+                        .putString(KEY_AUTH_SESSION, lastAuthSessionJson)
                         .apply()
                     status.text = "Listo: ${sites.length()} sitio(s)."
                     renderSites()
                     Toast.makeText(this, "Ahora añade el widget a tu pantalla de inicio.", Toast.LENGTH_LONG).show()
+                    startActivity(android.content.Intent(this, MainActivity::class.java))
+                    finish()
                 }.onFailure {
                     status.text = "Error: ${it.message}"
                 }
@@ -184,6 +188,8 @@ class WidgetSetupActivity : Activity() {
         }
     }
 
+    private var lastAuthSessionJson: String = ""
+
     private fun loginAndFetchSites(email: String, password: String): JSONArray {
         // 1) auth
         val authConn = (URL("$SUPABASE_URL/auth/v1/token?grant_type=password").openConnection() as HttpURLConnection).apply {
@@ -201,6 +207,7 @@ class WidgetSetupActivity : Activity() {
             throw RuntimeException("Login falló (${authConn.responseCode}): ${err.take(120)}")
         }
         val authJson = JSONObject(authConn.inputStream.bufferedReader().use { it.readText() })
+        lastAuthSessionJson = authJson.toString()
         val token = authJson.optString("access_token")
         if (token.isEmpty()) throw RuntimeException("Sin access_token")
 
