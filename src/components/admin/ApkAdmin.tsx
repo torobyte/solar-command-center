@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getApkConfig, saveApkConfig, generateApkProject } from "@/lib/apk.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, Save, Download, Smartphone, RefreshCw } from "lucide-react";
+import { Loader2, Save, Download, Smartphone, RefreshCw, Upload, X } from "lucide-react";
 
 interface ApkConfig {
   app_id: string;
