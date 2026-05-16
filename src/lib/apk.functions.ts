@@ -73,6 +73,7 @@ export const generateApkProject = createServerFn({ method: "POST" })
     const slug = cfg.app_name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
     // ---------------- capacitor.config.ts ----------------
+    const startUrl = cfg.server_url.replace(/\/$/, "") + (cfg.start_path || "/app-login");
     const capacitorConfig = `import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
@@ -80,7 +81,7 @@ const config: CapacitorConfig = {
   appName: ${JSON.stringify(cfg.app_name)},
   webDir: "dist",
   server: {
-    url: ${JSON.stringify(cfg.server_url)},
+    url: ${JSON.stringify(startUrl)},
     cleartext: ${cfg.cleartext},
     androidScheme: "https",
   },
