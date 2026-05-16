@@ -50,40 +50,86 @@ jobs:
             @capacitor/cli@^6 \
             @capacitor/android@^6
 
+      - name: Fetch APK config (brand, icon, start URL)
+        id: brand
+        run: |
+          set -e
+          BRAND_URL="https://appsolar.torobyte.com/api/public/apk-brand"
+          echo "Fetching APK config from $BRAND_URL"
+          curl -fsSL "$BRAND_URL" -o /tmp/brand.json || { echo "::warning::Could not fetch apk-brand, using defaults"; echo '{}' > /tmp/brand.json; }
+          cat /tmp/brand.json
+
+          APP_NAME=$(python3 -c "import json;d=json.load(open('/tmp/brand.json'));print(d.get('app_name') or 'SolarOps')")
+          APP_ID=$(python3 -c "import json;d=json.load(open('/tmp/brand.json'));print(d.get('app_id') or 'app.solarops.client')")
+          SERVER_URL=$(python3 -c "import json;d=json.load(open('/tmp/brand.json'));print((d.get('server_url') or 'https://appsolar.torobyte.com').rstrip('/'))")
+          START_PATH=$(python3 -c "import json;d=json.load(open('/tmp/brand.json'));p=d.get('start_path') or '/app-login';print(p if p.startswith('/') else '/'+p)")
+          THEME=$(python3 -c "import json;d=json.load(open('/tmp/brand.json'));print(d.get('primary_color') or '#f59e0b')")
+          BG=$(python3 -c "import json;d=json.load(open('/tmp/brand.json'));print(d.get('background_color') or '#0a0a0a')")
+          ICON_URL=$(python3 -c "import json;d=json.load(open('/tmp/brand.json'));print(d.get('icon_url') or '')")
+          CLEARTEXT=$(python3 -c "import json;d=json.load(open('/tmp/brand.json'));print('true' if d.get('cleartext') else 'false')")
+
+          FULL_URL="${SERVER_URL}${START_PATH}"
+          echo "App=$APP_NAME / Id=$APP_ID / Url=$FULL_URL / Icon=$ICON_URL"
+
+          echo "app_name=$APP_NAME" >> $GITHUB_OUTPUT
+          echo "app_id=$APP_ID" >> $GITHUB_OUTPUT
+          echo "full_url=$FULL_URL" >> $GITHUB_OUTPUT
+          echo "theme=$THEME" >> $GITHUB_OUTPUT
+          echo "bg=$BG" >> $GITHUB_OUTPUT
+          echo "icon_url=$ICON_URL" >> $GITHUB_OUTPUT
+          echo "cleartext=$CLEARTEXT" >> $GITHUB_OUTPUT
+
+      - name: Patch capacitor.config.ts with admin settings
+        env:
+          APP_ID: ${{ steps.brand.outputs.app_id }}
+          APP_NAME: ${{ steps.brand.outputs.app_name }}
+          FULL_URL: ${{ steps.brand.outputs.full_url }}
+          BG: ${{ steps.brand.outputs.bg }}
+          CLEARTEXT: ${{ steps.brand.outputs.cleartext }}
+        run: |
+          python3 -c '
+          import os
+          cfg = f"""import type {{ CapacitorConfig }} from "@capacitor/cli";
+          const config: CapacitorConfig = {{
+            appId: {os.environ["APP_ID"]!r},
+            appName: {os.environ["APP_NAME"]!r},
+            webDir: "dist",
+            server: {{
+              url: {os.environ["FULL_URL"]!r},
+              cleartext: {os.environ["CLEARTEXT"]},
+              androidScheme: "https",
+            }},
+            android: {{
+              backgroundColor: {os.environ["BG"]!r},
+            }},
+          }};
+          export default config;
+          """
+          open("capacitor.config.ts","w").write(cfg)
+          print(cfg)
+          '
+
       - name: Bootstrap Android project (if missing)
         run: |
           if [ ! -d "android" ]; then
             echo "android/ not committed — generating with Capacitor"
             mkdir -p dist
-            echo "<!doctype html><title>SolarOps</title>" > dist/index.html
+            echo "<!doctype html><title>${{ steps.brand.outputs.app_name }}</title>" > dist/index.html
             npx cap add android
           else
             echo "android/ already present"
           fi
           npx cap sync android
 
-      - name: Apply platform branding (icon, name, colors)
+      - name: Apply launcher icon, name and colors to Android resources
+        env:
+          APP_NAME: ${{ steps.brand.outputs.app_name }}
+          THEME: ${{ steps.brand.outputs.theme }}
+          BG: ${{ steps.brand.outputs.bg }}
+          ICON_URL: ${{ steps.brand.outputs.icon_url }}
         run: |
           set -e
-          BRAND_URL="https://appsolar.torobyte.com/api/public/manifest"
-          echo "Fetching branding from $BRAND_URL"
-          curl -fsSL "$BRAND_URL" -o /tmp/manifest.json || { echo "::warning::Could not fetch branding, using defaults"; exit 0; }
-          cat /tmp/manifest.json
-
-          APP_NAME=$(python3 -c "import json;d=json.load(open('/tmp/manifest.json'));print(d.get('name','SolarOps'))")
-          SHORT_NAME=$(python3 -c "import json;d=json.load(open('/tmp/manifest.json'));print(d.get('short_name', d.get('name','SolarOps')))")
-          THEME=$(python3 -c "import json;d=json.load(open('/tmp/manifest.json'));print(d.get('theme_color','#f59e0b'))")
-          BG=$(python3 -c "import json;d=json.load(open('/tmp/manifest.json'));print(d.get('background_color','#0a0a0a'))")
-          ICON_512=$(python3 -c "import json;d=json.load(open('/tmp/manifest.json'));icons=d.get('icons',[]);best=next((i['src'] for i in icons if '512' in str(i.get('sizes',''))),'');print(best or (icons[0]['src'] if icons else ''))")
-          ICON_192=$(python3 -c "import json;d=json.load(open('/tmp/manifest.json'));icons=d.get('icons',[]);best=next((i['src'] for i in icons if '192' in str(i.get('sizes',''))),'');print(best or '')")
-
-          echo "App=$APP_NAME / Short=$SHORT_NAME / Theme=$THEME / BG=$BG"
-          echo "Icon512=$ICON_512"
-
-          # Download icon (prefer 512, fallback to 192). Only PNGs become launcher icons.
-          ICON_SRC=""
-          if [ -n "$ICON_512" ] && [[ "$ICON_512" == *.png ]]; then ICON_SRC="$ICON_512"; fi
-          if [ -z "$ICON_SRC" ] && [ -n "$ICON_192" ] && [[ "$ICON_192" == *.png ]]; then ICON_SRC="$ICON_192"; fi
+          ICON_SRC="$ICON_URL"
 
           if [ -n "$ICON_SRC" ]; then
             echo "Downloading launcher icon from $ICON_SRC"
