@@ -36,6 +36,17 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Si todavía no hay sesión nativa guardada, abrimos el login nativo.
+        // Así el usuario nunca ve el "Forbidden" del webview cuando el dominio
+        // exige sesión y evitamos depender del login web dentro del WebView.
+        val savedSession = getSharedPreferences(WidgetSetupActivity.PREFS, MODE_PRIVATE)
+            .getString(WidgetSetupActivity.KEY_AUTH_SESSION, null)
+        if (savedSession.isNullOrBlank()) {
+            startActivity(android.content.Intent(this, WidgetSetupActivity::class.java))
+            finish()
+            return
+        }
+
         web = WebView(this).apply {
             layoutParams = android.view.ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
             settings.javaScriptEnabled = true
@@ -58,6 +69,12 @@ class MainActivity : Activity() {
         if (savedInstanceState != null) {
             web.restoreState(savedInstanceState)
         } else {
+            // Inyectamos la sesión ANTES de cargar la URL protegida para
+            // evitar el flash "Forbidden" mientras el JS la lee de localStorage.
+            val escaped = JSONObject.quote(savedSession)
+            val bootstrap =
+                "javascript:(function(){try{localStorage.setItem('$authStorageKey',$escaped);}catch(e){}})();"
+            web.loadUrl(bootstrap)
             web.loadUrl("https://appsolar.torobyte.com/app")
         }
     }
