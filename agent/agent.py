@@ -2737,7 +2737,14 @@ form{display:grid;gap:10px;margin-top:10px}
   <div><a href="/status">Estado</a> &nbsp; <a href="/">← Dashboard</a></div>
 </header>
 <main>
-  <section class="card"><h2>Conexión actual</h2><div id="status">Cargando…</div></section>
+  <section class="card">
+    <h2>Conexión actual</h2>
+    <div id="status">Cargando…</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+      <div><div style="font-weight:600">Radio WiFi</div><div class="meta" id="radioState">—</div></div>
+      <button class="ghost" id="radioBtn" onclick="toggleRadio()">…</button>
+    </div>
+  </section>
   <section class="card">
     <h2>Redes disponibles</h2>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
