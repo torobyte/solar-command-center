@@ -455,3 +455,46 @@ Para actualizar colores, versión, ícono o splash: vuelve al panel **SuperAdmin
 function escapeXml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
 }
+
+const TriggerBuildSchema = z.object({
+  owner: z.string().min(1).max(100).regex(/^[A-Za-z0-9_.-]+$/),
+  repo: z.string().min(1).max(100).regex(/^[A-Za-z0-9_.-]+$/),
+  ref: z.string().min(1).max(100).default("main"),
+  workflow: z.string().min(1).max(100).default("build-apk.yml"),
+  release_tag: z.string().max(60).optional(),
+});
+
+export const triggerApkBuild = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => TriggerBuildSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    await ensureSuperadmin(supabase, userId);
+
+    const token = process.env.GITHUB_DISPATCH_TOKEN;
+    if (!token) throw new Error("Falta el secreto GITHUB_DISPATCH_TOKEN");
+
+    const url = `https://api.github.com/repos/${data.owner}/${data.repo}/actions/workflows/${data.workflow}/dispatches`;
+    const body: Record<string, unknown> = { ref: data.ref };
+    if (data.release_tag) body.inputs = { release_tag: data.release_tag };
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${token}`,
+        "X-GitHub-Api-Version": "2022-11-28",
+        "Content-Type": "application/json",
+        "User-Agent": "solarops-admin",
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (res.status !== 204) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`GitHub API ${res.status}: ${text || res.statusText}`);
+    }
+
+    return { ok: true, ref: data.ref, workflow: data.workflow };
+  });
+
