@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      apk_config: {
+        Row: {
+          app_id: string
+          app_name: string
+          background_color: string
+          cleartext: boolean
+          enable_push: boolean
+          icon_url: string | null
+          id: number
+          primary_color: string
+          server_url: string
+          splash_color: string
+          splash_url: string | null
+          status_bar_style: string
+          updated_at: string
+          version_code: number
+          version_name: string
+        }
+        Insert: {
+          app_id?: string
+          app_name?: string
+          background_color?: string
+          cleartext?: boolean
+          enable_push?: boolean
+          icon_url?: string | null
+          id?: number
+          primary_color?: string
+          server_url?: string
+          splash_color?: string
+          splash_url?: string | null
+          status_bar_style?: string
+          updated_at?: string
+          version_code?: number
+          version_name?: string
+        }
+        Update: {
+          app_id?: string
+          app_name?: string
+          background_color?: string
+          cleartext?: boolean
+          enable_push?: boolean
+          icon_url?: string | null
+          id?: number
+          primary_color?: string
+          server_url?: string
+          splash_color?: string
+          splash_url?: string | null
+          status_bar_style?: string
+          updated_at?: string
+          version_code?: number
+          version_name?: string
+        }
+        Relationships: []
+      }
       branding_settings: {
         Row: {
           accent_color: string | null
