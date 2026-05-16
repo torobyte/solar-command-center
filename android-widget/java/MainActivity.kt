@@ -3,10 +3,12 @@ package app.solarops.client
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.os.Bundle
+import android.webkit.JavascriptInterface
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import org.json.JSONObject
 
 /**
  * Launcher de la app SolarOps.
@@ -19,6 +21,16 @@ import android.webkit.WebViewClient
 class MainActivity : Activity() {
 
     private lateinit var web: WebView
+    private val authStorageKey = "sb-mtsxmdwraxnwobxsdrqr-auth-token"
+
+    inner class SolarWidgetBridge {
+        @JavascriptInterface
+        fun saveToken(payload: String) {
+            getSharedPreferences(WidgetCommon.PREFS, MODE_PRIVATE).edit()
+                .putString("widget_bridge_payload", payload)
+                .apply()
+        }
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,7 +45,13 @@ class MainActivity : Activity() {
             settings.useWideViewPort = true
             settings.loadWithOverviewMode = true
             settings.mediaPlaybackRequiresUserGesture = false
-            webViewClient = WebViewClient() // mantener la navegación dentro del WebView
+            addJavascriptInterface(SolarWidgetBridge(), "SolarWidgetBridge")
+            webViewClient = object : WebViewClient() {
+                override fun onPageFinished(view: WebView?, url: String?) {
+                    super.onPageFinished(view, url)
+                    injectSavedSession()
+                }
+            }
         }
         setContentView(web)
 
@@ -51,5 +69,15 @@ class MainActivity : Activity() {
 
     override fun onBackPressed() {
         if (web.canGoBack()) web.goBack() else super.onBackPressed()
+    }
+
+    private fun injectSavedSession() {
+        val raw = getSharedPreferences(WidgetSetupActivity.PREFS, MODE_PRIVATE)
+            .getString(WidgetSetupActivity.KEY_AUTH_SESSION, null) ?: return
+        val escaped = JSONObject.quote(raw)
+        web.evaluateJavascript(
+            "(function(){try{localStorage.setItem('$authStorageKey',$escaped);}catch(e){}})();",
+            null,
+        )
     }
 }

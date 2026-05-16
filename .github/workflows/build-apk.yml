@@ -54,18 +54,28 @@ jobs:
         id: brand
         run: |
           set -e
-          BRAND_URL="https://appsolar.torobyte.com/api/public/apk-brand"
-          echo "Fetching APK config from $BRAND_URL"
-          curl -fsSL "$BRAND_URL" -o /tmp/brand.json || { echo "::warning::Could not fetch apk-brand, using defaults"; echo '{}' > /tmp/brand.json; }
+          BRAND_URLS="https://appsolar.torobyte.com/api/public/apk-brand https://project--7cb3041b-eb20-43aa-ba17-b0848cb53051-dev.lovable.app/api/public/apk-brand https://appsolar.torobyte.com/api/public/manifest"
+          rm -f /tmp/brand.json
+          for BRAND_URL in $BRAND_URLS; do
+            echo "Fetching APK config from $BRAND_URL"
+            if curl -fsSL "$BRAND_URL" -o /tmp/brand.json; then
+              echo "Using branding from $BRAND_URL"
+              break
+            fi
+          done
+          if [ ! -f /tmp/brand.json ]; then
+            echo "::warning::Could not fetch apk-brand, using defaults"
+            echo '{}' > /tmp/brand.json
+          fi
           cat /tmp/brand.json
 
-          APP_NAME=$(python3 -c "import json;d=json.load(open('/tmp/brand.json'));print(d.get('app_name') or 'SolarOps')")
+          APP_NAME=$(python3 -c "import json;d=json.load(open('/tmp/brand.json'));print(d.get('app_name') or d.get('name') or 'SolarOps')")
           APP_ID=$(python3 -c "import json;d=json.load(open('/tmp/brand.json'));print(d.get('app_id') or 'app.solarops.client')")
           SERVER_URL=$(python3 -c "import json;d=json.load(open('/tmp/brand.json'));print((d.get('server_url') or 'https://appsolar.torobyte.com').rstrip('/'))")
           START_PATH=$(python3 -c "import json;d=json.load(open('/tmp/brand.json'));p=d.get('start_path') or '/app-login';print(p if p.startswith('/') else '/'+p)")
-          THEME=$(python3 -c "import json;d=json.load(open('/tmp/brand.json'));print(d.get('primary_color') or '#f59e0b')")
+          THEME=$(python3 -c "import json;d=json.load(open('/tmp/brand.json'));print(d.get('primary_color') or d.get('theme_color') or '#f59e0b')")
           BG=$(python3 -c "import json;d=json.load(open('/tmp/brand.json'));print(d.get('background_color') or '#0a0a0a')")
-          ICON_URL=$(python3 -c "import json;d=json.load(open('/tmp/brand.json'));print(d.get('icon_url') or '')")
+          ICON_URL=$(python3 -c "import json;d=json.load(open('/tmp/brand.json'));icons=d.get('icons') or [];print(d.get('icon_url') or (icons[-1].get('src') if icons else ''))")
           CLEARTEXT=$(python3 -c "import json;d=json.load(open('/tmp/brand.json'));print('true' if d.get('cleartext') else 'false')")
 
           FULL_URL="${SERVER_URL}${START_PATH}"
@@ -140,14 +150,20 @@ jobs:
             for D in "${!SIZES[@]}"; do
               S=${SIZES[$D]}
               mkdir -p "$RES/mipmap-$D"
-              convert /tmp/icon-src.png -resize ${S}x${S} "$RES/mipmap-$D/ic_launcher.png"
+              convert /tmp/icon-src.png -background none -gravity center -resize ${S}x${S} -extent ${S}x${S} "$RES/mipmap-$D/ic_launcher.png"
               # Round icon: just reuse the square; Android masks it at runtime.
               cp "$RES/mipmap-$D/ic_launcher.png" "$RES/mipmap-$D/ic_launcher_round.png"
               # Foreground for adaptive icon (anydpi-v26 references this).
-              convert /tmp/icon-src.png -resize ${S}x${S} "$RES/mipmap-$D/ic_launcher_foreground.png"
+              convert /tmp/icon-src.png -background none -gravity center -resize ${S}x${S} -extent ${S}x${S} "$RES/mipmap-$D/ic_launcher_foreground.png"
             done
-            # Drop any leftover vector adaptive-icon that points to a missing foreground drawable.
-            rm -f "$RES/mipmap-anydpi-v26/ic_launcher.xml" "$RES/mipmap-anydpi-v26/ic_launcher_round.xml"
+            mkdir -p "$RES/mipmap-anydpi-v26"
+            cat > "$RES/mipmap-anydpi-v26/ic_launcher.xml" <<EOF
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@color/ic_launcher_background" />
+              <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+          </adaptive-icon>
+          EOF
+            cp "$RES/mipmap-anydpi-v26/ic_launcher.xml" "$RES/mipmap-anydpi-v26/ic_launcher_round.xml"
           else
             echo "::warning::No PNG icon available in branding; keeping Capacitor default."
           fi
@@ -169,13 +185,8 @@ jobs:
           PKG_DIR="android/app/src/main/java/app/solarops/client"
           RES="android/app/src/main/res"
           mkdir -p "$PKG_DIR" "$RES/layout" "$RES/drawable" "$RES/xml" "$RES/values"
-          # Copy widget sources, but keep Capacitor's generated MainActivity
+          # Copy widget sources, including the custom launcher activity.
           for SRC in android-widget/java/*.kt; do
-            BASENAME=$(basename "$SRC")
-            if [ "$BASENAME" = "MainActivity.kt" ]; then
-              echo "Skipping $BASENAME to avoid duplicate launcher activity"
-              continue
-            fi
             cp -f "$SRC" "$PKG_DIR/"
           done
           cp -rf android-widget/res/* "$RES/" 2>/dev/null || true
