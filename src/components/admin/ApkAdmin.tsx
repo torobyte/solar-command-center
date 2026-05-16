@@ -245,7 +245,13 @@ export function ApkAdmin() {
   if (loading) return <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Cargando…</div>;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+    <Tabs defaultValue="config" className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="config"><Smartphone className="h-4 w-4 mr-2" />Configuración</TabsTrigger>
+        <TabsTrigger value="download"><QrCode className="h-4 w-4 mr-2" />Descarga APK</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="config" className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
       <Card className="p-6 space-y-8">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
