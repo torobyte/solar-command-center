@@ -498,3 +498,46 @@ export const triggerApkBuild = createServerFn({ method: "POST" })
     return { ok: true, ref: data.ref, workflow: data.workflow };
   });
 
+const BuildStatusSchema = z.object({
+  owner: z.string().min(1).max(100).regex(/^[A-Za-z0-9_.-]+$/),
+  repo: z.string().min(1).max(100).regex(/^[A-Za-z0-9_.-]+$/),
+  workflow: z.string().min(1).max(100).default("build-apk.yml"),
+});
+
+export const getApkBuildStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => BuildStatusSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    await ensureSuperadmin(supabase, userId);
+
+    const token = process.env.GITHUB_DISPATCH_TOKEN;
+    const headers: Record<string, string> = {
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+      "User-Agent": "solarops-admin",
+    };
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    const url = `https://api.github.com/repos/${data.owner}/${data.repo}/actions/workflows/${data.workflow}/runs?per_page=5`;
+    const res = await fetch(url, { headers });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`GitHub API ${res.status}: ${text || res.statusText}`);
+    }
+    const json: any = await res.json();
+    const runs = (json.workflow_runs ?? []).slice(0, 5).map((r: any) => ({
+      id: r.id,
+      run_number: r.run_number,
+      status: r.status as "queued" | "in_progress" | "completed",
+      conclusion: r.conclusion as null | "success" | "failure" | "cancelled" | "skipped",
+      html_url: r.html_url,
+      created_at: r.created_at,
+      updated_at: r.updated_at,
+      event: r.event,
+      head_branch: r.head_branch,
+    }));
+    return { runs };
+  });
+
+
