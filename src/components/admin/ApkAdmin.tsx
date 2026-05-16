@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, Save, Download, Smartphone, RefreshCw, Upload, X, Github, QrCode } from "lucide-react";
+import { Loader2, Save, Download, Smartphone, RefreshCw, Upload, X, Github, QrCode, ShieldCheck, Copy, CheckCircle2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
 interface ApkConfig {
