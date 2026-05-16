@@ -195,7 +195,13 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG, readO
     }
   }
 
-  function ask(cmd: PendingConfirm) { setConfirm(cmd); }
+  function ask(cmd: PendingConfirm) {
+    if (readOnly) {
+      toast.info("Solo lectura — tu rol no permite enviar comandos al inversor.");
+      return;
+    }
+    setConfirm(cmd);
+  }
 
   const noneEnabled = !config.amps && !config.outputPriority && !config.chargerPriority && !config.buzzer;
 
@@ -205,10 +211,15 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG, readO
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent ring-1 ring-accent/20">
           <Zap className="h-4 w-4" strokeWidth={2.4} />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h3 className="text-sm font-semibold sm:text-base">Acciones rápidas</h3>
           <p className="text-[11px] text-muted-foreground">Configuración remota inmediata · valores actuales del inversor</p>
         </div>
+        {readOnly && (
+          <span className="shrink-0 rounded-full border border-muted-foreground/30 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Solo lectura
+          </span>
+        )}
       </div>
 
       {noneEnabled ? (
