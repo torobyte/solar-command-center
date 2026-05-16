@@ -74,7 +74,7 @@ export function SolarForecastWidget({ pvConfig }: { pvConfig?: ForecastPvConfig 
   useEffect(() => {
     // PV config coords take precedence
     if (pvConfig?.lat != null && pvConfig?.lon != null) {
-      const c: Coords = { lat: pvConfig.lat, lon: pvConfig.lon };
+      const c: Coords = { lat: pvConfig.lat, lon: pvConfig.lon, city: pvConfig.locationLabel ?? undefined };
       setCoords(c);
       void loadForecast(c);
       return;
