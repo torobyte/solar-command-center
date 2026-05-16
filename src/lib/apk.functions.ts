@@ -31,7 +31,14 @@ export const getApkConfig = createServerFn({ method: "GET" })
     await ensureSuperadmin(supabase, userId);
     const { data, error } = await supabase.from("apk_config").select("*").eq("id", 1).maybeSingle();
     if (error) throw new Error(error.message);
-    return { config: data };
+    return {
+      config: data
+        ? {
+            ...data,
+            start_path: !data.start_path || data.start_path === "/app-login" ? "/apk-auth" : data.start_path,
+          }
+        : data,
+    };
   });
 
 export const saveApkConfig = createServerFn({ method: "POST" })
@@ -73,7 +80,7 @@ export const generateApkProject = createServerFn({ method: "POST" })
     const slug = cfg.app_name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
     // ---------------- capacitor.config.ts ----------------
-    const startUrl = cfg.server_url.replace(/\/$/, "") + (cfg.start_path || "/app-login");
+    const startUrl = cfg.server_url.replace(/\/$/, "") + (cfg.start_path || "/apk-auth");
     const capacitorConfig = `import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {

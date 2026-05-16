@@ -15,6 +15,8 @@ declare global {
   interface Window {
     SolarWidgetBridge?: {
       saveToken?: (payload: string) => void;
+      saveSession?: (payload: string) => void;
+      clearSession?: () => void;
     };
   }
 }
@@ -35,7 +37,7 @@ function AppLoginPage() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
-        pushTokenToNative().finally(() => navigate({ to: "/app/widgets" }));
+        pushTokenToNative().finally(() => navigate({ to: "/app" }));
       }
     });
   }, [navigate]);
@@ -63,9 +65,15 @@ function AppLoginPage() {
       toast.error(error.message);
       return;
     }
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        window.SolarWidgetBridge?.saveSession?.(JSON.stringify(data.session));
+      }
+    } catch {}
     await pushTokenToNative();
     setLoading(false);
-    navigate({ to: "/app/widgets" });
+    navigate({ to: "/app" });
   }
 
   return (

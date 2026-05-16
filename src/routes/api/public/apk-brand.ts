@@ -16,13 +16,18 @@ export const Route = createFileRoute("/api/public/apk-brand")({
           .eq("id", 1)
           .maybeSingle();
 
-        const body = data ?? {
+        const body = data
+          ? {
+              ...data,
+              start_path: !data.start_path || data.start_path === "/app-login" ? "/apk-auth" : data.start_path,
+            }
+          : {
           app_id: "app.solarops.client",
           app_name: "SolarOps",
           version_name: "1.0.0",
           version_code: 1,
           server_url: "https://appsolar.torobyte.com",
-          start_path: "/app-login",
+          start_path: "/apk-auth",
           primary_color: "#f59e0b",
           background_color: "#0a0a0a",
           splash_color: "#0a0a0a",
