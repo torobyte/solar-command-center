@@ -245,7 +245,7 @@ function SitesIndex() {
                     <div className="mt-2 flex flex-wrap items-center gap-1.5">
                       {isShared ? (
                         <Badge variant="outline" className="rounded-full bg-muted/40 text-muted-foreground border-border px-2.5 py-0.5 text-[11px]">
-                          Compartido por {s.owner_email ?? "otro usuario"}
+                          Compartido por {s.owner_name || s.owner_email || "otro usuario"}
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="rounded-full bg-accent/10 text-accent border-accent/20 px-2.5 py-0.5 text-[11px]">
@@ -317,7 +317,7 @@ function SitesIndex() {
                         <td className="px-4 py-3">
                           {isShared ? (
                             <Badge variant="outline" className="rounded-full bg-muted/40 text-muted-foreground border-border">
-                              Compartido por {s.owner_email ?? "otro usuario"}
+                              Compartido por {s.owner_name || s.owner_email || "otro usuario"}
                             </Badge>
                           ) : (
                             <Badge variant="outline" className="rounded-full">{s.plan}</Badge>
