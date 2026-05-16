@@ -28,6 +28,7 @@ import { PlansAdmin } from "@/components/admin/PlansAdmin";
 import { LicenseAuditLog } from "@/components/admin/LicenseAuditLog";
 import { SmtpAdmin } from "@/components/admin/SmtpAdmin";
 import { EmailTemplatesAdmin } from "@/components/admin/EmailTemplatesAdmin";
+import { ApkAdmin } from "@/components/admin/ApkAdmin";
 import { ConfirmDestructiveDialog } from "@/components/ConfirmDestructiveDialog";
 
 export const Route = createFileRoute("/admin")({
