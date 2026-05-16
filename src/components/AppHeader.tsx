@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { Sun, LogOut, ShieldCheck, LayoutGrid, Menu, UserCircle2, Sparkles } from "lucide-react";
+import { Sun, LogOut, ShieldCheck, LayoutGrid, Menu, UserCircle2, Sparkles, Smartphone } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
