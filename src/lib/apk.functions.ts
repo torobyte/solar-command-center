@@ -8,6 +8,7 @@ const ApkConfigSchema = z.object({
   version_name: z.string().min(1).max(20),
   version_code: z.number().int().min(1).max(2147483647),
   server_url: z.string().url(),
+  start_path: z.string().min(1).max(120).regex(/^\//, "Debe iniciar con /"),
   primary_color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   background_color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   splash_color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
