@@ -23,11 +23,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roleLoading, setRoleLoading] = useState(true);
 
   useEffect(() => {
+    let currentUserId: string | null = null;
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
       setSession(s);
-      if (s?.user) {
+      const nextUserId = s?.user?.id ?? null;
+      if (nextUserId === currentUserId) return; // ignore TOKEN_REFRESHED / same-user events
+      currentUserId = nextUserId;
+      if (nextUserId) {
         setRoleLoading(true);
-        setTimeout(() => fetchRole(s.user.id), 0);
+        setTimeout(() => fetchRole(nextUserId), 0);
       } else {
         setRole(null);
         setRoleLoading(false);
@@ -35,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
+      currentUserId = data.session?.user?.id ?? null;
       if (data.session?.user) {
         fetchRole(data.session.user.id);
       } else {
