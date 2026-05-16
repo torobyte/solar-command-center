@@ -828,6 +828,33 @@ function ConfigurationView({ site, subTab, onSubTabChange, role }: { site: Site;
           ) : (
             <SectionSkeleton />
           )}
+          {/* WiFi config siempre disponible — incluso si hay Ethernet con internet.
+              Abre la página /wifi del agente en la IP local del equipo. */}
+          <div className="mt-4 rounded-lg border border-dashed border-border/60 bg-muted/20 p-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <Wifi className="h-4 w-4 shrink-0 text-accent" strokeWidth={2.4} />
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold">Configurar WiFi del equipo</div>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Disponible siempre, esté conectado por Ethernet o no. Abre la página de configuración WiFi del agente desde tu red local.
+                </p>
+              </div>
+              {(() => {
+                const ip = snap?.ip_eth || snap?.ip_wlan;
+                const href = ip ? `http://${ip}/wifi` : `http://solarops.local/wifi`;
+                return (
+                  <Button asChild size="sm" variant="outline" className="rounded-full">
+                    <a href={href} target="_blank" rel="noreferrer">
+                      <Wifi className="mr-1.5 h-3.5 w-3.5" /> Abrir WiFi
+                    </a>
+                  </Button>
+                );
+              })()}
+            </div>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              Tip: si no abre, conéctate al WiFi <span className="font-mono">SolarOps-Setup</span> (contraseña por defecto <span className="font-mono">solarops1234</span>) y entra a <span className="font-mono">http://192.168.4.1/wifi</span>.
+            </p>
+          </div>
         </Section>
 
         <Section title="Sistema" icon={HardDrive}>
