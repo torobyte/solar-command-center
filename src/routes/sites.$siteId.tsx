@@ -30,7 +30,8 @@ import { InverterConfigWizard } from "@/components/InverterConfigWizard";
 import { QuickActions, QuickActionsConfigCard, useQuickActionsConfig } from "@/components/QuickActions";
 import { CommandStatusFeed } from "@/components/CommandStatusFeed";
 import { SiteSharing } from "@/components/SiteSharing";
-import { Share2 } from "lucide-react";
+import { Share2, Lock } from "lucide-react";
+import { useSiteRole, ROLE_LABEL, ROLE_DESCRIPTION, type SiteRole } from "@/lib/useSiteRole";
 
 function SiteDetailSkeleton() {
   return (
@@ -181,6 +182,7 @@ function SiteDetail() {
   const { t } = useI18n();
   const { user } = useAuth();
   const { devices, selected: selectedDevice, loaded: devicesLoaded } = useDevices(siteId);
+  const roleInfo = useSiteRole(siteId);
   const [site, setSite] = useState<Site | null>(null);
   const [latest, setLatest] = useState<Sample | null>(null);
   const [history, setHistory] = useState<Sample[]>([]);
@@ -188,7 +190,16 @@ function SiteDetail() {
   const [tab, setTab] = useState<SiteTab>("dashboard");
   const [configSubTab, setConfigSubTab] = useState<string>("inverter");
 
+  // If a viewer somehow lands on the Config tab (deep-link, role just demoted),
+  // bounce them back to the dashboard so they don't see a "blocked" empty pane.
+  useEffect(() => {
+    if (!roleInfo.loading && roleInfo.role === "viewer" && tab === "config") {
+      setTab("dashboard");
+    }
+  }, [roleInfo.loading, roleInfo.role, tab]);
+
   useNotificationWatcher(siteId, user?.id);
+
 
   // device_id NULL on a row = legacy / primary device or rows ingested
   // before any "devices" row existed. Treat the primary device — and the
@@ -327,18 +338,30 @@ function SiteDetail() {
       <div className="mb-4 flex items-start justify-between gap-3 animate-fade-up">
         <div className="min-w-0 flex-1">
           <InlineSiteName site={site} onRenamed={(name) => setSite((s) => s ? { ...s, name } : s)} />
-          <p className="mt-1 text-sm text-muted-foreground">
-            {site.inverter_model ?? selectedDevice?.name ?? (latest ? "Inversor conectado" : "Esperando datos del inversor…")} · <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${site.status === "online" ? "bg-success/15 text-success" : site.status === "offline" ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground"}`}>● {site.status}</span>
+          <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
+            <span>{site.inverter_model ?? selectedDevice?.name ?? (latest ? "Inversor conectado" : "Esperando datos del inversor…")}</span>
+            <span>·</span>
+            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${site.status === "online" ? "bg-success/15 text-success" : site.status === "offline" ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground"}`}>● {site.status}</span>
+            {roleInfo.role && (
+              <span
+                title={ROLE_DESCRIPTION[roleInfo.role]}
+                className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-accent"
+              >
+                <Lock className="h-3 w-3" strokeWidth={2.4} /> Tu rol: {ROLE_LABEL[roleInfo.role]}
+              </span>
+            )}
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="rounded-full shrink-0"
-          onClick={() => { setTab("config"); setConfigSubTab("sharing"); }}
-        >
-          <Share2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={2.4} /> Compartir
-        </Button>
+        {roleInfo.canManageMembers && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-full shrink-0"
+            onClick={() => { setTab("config"); setConfigSubTab("sharing"); }}
+          >
+            <Share2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={2.4} /> Compartir
+          </Button>
+        )}
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as SiteTab)} className="pb-24 md:pb-0">
@@ -347,7 +370,9 @@ function SiteDetail() {
           <TabsTrigger value="charts" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><LineChart className="h-3.5 w-3.5" strokeWidth={2.2} />Charts</TabsTrigger>
           <TabsTrigger value="totals" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Calculator className="h-3.5 w-3.5" strokeWidth={2.2} />Totals</TabsTrigger>
           <TabsTrigger value="notifications" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><BellRing className="h-3.5 w-3.5" strokeWidth={2.2} />Alertas</TabsTrigger>
-          <TabsTrigger value="config" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Settings2 className="h-3.5 w-3.5" strokeWidth={2.2} />Configuration</TabsTrigger>
+          {roleInfo.role !== "viewer" && (
+            <TabsTrigger value="config" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Settings2 className="h-3.5 w-3.5" strokeWidth={2.2} />Configuration</TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="dashboard" className="mt-6 space-y-6">
@@ -473,11 +498,13 @@ function SiteDetail() {
           )}
         </TabsContent>
 
-        <TabsContent value="config" className="mt-6 space-y-6">
-          <ConfigurationView site={site} subTab={configSubTab} onSubTabChange={setConfigSubTab} />
-        </TabsContent>
+        {roleInfo.role !== "viewer" && (
+          <TabsContent value="config" className="mt-6 space-y-6">
+            <ConfigurationView site={site} subTab={configSubTab} onSubTabChange={setConfigSubTab} role={roleInfo.role} />
+          </TabsContent>
+        )}
       </Tabs>
-      <MobileBottomNav value={tab} onChange={setTab} />
+      <MobileBottomNav value={tab} onChange={setTab} hideTabs={roleInfo.role === "viewer" ? ["config"] : []} />
     </>
   );
 }
@@ -572,7 +599,9 @@ interface DeviceCommand {
   created_at: string; sent_at: string | null; acked_at: string | null;
 }
 
-function ConfigurationView({ site, subTab, onSubTabChange }: { site: Site; subTab: string; onSubTabChange: (v: string) => void }) {
+function ConfigurationView({ site, subTab, onSubTabChange, role }: { site: Site; subTab: string; onSubTabChange: (v: string) => void; role: SiteRole | null }) {
+  const canConfigure = role === "admin" || role === "owner";
+  const canManageMembers = canConfigure;
   const [spec, setSpec] = useState<InverterSpec | null>(null);
   const [snap, setSnap] = useState<DeviceSnapshot | null>(null);
   const [commands, setCommands] = useState<DeviceCommand[]>([]);
@@ -631,15 +660,22 @@ function ConfigurationView({ site, subTab, onSubTabChange }: { site: Site; subTa
     ? <span className="rounded-full bg-warning/15 px-2 py-0.5 text-xs font-semibold text-warning">Atrasado</span>
     : <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-xs font-semibold text-destructive">Sin datos</span>;
 
+  // Bounce operators away from admin-only subtabs
+  useEffect(() => {
+    if (!canConfigure && (subTab === "spec" || subTab === "pv" || subTab === "sharing" || subTab === "install")) {
+      onSubTabChange("inverter");
+    }
+  }, [canConfigure, subTab, onSubTabChange]);
+
   return (
     <Tabs value={subTab} onValueChange={onSubTabChange} className="w-full">
       <TabsList className="flex w-full flex-wrap gap-1 rounded-full bg-muted/50 p-1 h-auto">
         <TabsTrigger value="inverter" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={2.2} />Inversor</TabsTrigger>
-        <TabsTrigger value="spec" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Cpu className="h-3.5 w-3.5" strokeWidth={2.2} />Especificaciones</TabsTrigger>
-        <TabsTrigger value="pv" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Sun className="h-3.5 w-3.5" strokeWidth={2.2} />Sistema PV</TabsTrigger>
+        {canConfigure && <TabsTrigger value="spec" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Cpu className="h-3.5 w-3.5" strokeWidth={2.2} />Especificaciones</TabsTrigger>}
+        {canConfigure && <TabsTrigger value="pv" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Sun className="h-3.5 w-3.5" strokeWidth={2.2} />Sistema PV</TabsTrigger>}
         <TabsTrigger value="diagnostics" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Wifi className="h-3.5 w-3.5" strokeWidth={2.2} />Diagnóstico</TabsTrigger>
-        <TabsTrigger value="sharing" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Share2 className="h-3.5 w-3.5" strokeWidth={2.2} />Compartir</TabsTrigger>
-        <TabsTrigger value="install" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Download className="h-3.5 w-3.5" strokeWidth={2.2} />Instalación</TabsTrigger>
+        {canManageMembers && <TabsTrigger value="sharing" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Share2 className="h-3.5 w-3.5" strokeWidth={2.2} />Compartir</TabsTrigger>}
+        {canConfigure && <TabsTrigger value="install" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Download className="h-3.5 w-3.5" strokeWidth={2.2} />Instalación</TabsTrigger>}
       </TabsList>
 
       <TabsContent value="inverter" className="mt-6 space-y-4">
@@ -792,6 +828,33 @@ function ConfigurationView({ site, subTab, onSubTabChange }: { site: Site; subTa
           ) : (
             <SectionSkeleton />
           )}
+          {/* WiFi config siempre disponible — incluso si hay Ethernet con internet.
+              Abre la página /wifi del agente en la IP local del equipo. */}
+          <div className="mt-4 rounded-lg border border-dashed border-border/60 bg-muted/20 p-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <Wifi className="h-4 w-4 shrink-0 text-accent" strokeWidth={2.4} />
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold">Configurar WiFi del equipo</div>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Disponible siempre, esté conectado por Ethernet o no. Abre la página de configuración WiFi del agente desde tu red local.
+                </p>
+              </div>
+              {(() => {
+                const ip = snap?.ip_eth || snap?.ip_wlan;
+                const href = ip ? `http://${ip}/wifi` : `http://solarops.local/wifi`;
+                return (
+                  <Button asChild size="sm" variant="outline" className="rounded-full">
+                    <a href={href} target="_blank" rel="noreferrer">
+                      <Wifi className="mr-1.5 h-3.5 w-3.5" /> Abrir WiFi
+                    </a>
+                  </Button>
+                );
+              })()}
+            </div>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              Tip: si no abre, conéctate al WiFi <span className="font-mono">SolarOps-Setup</span> (contraseña por defecto <span className="font-mono">solarops1234</span>) y entra a <span className="font-mono">http://192.168.4.1/wifi</span>.
+            </p>
+          </div>
         </Section>
 
         <Section title="Sistema" icon={HardDrive}>
@@ -831,7 +894,7 @@ function ConfigurationView({ site, subTab, onSubTabChange }: { site: Site; subTa
 
       <TabsContent value="sharing" className="mt-6 space-y-4">
         <Section title="Compartir sitio" icon={Share2}>
-          <SiteSharing siteId={site.id} isOwnerOrAdmin={true} />
+          <SiteSharing siteId={site.id} isOwnerOrAdmin={canManageMembers} />
         </Section>
       </TabsContent>
 

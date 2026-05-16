@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
-import { LayoutDashboard, LineChart as LineChartIcon, Calculator, Settings2, Wrench, Unlink, ExternalLink } from "lucide-react";
+import { LayoutDashboard, LineChart as LineChartIcon, Calculator, Settings2, Wrench, Unlink, ExternalLink, Wifi } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -363,11 +363,19 @@ function LocalDashboardPage() {
                     </Button>
                   )}
                   <Button variant="outline" size="sm" asChild>
+                    <a href={`${agentBase}/wifi`} target="_blank" rel="noreferrer">
+                      <Wifi className="mr-1.5 h-3.5 w-3.5" /> Configurar WiFi
+                    </a>
+                  </Button>
+                  <Button variant="outline" size="sm" asChild>
                     <a href={`${agentBase}/status`} target="_blank" rel="noreferrer">
                       <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Diagnóstico del agente
                     </a>
                   </Button>
                 </div>
+                <p className="text-[11px] text-muted-foreground">
+                  <b>Configurar WiFi</b> siempre está disponible, aunque el equipo esté por Ethernet.
+                </p>
               </CardContent>
             </Card>
           </TabsContent>

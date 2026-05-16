@@ -10,7 +10,8 @@ const items: { id: SiteTab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "config", label: "Config", icon: Settings2 },
 ];
 
-export function MobileBottomNav({ value, onChange }: { value: SiteTab; onChange: (v: SiteTab) => void }) {
+export function MobileBottomNav({ value, onChange, hideTabs }: { value: SiteTab; onChange: (v: SiteTab) => void; hideTabs?: SiteTab[] }) {
+  const visible = items.filter((i) => !hideTabs?.includes(i.id));
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-40 md:hidden"
@@ -19,8 +20,8 @@ export function MobileBottomNav({ value, onChange }: { value: SiteTab; onChange:
     >
       <div className="mx-auto max-w-screen-md px-3 pb-3 pt-2">
         <div className="glass-strong rounded-2xl border border-border/70 shadow-elevated">
-          <ul className="grid grid-cols-5">
-            {items.map(({ id, label, icon: Icon }) => {
+          <ul className="grid" style={{ gridTemplateColumns: `repeat(${visible.length}, minmax(0, 1fr))` }}>
+            {visible.map(({ id, label, icon: Icon }) => {
               const active = value === id;
               return (
                 <li key={id}>
