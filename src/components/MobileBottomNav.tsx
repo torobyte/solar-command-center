@@ -20,8 +20,8 @@ export function MobileBottomNav({ value, onChange, hideTabs }: { value: SiteTab;
     >
       <div className="mx-auto max-w-screen-md px-3 pb-3 pt-2">
         <div className="glass-strong rounded-2xl border border-border/70 shadow-elevated">
-          <ul className="grid grid-cols-5">
-            {items.map(({ id, label, icon: Icon }) => {
+          <ul className="grid" style={{ gridTemplateColumns: `repeat(${visible.length}, minmax(0, 1fr))` }}>
+            {visible.map(({ id, label, icon: Icon }) => {
               const active = value === id;
               return (
                 <li key={id}>
