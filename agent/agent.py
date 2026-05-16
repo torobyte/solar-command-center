@@ -2820,7 +2820,27 @@ async function connect(ev){
   }catch(e){ msg.innerHTML='<div class="msg err">'+e.message+'</div>'; }
   finally{ btn.disabled=false; btn.textContent='Conectar'; }
 }
-loadStatus(); scan(); setInterval(loadStatus,5000);
+let radioOn=true;
+async function loadRadio(){
+  try{
+    const r=await fetch('/api/wifi/radio'); const d=await r.json();
+    radioOn = !!d.enabled;
+    document.getElementById('radioState').textContent = radioOn ? 'Encendida' : 'Apagada';
+    document.getElementById('radioBtn').textContent = radioOn ? 'Apagar WiFi' : 'Encender WiFi';
+  }catch(e){ document.getElementById('radioState').textContent='Error: '+e.message; }
+}
+async function toggleRadio(){
+  const btn=document.getElementById('radioBtn'); btn.disabled=true;
+  const next = !radioOn;
+  try{
+    const r=await fetch('/api/wifi/radio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:next})});
+    const d=await r.json();
+    if(!r.ok){ alert(d.error||'Error'); }
+    else { await loadRadio(); if(next) scan(); }
+  }catch(e){ alert(e.message); }
+  finally{ btn.disabled=false; loadStatus(); }
+}
+loadStatus(); loadRadio(); scan(); setInterval(()=>{loadStatus();loadRadio();},5000);
 </script>
 </body></html>"""
 
