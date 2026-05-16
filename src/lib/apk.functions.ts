@@ -31,7 +31,14 @@ export const getApkConfig = createServerFn({ method: "GET" })
     await ensureSuperadmin(supabase, userId);
     const { data, error } = await supabase.from("apk_config").select("*").eq("id", 1).maybeSingle();
     if (error) throw new Error(error.message);
-    return { config: data };
+    return {
+      config: data
+        ? {
+            ...data,
+            start_path: !data.start_path || data.start_path === "/app-login" ? "/apk-auth" : data.start_path,
+          }
+        : data,
+    };
   });
 
 export const saveApkConfig = createServerFn({ method: "POST" })
