@@ -32,12 +32,27 @@ class MainActivity : Activity() {
 
     private lateinit var web: WebView
     private val authStorageKey = "sb-mtsxmdwraxnwobxsdrqr-auth-token"
+    private val bootstrapStorageKey = "solarops_native_session_bootstrap"
 
     inner class SolarWidgetBridge {
         @JavascriptInterface
         fun saveToken(payload: String) {
             getSharedPreferences(WidgetCommon.PREFS, MODE_PRIVATE).edit()
                 .putString("widget_bridge_payload", payload)
+                .apply()
+        }
+
+        @JavascriptInterface
+        fun saveSession(payload: String) {
+            getSharedPreferences(WidgetSetupActivity.PREFS, MODE_PRIVATE).edit()
+                .putString(WidgetSetupActivity.KEY_AUTH_SESSION, payload)
+                .apply()
+        }
+
+        @JavascriptInterface
+        fun clearSession() {
+            getSharedPreferences(WidgetSetupActivity.PREFS, MODE_PRIVATE).edit()
+                .remove(WidgetSetupActivity.KEY_AUTH_SESSION)
                 .apply()
         }
     }
@@ -132,8 +147,9 @@ class MainActivity : Activity() {
 
     private fun loadBootstrapPage(rawSession: String) {
         val baseUrl = WidgetCommon.baseUrl(this).trimEnd('/')
-        val targetUrl = "$baseUrl/app-login"
+        val targetUrl = "$baseUrl/apk-auth"
         val storageKey = JSONObject.quote(authStorageKey)
+        val bootstrapKey = JSONObject.quote(bootstrapStorageKey)
         val escapedSession = JSONObject.quote(rawSession)
         val escapedTarget = JSONObject.quote(targetUrl)
         val html = """
@@ -161,6 +177,7 @@ class MainActivity : Activity() {
                 <div>Abriendo SolarOps…</div>
                 <script>
                   try { localStorage.setItem($storageKey, $escapedSession); } catch (e) {}
+                  try { localStorage.setItem($bootstrapKey, $escapedSession); } catch (e) {}
                   window.location.replace($escapedTarget);
                 </script>
               </body>
@@ -193,15 +210,21 @@ class MainActivity : Activity() {
     private fun ensureFreshSession(rawSession: String): String {
         val session = JSONObject(rawSession)
         val withExpiry = ensureExpiresAt(session)
+        val accessToken = withExpiry.optString("access_token")
+        val refreshToken = withExpiry.optString("refresh_token")
         val expiresAt = withExpiry.optLong("expires_at", 0L)
         val now = System.currentTimeMillis() / 1000L
-        if (expiresAt == 0L || expiresAt > now + 60L) {
+        if (accessToken.isNotBlank() && (expiresAt == 0L || expiresAt > now + 60L) && isAccessTokenValid(accessToken)) {
             return withExpiry.toString()
         }
 
-        val refreshToken = withExpiry.optString("refresh_token")
         if (refreshToken.isBlank()) throw IllegalStateException("No refresh token available")
-        return refreshSession(refreshToken)
+        val refreshed = ensureExpiresAt(JSONObject(refreshSession(refreshToken)))
+        val refreshedAccessToken = refreshed.optString("access_token")
+        if (refreshedAccessToken.isBlank() || !isAccessTokenValid(refreshedAccessToken)) {
+            throw IllegalStateException("Refreshed session is invalid")
+        }
+        return refreshed.toString()
     }
 
     private fun ensureExpiresAt(session: JSONObject): JSONObject {
@@ -231,5 +254,16 @@ class MainActivity : Activity() {
         }
         val refreshed = JSONObject(conn.inputStream.bufferedReader().use { it.readText() })
         return ensureExpiresAt(refreshed).toString()
+    }
+
+    private fun isAccessTokenValid(accessToken: String): Boolean {
+        val conn = (URL("${WidgetSetupActivity.SUPABASE_URL}/auth/v1/user").openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = 8000
+            readTimeout = 8000
+            setRequestProperty("apikey", WidgetSetupActivity.SUPABASE_ANON)
+            setRequestProperty("Authorization", "Bearer $accessToken")
+        }
+        return conn.responseCode in 200..299
     }
 }
