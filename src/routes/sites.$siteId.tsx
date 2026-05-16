@@ -341,10 +341,6 @@ function SiteDetail() {
         </Button>
       </div>
 
-      <div className="mb-6">
-        <DeviceSelector siteId={siteId} />
-      </div>
-
       <Tabs value={tab} onValueChange={(v) => setTab(v as SiteTab)} className="pb-24 md:pb-0">
         <TabsList className="hidden h-11 rounded-full bg-muted/60 p-1 md:inline-flex">
           <TabsTrigger value="dashboard" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><LayoutDashboard className="h-3.5 w-3.5" strokeWidth={2.2} />Dashboard</TabsTrigger>
