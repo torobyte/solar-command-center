@@ -25,8 +25,7 @@ object WidgetCommon {
     const val PREFS = "solarops_widget_prefs"
     const val KEY_TOKEN = "device_token"
     const val KEY_BASE_URL = "base_url"
-    const val DEFAULT_BASE_URL =
-        "https://project--7cb3041b-eb20-43aa-ba17-b0848cb53051.lovable.app"
+    const val DEFAULT_BASE_URL = "https://appsolar.torobyte.com"
 
     const val ACTION_TICK = "app.solarops.client.WIDGET_TICK"
     const val REFRESH_SEC = 30L
@@ -40,11 +39,13 @@ object WidgetCommon {
             .getString(KEY_BASE_URL, DEFAULT_BASE_URL) ?: DEFAULT_BASE_URL
 
     fun openAppIntent(context: Context, widgetId: Int): PendingIntent {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(baseUrl(context))).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
+        // Launch the SolarOps app shell (WebView), falling back to the browser
+        // if for some reason the launcher activity is not resolvable.
+        val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
+            ?: Intent(Intent.ACTION_VIEW, Uri.parse(baseUrl(context)))
+        launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         return PendingIntent.getActivity(
-            context, widgetId, intent,
+            context, widgetId, launch,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
     }

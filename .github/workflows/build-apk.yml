@@ -62,6 +62,84 @@ jobs:
           fi
           npx cap sync android
 
+      - name: Apply platform branding (icon, name, colors)
+        run: |
+          set -e
+          BRAND_URL="https://appsolar.torobyte.com/api/public/manifest"
+          echo "Fetching branding from $BRAND_URL"
+          curl -fsSL "$BRAND_URL" -o /tmp/manifest.json || { echo "::warning::Could not fetch branding, using defaults"; exit 0; }
+          cat /tmp/manifest.json
+
+          APP_NAME=$(python3 -c "import json;d=json.load(open('/tmp/manifest.json'));print(d.get('name','SolarOps'))")
+          SHORT_NAME=$(python3 -c "import json;d=json.load(open('/tmp/manifest.json'));print(d.get('short_name', d.get('name','SolarOps')))")
+          THEME=$(python3 -c "import json;d=json.load(open('/tmp/manifest.json'));print(d.get('theme_color','#f59e0b'))")
+          BG=$(python3 -c "import json;d=json.load(open('/tmp/manifest.json'));print(d.get('background_color','#0a0a0a'))")
+          ICON_512=$(python3 -c "import json;d=json.load(open('/tmp/manifest.json'));icons=d.get('icons',[]);best=next((i['src'] for i in icons if '512' in str(i.get('sizes',''))),'');print(best or (icons[0]['src'] if icons else ''))")
+          ICON_192=$(python3 -c "import json;d=json.load(open('/tmp/manifest.json'));icons=d.get('icons',[]);best=next((i['src'] for i in icons if '192' in str(i.get('sizes',''))),'');print(best or '')")
+
+          echo "App=$APP_NAME / Short=$SHORT_NAME / Theme=$THEME / BG=$BG"
+          echo "Icon512=$ICON_512"
+
+          # Download icon (prefer 512, fallback to 192). Only PNGs become launcher icons.
+          ICON_SRC=""
+          if [ -n "$ICON_512" ] && [[ "$ICON_512" == *.png ]]; then ICON_SRC="$ICON_512"; fi
+          if [ -z "$ICON_SRC" ] && [ -n "$ICON_192" ] && [[ "$ICON_192" == *.png ]]; then ICON_SRC="$ICON_192"; fi
+
+          if [ -n "$ICON_SRC" ]; then
+            echo "Downloading launcher icon from $ICON_SRC"
+            curl -fsSL "$ICON_SRC" -o /tmp/icon-src.png
+            sudo apt-get install -y imagemagick >/dev/null 2>&1 || true
+            RES="android/app/src/main/res"
+            declare -A SIZES=( [mdpi]=48 [hdpi]=72 [xhdpi]=96 [xxhdpi]=144 [xxxhdpi]=192 )
+            for D in "${!SIZES[@]}"; do
+              S=${SIZES[$D]}
+              mkdir -p "$RES/mipmap-$D"
+              convert /tmp/icon-src.png -resize ${S}x${S} "$RES/mipmap-$D/ic_launcher.png"
+              # Round icon: just reuse the square; Android masks it at runtime.
+              cp "$RES/mipmap-$D/ic_launcher.png" "$RES/mipmap-$D/ic_launcher_round.png"
+              # Foreground for adaptive icon (anydpi-v26 references this).
+              convert /tmp/icon-src.png -resize ${S}x${S} "$RES/mipmap-$D/ic_launcher_foreground.png"
+            done
+            # Drop any leftover vector adaptive-icon that points to a missing foreground drawable.
+            rm -f "$RES/mipmap-anydpi-v26/ic_launcher.xml" "$RES/mipmap-anydpi-v26/ic_launcher_round.xml"
+          else
+            echo "::warning::No PNG icon available in branding; keeping Capacitor default."
+          fi
+
+          # App name in strings.xml — overwrite both app_name and title_activity_main.
+          STRINGS="android/app/src/main/res/values/strings.xml"
+          if [ -f "$STRINGS" ]; then
+            python3 - <<PY
+import re,sys
+p="$STRINGS"
+name="""$APP_NAME""".replace("&","&amp;").replace("<","&lt;")
+short="""$SHORT_NAME""".replace("&","&amp;").replace("<","&lt;")
+s=open(p).read()
+s=re.sub(r'(<string name="app_name">)[^<]*(</string>)',r'\g<1>'+name+r'\g<2>',s)
+s=re.sub(r'(<string name="title_activity_main">)[^<]*(</string>)',r'\g<1>'+name+r'\g<2>',s)
+open(p,"w").write(s)
+print(s)
+PY
+          fi
+
+          # Background color used by Capacitor splash / window background.
+          COLORS="android/app/src/main/res/values/colors.xml"
+          if [ -f "$COLORS" ]; then
+            python3 - <<PY
+import re
+p="$COLORS"
+bg="$BG"
+theme="$THEME"
+s=open(p).read()
+s=re.sub(r'(<color name="colorPrimary">)[^<]*(</color>)',r'\g<1>'+theme+r'\g<2>',s)
+s=re.sub(r'(<color name="colorPrimaryDark">)[^<]*(</color>)',r'\g<1>'+theme+r'\g<2>',s)
+s=re.sub(r'(<color name="colorAccent">)[^<]*(</color>)',r'\g<1>'+theme+r'\g<2>',s)
+s=re.sub(r'(<color name="ic_launcher_background">)[^<]*(</color>)',r'\g<1>'+bg+r'\g<2>',s)
+open(p,"w").write(s)
+print(s)
+PY
+          fi
+
       - name: Merge widget overrides
         run: |
           PKG_DIR="android/app/src/main/java/app/solarops/client"
