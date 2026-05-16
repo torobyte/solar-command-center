@@ -40,7 +40,7 @@ class MainActivity : Activity() {
         if (savedInstanceState != null) {
             web.restoreState(savedInstanceState)
         } else {
-            web.loadUrl("https://solar-heartbeat-sync.lovable.app")
+            web.loadUrl("https://appsolar.torobyte.com")
         }
     }
 
