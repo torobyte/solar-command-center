@@ -22,7 +22,7 @@ export const Route = createFileRoute("/api/public/apk-brand")({
           version_name: "1.0.0",
           version_code: 1,
           server_url: "https://appsolar.torobyte.com",
-          start_path: "/app-login",
+          start_path: "/apk-auth",
           primary_color: "#f59e0b",
           background_color: "#0a0a0a",
           splash_color: "#0a0a0a",
