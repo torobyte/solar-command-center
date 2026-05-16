@@ -22,12 +22,10 @@ export function AppHeader() {
   const onSites = location.pathname.startsWith("/sites") || location.pathname === "/app";
   const onAdmin = location.pathname.startsWith("/admin");
   const onAccount = location.pathname.startsWith("/account");
-  const onWidgets = location.pathname.startsWith("/app/widgets");
 
   type NavItem = { to: string; label: string; icon: typeof LayoutGrid; active: boolean };
   const items: NavItem[] = [
-    { to: "/app", label: t("nav.sites"), icon: LayoutGrid, active: onSites && !onWidgets },
-    { to: "/app/widgets", label: "Mis widgets", icon: Smartphone, active: onWidgets },
+    { to: "/app", label: t("nav.sites"), icon: LayoutGrid, active: onSites },
     { to: "/account", label: "Mi cuenta", icon: UserCircle2, active: onAccount },
   ];
   if (role === "superadmin") {
