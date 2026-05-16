@@ -261,16 +261,18 @@ export function ApkAdmin() {
             ) : (
               <iframe
                 key={previewKey}
-                src={cfg.server_url}
+                src={typeof window !== "undefined" ? window.location.origin : "/"}
                 title="preview"
                 className="absolute inset-0 h-full w-full border-0 pt-7"
-                sandbox="allow-scripts allow-same-origin allow-forms"
               />
             )}
           </div>
         </div>
         <p className="text-xs text-muted-foreground text-center">
           {cfg.app_name} · v{cfg.version_name} ({cfg.version_code})
+        </p>
+        <p className="text-[10px] text-muted-foreground text-center break-all">
+          URL empaquetada en APK: {cfg.server_url}
         </p>
       </div>
     </div>
