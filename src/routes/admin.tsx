@@ -28,6 +28,7 @@ import { PlansAdmin } from "@/components/admin/PlansAdmin";
 import { LicenseAuditLog } from "@/components/admin/LicenseAuditLog";
 import { SmtpAdmin } from "@/components/admin/SmtpAdmin";
 import { EmailTemplatesAdmin } from "@/components/admin/EmailTemplatesAdmin";
+import { ApkAdmin } from "@/components/admin/ApkAdmin";
 import { ConfirmDestructiveDialog } from "@/components/ConfirmDestructiveDialog";
 
 export const Route = createFileRoute("/admin")({
@@ -67,6 +68,7 @@ function AdminPanel() {
             <TabsTrigger value="branding">Branding & PWA</TabsTrigger>
             <TabsTrigger value="smtp">SMTP</TabsTrigger>
             <TabsTrigger value="email-templates">Plantillas correo</TabsTrigger>
+            <TabsTrigger value="apk">App APK</TabsTrigger>
           </TabsList>
         </div>
         <TabsContent value="sites" className="mt-6"><SitesAdmin /></TabsContent>
@@ -78,6 +80,7 @@ function AdminPanel() {
         <TabsContent value="branding" className="mt-6"><BrandingAdmin /></TabsContent>
         <TabsContent value="smtp" className="mt-6"><SmtpAdmin /></TabsContent>
         <TabsContent value="email-templates" className="mt-6"><EmailTemplatesAdmin /></TabsContent>
+        <TabsContent value="apk" className="mt-6"><ApkAdmin /></TabsContent>
       </Tabs>
     </>
   );
