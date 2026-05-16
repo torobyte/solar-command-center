@@ -42,10 +42,6 @@ function AppLoginPage() {
 
   async function pushTokenToNative() {
     try {
-      const res = await fetch("/_serverFn/ensureWidgetToken", { method: "POST" });
-      // Llamamos directo a la server fn vía import dinámico para evitar acoplar al endpoint interno
-    } catch {}
-    try {
       const { ensureWidgetToken } = await import("@/lib/widgets.functions");
       const r = await ensureWidgetToken();
       const payload = JSON.stringify({ token: r.token, tokenId: r.id });
@@ -53,7 +49,7 @@ function AppLoginPage() {
       if (typeof window !== "undefined" && window.SolarWidgetBridge?.saveToken) {
         window.SolarWidgetBridge.saveToken(payload);
       }
-    } catch (e) {
+    } catch {
       // sin internet o sin sesión todavía
     }
   }
