@@ -59,8 +59,15 @@ jobs:
           PKG_DIR="android/app/src/main/java/app/solarops/client"
           RES="android/app/src/main/res"
           mkdir -p "$PKG_DIR" "$RES/layout" "$RES/drawable" "$RES/xml" "$RES/values"
-          # Copy all Kotlin sources
-          cp -f android-widget/java/*.kt "$PKG_DIR/" 2>/dev/null || true
+          # Copy widget sources, but keep Capacitor's generated MainActivity
+          for SRC in android-widget/java/*.kt; do
+            BASENAME=$(basename "$SRC")
+            if [ "$BASENAME" = "MainActivity.kt" ]; then
+              echo "Skipping $BASENAME to avoid duplicate launcher activity"
+              continue
+            fi
+            cp -f "$SRC" "$PKG_DIR/"
+          done
           cp -rf android-widget/res/* "$RES/" 2>/dev/null || true
 
       - name: Merge AndroidManifest snippet
@@ -71,8 +78,13 @@ jobs:
             # Ensure INTERNET permission
             grep -q "android.permission.INTERNET" "$MANIFEST" || \
               sed -i 's|<application|<uses-permission android:name="android.permission.INTERNET"/>\n    <application|' "$MANIFEST"
-            # Inject snippet before </application>
-            SNIPPET_CONTENT=$(cat "$SNIPPET")
+            # Inject widget declarations before </application>, excluding duplicate MainActivity
+            FILTERED_SNIPPET=$(awk '
+              /android:name="\.MainActivity"/ { skip=1; next }
+              skip && /<\/activity>/ { skip=0; next }
+              !skip { print }
+            ' "$SNIPPET")
+            SNIPPET_CONTENT="$FILTERED_SNIPPET"
             awk -v snip="$SNIPPET_CONTENT" '/<\/application>/{print snip} {print}' "$MANIFEST" > "${MANIFEST}.new"
             mv "${MANIFEST}.new" "$MANIFEST"
           fi
