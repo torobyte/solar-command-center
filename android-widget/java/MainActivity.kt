@@ -2,21 +2,31 @@ package app.solarops.client
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
-import android.webkit.JavascriptInterface
+import android.os.Handler
+import android.os.Looper
+import android.view.Gravity
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.webkit.JavascriptInterface
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.FrameLayout
+import android.widget.ProgressBar
+import android.widget.TextView
 import org.json.JSONObject
+import java.io.OutputStreamWriter
+import java.net.HttpURLConnection
+import java.net.URL
+import kotlin.concurrent.thread
 
 /**
  * Launcher de la app SolarOps.
  *
- * Es un WebView a pantalla completa que carga el sitio web publicado.
- * Así el usuario ve EXACTAMENTE lo mismo que en el navegador / PWA,
- * sin pasos extras. El login del widget vive en WidgetSetupActivity
- * y solo se abre desde el picker del widget.
+ * Antes de abrir el WebView valida / refresca la sesión guardada y luego
+ * carga una página bootstrap pública que escribe la sesión en localStorage
+ * para evitar el "Forbidden" inicial al entrar a una ruta protegida.
  */
 class MainActivity : Activity() {
 
@@ -36,56 +46,127 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Si todavía no hay sesión nativa guardada, abrimos el login nativo.
-        // Así el usuario nunca ve el "Forbidden" del webview cuando el dominio
-        // exige sesión y evitamos depender del login web dentro del WebView.
         val savedSession = getSharedPreferences(WidgetSetupActivity.PREFS, MODE_PRIVATE)
             .getString(WidgetSetupActivity.KEY_AUTH_SESSION, null)
+
         if (savedSession.isNullOrBlank()) {
-            startActivity(android.content.Intent(this, WidgetSetupActivity::class.java))
-            finish()
+            openNativeLogin(clearStaleSession = false)
             return
         }
 
-        web = WebView(this).apply {
-            layoutParams = android.view.ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
-            settings.javaScriptEnabled = true
-            settings.domStorageEnabled = true
-            settings.databaseEnabled = true
-            settings.cacheMode = WebSettings.LOAD_DEFAULT
-            settings.useWideViewPort = true
-            settings.loadWithOverviewMode = true
-            settings.mediaPlaybackRequiresUserGesture = false
-            addJavascriptInterface(SolarWidgetBridge(), "SolarWidgetBridge")
-            webViewClient = object : WebViewClient() {
-                override fun onPageFinished(view: WebView?, url: String?) {
-                    super.onPageFinished(view, url)
-                    injectSavedSession()
+        setContentView(
+            FrameLayout(this).apply {
+                setBackgroundColor(0xFF0A0A0A.toInt())
+                addView(ProgressBar(this@MainActivity).apply {
+                    isIndeterminate = true
+                }, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT).apply {
+                    width = 96
+                    height = 96
+                    gravity = Gravity.CENTER
+                })
+                addView(TextView(this@MainActivity).apply {
+                    text = "Abriendo SolarOps…"
+                    gravity = Gravity.CENTER_HORIZONTAL
+                    setTextColor(0xFFCBD5E1.toInt())
+                    textSize = 16f
+                }, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT).apply {
+                    topMargin = 220
+                    gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                })
+            }
+        )
+
+        thread {
+            val validSession = runCatching { ensureFreshSession(savedSession) }.getOrNull()
+            Handler(Looper.getMainLooper()).post {
+                if (validSession.isNullOrBlank()) {
+                    openNativeLogin(clearStaleSession = true)
+                    return@post
+                }
+
+                if (validSession != savedSession) {
+                    getSharedPreferences(WidgetSetupActivity.PREFS, MODE_PRIVATE).edit()
+                        .putString(WidgetSetupActivity.KEY_AUTH_SESSION, validSession)
+                        .apply()
+                }
+
+                web = buildWebView()
+                setContentView(web)
+
+                if (savedInstanceState != null) {
+                    web.restoreState(savedInstanceState)
+                } else {
+                    loadBootstrapPage(validSession)
                 }
             }
-        }
-        setContentView(web)
-
-        if (savedInstanceState != null) {
-            web.restoreState(savedInstanceState)
-        } else {
-            // Inyectamos la sesión ANTES de cargar la URL protegida para
-            // evitar el flash "Forbidden" mientras el JS la lee de localStorage.
-            val escaped = JSONObject.quote(savedSession)
-            val bootstrap =
-                "javascript:(function(){try{localStorage.setItem('$authStorageKey',$escaped);}catch(e){}})();"
-            web.loadUrl(bootstrap)
-            web.loadUrl("https://appsolar.torobyte.com/app")
         }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        web.saveState(outState)
+        if (::web.isInitialized) web.saveState(outState)
     }
 
     override fun onBackPressed() {
-        if (web.canGoBack()) web.goBack() else super.onBackPressed()
+        if (::web.isInitialized && web.canGoBack()) web.goBack() else super.onBackPressed()
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    private fun buildWebView(): WebView = WebView(this).apply {
+        layoutParams = android.view.ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+        settings.javaScriptEnabled = true
+        settings.domStorageEnabled = true
+        settings.databaseEnabled = true
+        settings.cacheMode = WebSettings.LOAD_DEFAULT
+        settings.useWideViewPort = true
+        settings.loadWithOverviewMode = true
+        settings.mediaPlaybackRequiresUserGesture = false
+        addJavascriptInterface(SolarWidgetBridge(), "SolarWidgetBridge")
+        webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                injectSavedSession()
+            }
+        }
+    }
+
+    private fun loadBootstrapPage(rawSession: String) {
+        val baseUrl = WidgetCommon.baseUrl(this).trimEnd('/')
+        val targetUrl = "$baseUrl/app-login"
+        val storageKey = JSONObject.quote(authStorageKey)
+        val escapedSession = JSONObject.quote(rawSession)
+        val escapedTarget = JSONObject.quote(targetUrl)
+        val html = """
+            <!doctype html>
+            <html>
+              <head>
+                <meta charset="utf-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+                <style>
+                  html, body {
+                    margin: 0;
+                    height: 100%;
+                    background: #0a0a0a;
+                    color: #e2e8f0;
+                    font-family: sans-serif;
+                  }
+                  body {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                  }
+                </style>
+              </head>
+              <body>
+                <div>Abriendo SolarOps…</div>
+                <script>
+                  try { localStorage.setItem($storageKey, $escapedSession); } catch (e) {}
+                  window.location.replace($escapedTarget);
+                </script>
+              </body>
+            </html>
+        """.trimIndent()
+        web.loadDataWithBaseURL(baseUrl, html, "text/html", "utf-8", null)
     }
 
     private fun injectSavedSession() {
@@ -96,5 +177,69 @@ class MainActivity : Activity() {
             "(function(){try{localStorage.setItem('$authStorageKey',$escaped);}catch(e){}})();",
             null,
         )
+    }
+
+    private fun openNativeLogin(clearStaleSession: Boolean) {
+        if (clearStaleSession) {
+            getSharedPreferences(WidgetSetupActivity.PREFS, MODE_PRIVATE).edit()
+                .remove(WidgetSetupActivity.KEY_AUTH_SESSION)
+                .remove(WidgetSetupActivity.KEY_SITES_JSON)
+                .apply()
+        }
+        startActivity(Intent(this, WidgetSetupActivity::class.java))
+        finish()
+    }
+
+    private fun ensureFreshSession(rawSession: String): String {
+        val session = JSONObject(rawSession)
+        val withExpiry = ensureExpiresAt(session)
+        val accessToken = withExpiry.optString("access_token")
+        if (accessToken.isNotBlank() && isAccessTokenValid(accessToken)) {
+            return withExpiry.toString()
+        }
+
+        val refreshToken = withExpiry.optString("refresh_token")
+        if (refreshToken.isBlank()) throw IllegalStateException("No refresh token available")
+        return refreshSession(refreshToken)
+    }
+
+    private fun ensureExpiresAt(session: JSONObject): JSONObject {
+        if (!session.has("expires_at") && session.has("expires_in")) {
+            val expiresIn = session.optLong("expires_in", 0L)
+            if (expiresIn > 0L) {
+                session.put("expires_at", (System.currentTimeMillis() / 1000L) + expiresIn)
+            }
+        }
+        return session
+    }
+
+    private fun isAccessTokenValid(token: String): Boolean {
+        val conn = (URL("${WidgetSetupActivity.SUPABASE_URL}/auth/v1/user").openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = 8000
+            readTimeout = 8000
+            setRequestProperty("apikey", WidgetSetupActivity.SUPABASE_ANON)
+            setRequestProperty("Authorization", "Bearer $token")
+        }
+        return conn.responseCode in 200..299
+    }
+
+    private fun refreshSession(refreshToken: String): String {
+        val conn = (URL("${WidgetSetupActivity.SUPABASE_URL}/auth/v1/token?grant_type=refresh_token").openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            doOutput = true
+            connectTimeout = 8000
+            readTimeout = 8000
+            setRequestProperty("apikey", WidgetSetupActivity.SUPABASE_ANON)
+            setRequestProperty("Content-Type", "application/json")
+        }
+        OutputStreamWriter(conn.outputStream).use {
+            it.write(JSONObject().put("refresh_token", refreshToken).toString())
+        }
+        if (conn.responseCode !in 200..299) {
+            throw IllegalStateException("Refresh failed with ${conn.responseCode}")
+        }
+        val refreshed = JSONObject(conn.inputStream.bufferedReader().use { it.readText() })
+        return ensureExpiresAt(refreshed).toString()
     }
 }
