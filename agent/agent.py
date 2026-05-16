@@ -2078,17 +2078,32 @@ def make_app(agent: Agent) -> Flask:
             "internet_up": internet_up(),
         })
 
-    @app.get("/api/wifi/scan")
-    def wifi_scan():
-        # Forzar rescan y listar — requiere NetworkManager (nmcli)
+    def _which(prog):
+        try:
+            r = subprocess.run(["which", prog], capture_output=True, text=True, timeout=3)
+            return r.returncode == 0 and bool(r.stdout.strip())
+        except Exception:
+            return False
+
+    def _wifi_iface():
+        # Detecta la primera interfaz wifi disponible (wlan0, wlp2s0, etc.)
+        try:
+            out = _run(["iw", "dev"], timeout=3)
+            for ln in out.splitlines():
+                ln = ln.strip()
+                if ln.startswith("Interface "):
+                    return ln.split()[1]
+        except Exception:
+            pass
+        return "wlan0"
+
+    def _scan_nmcli():
         subprocess.run(["nmcli", "device", "wifi", "rescan"],
                        capture_output=True, timeout=8)
         out = _run(["nmcli", "-t", "-f", "SSID,SIGNAL,SECURITY,IN-USE",
                     "device", "wifi", "list"], timeout=8)
-        nets = []
-        seen = set()
+        nets, seen = [], set()
         for ln in out.splitlines():
-            # nmcli -t separa por ':' y escapa ':' literales como '\:'
             parts = [p.replace("\\:", ":") for p in ln.split(":")]
             if len(parts) < 3: continue
             ssid = parts[0].strip()
@@ -2098,12 +2113,84 @@ def make_app(agent: Agent) -> Flask:
             except Exception: signal = 0
             sec = parts[2].strip() or "—"
             in_use = (len(parts) > 3 and parts[3].strip() == "*")
-            nets.append({"ssid": ssid, "signal": signal,
-                         "security": sec, "in_use": in_use})
+            nets.append({"ssid": ssid, "signal": signal, "security": sec, "in_use": in_use})
+        return nets
+
+    def _scan_iw(iface):
+        # Requiere root (cap_net_admin). El agente corre como root en systemd.
+        out = _run(["iw", "dev", iface, "scan"], timeout=15)
+        nets, seen = [], {}
+        cur = None
+        for ln in out.splitlines():
+            s = ln.strip()
+            if s.startswith("BSS "):
+                if cur and cur.get("ssid"):
+                    seen.setdefault(cur["ssid"], cur)
+                cur = {"ssid": "", "signal": 0, "security": "Abierta", "in_use": False}
+            elif cur is not None:
+                if s.startswith("signal:"):
+                    try:
+                        dbm = float(s.split(":", 1)[1].strip().split()[0])
+                        # Convertir dBm a porcentaje (aprox: -50→100, -100→0)
+                        cur["signal"] = max(0, min(100, int(2 * (dbm + 100))))
+                    except Exception: pass
+                elif s.startswith("SSID:"):
+                    cur["ssid"] = s.split(":", 1)[1].strip()
+                elif "RSN:" in s or "WPA:" in s:
+                    cur["security"] = "WPA2" if "RSN" in s else "WPA"
+        if cur and cur.get("ssid"):
+            seen.setdefault(cur["ssid"], cur)
+        return list(seen.values())
+
+    def _scan_iwlist(iface):
+        out = _run(["iwlist", iface, "scanning"], timeout=15)
+        nets, seen = [], {}
+        cur = None
+        for raw in out.splitlines():
+            s = raw.strip()
+            if s.startswith("Cell "):
+                if cur and cur.get("ssid"):
+                    seen.setdefault(cur["ssid"], cur)
+                cur = {"ssid": "", "signal": 0, "security": "Abierta", "in_use": False}
+            elif cur is not None:
+                if s.startswith("ESSID:"):
+                    cur["ssid"] = s.split(":", 1)[1].strip().strip('"')
+                elif "Signal level=" in s:
+                    try:
+                        seg = s.split("Signal level=", 1)[1]
+                        dbm = float(seg.split()[0].replace("dBm", ""))
+                        cur["signal"] = max(0, min(100, int(2 * (dbm + 100))))
+                    except Exception: pass
+                elif "Encryption key:on" in s:
+                    cur["security"] = "WPA/WEP"
+        if cur and cur.get("ssid"):
+            seen.setdefault(cur["ssid"], cur)
+        return list(seen.values())
+
+    @app.get("/api/wifi/scan")
+    def wifi_scan():
+        nets = []
+        errors = []
+        # 1) nmcli (preferido)
+        if _which("nmcli"):
+            try: nets = _scan_nmcli()
+            except Exception as e: errors.append(f"nmcli: {e}")
+        # 2) iw (kernel moderno)
+        if not nets and _which("iw"):
+            try: nets = _scan_iw(_wifi_iface())
+            except Exception as e: errors.append(f"iw: {e}")
+        # 3) iwlist (legado)
+        if not nets and _which("iwlist"):
+            try: nets = _scan_iwlist(_wifi_iface())
+            except Exception as e: errors.append(f"iwlist: {e}")
         nets.sort(key=lambda n: n["signal"], reverse=True)
         if not nets:
-            return jsonify({"networks": [], "error":
-                "No se pudo escanear (¿NetworkManager/nmcli instalado?)."})
+            tools = [t for t in ("nmcli", "iw", "iwlist") if _which(t)]
+            if not tools:
+                msg = "No se encontró ninguna herramienta de WiFi instalada (nmcli, iw o iwlist). Instala: sudo apt install network-manager"
+            else:
+                msg = f"No se encontraron redes con {', '.join(tools)}. Verifica que el WiFi esté encendido. {'; '.join(errors) if errors else ''}".strip()
+            return jsonify({"networks": [], "error": msg})
         return jsonify({"networks": nets})
 
     @app.post("/api/wifi/connect")
