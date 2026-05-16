@@ -72,14 +72,9 @@ jobs:
             grep -q "android.permission.INTERNET" "$MANIFEST" || \
               sed -i 's|<application|<uses-permission android:name="android.permission.INTERNET"/>\n    <application|' "$MANIFEST"
             # Inject snippet before </application>
-            python3 - "$MANIFEST" "$SNIPPET" <<'PY'
-import sys
-mp, sp = sys.argv[1], sys.argv[2]
-m = open(mp).read()
-s = open(sp).read()
-m = m.replace("</application>", s + "\n</application>")
-open(mp, "w").write(m)
-PY
+            SNIPPET_CONTENT=$(cat "$SNIPPET")
+            awk -v snip="$SNIPPET_CONTENT" '/<\/application>/{print snip} {print}' "$MANIFEST" > "${MANIFEST}.new"
+            mv "${MANIFEST}.new" "$MANIFEST"
           fi
           cat "$MANIFEST"
 
