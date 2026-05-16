@@ -109,35 +109,13 @@ jobs:
           # App name in strings.xml — overwrite both app_name and title_activity_main.
           STRINGS="android/app/src/main/res/values/strings.xml"
           if [ -f "$STRINGS" ]; then
-            APP_NAME="$APP_NAME" STRINGS_PATH="$STRINGS" python3 -c '
-import os, re
-p = os.environ["STRINGS_PATH"]
-name = os.environ["APP_NAME"].replace("&", "&amp;").replace("<", "&lt;")
-s = open(p).read()
-s = re.sub(r"(<string name=\"app_name\">)[^<]*(</string>)", r"\g<1>" + name + r"\g<2>", s)
-s = re.sub(r"(<string name=\"title_activity_main\">)[^<]*(</string>)", r"\g<1>" + name + r"\g<2>", s)
-open(p, "w").write(s)
-print(s)
-'
+            APP_NAME="$APP_NAME" STRINGS_PATH="$STRINGS" python3 -c 'import os, re; p=os.environ["STRINGS_PATH"]; name=os.environ["APP_NAME"].replace("&","&amp;").replace("<","&lt;"); s=open(p).read(); s=re.sub(r"(<string name=\"app_name\">)[^<]*(</string>)", r"\g<1>"+name+r"\g<2>", s); s=re.sub(r"(<string name=\"title_activity_main\">)[^<]*(</string>)", r"\g<1>"+name+r"\g<2>", s); open(p,"w").write(s); print(s)'
           fi
 
           # Background color used by Capacitor splash / window background.
           COLORS="android/app/src/main/res/values/colors.xml"
           if [ -f "$COLORS" ]; then
-            BG="$BG" THEME="$THEME" COLORS_PATH="$COLORS" python3 -c '
-import os, re
-p = os.environ["COLORS_PATH"]
-bg = os.environ["BG"]
-theme = os.environ["THEME"]
-s = open(p).read()
-s = re.sub(r"(<color name=\"colorPrimary\">)[^<]*(</color>)", r"\g<1>" + theme + r"\g<2>", s)
-s = re.sub(r"(<color name=\"colorPrimaryDark\">)[^<]*(</color>)", r"\g<1>" + theme + r"\g<2>", s)
-s = re.sub(r"(<color name=\"colorAccent\">)[^<]*(</color>)", r"\g<1>" + theme + r"\g<2>", s)
-s = re.sub(r"(<color name=\"ic_launcher_background\">)[^<]*(</color>)", r"\g<1>" + bg + r"\g<2>", s)
-open(p, "w").write(s)
-print(s)
-'
-          fi
+            BG="$BG" THEME="$THEME" COLORS_PATH="$COLORS" python3 -c 'import os, re; p=os.environ["COLORS_PATH"]; bg=os.environ["BG"]; theme=os.environ["THEME"]; s=open(p).read(); s=re.sub(r"(<color name=\"colorPrimary\">)[^<]*(</color>)", r"\g<1>"+theme+r"\g<2>", s); s=re.sub(r"(<color name=\"colorPrimaryDark\">)[^<]*(</color>)", r"\g<1>"+theme+r"\g<2>", s); s=re.sub(r"(<color name=\"colorAccent\">)[^<]*(</color>)", r"\g<1>"+theme+r"\g<2>", s); s=re.sub(r"(<color name=\"ic_launcher_background\">)[^<]*(</color>)", r"\g<1>"+bg+r"\g<2>", s); open(p,"w").write(s); print(s)'
           fi
 
       - name: Merge widget overrides
