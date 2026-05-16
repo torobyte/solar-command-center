@@ -193,8 +193,9 @@ class MainActivity : Activity() {
     private fun ensureFreshSession(rawSession: String): String {
         val session = JSONObject(rawSession)
         val withExpiry = ensureExpiresAt(session)
-        val accessToken = withExpiry.optString("access_token")
-        if (accessToken.isNotBlank() && isAccessTokenValid(accessToken)) {
+        val expiresAt = withExpiry.optLong("expires_at", 0L)
+        val now = System.currentTimeMillis() / 1000L
+        if (expiresAt == 0L || expiresAt > now + 60L) {
             return withExpiry.toString()
         }
 
@@ -211,17 +212,6 @@ class MainActivity : Activity() {
             }
         }
         return session
-    }
-
-    private fun isAccessTokenValid(token: String): Boolean {
-        val conn = (URL("${WidgetSetupActivity.SUPABASE_URL}/auth/v1/user").openConnection() as HttpURLConnection).apply {
-            requestMethod = "GET"
-            connectTimeout = 8000
-            readTimeout = 8000
-            setRequestProperty("apikey", WidgetSetupActivity.SUPABASE_ANON)
-            setRequestProperty("Authorization", "Bearer $token")
-        }
-        return conn.responseCode in 200..299
     }
 
     private fun refreshSession(refreshToken: String): String {
