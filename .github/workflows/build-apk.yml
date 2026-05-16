@@ -79,7 +79,7 @@ jobs:
             grep -q "android.permission.INTERNET" "$MANIFEST" || \
               sed -i 's|<application|<uses-permission android:name="android.permission.INTERNET"/>\n    <application|' "$MANIFEST"
             # Inject widget declarations before </application>, excluding duplicate MainActivity
-            FILTERED_SNIPPET=$(perl -0pe 's@<activity\b(?:(?!</activity>).)*android:name="\.MainActivity"(?:(?!</activity>).)*</activity>\s*@@sg' "$SNIPPET")
+            FILTERED_SNIPPET=$(python3 -c 'from pathlib import Path; import re, sys; s = Path(sys.argv[1]).read_text(); print(re.sub(r"<activity\\b(?:(?!</activity>).)*android:name=\"\\.MainActivity\"(?:(?!</activity>).)*</activity>\\s*", "", s, flags=re.S))' "$SNIPPET")
             SNIPPET_CONTENT="$FILTERED_SNIPPET"
             awk -v snip="$SNIPPET_CONTENT" '/<\/application>/{print snip} {print}' "$MANIFEST" > "${MANIFEST}.new"
             mv "${MANIFEST}.new" "$MANIFEST"
