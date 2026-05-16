@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, Save, Download, Smartphone, RefreshCw, Upload, X, Github, QrCode } from "lucide-react";
+import { Loader2, Save, Download, Smartphone, RefreshCw, Upload, X, Github, QrCode, ShieldCheck, Copy, CheckCircle2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
 interface ApkConfig {
@@ -58,6 +58,63 @@ export function ApkAdmin() {
   const [showSplash, setShowSplash] = useState(true);
   const [apkUrl, setApkUrl] = useState<string>(() => localStorage.getItem("apk_download_url") ?? "");
   const [repoUrl, setRepoUrl] = useState<string>(() => localStorage.getItem("apk_repo_url") ?? "");
+  const [latestTag, setLatestTag] = useState<string | null>(null);
+  const [latestSha, setLatestSha] = useState<string | null>(null);
+  const [publishedAt, setPublishedAt] = useState<string | null>(null);
+  const [fetchingRelease, setFetchingRelease] = useState(false);
+  const [autoMode, setAutoMode] = useState<boolean>(() => localStorage.getItem("apk_auto_mode") !== "false");
+  const [copiedSha, setCopiedSha] = useState(false);
+
+  function parseRepo(url: string): { owner: string; repo: string } | null {
+    const m = url.match(/github\.com[/:]([^/]+)\/([^/.]+)/i);
+    return m ? { owner: m[1], repo: m[2].replace(/\.git$/, "") } : null;
+  }
+
+  async function fetchLatestRelease(silent = false) {
+    const parsed = parseRepo(repoUrl);
+    if (!parsed) {
+      if (!silent) toast.error("Configura primero la URL del repo de GitHub");
+      return;
+    }
+    setFetchingRelease(true);
+    try {
+      const r = await fetch(`https://api.github.com/repos/${parsed.owner}/${parsed.repo}/releases/latest`, {
+        headers: { Accept: "application/vnd.github+json" },
+      });
+      if (!r.ok) throw new Error(`GitHub API ${r.status}`);
+      const j = await r.json();
+      const apkAsset = (j.assets ?? []).find((a: any) => a.name.endsWith(".apk"));
+      const shaAsset = (j.assets ?? []).find((a: any) => a.name.endsWith(".sha256"));
+      if (!apkAsset) throw new Error("El último release no contiene .apk");
+      if (autoMode) {
+        setApkUrl(apkAsset.browser_download_url);
+        localStorage.setItem("apk_download_url", apkAsset.browser_download_url);
+      }
+      setLatestTag(j.tag_name ?? null);
+      setPublishedAt(j.published_at ?? null);
+      // Intenta extraer SHA del body, o descargar el .sha256
+      const bodyMatch = (j.body ?? "").match(/[A-Fa-f0-9]{64}/);
+      if (bodyMatch) setLatestSha(bodyMatch[0].toLowerCase());
+      else if (shaAsset) {
+        try {
+          const t = await (await fetch(shaAsset.browser_download_url)).text();
+          const m = t.match(/[A-Fa-f0-9]{64}/);
+          if (m) setLatestSha(m[0].toLowerCase());
+        } catch {}
+      }
+      if (!silent) toast.success(`Última versión: ${j.tag_name}`);
+    } catch (e: any) {
+      if (!silent) toast.error(e.message);
+    } finally {
+      setFetchingRelease(false);
+    }
+  }
+
+  // Auto-fetch al cargar y cuando cambie el repo
+  useEffect(() => {
+    if (repoUrl && autoMode) fetchLatestRelease(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repoUrl, autoMode]);
 
   useEffect(() => {
     (async () => {
@@ -233,23 +290,12 @@ export function ApkAdmin() {
           <h3 className="text-lg font-semibold">Descarga del APK por QR</h3>
         </div>
         <p className="text-sm text-muted-foreground">
-          El APK se compila automáticamente con GitHub Actions cada vez que cambie el directorio <code>android/</code> o lo ejecutes manualmente desde la pestaña <strong>Actions</strong> del repo. La última versión queda publicada como Release. Pega aquí la URL del APK (o de la página de Releases) y aparecerá un QR para escanear desde el móvil.
+          El APK se compila automáticamente con GitHub Actions: en cada push a <code>main</code>, todos los días a las 04:00 UTC, o manualmente desde Actions. El admin descubre la última versión del repo y genera el QR sin pegar nada a mano.
         </p>
 
         <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-1.5">
-            <Label className="text-sm">URL de descarga del APK</Label>
-            <Input
-              placeholder="https://github.com/usuario/repo/releases/latest/download/app-release-signed.apk"
-              value={apkUrl}
-              onChange={(e) => {
-                setApkUrl(e.target.value);
-                localStorage.setItem("apk_download_url", e.target.value);
-              }}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-sm">Repositorio GitHub (opcional)</Label>
+            <Label className="text-sm">Repositorio GitHub</Label>
             <Input
               placeholder="https://github.com/usuario/repo"
               value={repoUrl}
@@ -259,54 +305,133 @@ export function ApkAdmin() {
               }}
             />
           </div>
+          <div className="space-y-1.5">
+            <Label className="text-sm flex items-center justify-between">
+              <span>URL del APK</span>
+              <label className="flex items-center gap-1.5 text-xs font-normal text-muted-foreground">
+                <Switch
+                  checked={autoMode}
+                  onCheckedChange={(v) => {
+                    setAutoMode(v);
+                    localStorage.setItem("apk_auto_mode", String(v));
+                  }}
+                />
+                Auto desde Releases
+              </label>
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Se rellena automáticamente"
+                value={apkUrl}
+                disabled={autoMode}
+                onChange={(e) => {
+                  setApkUrl(e.target.value);
+                  localStorage.setItem("apk_download_url", e.target.value);
+                }}
+              />
+              <Button size="sm" variant="outline" onClick={() => fetchLatestRelease(false)} disabled={fetchingRelease || !repoUrl}>
+                {fetchingRelease ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
         </div>
 
         {apkUrl ? (
-          <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 sm:flex-row sm:items-start sm:justify-between">
-            <div className="rounded-lg bg-white p-3">
-              <QRCodeSVG value={apkUrl} size={180} level="M" />
-            </div>
-            <div className="flex-1 space-y-3 text-sm">
-              <p className="text-muted-foreground">
-                Escanea desde el móvil para descargar el APK. Tras descargar, Android pedirá permitir instalación desde orígenes desconocidos.
-              </p>
-              <div className="break-all rounded-md bg-muted/50 p-2 font-mono text-xs">{apkUrl}</div>
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="default" asChild>
-                  <a href={apkUrl} target="_blank" rel="noopener noreferrer">
-                    <Download className="h-4 w-4 mr-2" />Descargar APK
-                  </a>
-                </Button>
-                {repoUrl && (
-                  <Button size="sm" variant="outline" asChild>
-                    <a href={`${repoUrl.replace(/\/$/, "")}/actions/workflows/build-apk.yml`} target="_blank" rel="noopener noreferrer">
-                      <Github className="h-4 w-4 mr-2" />Lanzar build
+          <div className="space-y-3">
+            <div className="flex flex-col items-center gap-4 rounded-xl border border-border bg-card p-6 sm:flex-row sm:items-start sm:justify-between">
+              <div className="rounded-lg bg-white p-3">
+                <QRCodeSVG value={apkUrl} size={180} level="M" />
+              </div>
+              <div className="flex-1 space-y-3 text-sm">
+                {latestTag && (
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary">{latestTag}</span>
+                    {publishedAt && (
+                      <span className="text-muted-foreground">publicado {new Date(publishedAt).toLocaleString()}</span>
+                    )}
+                  </div>
+                )}
+                <p className="text-muted-foreground">
+                  Escanea desde el móvil para descargar e instalar el APK firmado.
+                </p>
+                <div className="break-all rounded-md bg-muted/50 p-2 font-mono text-xs">{apkUrl}</div>
+                {latestSha && (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1.5 text-xs font-medium">
+                      <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+                      SHA-256 (verificación de firma)
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 break-all rounded bg-muted/50 p-1.5 font-mono text-[10px]">{latestSha}</code>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 shrink-0"
+                        onClick={() => {
+                          navigator.clipboard.writeText(latestSha);
+                          setCopiedSha(true);
+                          setTimeout(() => setCopiedSha(false), 1500);
+                        }}
+                      >
+                        {copiedSha ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="default" asChild>
+                    <a href={apkUrl} target="_blank" rel="noopener noreferrer">
+                      <Download className="h-4 w-4 mr-2" />Abrir URL de instalación
                     </a>
                   </Button>
-                )}
-                {repoUrl && (
-                  <Button size="sm" variant="ghost" asChild>
-                    <a href={`${repoUrl.replace(/\/$/, "")}/releases`} target="_blank" rel="noopener noreferrer">
-                      Ver releases
-                    </a>
-                  </Button>
-                )}
+                  {repoUrl && (
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={`${repoUrl.replace(/\/$/, "")}/actions/workflows/build-apk.yml`} target="_blank" rel="noopener noreferrer">
+                        <Github className="h-4 w-4 mr-2" />Lanzar build
+                      </a>
+                    </Button>
+                  )}
+                  {repoUrl && (
+                    <Button size="sm" variant="ghost" asChild>
+                      <a href={`${repoUrl.replace(/\/$/, "")}/releases`} target="_blank" rel="noopener noreferrer">
+                        Ver releases
+                      </a>
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
+
+            <details className="rounded-lg border border-border bg-muted/30 p-4 text-sm" open>
+              <summary className="cursor-pointer font-medium">📲 Cómo instalar el APK en tu teléfono</summary>
+              <ol className="mt-3 list-decimal space-y-2 pl-5 text-muted-foreground">
+                <li>Escanea el código QR con la cámara del móvil (o pulsa <strong>Abrir URL de instalación</strong> si ya estás en el teléfono).</li>
+                <li>El navegador descarga <code>app-release-signed.apk</code>. Acepta la descarga.</li>
+                <li>Android pedirá permitir instalación desde esta fuente: <strong>Ajustes → Permitir esta instalación</strong> y vuelve atrás.</li>
+                <li>Pulsa <strong>Instalar</strong>. Si Play Protect avisa "App no reconocida", pulsa <strong>Instalar de todas formas</strong> (el APK está firmado con tu keystore).</li>
+                <li>
+                  <strong>Verificar firma (opcional):</strong> compara el SHA-256 mostrado arriba con el del archivo descargado.
+                  En Termux o un PC: <code>sha256sum app-release-signed.apk</code>. Los dos valores deben coincidir.
+                </li>
+                <li>Abre la app y entra con tu correo y contraseña.</li>
+              </ol>
+            </details>
           </div>
         ) : (
           <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-            Configura la URL del APK para generar el código QR.
+            {repoUrl
+              ? "No se encontró ningún release todavía. Lanza el workflow desde Actions o haz un push a main."
+              : "Pega la URL del repo de GitHub para detectar el último APK automáticamente."}
           </div>
         )}
 
         <details className="rounded-lg border border-border bg-muted/30 p-4 text-sm">
-          <summary className="cursor-pointer font-medium">Configuración inicial (una sola vez)</summary>
+          <summary className="cursor-pointer font-medium">⚙️ Configuración inicial (una sola vez)</summary>
           <ol className="mt-3 list-decimal space-y-2 pl-5 text-muted-foreground">
             <li>Conecta el proyecto a GitHub desde el menú (+) → GitHub → Connect project.</li>
-            <li>El workflow <code>.github/workflows/build-apk.yml</code> ya está incluido. Se ejecuta solo cuando cambias <code>android/</code> o manualmente desde la pestaña Actions.</li>
+            <li>El workflow <code>.github/workflows/build-apk.yml</code> ya está incluido. Se ejecuta en cada push a <code>main</code>, todos los días a las 04:00 UTC, y manualmente desde la pestaña Actions.</li>
             <li>
-              <strong>Firmar APK (opcional pero recomendado):</strong> añade estos Secrets en
+              <strong>Firma del APK (requerida para instalar):</strong> añade estos Secrets en
               GitHub (Settings → Secrets and variables → Actions):
               <ul className="mt-1 list-disc pl-5">
                 <li><code>ANDROID_KEYSTORE_BASE64</code> — keystore .jks en base64</li>
@@ -314,10 +439,9 @@ export function ApkAdmin() {
                 <li><code>ANDROID_KEY_ALIAS</code></li>
                 <li><code>ANDROID_KEY_PASSWORD</code></li>
               </ul>
-              Sin estos secrets el APK se compila sin firmar (válido para pruebas locales, no instalable directamente).
             </li>
             <li>Genera el keystore con: <code>keytool -genkey -v -keystore release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias solarops</code> y luego <code>base64 -w0 release.jks</code>.</li>
-            <li>Para actualizar la app: sube tus cambios, lanza Actions → Run workflow, y el QR seguirá apuntando al último release si usas la URL <code>/releases/latest/download/...</code></li>
+            <li>Pega arriba la URL del repo. El admin descubrirá el último APK automáticamente y mostrará SHA-256 para verificar la firma.</li>
           </ol>
         </details>
       </Card>
