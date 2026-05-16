@@ -73,7 +73,7 @@ export const generateApkProject = createServerFn({ method: "POST" })
     const slug = cfg.app_name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
     // ---------------- capacitor.config.ts ----------------
-    const startUrl = cfg.server_url.replace(/\/$/, "") + (cfg.start_path || "/app-login");
+    const startUrl = cfg.server_url.replace(/\/$/, "") + (cfg.start_path || "/apk-auth");
     const capacitorConfig = `import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
