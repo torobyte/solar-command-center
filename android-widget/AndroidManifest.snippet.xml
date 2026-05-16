@@ -3,16 +3,7 @@
   Requiere: <uses-permission android:name="android.permission.INTERNET"/>
 -->
 
-<!-- Launcher: WebView a pantalla completa con el sitio publicado. -->
-<activity
-    android:name=".MainActivity"
-    android:exported="true"
-    android:label="SolarOps">
-    <intent-filter>
-        <action android:name="android.intent.action.MAIN" />
-        <category android:name="android.intent.category.LAUNCHER" />
-    </intent-filter>
-</activity>
+<!-- MainActivity launcher es generado por Capacitor, no se declara aquí. -->
 
 <!-- Login + lista de sitios. Solo se abre desde el picker del widget. -->
 <activity
