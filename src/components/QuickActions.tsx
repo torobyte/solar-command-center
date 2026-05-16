@@ -45,6 +45,9 @@ interface QuickActionsProps {
   siteId: string;
   agentBase?: string | null;
   config?: QuickActionsConfig;
+  /** Si es true, la tarjeta es visible pero todos los botones quedan deshabilitados
+   *  (modo lector). Se muestra una etiqueta "Solo lectura". */
+  readOnly?: boolean;
 }
 
 const AC_AMPS = [2, 10, 20, 30] as const;
