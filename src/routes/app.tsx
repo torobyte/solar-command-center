@@ -337,7 +337,7 @@ function SitesIndex() {
                           <div className="font-medium">{s.name}</div>
                           {s.description && <div className="text-xs text-muted-foreground">{s.description}</div>}
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground">{s.inverter_model ?? "—"}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{s.inverter_spec_model || s.inverter_model || s.inverter_driver || "—"}</td>
                         <td className="px-4 py-3">
                           {isShared ? (
                             <Badge variant="outline" className="rounded-full bg-muted/40 text-muted-foreground border-border">
