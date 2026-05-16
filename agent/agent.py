@@ -2856,6 +2856,15 @@ def main():
         agent.config["device_token"] = args.token
         save_config(agent.config)
 
+    # Asegura que la radio WiFi esté encendida al arrancar el agente
+    # (primera instalación o tras un apagado manual previo).
+    try:
+        subprocess.run(["rfkill", "unblock", "wifi"], capture_output=True, timeout=5)
+    except Exception: pass
+    try:
+        subprocess.run(["nmcli", "radio", "wifi", "on"], capture_output=True, timeout=5)
+    except Exception: pass
+
     threading.Thread(target=agent.poll_loop, daemon=True).start()
     threading.Thread(target=agent.push_loop, daemon=True).start()
     threading.Thread(target=agent.license_loop, daemon=True).start()
