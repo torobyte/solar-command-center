@@ -25,6 +25,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
+
+      - name: Cache npx / Capacitor CLI downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json', 'bun.lockb', 'package.json') }}
+          restore-keys: |
+            npm-${{ runner.os }}-
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
