@@ -29,6 +29,7 @@ interface Site {
   last_seen_at: string | null; license_expires_at: string | null;
   owner_id: string;
   owner_email?: string | null;
+  owner_name?: string | null;
 }
 
 interface MyLicense {
@@ -63,9 +64,15 @@ function SitesIndex() {
     const myId = user?.id;
     const otherOwners = Array.from(new Set(list.filter(x => x.owner_id !== myId).map(x => x.owner_id)));
     if (otherOwners.length > 0) {
-      const { data: profs } = await supabase.from("profiles").select("id,email").in("id", otherOwners);
-      const byId = new Map((profs ?? []).map(p => [p.id, p.email] as const));
-      list.forEach(x => { if (x.owner_id !== myId) x.owner_email = byId.get(x.owner_id) ?? null; });
+      const { data: profs } = await supabase.from("profiles").select("id,email,full_name").in("id", otherOwners);
+      const byId = new Map((profs ?? []).map(p => [p.id, { email: p.email, name: p.full_name }] as const));
+      list.forEach(x => {
+        if (x.owner_id !== myId) {
+          const p = byId.get(x.owner_id);
+          x.owner_email = p?.email ?? null;
+          x.owner_name = p?.name ?? null;
+        }
+      });
     }
     setSites(list);
     setLicenses((lic ?? []) as MyLicense[]);
@@ -238,7 +245,7 @@ function SitesIndex() {
                     <div className="mt-2 flex flex-wrap items-center gap-1.5">
                       {isShared ? (
                         <Badge variant="outline" className="rounded-full bg-muted/40 text-muted-foreground border-border px-2.5 py-0.5 text-[11px]">
-                          Compartido por {s.owner_email ?? "otro usuario"}
+                          Compartido por {s.owner_name || s.owner_email || "otro usuario"}
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="rounded-full bg-accent/10 text-accent border-accent/20 px-2.5 py-0.5 text-[11px]">
@@ -310,7 +317,7 @@ function SitesIndex() {
                         <td className="px-4 py-3">
                           {isShared ? (
                             <Badge variant="outline" className="rounded-full bg-muted/40 text-muted-foreground border-border">
-                              Compartido por {s.owner_email ?? "otro usuario"}
+                              Compartido por {s.owner_name || s.owner_email || "otro usuario"}
                             </Badge>
                           ) : (
                             <Badge variant="outline" className="rounded-full">{s.plan}</Badge>
