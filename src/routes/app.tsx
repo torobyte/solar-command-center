@@ -276,9 +276,9 @@ function SitesIndex() {
                           {s.plan}
                         </Badge>
                       )}
-                      {s.inverter_model && (
+                      {(s.inverter_spec_model || s.inverter_model || s.inverter_driver) && (
                         <Badge variant="outline" className="rounded-full bg-success/10 text-success border-success/20 px-2.5 py-0.5 text-[11px] gap-1">
-                          <CpuIcon className="h-3 w-3" strokeWidth={2.4} /> {s.inverter_model}
+                          <CpuIcon className="h-3 w-3" strokeWidth={2.4} /> {s.inverter_spec_model || s.inverter_model || s.inverter_driver}
                         </Badge>
                       )}
                     </div>
