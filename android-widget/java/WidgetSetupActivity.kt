@@ -44,7 +44,7 @@ class WidgetSetupActivity : Activity() {
         const val KEY_USER_EMAIL = "user_email"
 
         fun savedSites(ctx: Context): JSONArray {
-            val raw = ctx.getSharedPreferences(PREFS, MODE_PRIVATE)
+            val raw = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                 .getString(KEY_SITES_JSON, "[]") ?: "[]"
             return try { JSONArray(raw) } catch (_: Exception) { JSONArray() }
         }
