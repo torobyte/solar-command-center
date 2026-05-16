@@ -17,6 +17,7 @@ interface ApkConfig {
   version_name: string;
   version_code: number;
   server_url: string;
+  start_path: string;
   primary_color: string;
   background_color: string;
   splash_color: string;
@@ -33,6 +34,7 @@ const DEFAULT: ApkConfig = {
   version_name: "1.0.0",
   version_code: 1,
   server_url: "https://project--7cb3041b-eb20-43aa-ba17-b0848cb53051.lovable.app",
+  start_path: "/app-login",
   primary_color: "#f59e0b",
   background_color: "#0a0a0a",
   splash_color: "#0a0a0a",
