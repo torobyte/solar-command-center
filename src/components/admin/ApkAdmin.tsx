@@ -276,3 +276,96 @@ export function ApkAdmin() {
     </div>
   );
 }
+
+function AssetUploader({
+  label,
+  value,
+  folder,
+  onChange,
+}: {
+  label: string;
+  value: string | null;
+  folder: string;
+  onChange: (url: string | null) => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const onPick = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecciona una imagen PNG o JPG");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Máximo 5 MB");
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error } = await supabase.storage.from("apk-assets").upload(path, file, {
+        upsert: false,
+        contentType: file.type,
+      });
+      if (error) throw error;
+      const { data } = supabase.storage.from("apk-assets").getPublicUrl(path);
+      onChange(data.publicUrl);
+      toast.success("Imagen subida");
+    } catch (e: any) {
+      toast.error(e.message || "Error al subir");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <div className="flex items-center gap-3">
+        {value ? (
+          <div className="relative h-16 w-16 rounded-lg border overflow-hidden bg-muted">
+            <img src={value} alt="" className="h-full w-full object-cover" />
+            <button
+              type="button"
+              onClick={() => onChange(null)}
+              className="absolute -top-1 -right-1 rounded-full bg-destructive text-destructive-foreground p-0.5"
+              aria-label="Quitar"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        ) : (
+          <div className="h-16 w-16 rounded-lg border-2 border-dashed flex items-center justify-center text-muted-foreground text-xs">
+            Sin imagen
+          </div>
+        )}
+        <div className="flex-1 space-y-2">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onPick(f);
+              e.target.value = "";
+            }}
+          />
+          <div className="flex gap-2">
+            <Button type="button" size="sm" variant="secondary" onClick={() => fileRef.current?.click()} disabled={uploading}>
+              {uploading ? <Loader2 className="h-3 w-3 mr-2 animate-spin" /> : <Upload className="h-3 w-3 mr-2" />}
+              Subir archivo
+            </Button>
+          </div>
+          <Input
+            value={value ?? ""}
+            onChange={(e) => onChange(e.target.value || null)}
+            placeholder="o pega una URL https://…"
+            className="text-xs"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
