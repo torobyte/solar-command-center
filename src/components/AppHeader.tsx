@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { Sun, LogOut, ShieldCheck, LayoutGrid, Menu, UserCircle2, Sparkles } from "lucide-react";
+import { Sun, LogOut, ShieldCheck, LayoutGrid, Menu, UserCircle2, Sparkles, Smartphone } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
@@ -22,10 +22,12 @@ export function AppHeader() {
   const onSites = location.pathname.startsWith("/sites") || location.pathname === "/app";
   const onAdmin = location.pathname.startsWith("/admin");
   const onAccount = location.pathname.startsWith("/account");
+  const onWidgets = location.pathname.startsWith("/app/widgets");
 
   type NavItem = { to: string; label: string; icon: typeof LayoutGrid; active: boolean };
   const items: NavItem[] = [
-    { to: "/app", label: t("nav.sites"), icon: LayoutGrid, active: onSites },
+    { to: "/app", label: t("nav.sites"), icon: LayoutGrid, active: onSites && !onWidgets },
+    { to: "/app/widgets", label: "Mis widgets", icon: Smartphone, active: onWidgets },
     { to: "/account", label: "Mi cuenta", icon: UserCircle2, active: onAccount },
   ];
   if (role === "superadmin") {
