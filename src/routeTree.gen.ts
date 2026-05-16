@@ -13,6 +13,7 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LocalRouteImport } from './routes/local'
+import { Route as AppLoginRouteImport } from './routes/app-login'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AccountRouteImport } from './routes/account'
@@ -20,6 +21,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as SitesOverviewRouteImport } from './routes/sites.overview'
 import { Route as SitesSiteIdRouteImport } from './routes/sites.$siteId'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as AppWidgetsRouteImport } from './routes/app.widgets'
+import { Route as ApiPublicWidgetDataRouteImport } from './routes/api/public/widget-data'
 import { Route as ApiPublicWidgetRouteImport } from './routes/api/public/widget'
 import { Route as ApiPublicSnapshotRouteImport } from './routes/api/public/snapshot'
 import { Route as ApiPublicPushDispatchRouteImport } from './routes/api/public/push-dispatch'
@@ -55,6 +58,11 @@ const LocalRoute = LocalRouteImport.update({
   path: '/local',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppLoginRoute = AppLoginRouteImport.update({
+  id: '/app-login',
+  path: '/app-login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppRoute = AppRouteImport.update({
   id: '/app',
   path: '/app',
@@ -88,6 +96,16 @@ const SitesSiteIdRoute = SitesSiteIdRouteImport.update({
 const InviteTokenRoute = InviteTokenRouteImport.update({
   id: '/invite/$token',
   path: '/invite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppWidgetsRoute = AppWidgetsRouteImport.update({
+  id: '/widgets',
+  path: '/widgets',
+  getParentRoute: () => AppRoute,
+} as any)
+const ApiPublicWidgetDataRoute = ApiPublicWidgetDataRouteImport.update({
+  id: '/api/public/widget-data',
+  path: '/api/public/widget-data',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicWidgetRoute = ApiPublicWidgetRouteImport.update({
@@ -165,11 +183,13 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
-  '/app': typeof AppRoute
+  '/app': typeof AppRouteWithChildren
+  '/app-login': typeof AppLoginRoute
   '/local': typeof LocalRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/app/widgets': typeof AppWidgetsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/sites/$siteId': typeof SitesSiteIdRoute
   '/sites/overview': typeof SitesOverviewRoute
@@ -184,6 +204,7 @@ export interface FileRoutesByFullPath {
   '/api/public/push-dispatch': typeof ApiPublicPushDispatchRoute
   '/api/public/snapshot': typeof ApiPublicSnapshotRoute
   '/api/public/widget': typeof ApiPublicWidgetRoute
+  '/api/public/widget-data': typeof ApiPublicWidgetDataRoute
   '/api/public/agent/agent': typeof ApiPublicAgentAgentRoute
   '/api/public/agent/install': typeof ApiPublicAgentInstallRoute
   '/api/public/agent/update': typeof ApiPublicAgentUpdateRoute
@@ -192,11 +213,13 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
-  '/app': typeof AppRoute
+  '/app': typeof AppRouteWithChildren
+  '/app-login': typeof AppLoginRoute
   '/local': typeof LocalRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/app/widgets': typeof AppWidgetsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/sites/$siteId': typeof SitesSiteIdRoute
   '/sites/overview': typeof SitesOverviewRoute
@@ -211,6 +234,7 @@ export interface FileRoutesByTo {
   '/api/public/push-dispatch': typeof ApiPublicPushDispatchRoute
   '/api/public/snapshot': typeof ApiPublicSnapshotRoute
   '/api/public/widget': typeof ApiPublicWidgetRoute
+  '/api/public/widget-data': typeof ApiPublicWidgetDataRoute
   '/api/public/agent/agent': typeof ApiPublicAgentAgentRoute
   '/api/public/agent/install': typeof ApiPublicAgentInstallRoute
   '/api/public/agent/update': typeof ApiPublicAgentUpdateRoute
@@ -220,11 +244,13 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
-  '/app': typeof AppRoute
+  '/app': typeof AppRouteWithChildren
+  '/app-login': typeof AppLoginRoute
   '/local': typeof LocalRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/app/widgets': typeof AppWidgetsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/sites/$siteId': typeof SitesSiteIdRoute
   '/sites/overview': typeof SitesOverviewRoute
@@ -239,6 +265,7 @@ export interface FileRoutesById {
   '/api/public/push-dispatch': typeof ApiPublicPushDispatchRoute
   '/api/public/snapshot': typeof ApiPublicSnapshotRoute
   '/api/public/widget': typeof ApiPublicWidgetRoute
+  '/api/public/widget-data': typeof ApiPublicWidgetDataRoute
   '/api/public/agent/agent': typeof ApiPublicAgentAgentRoute
   '/api/public/agent/install': typeof ApiPublicAgentInstallRoute
   '/api/public/agent/update': typeof ApiPublicAgentUpdateRoute
@@ -250,10 +277,12 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/app'
+    | '/app-login'
     | '/local'
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/app/widgets'
     | '/invite/$token'
     | '/sites/$siteId'
     | '/sites/overview'
@@ -268,6 +297,7 @@ export interface FileRouteTypes {
     | '/api/public/push-dispatch'
     | '/api/public/snapshot'
     | '/api/public/widget'
+    | '/api/public/widget-data'
     | '/api/public/agent/agent'
     | '/api/public/agent/install'
     | '/api/public/agent/update'
@@ -277,10 +307,12 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/app'
+    | '/app-login'
     | '/local'
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/app/widgets'
     | '/invite/$token'
     | '/sites/$siteId'
     | '/sites/overview'
@@ -295,6 +327,7 @@ export interface FileRouteTypes {
     | '/api/public/push-dispatch'
     | '/api/public/snapshot'
     | '/api/public/widget'
+    | '/api/public/widget-data'
     | '/api/public/agent/agent'
     | '/api/public/agent/install'
     | '/api/public/agent/update'
@@ -304,10 +337,12 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/app'
+    | '/app-login'
     | '/local'
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/app/widgets'
     | '/invite/$token'
     | '/sites/$siteId'
     | '/sites/overview'
@@ -322,6 +357,7 @@ export interface FileRouteTypes {
     | '/api/public/push-dispatch'
     | '/api/public/snapshot'
     | '/api/public/widget'
+    | '/api/public/widget-data'
     | '/api/public/agent/agent'
     | '/api/public/agent/install'
     | '/api/public/agent/update'
@@ -331,7 +367,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountRoute: typeof AccountRoute
   AdminRoute: typeof AdminRoute
-  AppRoute: typeof AppRoute
+  AppRoute: typeof AppRouteWithChildren
+  AppLoginRoute: typeof AppLoginRoute
   LocalRoute: typeof LocalRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -350,6 +387,7 @@ export interface RootRouteChildren {
   ApiPublicPushDispatchRoute: typeof ApiPublicPushDispatchRoute
   ApiPublicSnapshotRoute: typeof ApiPublicSnapshotRoute
   ApiPublicWidgetRoute: typeof ApiPublicWidgetRoute
+  ApiPublicWidgetDataRoute: typeof ApiPublicWidgetDataRoute
   ApiPublicAgentAgentRoute: typeof ApiPublicAgentAgentRoute
   ApiPublicAgentInstallRoute: typeof ApiPublicAgentInstallRoute
   ApiPublicAgentUpdateRoute: typeof ApiPublicAgentUpdateRoute
@@ -383,6 +421,13 @@ declare module '@tanstack/react-router' {
       path: '/local'
       fullPath: '/local'
       preLoaderRoute: typeof LocalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app-login': {
+      id: '/app-login'
+      path: '/app-login'
+      fullPath: '/app-login'
+      preLoaderRoute: typeof AppLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app': {
@@ -432,6 +477,20 @@ declare module '@tanstack/react-router' {
       path: '/invite/$token'
       fullPath: '/invite/$token'
       preLoaderRoute: typeof InviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/widgets': {
+      id: '/app/widgets'
+      path: '/widgets'
+      fullPath: '/app/widgets'
+      preLoaderRoute: typeof AppWidgetsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/api/public/widget-data': {
+      id: '/api/public/widget-data'
+      path: '/api/public/widget-data'
+      fullPath: '/api/public/widget-data'
+      preLoaderRoute: typeof ApiPublicWidgetDataRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/widget': {
@@ -535,11 +594,22 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppRouteChildren {
+  AppWidgetsRoute: typeof AppWidgetsRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppWidgetsRoute: AppWidgetsRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRoute,
   AdminRoute: AdminRoute,
-  AppRoute: AppRoute,
+  AppRoute: AppRouteWithChildren,
+  AppLoginRoute: AppLoginRoute,
   LocalRoute: LocalRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
@@ -558,6 +628,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicPushDispatchRoute: ApiPublicPushDispatchRoute,
   ApiPublicSnapshotRoute: ApiPublicSnapshotRoute,
   ApiPublicWidgetRoute: ApiPublicWidgetRoute,
+  ApiPublicWidgetDataRoute: ApiPublicWidgetDataRoute,
   ApiPublicAgentAgentRoute: ApiPublicAgentAgentRoute,
   ApiPublicAgentInstallRoute: ApiPublicAgentInstallRoute,
   ApiPublicAgentUpdateRoute: ApiPublicAgentUpdateRoute,

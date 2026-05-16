@@ -8,6 +8,7 @@ const ApkConfigSchema = z.object({
   version_name: z.string().min(1).max(20),
   version_code: z.number().int().min(1).max(2147483647),
   server_url: z.string().url(),
+  start_path: z.string().min(1).max(120).regex(/^\//, "Debe iniciar con /"),
   primary_color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   background_color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   splash_color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
@@ -72,6 +73,7 @@ export const generateApkProject = createServerFn({ method: "POST" })
     const slug = cfg.app_name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
     // ---------------- capacitor.config.ts ----------------
+    const startUrl = cfg.server_url.replace(/\/$/, "") + (cfg.start_path || "/app-login");
     const capacitorConfig = `import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
@@ -79,7 +81,7 @@ const config: CapacitorConfig = {
   appName: ${JSON.stringify(cfg.app_name)},
   webDir: "dist",
   server: {
-    url: ${JSON.stringify(cfg.server_url)},
+    url: ${JSON.stringify(startUrl)},
     cleartext: ${cfg.cleartext},
     androidScheme: "https",
   },
@@ -214,6 +216,167 @@ export default config;
 `;
     zip.file("android-overrides/variables.gradle", variablesGradle);
 
+    // ---------------- Widget nativo Android ----------------
+    const pkgPath = cfg.app_id.replace(/\./g, "/");
+    const widgetEndpoint = cfg.server_url.replace(/\/$/, "") + "/api/public/widget-data";
+
+    zip.file(`${OVERRIDE_BASE}/xml/widget_solar_info.xml`, `<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="250dp" android:minHeight="110dp"
+    android:updatePeriodMillis="1800000"
+    android:initialLayout="@layout/widget_solar"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen" />
+`);
+
+    zip.file(`${OVERRIDE_BASE}/layout/widget_solar.xml`, `<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:padding="12dp" android:background="#0f0f0f">
+    <TextView android:id="@+id/widget_title" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:textColor="#ffffff" android:textStyle="bold" android:textSize="14sp" android:text="${escapeXml(cfg.app_name)}" />
+    <TextView android:id="@+id/widget_site" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:textColor="#a3a3a3" android:textSize="11sp" android:text="—" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:layout_marginTop="8dp" android:weightSum="2">
+        <TextView android:id="@+id/widget_pv" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+            android:textColor="#ffffff" android:textSize="16sp" android:text="PV —" />
+        <TextView android:id="@+id/widget_bat" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+            android:textColor="#ffffff" android:textSize="16sp" android:text="Bat —" />
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:layout_marginTop="4dp" android:weightSum="2">
+        <TextView android:id="@+id/widget_load" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+            android:textColor="#fafafa" android:textSize="13sp" android:text="Carga —" />
+        <TextView android:id="@+id/widget_grid" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+            android:textColor="#fafafa" android:textSize="13sp" android:text="Red —" />
+    </LinearLayout>
+    <TextView android:id="@+id/widget_ts" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:textColor="#737373" android:textSize="10sp" android:layout_marginTop="6dp" android:gravity="end" android:text="—" />
+</LinearLayout>
+`);
+
+    zip.file(`android-overrides/java/${pkgPath}/SolarWidgetProvider.kt`, `package ${cfg.app_id}
+
+import android.app.PendingIntent
+import android.appwidget.AppWidgetManager
+import android.appwidget.AppWidgetProvider
+import android.content.Context
+import android.content.Intent
+import android.widget.RemoteViews
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlin.concurrent.thread
+
+class SolarWidgetProvider : AppWidgetProvider() {
+    companion object { const val ACTION_REFRESH = "${cfg.app_id}.WIDGET_REFRESH" }
+    override fun onUpdate(context: Context, mgr: AppWidgetManager, ids: IntArray) { for (id in ids) refresh(context, mgr, id) }
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        if (intent.action == ACTION_REFRESH) {
+            val mgr = AppWidgetManager.getInstance(context)
+            val ids = mgr.getAppWidgetIds(android.content.ComponentName(context, SolarWidgetProvider::class.java))
+            for (id in ids) refresh(context, mgr, id)
+        }
+    }
+    private fun refresh(context: Context, mgr: AppWidgetManager, id: Int) {
+        val views = RemoteViews(context.packageName, R.layout.widget_solar)
+        val prefs = context.getSharedPreferences("solar_widget", Context.MODE_PRIVATE)
+        val token = prefs.getString("token", null)
+        val configId = prefs.getString("config_id", null)
+        val openIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+        if (openIntent != null) {
+            val pi = PendingIntent.getActivity(context, 0, openIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+            views.setOnClickPendingIntent(R.id.widget_title, pi)
+        }
+        if (token.isNullOrEmpty() || configId.isNullOrEmpty()) {
+            views.setTextViewText(R.id.widget_site, "Inicia sesión en la app")
+            mgr.updateAppWidget(id, views); return
+        }
+        thread {
+            try {
+                val url = URL("${widgetEndpoint}?config=" + configId)
+                val con = url.openConnection() as HttpURLConnection
+                con.requestMethod = "GET"
+                con.setRequestProperty("Authorization", "Bearer " + token)
+                con.connectTimeout = 8000; con.readTimeout = 8000
+                val code = con.responseCode
+                if (code == 200) {
+                    val body = con.inputStream.bufferedReader().use { it.readText() }
+                    val json = JSONObject(body)
+                    val site = json.optJSONObject("site")
+                    val sample = json.optJSONObject("sample") ?: JSONObject()
+                    views.setTextViewText(R.id.widget_title, json.optString("label", "Solar"))
+                    views.setTextViewText(R.id.widget_site, site?.optString("name") ?: "—")
+                    views.setTextViewText(R.id.widget_pv, "PV " + fmt(sample.opt("pv_input_power")) + " W")
+                    views.setTextViewText(R.id.widget_bat, "Bat " + fmt(sample.opt("battery_capacity")) + " %")
+                    views.setTextViewText(R.id.widget_load, "Carga " + fmt(sample.opt("load_percent")) + " %")
+                    views.setTextViewText(R.id.widget_grid, "Red " + fmt(sample.opt("grid_voltage")) + " V")
+                    views.setTextViewText(R.id.widget_ts, SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()))
+                } else if (code == 401) views.setTextViewText(R.id.widget_site, "Sesión expirada — abre la app")
+                else views.setTextViewText(R.id.widget_site, "Error " + code)
+            } catch (e: Exception) { views.setTextViewText(R.id.widget_site, "Sin conexión") }
+            finally { mgr.updateAppWidget(id, views) }
+        }
+    }
+    private fun fmt(v: Any?): String {
+        if (v == null || v == JSONObject.NULL) return "—"
+        return try { String.format(Locale.US, "%.0f", (v as Number).toDouble()) } catch (e: Exception) { v.toString() }
+    }
+}
+`);
+
+    zip.file(`android-overrides/java/${pkgPath}/SolarWidgetBridge.kt`, `package ${cfg.app_id}
+
+import android.appwidget.AppWidgetManager
+import com.getcapacitor.JSObject
+import com.getcapacitor.Plugin
+import com.getcapacitor.PluginCall
+import com.getcapacitor.PluginMethod
+import com.getcapacitor.annotation.CapacitorPlugin
+import org.json.JSONObject
+
+@CapacitorPlugin(name = "SolarWidgetBridge")
+class SolarWidgetBridge : Plugin() {
+    @PluginMethod
+    fun saveToken(call: PluginCall) {
+        val payload = call.getString("payload") ?: return call.reject("payload required")
+        val obj = JSONObject(payload)
+        val prefs = context.getSharedPreferences("solar_widget", android.content.Context.MODE_PRIVATE)
+        val ed = prefs.edit()
+        ed.putString("token", obj.optString("token"))
+        ed.putString("token_id", obj.optString("tokenId"))
+        if (obj.has("configId")) ed.putString("config_id", obj.optString("configId"))
+        ed.apply()
+        val mgr = AppWidgetManager.getInstance(context)
+        val ids = mgr.getAppWidgetIds(android.content.ComponentName(context, SolarWidgetProvider::class.java))
+        val intent = android.content.Intent(context, SolarWidgetProvider::class.java)
+        intent.action = SolarWidgetProvider.ACTION_REFRESH
+        intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
+        context.sendBroadcast(intent)
+        val res = JSObject(); res.put("ok", true); call.resolve(res)
+    }
+}
+`);
+
+    zip.file("android-overrides/AndroidManifest.fragment.xml", `<!-- Insertar dentro de <application> en android/app/src/main/AndroidManifest.xml -->
+<receiver android:name="${cfg.app_id}.SolarWidgetProvider" android:exported="true">
+    <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+        <action android:name="${cfg.app_id}.WIDGET_REFRESH" />
+    </intent-filter>
+    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solar_info" />
+</receiver>
+`);
+
+    zip.file("android-overrides/MainActivity.snippet.txt", `// En MainActivity.java, dentro de onCreate(), ANTES de super.onCreate():
+// registerPlugin(${cfg.app_id}.SolarWidgetBridge.class);
+`);
+
     // ---------------- Script de post-instalación ----------------
     const postScript = `#!/usr/bin/env bash
 set -e
@@ -221,10 +384,13 @@ echo "==> Preparando proyecto Android para ${cfg.app_name}"
 npm install
 npm run prepare
 npx cap add android || echo "android ya existe"
-echo "==> Aplicando overrides (colores, strings, íconos, splash)"
+echo "==> Aplicando overrides"
 cp -r android-overrides/res/. android/app/src/main/res/
+mkdir -p android/app/src/main/java
+cp -r android-overrides/java/. android/app/src/main/java/
 cp android-overrides/variables.gradle android/
-echo "==> Sincronizando"
+echo "==> Manifest: añade manualmente el contenido de android-overrides/AndroidManifest.fragment.xml dentro de <application>"
+echo "==> MainActivity: añade el registerPlugin de android-overrides/MainActivity.snippet.txt"
 npx cap sync android
 echo "Listo. Ejecuta: npx cap open android"
 `;
