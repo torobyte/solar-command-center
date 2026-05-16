@@ -27,6 +27,7 @@ export type Database = {
           server_url: string
           splash_color: string
           splash_url: string | null
+          start_path: string
           status_bar_style: string
           updated_at: string
           version_code: number
@@ -44,6 +45,7 @@ export type Database = {
           server_url?: string
           splash_color?: string
           splash_url?: string | null
+          start_path?: string
           status_bar_style?: string
           updated_at?: string
           version_code?: number
@@ -61,6 +63,7 @@ export type Database = {
           server_url?: string
           splash_color?: string
           splash_url?: string | null
+          start_path?: string
           status_bar_style?: string
           updated_at?: string
           version_code?: number
@@ -1286,6 +1289,90 @@ export type Database = {
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      widget_configs: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          metrics: Json
+          refresh_minutes: number
+          site_id: string
+          theme: string
+          token_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label?: string
+          metrics?: Json
+          refresh_minutes?: number
+          site_id: string
+          theme?: string
+          token_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          metrics?: Json
+          refresh_minutes?: number
+          site_id?: string
+          theme?: string
+          token_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "widget_configs_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "widget_configs_token_id_fkey"
+            columns: ["token_id"]
+            isOneToOne: false
+            referencedRelation: "widget_tokens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      widget_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          label: string | null
+          last_used_at: string | null
+          revoked_at: string | null
+          token: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label?: string | null
+          last_used_at?: string | null
+          revoked_at?: string | null
+          token?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string | null
+          last_used_at?: string | null
+          revoked_at?: string | null
+          token?: string
           user_id?: string
         }
         Relationships: []
