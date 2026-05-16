@@ -363,11 +363,19 @@ function LocalDashboardPage() {
                     </Button>
                   )}
                   <Button variant="outline" size="sm" asChild>
+                    <a href={`${agentBase}/wifi`} target="_blank" rel="noreferrer">
+                      <Wifi className="mr-1.5 h-3.5 w-3.5" /> Configurar WiFi
+                    </a>
+                  </Button>
+                  <Button variant="outline" size="sm" asChild>
                     <a href={`${agentBase}/status`} target="_blank" rel="noreferrer">
                       <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Diagnóstico del agente
                     </a>
                   </Button>
                 </div>
+                <p className="text-[11px] text-muted-foreground">
+                  <b>Configurar WiFi</b> siempre está disponible, aunque el equipo esté por Ethernet.
+                </p>
               </CardContent>
             </Card>
           </TabsContent>
