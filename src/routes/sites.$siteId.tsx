@@ -498,11 +498,13 @@ function SiteDetail() {
           )}
         </TabsContent>
 
-        <TabsContent value="config" className="mt-6 space-y-6">
-          <ConfigurationView site={site} subTab={configSubTab} onSubTabChange={setConfigSubTab} />
-        </TabsContent>
+        {roleInfo.role !== "viewer" && (
+          <TabsContent value="config" className="mt-6 space-y-6">
+            <ConfigurationView site={site} subTab={configSubTab} onSubTabChange={setConfigSubTab} role={roleInfo.role} />
+          </TabsContent>
+        )}
       </Tabs>
-      <MobileBottomNav value={tab} onChange={setTab} />
+      <MobileBottomNav value={tab} onChange={setTab} hideTabs={roleInfo.role === "viewer" ? ["config"] : []} />
     </>
   );
 }
