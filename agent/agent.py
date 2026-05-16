@@ -2220,6 +2220,48 @@ def make_app(agent: Agent) -> Flask:
             return jsonify({"error": (r.stderr or r.stdout).strip()}), 400
         return jsonify({"ok": True})
 
+    def _wifi_radio_state():
+        # Devuelve True si la radio WiFi está encendida, False si apagada.
+        try:
+            if _which("nmcli"):
+                out = _run(["nmcli", "radio", "wifi"], timeout=4).strip().lower()
+                if out in ("enabled", "habilitado"): return True
+                if out in ("disabled", "deshabilitado"): return False
+        except Exception:
+            pass
+        try:
+            if _which("rfkill"):
+                out = _run(["rfkill", "list", "wifi"], timeout=4)
+                # Soft blocked: yes => apagada
+                return "soft blocked: yes" not in out.lower()
+        except Exception:
+            pass
+        return True
+
+    @app.get("/api/wifi/radio")
+    def wifi_radio_get():
+        return jsonify({"enabled": _wifi_radio_state()})
+
+    @app.post("/api/wifi/radio")
+    def wifi_radio_set():
+        body = request.get_json(force=True) or {}
+        enable = bool(body.get("enabled", True))
+        errs = []
+        ok = False
+        if _which("nmcli"):
+            r = subprocess.run(["nmcli", "radio", "wifi", "on" if enable else "off"],
+                               capture_output=True, text=True, timeout=8)
+            if r.returncode == 0: ok = True
+            else: errs.append((r.stderr or r.stdout).strip())
+        if _which("rfkill"):
+            r = subprocess.run(["rfkill", "unblock" if enable else "block", "wifi"],
+                               capture_output=True, text=True, timeout=5)
+            if r.returncode == 0: ok = True
+            else: errs.append((r.stderr or r.stdout).strip())
+        if not ok:
+            return jsonify({"error": "; ".join(errs) or "No se pudo cambiar el estado del WiFi (instala network-manager o rfkill)."}), 400
+        return jsonify({"ok": True, "enabled": _wifi_radio_state()})
+
     @app.get("/api/mode")
     def get_mode():
         return jsonify({"ui_mode": agent.config.get("ui_mode") or "modern"})
