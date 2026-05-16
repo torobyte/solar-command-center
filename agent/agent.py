@@ -552,9 +552,11 @@ class Agent:
             time.sleep(2)
 
     def _refresh_spec_now(self):
-        """Best-effort: force a QPIRI re-read on next snapshot tick."""
+        """Force an immediate QPIRI re-read + snapshot push to cloud."""
         with self.lock:
             self.snapshot["_force_spec"] = True
+        # Despierta snapshot_loop ahora mismo en vez de esperar 60s.
+        self._spec_wake.set()
 
     def license_loop(self):
         while True:
