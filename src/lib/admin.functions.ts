@@ -2,6 +2,33 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { sendMail } from "@/lib/smtp.server";
+
+async function notifySiteOwnerLicense(siteId: string, plan: string, expiresAt: string) {
+  try {
+    const { data: site } = await supabaseAdmin
+      .from("sites").select("name,owner_id").eq("id", siteId).maybeSingle();
+    if (!site?.owner_id) return;
+    const { data: prof } = await supabaseAdmin
+      .from("profiles").select("email,full_name").eq("id", site.owner_id).maybeSingle();
+    if (!prof?.email) return;
+    const expStr = expiresAt.startsWith("9999")
+      ? "vitalicia"
+      : new Date(expiresAt).toLocaleDateString();
+    await sendMail({
+      to: prof.email,
+      templateId: "license",
+      vars: {
+        name: prof.full_name || "",
+        site_name: site.name || "tu sitio",
+        plan,
+        expires_at: expStr,
+      },
+    });
+  } catch (err) {
+    console.warn("license email failed", err);
+  }
+}
 
 async function assertSuperadmin(userId: string) {
   const { data, error } = await supabaseAdmin
@@ -183,7 +210,8 @@ export const adminActivateSite = createServerFn({ method: "POST" })
     return { plan: lic.plan, expires_at: expires };
   });
 
-export const adminExtendLicense = createServerFn({ method: "POST" })
+// Wraps activation handler above to also fire license email
+const _origActivateHandler = adminActivateSite;
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
     z.object({
