@@ -90,16 +90,30 @@ jobs:
             echo "tag=apk-$(date -u +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
           fi
 
+      - name: Generate SHA256 checksum
+        id: sha
+        run: |
+          APK="${{ steps.locate.outputs.apk }}"
+          sha256sum "$APK" | awk '{print $1}' > "${APK}.sha256"
+          echo "sha=$(cat ${APK}.sha256)" >> $GITHUB_OUTPUT
+
       - name: Upload APK as workflow artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-release
-          path: ${{ steps.locate.outputs.apk }}
+          path: |
+            ${{ steps.locate.outputs.apk }}
+            ${{ steps.locate.outputs.apk }}.sha256
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
           name: APK ${{ steps.tag.outputs.tag }}
-          files: ${{ steps.locate.outputs.apk }}
+          body: |
+            APK firmado generado automáticamente.
+            SHA-256: `${{ steps.sha.outputs.sha }}`
+          files: |
+            ${{ steps.locate.outputs.apk }}
+            ${{ steps.locate.outputs.apk }}.sha256
           generate_release_notes: false
