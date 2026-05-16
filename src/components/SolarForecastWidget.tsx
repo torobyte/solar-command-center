@@ -48,6 +48,7 @@ export interface ForecastPvConfig {
   batteryKwh?: number | null;
   lat?: number | null;
   lon?: number | null;
+  locationLabel?: string | null;
 }
 
 /** Estimate produced kWh from radiation Wh/m² using PVWatts-style formula:
