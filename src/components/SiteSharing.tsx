@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { UserPlus, Trash2, Copy, Mail, Shield, Eye, Wrench, Crown } from "lucide-react";
+import { inviteToSite } from "@/lib/sharing.functions";
 
 type Role = "viewer" | "operator" | "admin";
 
@@ -46,6 +48,7 @@ export function SiteSharing({ siteId, isOwnerOrAdmin }: Props) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<Role>("viewer");
   const [busy, setBusy] = useState(false);
+  const invite$ = useServerFn(inviteToSite);
 
   async function load() {
     setLoading(true);
@@ -74,16 +77,24 @@ export function SiteSharing({ siteId, isOwnerOrAdmin }: Props) {
     const clean = email.trim().toLowerCase();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clean)) { toast.error("Email inválido"); return; }
     setBusy(true);
-    const { data: u } = await supabase.auth.getUser();
-    if (!u.user) { toast.error("Sesión expirada"); setBusy(false); return; }
-    const { error } = await supabase.from("site_invitations").insert({
-      site_id: siteId, email: clean, role, invited_by: u.user.id,
-    });
-    setBusy(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success(`Invitación enviada a ${clean}`);
-    setEmail("");
-    load();
+    try {
+      const res = await invite$({
+        data: { site_id: siteId, email: clean, role, origin: window.location.origin },
+      });
+      if (res.email_sent) {
+        toast.success(`Invitación enviada por correo a ${clean}`);
+      } else if (res.email_skipped === "smtp_disabled") {
+        toast.success(`Invitación creada. Configura SMTP para enviar el correo automáticamente.`);
+      } else {
+        toast.success(`Invitación creada para ${clean}`);
+      }
+      setEmail("");
+      load();
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function changeRole(memberId: string, newRole: Role) {

@@ -2,6 +2,74 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { sendMail } from "@/lib/smtp.server";
+
+const ROLE_LABELS: Record<string, string> = {
+  viewer: "Lector",
+  operator: "Operador",
+  admin: "Administrador",
+};
+
+/**
+ * Invite a user to a site: insert into site_invitations + send email via SMTP.
+ * The caller must be owner or admin of the site.
+ */
+export const inviteToSite = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({
+      site_id: z.string().uuid(),
+      email: z.string().email().max(255).transform((s) => s.trim().toLowerCase()),
+      role: z.enum(["viewer", "operator", "admin"]),
+      origin: z.string().url().max(500),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    // Verify caller is owner or admin
+    const { data: site } = await supabaseAdmin
+      .from("sites").select("id,owner_id,name").eq("id", data.site_id).maybeSingle();
+    if (!site) throw new Error("Sitio no encontrado");
+    let allowed = site.owner_id === userId;
+    if (!allowed) {
+      const { data: m } = await supabaseAdmin
+        .from("site_members").select("role").eq("site_id", data.site_id).eq("user_id", userId).maybeSingle();
+      allowed = m?.role === "admin";
+    }
+    if (!allowed) throw new Error("No tienes permiso para invitar");
+
+    const { data: inv, error } = await supabaseAdmin
+      .from("site_invitations")
+      .insert({ site_id: data.site_id, email: data.email, role: data.role, invited_by: userId })
+      .select("id,token,expires_at,email,role")
+      .single();
+    if (error || !inv) throw new Error(error?.message || "No se pudo crear la invitación");
+
+    const { data: inviter } = await supabaseAdmin
+      .from("profiles").select("full_name,email").eq("id", userId).maybeSingle();
+
+    const link = `${data.origin.replace(/\/$/, "")}/invite/${inv.token}`;
+    const expiresStr = new Date(inv.expires_at as string).toLocaleDateString();
+
+    const mail = await sendMail({
+      to: data.email,
+      templateId: "invite",
+      vars: {
+        site_name: site.name || "el sitio",
+        inviter: inviter?.full_name || inviter?.email || "Un usuario",
+        role: ROLE_LABELS[data.role] || data.role,
+        link,
+        expires_at: expiresStr,
+      },
+    });
+
+    return {
+      invitation_id: inv.id as string,
+      token: inv.token as string,
+      email_sent: mail.ok,
+      email_skipped: mail.skipped,
+    };
+  });
 
 /**
  * Accept a site invitation by token. Uses admin client because the user
