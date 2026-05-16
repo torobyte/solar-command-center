@@ -717,7 +717,7 @@ function ConfigurationView({ site, subTab, onSubTabChange, role }: { site: Site;
         </Section>
       </TabsContent>
 
-      <TabsContent value="spec" className="mt-6 space-y-4">
+      {canConfigure && <TabsContent value="spec" className="mt-6 space-y-4">
         <Section title="Especificación del inversor" icon={Cpu}>
           {spec ? (
             <div className="space-y-5">
