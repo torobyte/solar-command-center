@@ -207,11 +207,11 @@ export const adminActivateSite = createServerFn({ method: "POST" })
       redeemed_at: new Date().toISOString(), redeemed_by_site: site.id,
     }).eq("id", lic.id);
 
+    await notifySiteOwnerLicense(site.id, lic.plan, expires);
     return { plan: lic.plan, expires_at: expires };
   });
 
-// Wraps activation handler above to also fire license email
-const _origActivateHandler = adminActivateSite;
+export const adminExtendLicense = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
     z.object({
@@ -242,6 +242,7 @@ const _origActivateHandler = adminActivateSite;
       reason: data.reason || null,
       details: { site_id: data.site_id, days: data.days, new_expires_at: expires } as never,
     });
+    await notifySiteOwnerLicense(data.site_id, site.plan, expires);
     return { expires_at: expires };
   });
 
