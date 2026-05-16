@@ -24,7 +24,7 @@ CONFIG_PATH = Path(os.environ.get("SOLAROPS_CONFIG", "/etc/solarops/config.json"
 DB_PATH = Path(os.environ.get("SOLAROPS_DB", "/var/lib/solarops/state.db"))
 POLL_INTERVAL = 1.0  # leer inversor cada 1s para sensación "en vivo"
 PUSH_INTERVAL = 1.0  # empujar al cloud cada 1s
-SNAPSHOT_INTERVAL = 60.0  # send specs/network/system snapshot every 60s
+SNAPSHOT_INTERVAL = 15.0  # re-read QPIRI + push specs every 15s (was 60s)
 AGENT_VERSION = "0.8.2"
 PVCFG_PATH = Path(os.environ.get("SOLAROPS_PVCFG", "/etc/solarops/pv.json"))
 PAIR_CACHE_PATH = Path(os.environ.get("SOLAROPS_PAIR_CACHE", "/etc/solarops/pair.json"))
@@ -303,6 +303,9 @@ class Agent:
         self.snapshot: dict = {}
         self.history: list[dict] = []  # last ~12h of samples for local charts
         self.lock = threading.Lock()
+        # Permite que command_loop / endpoints despierten al snapshot_loop
+        # de su sleep de 60s para subir el spec recién leído sin esperar.
+        self._spec_wake = threading.Event()
         self.pending: queue.Queue = queue.Queue(maxsize=10000)
         # Diagnóstico para la página de estado local
         self.last_error: str | None = None
@@ -549,9 +552,11 @@ class Agent:
             time.sleep(2)
 
     def _refresh_spec_now(self):
-        """Best-effort: force a QPIRI re-read on next snapshot tick."""
+        """Force an immediate QPIRI re-read + snapshot push to cloud."""
         with self.lock:
             self.snapshot["_force_spec"] = True
+        # Despierta snapshot_loop ahora mismo en vez de esperar 60s.
+        self._spec_wake.set()
 
     def license_loop(self):
         while True:
@@ -731,7 +736,10 @@ class Agent:
                         print(f"[agent] snapshot push {r.status_code}: {r.text[:200]}")
             except Exception as e:
                 print(f"[agent] snapshot error: {e}")
-            time.sleep(SNAPSHOT_INTERVAL)
+            # Espera hasta SNAPSHOT_INTERVAL pero salta inmediatamente si
+            # alguien (command_loop, /api/command) llamó _refresh_spec_now().
+            self._spec_wake.wait(SNAPSHOT_INTERVAL)
+            self._spec_wake.clear()
 
     def activate(self, code: str, name: str) -> dict:
         r = requests.post(
