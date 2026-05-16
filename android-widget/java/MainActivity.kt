@@ -40,7 +40,7 @@ class MainActivity : Activity() {
         if (savedInstanceState != null) {
             web.restoreState(savedInstanceState)
         } else {
-            web.loadUrl("https://appsolar.torobyte.com")
+            web.loadUrl("https://appsolar.torobyte.com/app")
         }
     }
 
