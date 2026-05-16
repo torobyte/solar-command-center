@@ -10,7 +10,8 @@ const items: { id: SiteTab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "config", label: "Config", icon: Settings2 },
 ];
 
-export function MobileBottomNav({ value, onChange }: { value: SiteTab; onChange: (v: SiteTab) => void }) {
+export function MobileBottomNav({ value, onChange, hideTabs }: { value: SiteTab; onChange: (v: SiteTab) => void; hideTabs?: SiteTab[] }) {
+  const visible = items.filter((i) => !hideTabs?.includes(i.id));
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-40 md:hidden"
