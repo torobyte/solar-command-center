@@ -182,6 +182,7 @@ function SiteDetail() {
   const { t } = useI18n();
   const { user } = useAuth();
   const { devices, selected: selectedDevice, loaded: devicesLoaded } = useDevices(siteId);
+  const roleInfo = useSiteRole(siteId);
   const [site, setSite] = useState<Site | null>(null);
   const [latest, setLatest] = useState<Sample | null>(null);
   const [history, setHistory] = useState<Sample[]>([]);
@@ -189,7 +190,16 @@ function SiteDetail() {
   const [tab, setTab] = useState<SiteTab>("dashboard");
   const [configSubTab, setConfigSubTab] = useState<string>("inverter");
 
+  // If a viewer somehow lands on the Config tab (deep-link, role just demoted),
+  // bounce them back to the dashboard so they don't see a "blocked" empty pane.
+  useEffect(() => {
+    if (!roleInfo.loading && roleInfo.role === "viewer" && tab === "config") {
+      setTab("dashboard");
+    }
+  }, [roleInfo.loading, roleInfo.role, tab]);
+
   useNotificationWatcher(siteId, user?.id);
+
 
   // device_id NULL on a row = legacy / primary device or rows ingested
   // before any "devices" row existed. Treat the primary device — and the
