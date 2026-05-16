@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
-import { LayoutDashboard, LineChart as LineChartIcon, Calculator, Settings2, Wrench, Unlink, ExternalLink } from "lucide-react";
+import { LayoutDashboard, LineChart as LineChartIcon, Calculator, Settings2, Wrench, Unlink, ExternalLink, Wifi } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
