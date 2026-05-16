@@ -138,6 +138,11 @@ export function ApkAdmin() {
             <Label>URL del servidor (web app que carga la APK)</Label>
             <Input value={cfg.server_url} onChange={(e) => update("server_url", e.target.value)} />
           </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>Ruta inicial (al abrir la app)</Label>
+            <Input value={cfg.start_path} onChange={(e) => update("start_path", e.target.value)} placeholder="/app-login" />
+            <p className="text-xs text-muted-foreground">Por defecto la app abre en <code>/app-login</code> (pantalla nativa de login).</p>
+          </div>
 
           <div className="space-y-2">
             <Label>Color primario</Label>
