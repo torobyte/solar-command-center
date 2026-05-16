@@ -170,119 +170,147 @@ export function ApkAdmin() {
   if (loading) return <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Cargando…</div>;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-      <Card className="p-6 space-y-6">
-        <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2"><Smartphone className="h-5 w-5" />Configuración APK Android</h3>
-          <p className="text-sm text-muted-foreground">Modifica la app móvil en tiempo real, previsualízala y descarga el proyecto listo para Android Studio.</p>
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <Card className="p-6 space-y-8">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h3 className="text-lg font-semibold flex items-center gap-2"><Smartphone className="h-5 w-5" />Configuración APK Android</h3>
+            <p className="text-sm text-muted-foreground mt-1">Estos valores se aplican automáticamente al APK en el próximo build de GitHub Actions.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={onSave} disabled={saving} size="sm">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+              Guardar
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => setPreviewKey((k) => k + 1)}>
+              <RefreshCw className="h-4 w-4 mr-2" />Preview
+            </Button>
+            <Button variant="default" size="sm" onClick={onDownload} disabled={downloading}>
+              {downloading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
+              .zip
+            </Button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Nombre de la app</Label>
-            <Input value={cfg.app_name} onChange={(e) => update("app_name", e.target.value)} />
+        {/* Identidad */}
+        <section className="space-y-3">
+          <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Identidad</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Nombre de la app</Label>
+              <Input value={cfg.app_name} onChange={(e) => update("app_name", e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Package ID</Label>
+              <Input value={cfg.app_id} onChange={(e) => update("app_id", e.target.value)} placeholder="app.miempresa.cliente" />
+            </div>
+            <div className="space-y-2">
+              <Label>versionName</Label>
+              <Input value={cfg.version_name} onChange={(e) => update("version_name", e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>versionCode</Label>
+              <Input type="number" value={cfg.version_code} onChange={(e) => update("version_code", parseInt(e.target.value || "1"))} />
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label>Package ID</Label>
-            <Input value={cfg.app_id} onChange={(e) => update("app_id", e.target.value)} placeholder="app.miempresa.cliente" />
-          </div>
-          <div className="space-y-2">
-            <Label>Versión (versionName)</Label>
-            <Input value={cfg.version_name} onChange={(e) => update("version_name", e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Versión código (versionCode)</Label>
-            <Input type="number" value={cfg.version_code} onChange={(e) => update("version_code", parseInt(e.target.value || "1"))} />
-          </div>
-          <div className="space-y-2 md:col-span-2">
-            <Label>URL del servidor (web app que carga la APK)</Label>
-            <Input value={cfg.server_url} onChange={(e) => update("server_url", e.target.value)} />
-          </div>
-          <div className="space-y-2 md:col-span-2">
-            <Label>Ruta inicial (al abrir la app)</Label>
-            <Input value={cfg.start_path} onChange={(e) => update("start_path", e.target.value)} placeholder="/app-login" />
-            <p className="text-xs text-muted-foreground">Por defecto la app abre en <code>/app-login</code> (pantalla nativa de login).</p>
-          </div>
+        </section>
 
-          <div className="space-y-2">
-            <Label>Color primario</Label>
-            <div className="flex gap-2">
-              <input type="color" value={cfg.primary_color} onChange={(e) => update("primary_color", e.target.value)} className="h-10 w-14 rounded border" />
-              <Input value={cfg.primary_color} onChange={(e) => update("primary_color", e.target.value)} />
+        {/* URL y navegación */}
+        <section className="space-y-3">
+          <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">URL y navegación</h4>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>URL del servidor</Label>
+              <Input value={cfg.server_url} onChange={(e) => update("server_url", e.target.value)} />
+              <p className="text-xs text-muted-foreground">Dominio principal que sirve la app web.</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Ruta inicial</Label>
+              <Input value={cfg.start_path} onChange={(e) => update("start_path", e.target.value)} placeholder="/app-login" />
+              <p className="text-xs text-muted-foreground">La app abre en <code>{cfg.server_url.replace(/\/$/,"")}{cfg.start_path}</code>. La pantalla <code>/app-login</code> ya trae logo, login y vinculación con el widget.</p>
             </div>
           </div>
-          <div className="space-y-2">
-            <Label>Color de fondo</Label>
-            <div className="flex gap-2">
-              <input type="color" value={cfg.background_color} onChange={(e) => update("background_color", e.target.value)} className="h-10 w-14 rounded border" />
-              <Input value={cfg.background_color} onChange={(e) => update("background_color", e.target.value)} />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label>Color splash</Label>
-            <div className="flex gap-2">
-              <input type="color" value={cfg.splash_color} onChange={(e) => update("splash_color", e.target.value)} className="h-10 w-14 rounded border" />
-              <Input value={cfg.splash_color} onChange={(e) => update("splash_color", e.target.value)} />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label>Status bar</Label>
-            <Select value={cfg.status_bar_style} onValueChange={(v) => update("status_bar_style", v as any)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="dark">Iconos oscuros (fondo claro)</SelectItem>
-                <SelectItem value="light">Iconos claros (fondo oscuro)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        </section>
 
-          <div className="md:col-span-2">
+        {/* Apariencia */}
+        <section className="space-y-3">
+          <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Apariencia</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Color primario</Label>
+              <div className="flex gap-2">
+                <input type="color" value={cfg.primary_color} onChange={(e) => update("primary_color", e.target.value)} className="h-10 w-14 rounded border" />
+                <Input value={cfg.primary_color} onChange={(e) => update("primary_color", e.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Color de fondo</Label>
+              <div className="flex gap-2">
+                <input type="color" value={cfg.background_color} onChange={(e) => update("background_color", e.target.value)} className="h-10 w-14 rounded border" />
+                <Input value={cfg.background_color} onChange={(e) => update("background_color", e.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Color splash</Label>
+              <div className="flex gap-2">
+                <input type="color" value={cfg.splash_color} onChange={(e) => update("splash_color", e.target.value)} className="h-10 w-14 rounded border" />
+                <Input value={cfg.splash_color} onChange={(e) => update("splash_color", e.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Status bar</Label>
+              <Select value={cfg.status_bar_style} onValueChange={(v) => update("status_bar_style", v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="dark">Iconos oscuros (fondo claro)</SelectItem>
+                  <SelectItem value="light">Iconos claros (fondo oscuro)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </section>
+
+        {/* Recursos gráficos */}
+        <section className="space-y-3">
+          <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Recursos gráficos</h4>
+          <div className="space-y-4">
             <AssetUploader
-              label="Ícono (PNG cuadrado, idealmente 1024×1024)"
+              label="Ícono del launcher (PNG cuadrado, 1024×1024)"
               value={cfg.icon_url}
               folder="icons"
               onChange={(url) => update("icon_url", url)}
             />
-          </div>
-          <div className="md:col-span-2">
             <AssetUploader
-              label="Splash (PNG cuadrado, idealmente 2732×2732)"
+              label="Splash (PNG cuadrado, 2732×2732)"
               value={cfg.splash_url}
               folder="splash"
               onChange={(url) => update("splash_url", url)}
             />
           </div>
+        </section>
 
-          <div className="flex items-center justify-between rounded border p-3">
-            <div>
-              <div className="font-medium text-sm">Push notifications</div>
-              <div className="text-xs text-muted-foreground">Incluye @capacitor/push-notifications</div>
+        {/* Avanzado */}
+        <section className="space-y-3">
+          <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Avanzado</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div>
+                <div className="font-medium text-sm">Push notifications</div>
+                <div className="text-xs text-muted-foreground">Incluye @capacitor/push-notifications</div>
+              </div>
+              <Switch checked={cfg.enable_push} onCheckedChange={(v) => update("enable_push", v)} />
             </div>
-            <Switch checked={cfg.enable_push} onCheckedChange={(v) => update("enable_push", v)} />
-          </div>
-          <div className="flex items-center justify-between rounded border p-3">
-            <div>
-              <div className="font-medium text-sm">Permitir HTTP (cleartext)</div>
-              <div className="text-xs text-muted-foreground">Solo para desarrollo</div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div>
+                <div className="font-medium text-sm">Permitir HTTP (cleartext)</div>
+                <div className="text-xs text-muted-foreground">Solo para desarrollo</div>
+              </div>
+              <Switch checked={cfg.cleartext} onCheckedChange={(v) => update("cleartext", v)} />
             </div>
-            <Switch checked={cfg.cleartext} onCheckedChange={(v) => update("cleartext", v)} />
           </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={onSave} disabled={saving}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-            Guardar cambios
-          </Button>
-          <Button variant="secondary" onClick={() => setPreviewKey((k) => k + 1)}>
-            <RefreshCw className="h-4 w-4 mr-2" />Refrescar preview
-          </Button>
-          <Button variant="default" onClick={onDownload} disabled={downloading}>
-            {downloading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
-            Descargar proyecto Android (.zip)
-          </Button>
-        </div>
+        </section>
       </Card>
+
 
       <Card className="p-6 space-y-4">
         <div className="flex items-center gap-2">
