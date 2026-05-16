@@ -21,6 +21,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as SitesOverviewRouteImport } from './routes/sites.overview'
 import { Route as SitesSiteIdRouteImport } from './routes/sites.$siteId'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as AppWidgetsRouteImport } from './routes/app.widgets'
 import { Route as ApiPublicWidgetDataRouteImport } from './routes/api/public/widget-data'
 import { Route as ApiPublicWidgetRouteImport } from './routes/api/public/widget'
 import { Route as ApiPublicSnapshotRouteImport } from './routes/api/public/snapshot'
@@ -96,6 +97,11 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
   id: '/invite/$token',
   path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppWidgetsRoute = AppWidgetsRouteImport.update({
+  id: '/widgets',
+  path: '/widgets',
+  getParentRoute: () => AppRoute,
 } as any)
 const ApiPublicWidgetDataRoute = ApiPublicWidgetDataRouteImport.update({
   id: '/api/public/widget-data',
@@ -177,12 +183,13 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
-  '/app': typeof AppRoute
+  '/app': typeof AppRouteWithChildren
   '/app-login': typeof AppLoginRoute
   '/local': typeof LocalRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/app/widgets': typeof AppWidgetsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/sites/$siteId': typeof SitesSiteIdRoute
   '/sites/overview': typeof SitesOverviewRoute
@@ -206,12 +213,13 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
-  '/app': typeof AppRoute
+  '/app': typeof AppRouteWithChildren
   '/app-login': typeof AppLoginRoute
   '/local': typeof LocalRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/app/widgets': typeof AppWidgetsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/sites/$siteId': typeof SitesSiteIdRoute
   '/sites/overview': typeof SitesOverviewRoute
@@ -236,12 +244,13 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
-  '/app': typeof AppRoute
+  '/app': typeof AppRouteWithChildren
   '/app-login': typeof AppLoginRoute
   '/local': typeof LocalRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/app/widgets': typeof AppWidgetsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/sites/$siteId': typeof SitesSiteIdRoute
   '/sites/overview': typeof SitesOverviewRoute
@@ -273,6 +282,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/app/widgets'
     | '/invite/$token'
     | '/sites/$siteId'
     | '/sites/overview'
@@ -302,6 +312,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/app/widgets'
     | '/invite/$token'
     | '/sites/$siteId'
     | '/sites/overview'
@@ -331,6 +342,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/app/widgets'
     | '/invite/$token'
     | '/sites/$siteId'
     | '/sites/overview'
@@ -355,7 +367,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountRoute: typeof AccountRoute
   AdminRoute: typeof AdminRoute
-  AppRoute: typeof AppRoute
+  AppRoute: typeof AppRouteWithChildren
   AppLoginRoute: typeof AppLoginRoute
   LocalRoute: typeof LocalRoute
   LoginRoute: typeof LoginRoute
@@ -467,6 +479,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/widgets': {
+      id: '/app/widgets'
+      path: '/widgets'
+      fullPath: '/app/widgets'
+      preLoaderRoute: typeof AppWidgetsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/api/public/widget-data': {
       id: '/api/public/widget-data'
       path: '/api/public/widget-data'
@@ -575,11 +594,21 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppRouteChildren {
+  AppWidgetsRoute: typeof AppWidgetsRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppWidgetsRoute: AppWidgetsRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRoute,
   AdminRoute: AdminRoute,
-  AppRoute: AppRoute,
+  AppRoute: AppRouteWithChildren,
   AppLoginRoute: AppLoginRoute,
   LocalRoute: LocalRoute,
   LoginRoute: LoginRoute,
