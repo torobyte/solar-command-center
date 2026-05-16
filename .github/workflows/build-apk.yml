@@ -1,11 +1,12 @@
 name: Build Android APK
 
 on:
+  # Cualquier push a main publica un nuevo APK (no solo cambios en android/)
   push:
     branches: [main]
-    paths:
-      - 'android/**'
-      - '.github/workflows/build-apk.yml'
+  # Build programado: todos los días a las 04:00 UTC
+  schedule:
+    - cron: '0 4 * * *'
   workflow_dispatch:
     inputs:
       release_tag:
