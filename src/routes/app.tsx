@@ -59,7 +59,15 @@ function SitesIndex() {
         .order("created_at", { ascending: false }),
     ]);
     if (error) toast.error(error.message);
-    setSites((s ?? []) as Site[]);
+    const list = (s ?? []) as Site[];
+    const myId = user?.id;
+    const otherOwners = Array.from(new Set(list.filter(x => x.owner_id !== myId).map(x => x.owner_id)));
+    if (otherOwners.length > 0) {
+      const { data: profs } = await supabase.from("profiles").select("id,email").in("id", otherOwners);
+      const byId = new Map((profs ?? []).map(p => [p.id, p.email] as const));
+      list.forEach(x => { if (x.owner_id !== myId) x.owner_email = byId.get(x.owner_id) ?? null; });
+    }
+    setSites(list);
     setLicenses((lic ?? []) as MyLicense[]);
     setLoading(false);
   }
