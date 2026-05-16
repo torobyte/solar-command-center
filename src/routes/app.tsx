@@ -299,6 +299,7 @@ function SitesIndex() {
                   {sites.map((s) => {
                     const statusKey = s.status === "online" ? "sync.online" : s.status === "offline" ? "sync.offline" : `sync.${s.status}`;
                     const statusLabel = s.status === "online" || s.status === "offline" || s.status === "stale" || s.status === "never" ? t(statusKey) : s.status;
+                    const isShared = !!user && s.owner_id !== user.id;
                     return (
                       <tr key={s.id} className="border-b last:border-0 transition-colors hover:bg-muted/40">
                         <td className="px-4 py-3">
@@ -306,7 +307,15 @@ function SitesIndex() {
                           {s.description && <div className="text-xs text-muted-foreground">{s.description}</div>}
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">{s.inverter_model ?? "—"}</td>
-                        <td className="px-4 py-3"><Badge variant="outline" className="rounded-full">{s.plan}</Badge></td>
+                        <td className="px-4 py-3">
+                          {isShared ? (
+                            <Badge variant="outline" className="rounded-full bg-muted/40 text-muted-foreground border-border">
+                              Compartido por {s.owner_email ?? "otro usuario"}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="rounded-full">{s.plan}</Badge>
+                          )}
+                        </td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
                             s.status === "online" ? "bg-success/15 text-success" :
@@ -322,9 +331,11 @@ function SitesIndex() {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="inline-flex items-center gap-2">
-                            <Button variant="ghost" size="sm" className="rounded-full" onClick={() => setShareSite(s)}>
-                              <Share2 className="mr-1 h-3.5 w-3.5" /> Compartir
-                            </Button>
+                            {!isShared && (
+                              <Button variant="ghost" size="sm" className="rounded-full" onClick={() => setShareSite(s)}>
+                                <Share2 className="mr-1 h-3.5 w-3.5" /> Compartir
+                              </Button>
+                            )}
                             <Link to="/sites/$siteId" params={{ siteId: s.id }}>
                               <Button variant="outline" size="sm" className="rounded-full">{t("sites.view")}</Button>
                             </Link>
