@@ -90,7 +90,7 @@ export function SolarForecastWidget({ pvConfig }: { pvConfig?: ForecastPvConfig 
     }
     void detectAndLoad();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pvConfig?.lat, pvConfig?.lon]);
+  }, [pvConfig?.lat, pvConfig?.lon, pvConfig?.locationLabel]);
 
   async function detectAndLoad() {
     setLoading(true);
