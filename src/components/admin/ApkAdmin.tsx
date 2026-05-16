@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { getApkConfig, saveApkConfig, generateApkProject } from "@/lib/apk.functions";
+import { getApkConfig, saveApkConfig, generateApkProject, triggerApkBuild } from "@/lib/apk.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +50,26 @@ export function ApkAdmin() {
   const fetchCfg = useServerFn(getApkConfig);
   const saveCfg = useServerFn(saveApkConfig);
   const genProj = useServerFn(generateApkProject);
+  const dispatchBuild = useServerFn(triggerApkBuild);
+  const [building, setBuilding] = useState(false);
+
+  async function onTriggerBuild() {
+    const parsed = parseRepo(repoUrl);
+    if (!parsed) {
+      toast.error("Configura primero la URL del repo de GitHub");
+      return;
+    }
+    setBuilding(true);
+    try {
+      await dispatchBuild({ data: { owner: parsed.owner, repo: parsed.repo, ref: "main", workflow: "build-apk.yml" } });
+      toast.success("Build lanzado en GitHub Actions. Tardará ~5-8 min.");
+      setTimeout(() => fetchLatestRelease(true), 30000);
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setBuilding(false);
+    }
+  }
   const [cfg, setCfg] = useState<ApkConfig>(DEFAULT);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -413,10 +433,9 @@ export function ApkAdmin() {
                     </a>
                   </Button>
                   {repoUrl && (
-                    <Button size="sm" variant="outline" asChild>
-                      <a href={`${repoUrl.replace(/\/$/, "")}/actions/workflows/build-apk.yml`} target="_blank" rel="noopener noreferrer">
-                        <Github className="h-4 w-4 mr-2" />Lanzar build
-                      </a>
+                    <Button size="sm" variant="outline" onClick={onTriggerBuild} disabled={building}>
+                      {building ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Github className="h-4 w-4 mr-2" />}
+                      Generar APK ahora
                     </Button>
                   )}
                   {repoUrl && (
