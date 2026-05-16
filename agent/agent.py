@@ -2220,6 +2220,48 @@ def make_app(agent: Agent) -> Flask:
             return jsonify({"error": (r.stderr or r.stdout).strip()}), 400
         return jsonify({"ok": True})
 
+    def _wifi_radio_state():
+        # Devuelve True si la radio WiFi está encendida, False si apagada.
+        try:
+            if _which("nmcli"):
+                out = _run(["nmcli", "radio", "wifi"], timeout=4).strip().lower()
+                if out in ("enabled", "habilitado"): return True
+                if out in ("disabled", "deshabilitado"): return False
+        except Exception:
+            pass
+        try:
+            if _which("rfkill"):
+                out = _run(["rfkill", "list", "wifi"], timeout=4)
+                # Soft blocked: yes => apagada
+                return "soft blocked: yes" not in out.lower()
+        except Exception:
+            pass
+        return True
+
+    @app.get("/api/wifi/radio")
+    def wifi_radio_get():
+        return jsonify({"enabled": _wifi_radio_state()})
+
+    @app.post("/api/wifi/radio")
+    def wifi_radio_set():
+        body = request.get_json(force=True) or {}
+        enable = bool(body.get("enabled", True))
+        errs = []
+        ok = False
+        if _which("nmcli"):
+            r = subprocess.run(["nmcli", "radio", "wifi", "on" if enable else "off"],
+                               capture_output=True, text=True, timeout=8)
+            if r.returncode == 0: ok = True
+            else: errs.append((r.stderr or r.stdout).strip())
+        if _which("rfkill"):
+            r = subprocess.run(["rfkill", "unblock" if enable else "block", "wifi"],
+                               capture_output=True, text=True, timeout=5)
+            if r.returncode == 0: ok = True
+            else: errs.append((r.stderr or r.stdout).strip())
+        if not ok:
+            return jsonify({"error": "; ".join(errs) or "No se pudo cambiar el estado del WiFi (instala network-manager o rfkill)."}), 400
+        return jsonify({"ok": True, "enabled": _wifi_radio_state()})
+
     @app.get("/api/mode")
     def get_mode():
         return jsonify({"ui_mode": agent.config.get("ui_mode") or "modern"})
@@ -2695,7 +2737,14 @@ form{display:grid;gap:10px;margin-top:10px}
   <div><a href="/status">Estado</a> &nbsp; <a href="/">← Dashboard</a></div>
 </header>
 <main>
-  <section class="card"><h2>Conexión actual</h2><div id="status">Cargando…</div></section>
+  <section class="card">
+    <h2>Conexión actual</h2>
+    <div id="status">Cargando…</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+      <div><div style="font-weight:600">Radio WiFi</div><div class="meta" id="radioState">—</div></div>
+      <button class="ghost" id="radioBtn" onclick="toggleRadio()">…</button>
+    </div>
+  </section>
   <section class="card">
     <h2>Redes disponibles</h2>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
@@ -2771,7 +2820,27 @@ async function connect(ev){
   }catch(e){ msg.innerHTML='<div class="msg err">'+e.message+'</div>'; }
   finally{ btn.disabled=false; btn.textContent='Conectar'; }
 }
-loadStatus(); scan(); setInterval(loadStatus,5000);
+let radioOn=true;
+async function loadRadio(){
+  try{
+    const r=await fetch('/api/wifi/radio'); const d=await r.json();
+    radioOn = !!d.enabled;
+    document.getElementById('radioState').textContent = radioOn ? 'Encendida' : 'Apagada';
+    document.getElementById('radioBtn').textContent = radioOn ? 'Apagar WiFi' : 'Encender WiFi';
+  }catch(e){ document.getElementById('radioState').textContent='Error: '+e.message; }
+}
+async function toggleRadio(){
+  const btn=document.getElementById('radioBtn'); btn.disabled=true;
+  const next = !radioOn;
+  try{
+    const r=await fetch('/api/wifi/radio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:next})});
+    const d=await r.json();
+    if(!r.ok){ alert(d.error||'Error'); }
+    else { await loadRadio(); if(next) scan(); }
+  }catch(e){ alert(e.message); }
+  finally{ btn.disabled=false; loadStatus(); }
+}
+loadStatus(); loadRadio(); scan(); setInterval(()=>{loadStatus();loadRadio();},5000);
 </script>
 </body></html>"""
 
@@ -2786,6 +2855,15 @@ def main():
     if args.token:
         agent.config["device_token"] = args.token
         save_config(agent.config)
+
+    # Asegura que la radio WiFi esté encendida al arrancar el agente
+    # (primera instalación o tras un apagado manual previo).
+    try:
+        subprocess.run(["rfkill", "unblock", "wifi"], capture_output=True, timeout=5)
+    except Exception: pass
+    try:
+        subprocess.run(["nmcli", "radio", "wifi", "on"], capture_output=True, timeout=5)
+    except Exception: pass
 
     threading.Thread(target=agent.poll_loop, daemon=True).start()
     threading.Thread(target=agent.push_loop, daemon=True).start()
