@@ -30,7 +30,8 @@ import { InverterConfigWizard } from "@/components/InverterConfigWizard";
 import { QuickActions, QuickActionsConfigCard, useQuickActionsConfig } from "@/components/QuickActions";
 import { CommandStatusFeed } from "@/components/CommandStatusFeed";
 import { SiteSharing } from "@/components/SiteSharing";
-import { Share2 } from "lucide-react";
+import { Share2, Lock } from "lucide-react";
+import { useSiteRole, ROLE_LABEL, ROLE_DESCRIPTION, type SiteRole } from "@/lib/useSiteRole";
 
 function SiteDetailSkeleton() {
   return (
