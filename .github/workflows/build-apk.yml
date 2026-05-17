@@ -13,26 +13,38 @@ on:
 
 permissions:
   contents: write
+  actions: write
+
+concurrency:
+  group: build-apk
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Cancel previous in-progress runs of this workflow
+        uses: styfle/cancel-workflow-action@0.12.1
+        with:
+          access_token: ${{ github.token }}
+          all_but_latest: true
+
+      - name: Checkout (full clean)
         uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Wipe workspace caches and stale build outputs
+        run: |
+          set -e
+          echo "Cleaning any leftover build outputs / caches before building"
+          rm -rf android/app/build android/build android/.gradle dist node_modules ~/.gradle/caches ~/.gradle/wrapper ~/.android/build-cache ~/.android/cache /tmp/aligned.apk /tmp/release.keystore || true
 
       - name: Set up Node 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
-      - name: Cache npx / Capacitor CLI downloads
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json', 'bun.lockb', 'package.json') }}
-          restore-keys: |
-            npm-${{ runner.os }}-
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -226,24 +238,9 @@ jobs:
           echo "vcode=$VCODE" >> $GITHUB_OUTPUT
           echo "vname=$VNAME" >> $GITHUB_OUTPUT
 
-      - name: Cache Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-            android/.gradle
-          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
-          restore-keys: |
-            gradle-${{ runner.os }}-
-
-      - name: Cache Android SDK
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.android/build-cache
-            ~/.android/cache
-          key: android-sdk-${{ runner.os }}-v1
+      # NOTE: Gradle / Android SDK caches intentionally NOT used.
+      # We want every run to produce a fully fresh APK so the user never
+      # downloads a stale artifact assembled from a previous workflow.
 
       - name: Grant gradlew permissions
         working-directory: android
@@ -330,25 +327,87 @@ jobs:
           sha256sum "$APK" | awk '{print $1}' > "${APK}.sha256"
           echo "sha=$(cat ${APK}.sha256)" >> $GITHUB_OUTPUT
 
-      - name: Upload APK as workflow artifact
+      - name: Delete previous workflow artifacts (keep only this run)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const wf = context.workflow;
+            const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, {
+              owner, repo, per_page: 100,
+            });
+            for (const run of runs) {
+              if (run.id === context.runId) continue;
+              const arts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
+                owner, repo, run_id: run.id, per_page: 100,
+              });
+              for (const a of arts) {
+                if (a.name === 'app-release') {
+                  console.log(`Deleting artifact ${a.id} from run ${run.id}`);
+                  try { await github.rest.actions.deleteArtifact({ owner, repo, artifact_id: a.id }); } catch (e) { console.log(e.message); }
+                }
+              }
+            }
+
+      - name: Upload APK as workflow artifact (overwrite previous)
         uses: actions/upload-artifact@v4
         with:
           name: app-release
+          overwrite: true
+          retention-days: 7
           path: |
             ${{ steps.locate.outputs.apk }}
             ${{ steps.locate.outputs.apk }}.sha256
 
-      - name: Publish GitHub Release
+      - name: Delete old APK releases (keep last 3 + this one)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const releases = await github.paginate(github.rest.repos.listReleases, {
+              owner, repo, per_page: 100,
+            });
+            const apkReleases = releases.filter(r => r.tag_name && (r.tag_name.startsWith('apk-') || r.tag_name === 'latest'));
+            // Keep `latest` (handled below) + the 3 most recent timestamped ones
+            const timestamped = apkReleases
+              .filter(r => r.tag_name.startsWith('apk-'))
+              .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            const toDelete = timestamped.slice(3);
+            for (const r of toDelete) {
+              console.log(`Deleting release ${r.tag_name} (id=${r.id})`);
+              try { await github.rest.repos.deleteRelease({ owner, repo, release_id: r.id }); } catch (e) { console.log(e.message); }
+              try { await github.rest.git.deleteRef({ owner, repo, ref: `tags/${r.tag_name}` }); } catch (e) { console.log(e.message); }
+            }
+
+      - name: Publish GitHub Release (timestamped)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
           name: APK ${{ steps.tag.outputs.tag }} (v${{ steps.ver.outputs.vname }})
           body: |
-            APK firmado generado automáticamente.
+            APK firmado generado automáticamente (build fresco, sin caché).
             versionName: `${{ steps.ver.outputs.vname }}`
             versionCode: `${{ steps.ver.outputs.vcode }}`
             SHA-256: `${{ steps.sha.outputs.sha }}`
+            Run: `${{ github.run_id }}`
           files: |
             ${{ steps.locate.outputs.apk }}
             ${{ steps.locate.outputs.apk }}.sha256
           generate_release_notes: false
+
+      - name: Move/refresh rolling `latest` release (always last build)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: APK latest (v${{ steps.ver.outputs.vname }})
+          body: |
+            Último APK publicado. Se sobrescribe en cada build.
+            versionName: `${{ steps.ver.outputs.vname }}`
+            versionCode: `${{ steps.ver.outputs.vcode }}`
+            SHA-256: `${{ steps.sha.outputs.sha }}`
+            Run: `${{ github.run_id }}`
+          files: |
+            ${{ steps.locate.outputs.apk }}
+            ${{ steps.locate.outputs.apk }}.sha256
+          generate_release_notes: false
+          make_latest: 'true'
