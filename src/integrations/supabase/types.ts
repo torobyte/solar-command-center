@@ -21,6 +21,7 @@ export type Database = {
           background_color: string
           cleartext: boolean
           enable_push: boolean
+          github_repo_url: string | null
           icon_url: string | null
           id: number
           primary_color: string
@@ -39,6 +40,7 @@ export type Database = {
           background_color?: string
           cleartext?: boolean
           enable_push?: boolean
+          github_repo_url?: string | null
           icon_url?: string | null
           id?: number
           primary_color?: string
@@ -57,6 +59,7 @@ export type Database = {
           background_color?: string
           cleartext?: boolean
           enable_push?: boolean
+          github_repo_url?: string | null
           icon_url?: string | null
           id?: number
           primary_color?: string
