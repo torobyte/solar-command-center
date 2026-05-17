@@ -4,16 +4,13 @@ import { AlertCircle, CheckCircle2, ChevronRight, Loader2, RefreshCw, Smartphone
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
-declare global {
-  interface Window {
-    SolarWidgetBridge?: {
-      saveSession?: (payload: string) => void;
-      clearSession?: () => void;
-      getLaunchDiagnostics?: () => string;
-      appendLaunchLog?: (message: string) => void;
-    };
-  }
-}
+type SolarWidgetBridgeApi = {
+  saveToken?: (payload: string) => void;
+  saveSession?: (payload: string) => void;
+  clearSession?: () => void;
+  getLaunchDiagnostics?: () => string;
+  appendLaunchLog?: (message: string) => void;
+};
 
 export const Route = createFileRoute("/apk-auth")({
   component: ApkAuthPage,
@@ -104,7 +101,7 @@ function ApkAuthPage() {
   const [finalError, setFinalError] = useState<string | null>(null);
   const [autoContinue, setAutoContinue] = useState(true);
   const nativeBridge = typeof window !== "undefined"
-    ? window.SolarWidgetBridge
+    ? (window as Window & { SolarWidgetBridge?: SolarWidgetBridgeApi }).SolarWidgetBridge
     : undefined;
 
   const storageSnapshot = useMemo(() => {
