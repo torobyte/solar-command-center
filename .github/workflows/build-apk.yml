@@ -203,21 +203,36 @@ jobs:
           done
           cp -rf android-widget/res/* "$RES/" 2>/dev/null || true
 
-      - name: Merge AndroidManifest snippet
+      - name: Merge AndroidManifest snippet (idempotent — strips & re-injects)
         run: |
+          set -e
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           SNIPPET="android-widget/AndroidManifest.snippet.xml"
-          if ! grep -q "SolarOpsWidget" "$MANIFEST"; then
-            # Ensure INTERNET permission
-            grep -q "android.permission.INTERNET" "$MANIFEST" || \
-              sed -i 's|<application|<uses-permission android:name="android.permission.INTERNET"/>\n    <application|' "$MANIFEST"
-            grep -q "android.permission.REQUEST_INSTALL_PACKAGES" "$MANIFEST" || \
-              sed -i 's|<application|<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>\n    <application|' "$MANIFEST"
-            # Inject widget declarations before </application>, excluding duplicate MainActivity
-            SNIPPET_CONTENT=$(cat "$SNIPPET")
-            awk -v snip="$SNIPPET_CONTENT" '/<\/application>/{print snip} {print}' "$MANIFEST" > "${MANIFEST}.new"
-            mv "${MANIFEST}.new" "$MANIFEST"
-          fi
+          # Ensure required permissions
+          grep -q "android.permission.INTERNET" "$MANIFEST" || \
+            sed -i 's|<application|<uses-permission android:name="android.permission.INTERNET"/>\n    <application|' "$MANIFEST"
+          grep -q "android.permission.REQUEST_INSTALL_PACKAGES" "$MANIFEST" || \
+            sed -i 's|<application|<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>\n    <application|' "$MANIFEST"
+          # Strip any previously-injected SolarOps widget block (between markers or matching the old short-form classes)
+          python3 - <<'PY'
+          import re
+          p = "android/app/src/main/AndroidManifest.xml"
+          s = open(p).read()
+          # Remove any <activity>/<receiver> referencing SolarOpsWidget*, WidgetSetupActivity or WidgetConfigActivity (short or fully-qualified)
+          patterns = [
+              r'<activity[^>]*android:name="(?:\.|app\.solarops\.client\.)WidgetSetupActivity"[^>]*(?:/>|>[\s\S]*?</activity>)',
+              r'<activity[^>]*android:name="(?:\.|app\.solarops\.client\.)WidgetConfigActivity"[^>]*(?:/>|>[\s\S]*?</activity>)',
+              r'<receiver[^>]*android:name="(?:\.|app\.solarops\.client\.)SolarOpsWidget(?:Tiles|Gauge)?"[^>]*(?:/>|>[\s\S]*?</receiver>)',
+          ]
+          for pat in patterns:
+              s = re.sub(pat, '', s)
+          open(p, 'w').write(s)
+          PY
+          # Re-inject the fresh snippet before </application>
+          SNIPPET_CONTENT=$(cat "$SNIPPET")
+          awk -v snip="$SNIPPET_CONTENT" '/<\/application>/{print snip} {print}' "$MANIFEST" > "${MANIFEST}.new"
+          mv "${MANIFEST}.new" "$MANIFEST"
+          echo "===== Final AndroidManifest.xml ====="
           cat "$MANIFEST"
 
       - name: Force fresh versionCode / versionName (timestamp-based)
