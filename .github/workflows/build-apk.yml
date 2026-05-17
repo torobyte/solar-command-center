@@ -143,6 +143,70 @@ jobs:
           fi
           npx cap sync android
 
+      - name: Enable Kotlin compilation for native widget sources
+        run: |
+          set -e
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          top = Path("android/build.gradle")
+          app = Path("android/app/build.gradle")
+          if not top.exists() or not app.exists():
+              raise SystemExit("Gradle files not found after cap sync")
+
+          top_src = top.read_text()
+          if "kotlin-gradle-plugin" not in top_src:
+              if "dependencies {" not in top_src:
+                  raise SystemExit("Could not locate top-level Gradle dependencies block")
+              top_src = top_src.replace(
+                  "dependencies {",
+                  "dependencies {\n        classpath \"org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.24\"",
+                  1,
+              )
+          top.write_text(top_src)
+
+          app_src = app.read_text()
+          if "kotlin-android" not in app_src and "org.jetbrains.kotlin.android" not in app_src:
+              if "apply plugin: 'com.android.application'" in app_src:
+                  app_src = app_src.replace(
+                      "apply plugin: 'com.android.application'",
+                      "apply plugin: 'com.android.application'\napply plugin: 'kotlin-android'",
+                      1,
+                  )
+              elif "android {" in app_src:
+                  app_src = app_src.replace(
+                      "android {",
+                      "apply plugin: 'kotlin-android'\n\nandroid {",
+                      1,
+                  )
+              else:
+                  raise SystemExit("Could not inject Kotlin Android plugin into app/build.gradle")
+
+          if "kotlin-stdlib" not in app_src and "org.jetbrains.kotlin:kotlin-stdlib" not in app_src:
+              app_src = re.sub(
+                  r"(dependencies\s*\{)",
+                  r'\1\n    implementation "org.jetbrains.kotlin:kotlin-stdlib:1.9.24"',
+                  app_src,
+                  count=1,
+              )
+          app.write_text(app_src)
+
+          proguard = Path("android/app/proguard-rules.pro")
+          existing = proguard.read_text() if proguard.exists() else ""
+          rules = """
+          -keep class app.solarops.client.MainActivity { *; }
+          -keep class app.solarops.client.WidgetSetupActivity { *; }
+          -keep class app.solarops.client.WidgetConfigActivity { *; }
+          -keep class app.solarops.client.SolarOpsWidget { *; }
+          -keep class app.solarops.client.SolarOpsWidgetTiles { *; }
+          -keep class app.solarops.client.SolarOpsWidgetGauge { *; }
+          -keep class app.solarops.client.UpdateManager { *; }
+          """.strip()
+          if rules not in existing:
+              proguard.write_text((existing.rstrip() + "\n\n" + rules + "\n").lstrip())
+          PY
+
       - name: Apply launcher icon, name and colors to Android resources
         env:
           APP_NAME: ${{ steps.brand.outputs.app_name }}
@@ -194,9 +258,12 @@ jobs:
 
       - name: Merge widget overrides
         run: |
-          PKG_DIR="android/app/src/main/java/app/solarops/client"
+          PKG_DIR="android/app/src/main/kotlin/app/solarops/client"
           RES="android/app/src/main/res"
           mkdir -p "$PKG_DIR" "$RES/layout" "$RES/drawable" "$RES/xml" "$RES/values"
+          rm -f android/app/src/main/java/app/solarops/client/MainActivity.java
+          rm -f android/app/src/main/java/app/solarops/client/MainActivity.kt
+          rm -f android/app/src/main/kotlin/app/solarops/client/MainActivity.java
           # Copy widget sources, including the custom launcher activity.
           for SRC in android-widget/java/*.kt; do
             cp -f "$SRC" "$PKG_DIR/"
@@ -270,6 +337,29 @@ jobs:
       - name: Build release APK (unsigned)
         working-directory: android
         run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Verify widget classes are present in built APK
+        run: |
+          set -e
+          APK=$(find android/app/build/outputs/apk/release -name "*.apk" | head -n1)
+          if [ -z "$APK" ]; then
+            echo "::error::No APK found after assembleRelease"
+            exit 1
+          fi
+          for CLASS in \
+            'Lapp/solarops/client/MainActivity;' \
+            'Lapp/solarops/client/WidgetSetupActivity;' \
+            'Lapp/solarops/client/WidgetConfigActivity;' \
+            'Lapp/solarops/client/SolarOpsWidget;' \
+            'Lapp/solarops/client/SolarOpsWidgetTiles;' \
+            'Lapp/solarops/client/SolarOpsWidgetGauge;'
+          do
+            if ! unzip -p "$APK" classes.dex | strings | grep -F "$CLASS" >/dev/null; then
+              echo "::error::Missing class in APK: $CLASS"
+              exit 1
+            fi
+          done
+          echo "Widget classes verified inside APK"
 
       - name: Sign APK (always — uses release keystore if provided, else auto-generated)
         id: sign
@@ -411,6 +501,28 @@ jobs:
             ${{ steps.locate.outputs.apk }}
             ${{ steps.locate.outputs.apk }}.sha256
           generate_release_notes: false
+
+      - name: Delete stale assets from rolling latest release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const releases = await github.paginate(github.rest.repos.listReleases, {
+              owner, repo, per_page: 100,
+            });
+            const latest = releases.find((r) => r.tag_name === 'latest');
+            if (!latest) return;
+            const assets = await github.paginate(github.rest.repos.listReleaseAssets, {
+              owner, repo, release_id: latest.id, per_page: 100,
+            });
+            for (const asset of assets) {
+              console.log(`Deleting stale latest asset ${asset.name} (${asset.id})`);
+              try {
+                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+              } catch (e) {
+                console.log(e.message);
+              }
+            }
 
       - name: Move/refresh rolling `latest` release (always last build)
         uses: softprops/action-gh-release@v2

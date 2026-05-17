@@ -52,8 +52,17 @@ export const Route = createFileRoute("/api/public/apk-latest")({
         }
 
         const release: any = await releaseRes.json();
-        const apkAsset = (release.assets ?? []).find((asset: any) => String(asset.name).endsWith(".apk"));
-        const shaAsset = (release.assets ?? []).find((asset: any) => String(asset.name).endsWith(".sha256"));
+        const assets = [...(release.assets ?? [])].sort((a: any, b: any) => {
+          const aTime = new Date(a?.updated_at ?? a?.created_at ?? 0).getTime();
+          const bTime = new Date(b?.updated_at ?? b?.created_at ?? 0).getTime();
+          return bTime - aTime;
+        });
+        const apkAsset =
+          assets.find((asset: any) => String(asset.name).endsWith("signed.apk")) ??
+          assets.find((asset: any) => String(asset.name).endsWith(".apk"));
+        const shaAsset =
+          assets.find((asset: any) => String(asset.name).endsWith("signed.apk.sha256")) ??
+          assets.find((asset: any) => String(asset.name).endsWith(".sha256"));
         const bodySha = String(release.body ?? "").match(/[A-Fa-f0-9]{64}/)?.[0]?.toLowerCase() ?? null;
 
         let checksumSha256 = bodySha;
