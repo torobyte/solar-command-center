@@ -19,6 +19,36 @@ const ApkConfigSchema = z.object({
   cleartext: z.boolean(),
 });
 
+function normalizeApkServerUrl(raw?: string | null) {
+  const fallback = "https://appsolar.torobyte.com";
+  if (!raw) return fallback;
+
+  try {
+    const url = new URL(raw);
+    const hostname = url.hostname.toLowerCase();
+
+    if (
+      hostname === "project--7cb3041b-eb20-43aa-ba17-b0848cb53051.lovable.app"
+      || hostname === "project--7cb3041b-eb20-43aa-ba17-b0848cb53051-dev.lovable.app"
+      || hostname === "id-preview--7cb3041b-eb20-43aa-ba17-b0848cb53051.lovable.app"
+    ) {
+      return fallback;
+    }
+
+    return `${url.protocol}//${url.host}`.replace(/\/$/, "");
+  } catch {
+    return fallback;
+  }
+}
+
+function normalizeApkConfig<T extends { server_url?: string | null; start_path?: string | null }>(config: T): T {
+  return {
+    ...config,
+    server_url: normalizeApkServerUrl(config.server_url),
+    start_path: !config.start_path || config.start_path === "/app-login" ? "/apk-auth" : config.start_path,
+  };
+}
+
 async function ensureSuperadmin(supabase: any, userId: string) {
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "superadmin").maybeSingle();
   if (!data) throw new Error("Acceso denegado: solo superadmin");
@@ -32,12 +62,7 @@ export const getApkConfig = createServerFn({ method: "GET" })
     const { data, error } = await supabase.from("apk_config").select("*").eq("id", 1).maybeSingle();
     if (error) throw new Error(error.message);
     return {
-      config: data
-        ? {
-            ...data,
-            start_path: !data.start_path || data.start_path === "/app-login" ? "/apk-auth" : data.start_path,
-          }
-        : data,
+      config: data ? normalizeApkConfig(data) : data,
     };
   });
 
@@ -47,7 +72,8 @@ export const saveApkConfig = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await ensureSuperadmin(supabase, userId);
-    const { error } = await supabase.from("apk_config").update({ ...data }).eq("id", 1);
+    const normalized = normalizeApkConfig(data);
+    const { error } = await supabase.from("apk_config").update({ ...normalized }).eq("id", 1);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -72,7 +98,8 @@ export const generateApkProject = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { supabase, userId } = context as any;
     await ensureSuperadmin(supabase, userId);
-    const { data: cfg } = await supabase.from("apk_config").select("*").eq("id", 1).maybeSingle();
+    const { data: rawCfg } = await supabase.from("apk_config").select("*").eq("id", 1).maybeSingle();
+    const cfg = rawCfg ? normalizeApkConfig(rawCfg) : rawCfg;
     if (!cfg) throw new Error("Configuración no encontrada");
 
     const JSZip = (await import("jszip")).default;
