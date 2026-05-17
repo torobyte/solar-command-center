@@ -81,7 +81,7 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
 
         val baseUrl = WidgetCommon.baseUrl(this).trimEnd('/')
-        val targetUrl = "$baseUrl/apk-auth"
+        val targetUrl = "$baseUrl/api/public/apk-bootstrap"
         val savedSession = appPrefs().getString(WidgetSetupActivity.KEY_AUTH_SESSION, null)
 
         resetLaunchDiagnostics(baseUrl, targetUrl, savedSession)
@@ -223,7 +223,7 @@ class MainActivity : Activity() {
 
     private fun loadBootstrapPage(rawSession: String) {
         val baseUrl = WidgetCommon.baseUrl(this).trimEnd('/')
-        val targetUrl = "$baseUrl/apk-auth"
+        val targetUrl = "$baseUrl/api/public/apk-bootstrap"
         val storageKey = JSONObject.quote(authStorageKey)
         val bootstrapKey = JSONObject.quote(bootstrapStorageKey)
         val escapedSession = JSONObject.quote(rawSession)

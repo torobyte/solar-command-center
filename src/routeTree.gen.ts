@@ -34,6 +34,7 @@ import { Route as ApiPublicLicenseStatusRouteImport } from './routes/api/public/
 import { Route as ApiPublicIngestRouteImport } from './routes/api/public/ingest'
 import { Route as ApiPublicCommandsRouteImport } from './routes/api/public/commands'
 import { Route as ApiPublicApkBrandRouteImport } from './routes/api/public/apk-brand'
+import { Route as ApiPublicApkBootstrapRouteImport } from './routes/api/public/apk-bootstrap'
 import { Route as ApiPublicActivateRouteImport } from './routes/api/public/activate'
 import { Route as ApiAdminSmtpTestRouteImport } from './routes/api/admin/smtp-test'
 import { Route as ApiPublicAgentUpdateRouteImport } from './routes/api/public/agent.update'
@@ -165,6 +166,11 @@ const ApiPublicApkBrandRoute = ApiPublicApkBrandRouteImport.update({
   path: '/api/public/apk-brand',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicApkBootstrapRoute = ApiPublicApkBootstrapRouteImport.update({
+  id: '/api/public/apk-bootstrap',
+  path: '/api/public/apk-bootstrap',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicActivateRoute = ApiPublicActivateRouteImport.update({
   id: '/api/public/activate',
   path: '/api/public/activate',
@@ -208,6 +214,7 @@ export interface FileRoutesByFullPath {
   '/sites/overview': typeof SitesOverviewRoute
   '/api/admin/smtp-test': typeof ApiAdminSmtpTestRoute
   '/api/public/activate': typeof ApiPublicActivateRoute
+  '/api/public/apk-bootstrap': typeof ApiPublicApkBootstrapRoute
   '/api/public/apk-brand': typeof ApiPublicApkBrandRoute
   '/api/public/commands': typeof ApiPublicCommandsRoute
   '/api/public/ingest': typeof ApiPublicIngestRoute
@@ -240,6 +247,7 @@ export interface FileRoutesByTo {
   '/sites/overview': typeof SitesOverviewRoute
   '/api/admin/smtp-test': typeof ApiAdminSmtpTestRoute
   '/api/public/activate': typeof ApiPublicActivateRoute
+  '/api/public/apk-bootstrap': typeof ApiPublicApkBootstrapRoute
   '/api/public/apk-brand': typeof ApiPublicApkBrandRoute
   '/api/public/commands': typeof ApiPublicCommandsRoute
   '/api/public/ingest': typeof ApiPublicIngestRoute
@@ -273,6 +281,7 @@ export interface FileRoutesById {
   '/sites/overview': typeof SitesOverviewRoute
   '/api/admin/smtp-test': typeof ApiAdminSmtpTestRoute
   '/api/public/activate': typeof ApiPublicActivateRoute
+  '/api/public/apk-bootstrap': typeof ApiPublicApkBootstrapRoute
   '/api/public/apk-brand': typeof ApiPublicApkBrandRoute
   '/api/public/commands': typeof ApiPublicCommandsRoute
   '/api/public/ingest': typeof ApiPublicIngestRoute
@@ -307,6 +316,7 @@ export interface FileRouteTypes {
     | '/sites/overview'
     | '/api/admin/smtp-test'
     | '/api/public/activate'
+    | '/api/public/apk-bootstrap'
     | '/api/public/apk-brand'
     | '/api/public/commands'
     | '/api/public/ingest'
@@ -339,6 +349,7 @@ export interface FileRouteTypes {
     | '/sites/overview'
     | '/api/admin/smtp-test'
     | '/api/public/activate'
+    | '/api/public/apk-bootstrap'
     | '/api/public/apk-brand'
     | '/api/public/commands'
     | '/api/public/ingest'
@@ -371,6 +382,7 @@ export interface FileRouteTypes {
     | '/sites/overview'
     | '/api/admin/smtp-test'
     | '/api/public/activate'
+    | '/api/public/apk-bootstrap'
     | '/api/public/apk-brand'
     | '/api/public/commands'
     | '/api/public/ingest'
@@ -403,6 +415,7 @@ export interface RootRouteChildren {
   SitesOverviewRoute: typeof SitesOverviewRoute
   ApiAdminSmtpTestRoute: typeof ApiAdminSmtpTestRoute
   ApiPublicActivateRoute: typeof ApiPublicActivateRoute
+  ApiPublicApkBootstrapRoute: typeof ApiPublicApkBootstrapRoute
   ApiPublicApkBrandRoute: typeof ApiPublicApkBrandRoute
   ApiPublicCommandsRoute: typeof ApiPublicCommandsRoute
   ApiPublicIngestRoute: typeof ApiPublicIngestRoute
@@ -596,6 +609,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicApkBrandRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/apk-bootstrap': {
+      id: '/api/public/apk-bootstrap'
+      path: '/api/public/apk-bootstrap'
+      fullPath: '/api/public/apk-bootstrap'
+      preLoaderRoute: typeof ApiPublicApkBootstrapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/activate': {
       id: '/api/public/activate'
       path: '/api/public/activate'
@@ -660,6 +680,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitesOverviewRoute: SitesOverviewRoute,
   ApiAdminSmtpTestRoute: ApiAdminSmtpTestRoute,
   ApiPublicActivateRoute: ApiPublicActivateRoute,
+  ApiPublicApkBootstrapRoute: ApiPublicApkBootstrapRoute,
   ApiPublicApkBrandRoute: ApiPublicApkBrandRoute,
   ApiPublicCommandsRoute: ApiPublicCommandsRoute,
   ApiPublicIngestRoute: ApiPublicIngestRoute,
