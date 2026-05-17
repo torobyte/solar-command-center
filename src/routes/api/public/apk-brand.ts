@@ -1,6 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
+function normalizeApkBrandUrl(raw?: string | null) {
+  const fallback = "https://appsolar.torobyte.com";
+  if (!raw) return fallback;
+
+  try {
+    const url = new URL(raw);
+    const blocked = new Set([
+      "project--7cb3041b-eb20-43aa-ba17-b0848cb53051.lovable.app",
+      "project--7cb3041b-eb20-43aa-ba17-b0848cb53051-dev.lovable.app",
+      "id-preview--7cb3041b-eb20-43aa-ba17-b0848cb53051.lovable.app",
+    ]);
+
+    return blocked.has(url.hostname.toLowerCase()) ? fallback : `${url.protocol}//${url.host}`.replace(/\/$/, "");
+  } catch {
+    return fallback;
+  }
+}
+
 /**
  * Public endpoint consumed by the GitHub Actions APK builder.
  * Returns only the brand fields needed to skin the Android shell —
@@ -19,6 +37,7 @@ export const Route = createFileRoute("/api/public/apk-brand")({
         const body = data
           ? {
               ...data,
+              server_url: normalizeApkBrandUrl(data.server_url),
               start_path: !data.start_path || data.start_path === "/app-login" ? "/apk-auth" : data.start_path,
             }
           : {
