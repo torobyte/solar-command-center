@@ -3,18 +3,24 @@ package app.solarops.client
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.Gravity
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.webkit.JavascriptInterface
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import android.widget.ProgressBar
 import android.widget.TextView
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
@@ -33,6 +39,9 @@ class MainActivity : Activity() {
     private lateinit var web: WebView
     private val authStorageKey = "sb-mtsxmdwraxnwobxsdrqr-auth-token"
     private val bootstrapStorageKey = "solarops_native_session_bootstrap"
+    private val launchDiagnosticsKey = "solarops_native_launch_diagnostics"
+    private val launchLogTag = "SolarOpsLaunch"
+    private val bootstrapVersion = "mainactivity-bootstrap-2026-05-17-v3"
 
     inner class SolarWidgetBridge {
         @JavascriptInterface
@@ -44,16 +53,26 @@ class MainActivity : Activity() {
 
         @JavascriptInterface
         fun saveSession(payload: String) {
-            getSharedPreferences(WidgetSetupActivity.PREFS, MODE_PRIVATE).edit()
+            appPrefs().edit()
                 .putString(WidgetSetupActivity.KEY_AUTH_SESSION, payload)
                 .apply()
+            logLaunch("Bridge.saveSession() recibió una sesión nueva")
         }
 
         @JavascriptInterface
         fun clearSession() {
-            getSharedPreferences(WidgetSetupActivity.PREFS, MODE_PRIVATE).edit()
+            appPrefs().edit()
                 .remove(WidgetSetupActivity.KEY_AUTH_SESSION)
                 .apply()
+            logLaunch("Bridge.clearSession() eliminó la sesión nativa")
+        }
+
+        @JavascriptInterface
+        fun getLaunchDiagnostics(): String = readLaunchDiagnostics().toString()
+
+        @JavascriptInterface
+        fun appendLaunchLog(message: String) {
+            logLaunch("WEB $message")
         }
     }
 
@@ -61,10 +80,14 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val savedSession = getSharedPreferences(WidgetSetupActivity.PREFS, MODE_PRIVATE)
-            .getString(WidgetSetupActivity.KEY_AUTH_SESSION, null)
+        val baseUrl = WidgetCommon.baseUrl(this).trimEnd('/')
+        val targetUrl = "$baseUrl/apk-auth"
+        val savedSession = appPrefs().getString(WidgetSetupActivity.KEY_AUTH_SESSION, null)
+
+        resetLaunchDiagnostics(baseUrl, targetUrl, savedSession)
 
         if (savedSession.isNullOrBlank()) {
+            logLaunch("No hay sesión guardada; se abre WidgetSetupActivity")
             openNativeLogin(clearStaleSession = false)
             return
         }
@@ -92,17 +115,23 @@ class MainActivity : Activity() {
         )
 
         thread {
-            val validSession = runCatching { ensureFreshSession(savedSession) }.getOrNull()
+            logLaunch("Validando la sesión guardada antes de iniciar el WebView")
+            val validSession = runCatching { ensureFreshSession(savedSession) }
+                .onFailure { logLaunch("ensureFreshSession falló: ${it.message ?: it.javaClass.simpleName}") }
+                .getOrNull()
+
             Handler(Looper.getMainLooper()).post {
                 if (validSession.isNullOrBlank()) {
+                    logLaunch("La sesión no pudo validarse; se vuelve al login nativo")
                     openNativeLogin(clearStaleSession = true)
                     return@post
                 }
 
                 if (validSession != savedSession) {
-                    getSharedPreferences(WidgetSetupActivity.PREFS, MODE_PRIVATE).edit()
+                    appPrefs().edit()
                         .putString(WidgetSetupActivity.KEY_AUTH_SESSION, validSession)
                         .apply()
+                    logLaunch("La sesión fue refrescada y guardada localmente")
                 }
 
                 web = buildWebView()
@@ -110,7 +139,14 @@ class MainActivity : Activity() {
 
                 if (savedInstanceState != null) {
                     web.restoreState(savedInstanceState)
+                    val restoredUrl = web.url
+                    logLaunch("Se restauró el estado del WebView; url restaurada=${restoredUrl ?: "null"}")
+                    if (restoredUrl.isNullOrBlank() || !restoredUrl.startsWith(baseUrl)) {
+                        logLaunch("El estado restaurado no apunta al bootstrap actual; se recarga $targetUrl")
+                        loadBootstrapPage(validSession)
+                    }
                 } else {
+                    logLaunch("Arranque limpio; cargando bootstrap $targetUrl")
                     loadBootstrapPage(validSession)
                 }
             }
@@ -128,6 +164,7 @@ class MainActivity : Activity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun buildWebView(): WebView = WebView(this).apply {
+        WebView.setWebContentsDebuggingEnabled(true)
         layoutParams = android.view.ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
@@ -136,11 +173,50 @@ class MainActivity : Activity() {
         settings.useWideViewPort = true
         settings.loadWithOverviewMode = true
         settings.mediaPlaybackRequiresUserGesture = false
+        clearCache(true)
+        clearHistory()
+        logLaunch("WebView creado con cache limpia y bridge nativo activo")
         addJavascriptInterface(SolarWidgetBridge(), "SolarWidgetBridge")
         webViewClient = object : WebViewClient() {
+            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                super.onPageStarted(view, url, favicon)
+                updateLaunchDiagnostics {
+                    put("webview_url", url ?: "")
+                }
+                logLaunch("WebView onPageStarted url=${url ?: "null"}")
+            }
+
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
+                updateLaunchDiagnostics {
+                    put("webview_url", url ?: "")
+                }
+                logLaunch("WebView onPageFinished url=${url ?: "null"}")
                 injectSavedSession()
+            }
+
+            override fun onReceivedHttpError(
+                view: WebView?,
+                request: WebResourceRequest?,
+                errorResponse: WebResourceResponse?,
+            ) {
+                super.onReceivedHttpError(view, request, errorResponse)
+                if (request?.isForMainFrame == true) {
+                    logLaunch("HTTP ${errorResponse?.statusCode ?: -1} en ${request.url}")
+                }
+            }
+
+            override fun onReceivedError(
+                view: WebView?,
+                request: WebResourceRequest?,
+                error: WebResourceError?,
+            ) {
+                super.onReceivedError(view, request, error)
+                if (request?.isForMainFrame == true) {
+                    logLaunch(
+                        "Error WebView ${error?.errorCode ?: -1}: ${error?.description ?: "desconocido"} en ${request.url}",
+                    )
+                }
             }
         }
     }
@@ -152,6 +228,11 @@ class MainActivity : Activity() {
         val bootstrapKey = JSONObject.quote(bootstrapStorageKey)
         val escapedSession = JSONObject.quote(rawSession)
         val escapedTarget = JSONObject.quote(targetUrl)
+        updateLaunchDiagnostics {
+            put("initial_url", targetUrl)
+            put("bootstrap_session_bytes", rawSession.length)
+        }
+        logLaunch("Inyectando bootstrap localStorage y redirigiendo a $targetUrl")
         val html = """
             <!doctype html>
             <html>
@@ -187,9 +268,9 @@ class MainActivity : Activity() {
     }
 
     private fun injectSavedSession() {
-        val raw = getSharedPreferences(WidgetSetupActivity.PREFS, MODE_PRIVATE)
-            .getString(WidgetSetupActivity.KEY_AUTH_SESSION, null) ?: return
+        val raw = appPrefs().getString(WidgetSetupActivity.KEY_AUTH_SESSION, null) ?: return
         val escaped = JSONObject.quote(raw)
+        logLaunch("Reinyectando sesión guardada en localStorage para la página actual")
         web.evaluateJavascript(
             "(function(){try{localStorage.setItem('$authStorageKey',$escaped);}catch(e){}})();",
             null,
@@ -198,10 +279,14 @@ class MainActivity : Activity() {
 
     private fun openNativeLogin(clearStaleSession: Boolean) {
         if (clearStaleSession) {
-            getSharedPreferences(WidgetSetupActivity.PREFS, MODE_PRIVATE).edit()
+            appPrefs().edit()
                 .remove(WidgetSetupActivity.KEY_AUTH_SESSION)
                 .remove(WidgetSetupActivity.KEY_SITES_JSON)
                 .apply()
+            logLaunch("Se limpiaron sesión y sitios locales antes de volver al login nativo")
+        }
+        updateLaunchDiagnostics {
+            put("last_open_action", "WidgetSetupActivity")
         }
         startActivity(Intent(this, WidgetSetupActivity::class.java))
         finish()
@@ -215,15 +300,18 @@ class MainActivity : Activity() {
         val expiresAt = withExpiry.optLong("expires_at", 0L)
         val now = System.currentTimeMillis() / 1000L
         if (accessToken.isNotBlank() && (expiresAt == 0L || expiresAt > now + 60L) && isAccessTokenValid(accessToken)) {
+            logLaunch("El access token guardado sigue siendo válido")
             return withExpiry.toString()
         }
 
         if (refreshToken.isBlank()) throw IllegalStateException("No refresh token available")
+        logLaunch("El access token expiró o fue rechazado; intentando refresh")
         val refreshed = ensureExpiresAt(JSONObject(refreshSession(refreshToken)))
         val refreshedAccessToken = refreshed.optString("access_token")
         if (refreshedAccessToken.isBlank() || !isAccessTokenValid(refreshedAccessToken)) {
             throw IllegalStateException("Refreshed session is invalid")
         }
+        logLaunch("Refresh token válido; la sesión renovada pasó la validación")
         return refreshed.toString()
     }
 
@@ -250,6 +338,7 @@ class MainActivity : Activity() {
             it.write(JSONObject().put("refresh_token", refreshToken).toString())
         }
         if (conn.responseCode !in 200..299) {
+            logLaunch("El refresh devolvió HTTP ${conn.responseCode}")
             throw IllegalStateException("Refresh failed with ${conn.responseCode}")
         }
         val refreshed = JSONObject(conn.inputStream.bufferedReader().use { it.readText() })
@@ -264,6 +353,65 @@ class MainActivity : Activity() {
             setRequestProperty("apikey", WidgetSetupActivity.SUPABASE_ANON)
             setRequestProperty("Authorization", "Bearer $accessToken")
         }
-        return conn.responseCode in 200..299
+        val valid = conn.responseCode in 200..299
+        logLaunch("Validación /auth/v1/user -> HTTP ${conn.responseCode}")
+        return valid
+    }
+
+    private fun appPrefs() = getSharedPreferences(WidgetSetupActivity.PREFS, MODE_PRIVATE)
+
+    private fun readLaunchDiagnostics(): JSONObject {
+        val raw = appPrefs().getString(launchDiagnosticsKey, null)
+        return try {
+            if (raw.isNullOrBlank()) JSONObject() else JSONObject(raw)
+        } catch (_: Exception) {
+            JSONObject()
+        }
+    }
+
+    private fun saveLaunchDiagnostics(payload: JSONObject) {
+        appPrefs().edit().putString(launchDiagnosticsKey, payload.toString()).apply()
+    }
+
+    private fun updateLaunchDiagnostics(block: JSONObject.() -> Unit) {
+        val payload = readLaunchDiagnostics()
+        payload.block()
+        payload.put("updated_at", System.currentTimeMillis())
+        saveLaunchDiagnostics(payload)
+    }
+
+    private fun resetLaunchDiagnostics(baseUrl: String, targetUrl: String, rawSession: String?) {
+        val payload = JSONObject()
+            .put("bootstrap_version", bootstrapVersion)
+            .put("activity_name", this::class.java.name)
+            .put("base_url", baseUrl)
+            .put("initial_url", targetUrl)
+            .put("session_present", !rawSession.isNullOrBlank())
+            .put("logs", JSONArray())
+            .put("updated_at", System.currentTimeMillis())
+        saveLaunchDiagnostics(payload)
+        logLaunch(
+            "BOOT activity=${this::class.java.name} bootstrap=$bootstrapVersion initialUrl=$targetUrl sessionPresent=${!rawSession.isNullOrBlank()}",
+        )
+    }
+
+    private fun logLaunch(message: String) {
+        val clean = message.replace("\n", " ").replace("\r", " ").take(260)
+        Log.d(launchLogTag, clean)
+        updateLaunchDiagnostics {
+            val logs = optJSONArray("logs") ?: JSONArray()
+            logs.put("[${System.currentTimeMillis()}] $clean")
+            put("logs", trimLogs(logs))
+            put("last_log", clean)
+        }
+    }
+
+    private fun trimLogs(logs: JSONArray): JSONArray {
+        val trimmed = JSONArray()
+        val start = maxOf(0, logs.length() - 60)
+        for (index in start until logs.length()) {
+            trimmed.put(logs.get(index))
+        }
+        return trimmed
     }
 }
