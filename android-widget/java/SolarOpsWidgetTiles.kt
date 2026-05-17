@@ -27,6 +27,7 @@ class SolarOpsWidgetTiles : AppWidgetProvider() {
 
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
+        WidgetStreamService.start(context)
         WidgetCommon.scheduleAlarmFor(context, SolarOpsWidgetTiles::class.java)
     }
 
