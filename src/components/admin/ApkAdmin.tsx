@@ -35,7 +35,7 @@ const DEFAULT: ApkConfig = {
   app_name: "SolarOps",
   version_name: "1.0.0",
   version_code: 1,
-  server_url: "https://project--7cb3041b-eb20-43aa-ba17-b0848cb53051.lovable.app",
+  server_url: "https://appsolar.torobyte.com",
   start_path: "/apk-auth",
   primary_color: "#f59e0b",
   background_color: "#0a0a0a",
