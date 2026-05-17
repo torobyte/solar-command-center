@@ -4,11 +4,15 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.Gravity
+import android.view.View
+import android.view.Window
+import android.view.WindowManager
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.webkit.JavascriptInterface
 import android.webkit.WebSettings
@@ -71,20 +75,32 @@ class MainActivity : Activity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Quitar barra de título blanca y pintar de oscuro toda la ventana
+        requestWindowFeature(Window.FEATURE_NO_TITLE)
         super.onCreate(savedInstanceState)
+        actionBar?.hide()
+        window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(0xFF0A0A0A.toInt()))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            window.statusBarColor = 0xFF0A0A0A.toInt()
+            window.navigationBarColor = 0xFF0A0A0A.toInt()
+        }
+
         updateManager = UpdateManager(applicationContext)
+        // Chequear updates de inmediato — antes del WebView — para que la APK
+        // se autoactualice incluso si la sesión está caducada o el login falla.
+        thread { runCatching { updateManager.checkForUpdates() } }
 
         val baseUrl = WidgetCommon.baseUrl(this).trimEnd('/')
-        val targetUrl = "$baseUrl/api/public/apk-login"
         val savedSession = appPrefs().getString(WidgetSetupActivity.KEY_AUTH_SESSION, null)
 
         Log.d(launchLogTag, "BOOT $buildStamp baseUrl=$baseUrl session=${!savedSession.isNullOrBlank()}")
-        Toast.makeText(this, "SolarOps build $buildStamp", Toast.LENGTH_SHORT).show()
 
         if (savedSession.isNullOrBlank()) {
-            Log.d(launchLogTag, "Sin sesión guardada -> WidgetSetupActivity")
-            startActivity(Intent(this, WidgetSetupActivity::class.java))
-            finish()
+            // Cargar el login HTML bonito dentro del WebView, en vez de la
+            // pantalla nativa fea de WidgetSetupActivity.
+            web = buildWebView()
+            setContentView(web)
+            web.loadUrl("$baseUrl/api/public/apk-login")
             return
         }
 
@@ -120,8 +136,6 @@ class MainActivity : Activity() {
             runCatching { syncSitesFromSession(effective) }
                 .onSuccess { Log.d(launchLogTag, "Sitios sincronizados: $it") }
                 .onFailure { Log.w(launchLogTag, "Sync sitios: ${it.message}") }
-            runCatching { updateManager.checkForUpdates() }
-                .onFailure { Log.w(launchLogTag, "Auto-update: ${it.message}") }
         }
 
         web = buildWebView()
@@ -150,6 +164,7 @@ class MainActivity : Activity() {
     private fun buildWebView(): WebView = WebView(this).apply {
         WebView.setWebContentsDebuggingEnabled(true)
         layoutParams = android.view.ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+        setBackgroundColor(0xFF0A0A0A.toInt())
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
         settings.databaseEnabled = true
