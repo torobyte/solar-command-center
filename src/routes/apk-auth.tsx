@@ -46,10 +46,10 @@ function ApkAuthPage() {
           localStorage.removeItem(NATIVE_BOOTSTRAP_KEY);
         }
 
-        const { data } = await supabase.auth.getSession();
+        const { data, error } = await supabase.auth.getUser();
         if (cancelled) return;
 
-        if (data.session) {
+        if (!error && data.user) {
           navigate({ to: "/app", replace: true });
         } else {
           navigate({ to: "/app-login", replace: true });
