@@ -365,7 +365,8 @@ jobs:
             'Lapp/solarops/client/WidgetConfigActivity;' \
             'Lapp/solarops/client/SolarOpsWidget;' \
             'Lapp/solarops/client/SolarOpsWidgetTiles;' \
-            'Lapp/solarops/client/SolarOpsWidgetGauge;'
+            'Lapp/solarops/client/SolarOpsWidgetGauge;' \
+            'Lapp/solarops/client/WidgetStreamService;'
           do
             if ! unzip -p "$APK" classes.dex | strings | grep -F "$CLASS" >/dev/null; then
               echo "::error::Missing class in APK: $CLASS"
