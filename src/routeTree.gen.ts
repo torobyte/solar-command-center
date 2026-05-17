@@ -33,7 +33,9 @@ import { Route as ApiPublicManifestRouteImport } from './routes/api/public/manif
 import { Route as ApiPublicLicenseStatusRouteImport } from './routes/api/public/license-status'
 import { Route as ApiPublicIngestRouteImport } from './routes/api/public/ingest'
 import { Route as ApiPublicCommandsRouteImport } from './routes/api/public/commands'
+import { Route as ApiPublicApkLoginRouteImport } from './routes/api/public/apk-login'
 import { Route as ApiPublicApkBrandRouteImport } from './routes/api/public/apk-brand'
+import { Route as ApiPublicApkBootstrapRouteImport } from './routes/api/public/apk-bootstrap'
 import { Route as ApiPublicActivateRouteImport } from './routes/api/public/activate'
 import { Route as ApiAdminSmtpTestRouteImport } from './routes/api/admin/smtp-test'
 import { Route as ApiPublicAgentUpdateRouteImport } from './routes/api/public/agent.update'
@@ -160,9 +162,19 @@ const ApiPublicCommandsRoute = ApiPublicCommandsRouteImport.update({
   path: '/api/public/commands',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicApkLoginRoute = ApiPublicApkLoginRouteImport.update({
+  id: '/api/public/apk-login',
+  path: '/api/public/apk-login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicApkBrandRoute = ApiPublicApkBrandRouteImport.update({
   id: '/api/public/apk-brand',
   path: '/api/public/apk-brand',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicApkBootstrapRoute = ApiPublicApkBootstrapRouteImport.update({
+  id: '/api/public/apk-bootstrap',
+  path: '/api/public/apk-bootstrap',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicActivateRoute = ApiPublicActivateRouteImport.update({
@@ -208,7 +220,9 @@ export interface FileRoutesByFullPath {
   '/sites/overview': typeof SitesOverviewRoute
   '/api/admin/smtp-test': typeof ApiAdminSmtpTestRoute
   '/api/public/activate': typeof ApiPublicActivateRoute
+  '/api/public/apk-bootstrap': typeof ApiPublicApkBootstrapRoute
   '/api/public/apk-brand': typeof ApiPublicApkBrandRoute
+  '/api/public/apk-login': typeof ApiPublicApkLoginRoute
   '/api/public/commands': typeof ApiPublicCommandsRoute
   '/api/public/ingest': typeof ApiPublicIngestRoute
   '/api/public/license-status': typeof ApiPublicLicenseStatusRoute
@@ -240,7 +254,9 @@ export interface FileRoutesByTo {
   '/sites/overview': typeof SitesOverviewRoute
   '/api/admin/smtp-test': typeof ApiAdminSmtpTestRoute
   '/api/public/activate': typeof ApiPublicActivateRoute
+  '/api/public/apk-bootstrap': typeof ApiPublicApkBootstrapRoute
   '/api/public/apk-brand': typeof ApiPublicApkBrandRoute
+  '/api/public/apk-login': typeof ApiPublicApkLoginRoute
   '/api/public/commands': typeof ApiPublicCommandsRoute
   '/api/public/ingest': typeof ApiPublicIngestRoute
   '/api/public/license-status': typeof ApiPublicLicenseStatusRoute
@@ -273,7 +289,9 @@ export interface FileRoutesById {
   '/sites/overview': typeof SitesOverviewRoute
   '/api/admin/smtp-test': typeof ApiAdminSmtpTestRoute
   '/api/public/activate': typeof ApiPublicActivateRoute
+  '/api/public/apk-bootstrap': typeof ApiPublicApkBootstrapRoute
   '/api/public/apk-brand': typeof ApiPublicApkBrandRoute
+  '/api/public/apk-login': typeof ApiPublicApkLoginRoute
   '/api/public/commands': typeof ApiPublicCommandsRoute
   '/api/public/ingest': typeof ApiPublicIngestRoute
   '/api/public/license-status': typeof ApiPublicLicenseStatusRoute
@@ -307,7 +325,9 @@ export interface FileRouteTypes {
     | '/sites/overview'
     | '/api/admin/smtp-test'
     | '/api/public/activate'
+    | '/api/public/apk-bootstrap'
     | '/api/public/apk-brand'
+    | '/api/public/apk-login'
     | '/api/public/commands'
     | '/api/public/ingest'
     | '/api/public/license-status'
@@ -339,7 +359,9 @@ export interface FileRouteTypes {
     | '/sites/overview'
     | '/api/admin/smtp-test'
     | '/api/public/activate'
+    | '/api/public/apk-bootstrap'
     | '/api/public/apk-brand'
+    | '/api/public/apk-login'
     | '/api/public/commands'
     | '/api/public/ingest'
     | '/api/public/license-status'
@@ -371,7 +393,9 @@ export interface FileRouteTypes {
     | '/sites/overview'
     | '/api/admin/smtp-test'
     | '/api/public/activate'
+    | '/api/public/apk-bootstrap'
     | '/api/public/apk-brand'
+    | '/api/public/apk-login'
     | '/api/public/commands'
     | '/api/public/ingest'
     | '/api/public/license-status'
@@ -403,7 +427,9 @@ export interface RootRouteChildren {
   SitesOverviewRoute: typeof SitesOverviewRoute
   ApiAdminSmtpTestRoute: typeof ApiAdminSmtpTestRoute
   ApiPublicActivateRoute: typeof ApiPublicActivateRoute
+  ApiPublicApkBootstrapRoute: typeof ApiPublicApkBootstrapRoute
   ApiPublicApkBrandRoute: typeof ApiPublicApkBrandRoute
+  ApiPublicApkLoginRoute: typeof ApiPublicApkLoginRoute
   ApiPublicCommandsRoute: typeof ApiPublicCommandsRoute
   ApiPublicIngestRoute: typeof ApiPublicIngestRoute
   ApiPublicLicenseStatusRoute: typeof ApiPublicLicenseStatusRoute
@@ -589,11 +615,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCommandsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/apk-login': {
+      id: '/api/public/apk-login'
+      path: '/api/public/apk-login'
+      fullPath: '/api/public/apk-login'
+      preLoaderRoute: typeof ApiPublicApkLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/apk-brand': {
       id: '/api/public/apk-brand'
       path: '/api/public/apk-brand'
       fullPath: '/api/public/apk-brand'
       preLoaderRoute: typeof ApiPublicApkBrandRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/apk-bootstrap': {
+      id: '/api/public/apk-bootstrap'
+      path: '/api/public/apk-bootstrap'
+      fullPath: '/api/public/apk-bootstrap'
+      preLoaderRoute: typeof ApiPublicApkBootstrapRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/activate': {
@@ -660,7 +700,9 @@ const rootRouteChildren: RootRouteChildren = {
   SitesOverviewRoute: SitesOverviewRoute,
   ApiAdminSmtpTestRoute: ApiAdminSmtpTestRoute,
   ApiPublicActivateRoute: ApiPublicActivateRoute,
+  ApiPublicApkBootstrapRoute: ApiPublicApkBootstrapRoute,
   ApiPublicApkBrandRoute: ApiPublicApkBrandRoute,
+  ApiPublicApkLoginRoute: ApiPublicApkLoginRoute,
   ApiPublicCommandsRoute: ApiPublicCommandsRoute,
   ApiPublicIngestRoute: ApiPublicIngestRoute,
   ApiPublicLicenseStatusRoute: ApiPublicLicenseStatusRoute,

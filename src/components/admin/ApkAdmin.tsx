@@ -64,7 +64,7 @@ const DEFAULT: ApkConfig = {
   version_name: "1.0.0",
   version_code: 1,
   server_url: "https://appsolar.torobyte.com",
-  start_path: "/apk-auth",
+  start_path: "/api/public/apk-bootstrap",
   primary_color: "#f59e0b",
   background_color: "#0a0a0a",
   splash_color: "#0a0a0a",
@@ -404,7 +404,7 @@ export function ApkAdmin() {
                 <Input
                   value={cfg.start_path}
                   onChange={(e) => update("start_path", e.target.value)}
-                  placeholder="/apk-auth"
+                  placeholder="/api/public/apk-bootstrap"
                 />
                 <p className="text-xs text-muted-foreground">
                   La app abre en{" "}
@@ -412,8 +412,8 @@ export function ApkAdmin() {
                     {cfg.server_url.replace(/\/$/, "")}
                     {cfg.start_path}
                   </code>
-                  . La ruta <code>/apk-auth</code> sincroniza la sesión nativa y luego entra a{" "}
-                  <code>/app</code> o <code>/app-login</code>.
+                  . La ruta <code>/api/public/apk-bootstrap</code> sincroniza la sesión nativa y
+                  luego entra al login público de la APK o a <code>/app</code>.
                 </p>
               </div>
             </div>

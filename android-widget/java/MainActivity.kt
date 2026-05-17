@@ -41,7 +41,7 @@ class MainActivity : Activity() {
     private val bootstrapStorageKey = "solarops_native_session_bootstrap"
     private val launchDiagnosticsKey = "solarops_native_launch_diagnostics"
     private val launchLogTag = "SolarOpsLaunch"
-    private val bootstrapVersion = "mainactivity-bootstrap-2026-05-17-v3"
+    private val bootstrapVersion = "mainactivity-bootstrap-2026-05-17-v4"
 
     inner class SolarWidgetBridge {
         @JavascriptInterface
@@ -81,7 +81,7 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
 
         val baseUrl = WidgetCommon.baseUrl(this).trimEnd('/')
-        val targetUrl = "$baseUrl/apk-auth"
+        val targetUrl = "$baseUrl/api/public/apk-bootstrap"
         val savedSession = appPrefs().getString(WidgetSetupActivity.KEY_AUTH_SESSION, null)
 
         resetLaunchDiagnostics(baseUrl, targetUrl, savedSession)
@@ -223,7 +223,7 @@ class MainActivity : Activity() {
 
     private fun loadBootstrapPage(rawSession: String) {
         val baseUrl = WidgetCommon.baseUrl(this).trimEnd('/')
-        val targetUrl = "$baseUrl/apk-auth"
+        val targetUrl = "$baseUrl/api/public/apk-bootstrap"
         val storageKey = JSONObject.quote(authStorageKey)
         val bootstrapKey = JSONObject.quote(bootstrapStorageKey)
         val escapedSession = JSONObject.quote(rawSession)
@@ -232,7 +232,7 @@ class MainActivity : Activity() {
             put("initial_url", targetUrl)
             put("bootstrap_session_bytes", rawSession.length)
         }
-        logLaunch("Inyectando bootstrap localStorage y redirigiendo a $targetUrl")
+        logLaunch("Inyectando bootstrap localStorage y redirigiendo a bootstrap público $targetUrl")
         val html = """
             <!doctype html>
             <html>

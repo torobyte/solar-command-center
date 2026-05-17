@@ -55,7 +55,9 @@ function normalizeApkConfig<T extends { server_url?: string | null; start_path?:
     ...config,
     server_url: normalizeApkServerUrl(config.server_url),
     start_path:
-      !config.start_path || config.start_path === "/app-login" ? "/apk-auth" : config.start_path,
+      !config.start_path || config.start_path === "/app-login" || config.start_path === "/apk-auth"
+        ? "/api/public/apk-bootstrap"
+        : config.start_path,
   };
 }
 
@@ -133,7 +135,7 @@ export const generateApkProject = createServerFn({ method: "POST" })
     const slug = cfg.app_name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
     // ---------------- capacitor.config.ts ----------------
-    const startUrl = cfg.server_url.replace(/\/$/, "") + (cfg.start_path || "/apk-auth");
+    const startUrl = cfg.server_url.replace(/\/$/, "") + (cfg.start_path || "/api/public/apk-bootstrap");
     const capacitorConfig = `import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
