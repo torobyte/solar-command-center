@@ -18,31 +18,30 @@ export const Route = createFileRoute("/api/public/apk-login")({
 
         const { data: apkConfig } = await supabaseAdmin
           .from("apk_config")
-          .select("app_name, primary_color, background_color")
+          .select("app_name, primary_color, background_color, icon_url")
           .eq("id", 1)
           .maybeSingle();
 
         const appName = apkConfig?.app_name || "SolarOps";
         const primary = apkConfig?.primary_color || "#f59e0b";
         const background = apkConfig?.background_color || "#0a0a0a";
+        const iconUrl = apkConfig?.icon_url || "";
 
         const html = `<!doctype html>
 <html lang="es">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>${appName} APK Login</title>
+    <title>${appName}</title>
     <style>
       :root {
         --bg: ${background};
         --fg: #f8fafc;
         --muted: #94a3b8;
-        --line: rgba(255,255,255,0.12);
-        --panel: rgba(15,23,42,0.84);
+        --line: rgba(255,255,255,0.10);
         --input: rgba(255,255,255,0.08);
         --primary: ${primary};
         --danger: #ef4444;
-        --ok: #10b981;
       }
       * { box-sizing: border-box; }
       html, body {
@@ -56,114 +55,97 @@ export const Route = createFileRoute("/api/public/apk-login")({
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 24px;
+        padding: 28px;
       }
       .shell {
-        width: min(100%, 460px);
-        border: 1px solid var(--line);
-        border-radius: 20px;
-        background: var(--panel);
-        box-shadow: 0 32px 80px rgba(0,0,0,0.45);
-        padding: 24px;
-      }
-      h1 {
-        margin: 0;
-        font-size: 28px;
-        line-height: 1.1;
-      }
-      p {
-        margin: 8px 0 0;
-        color: var(--muted);
-        line-height: 1.5;
-      }
-      form {
-        margin-top: 20px;
+        width: min(100%, 380px);
         display: grid;
+        gap: 24px;
+      }
+      .brand {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
         gap: 12px;
+        margin-top: 8px;
       }
-      label {
-        font-size: 13px;
-        color: var(--muted);
+      .brand img {
+        height: 80px;
+        max-width: 220px;
+        object-fit: contain;
       }
+      .brand .fallback {
+        width: 80px; height: 80px;
+        border-radius: 22px;
+        background: var(--primary);
+        display: flex; align-items: center; justify-content: center;
+        color: white; font-size: 36px; font-weight: 800;
+      }
+      .brand h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+      form { display: grid; gap: 12px; }
       input {
         width: 100%;
         border: 1px solid transparent;
         outline: none;
-        border-radius: 14px;
+        border-radius: 16px;
         background: var(--input);
         color: var(--fg);
-        padding: 14px 16px;
+        padding: 16px 18px;
         font-size: 16px;
       }
-      input:focus {
-        border-color: color-mix(in srgb, var(--primary) 80%, white 20%);
-      }
+      input:focus { border-color: color-mix(in srgb, var(--primary) 70%, transparent); }
       button {
+        position: relative;
         border: 0;
-        border-radius: 14px;
-        padding: 14px 16px;
+        border-radius: 16px;
+        padding: 16px 18px;
         background: var(--primary);
         color: white;
         font-size: 16px;
         font-weight: 700;
+        cursor: pointer;
+        transition: opacity .15s ease;
       }
-      button[disabled] {
-        opacity: .7;
+      button[disabled] { opacity: .75; cursor: progress; }
+      .spinner {
+        display: inline-block;
+        width: 18px; height: 18px;
+        border: 2px solid rgba(255,255,255,.35);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin .8s linear infinite;
+        vertical-align: -4px;
       }
-      .secondary {
-        background: transparent;
-        border: 1px solid var(--line);
-        color: var(--fg);
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .error {
+        display: none;
+        border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent);
+        background: color-mix(in srgb, var(--danger) 12%, transparent);
+        color: #fecaca;
+        border-radius: 14px;
+        padding: 12px 14px;
+        font-size: 13px;
+        line-height: 1.4;
       }
-      .stack { display: grid; gap: 10px; }
-      .status, .diag {
-        margin-top: 16px;
-        border: 1px solid var(--line);
-        border-radius: 16px;
-        padding: 14px;
-        background: rgba(255,255,255,0.03);
-      }
-      .status.ok { border-color: color-mix(in srgb, var(--ok) 35%, transparent); }
-      .status.error { border-color: color-mix(in srgb, var(--danger) 35%, transparent); color: #fecaca; }
-      .mono {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-size: 12px;
-        line-height: 1.5;
-        white-space: pre-wrap;
-        word-break: break-word;
-      }
-      .row {
-        display: flex;
-        gap: 10px;
-        margin-top: 12px;
-      }
-      .row > * { flex: 1; }
+      .error.show { display: block; }
     </style>
   </head>
   <body>
     <div class="shell">
-      <h1>${appName}</h1>
-      <p>Acceso directo de la APK. Esta pantalla valida la sesión antes de entrar al panel.</p>
+      <div class="brand">
+        ${iconUrl
+          ? `<img src="${iconUrl}" alt="${appName}" />`
+          : `<div class="fallback">${appName.slice(0, 1).toUpperCase()}</div>`}
+        <h1>${appName}</h1>
+      </div>
 
-      <form id="login-form" class="stack">
-        <div class="stack">
-          <label for="email">Correo</label>
-          <input id="email" name="email" type="email" autocomplete="email" required />
-        </div>
-        <div class="stack">
-          <label for="password">Contraseña</label>
-          <input id="password" name="password" type="password" autocomplete="current-password" required />
-        </div>
-        <button id="submit" type="submit">Entrar</button>
+      <form id="login-form">
+        <input id="email" name="email" type="email" autocomplete="email" placeholder="Correo" required />
+        <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Contraseña" required />
+        <button id="submit" type="submit"><span id="btn-label">Entrar</span></button>
       </form>
 
-      <div id="status" class="status mono">Inicializando diagnóstico de sesión…</div>
-      <div class="diag mono" id="diag">Cargando logs nativos…</div>
-
-      <div class="row">
-        <button id="retry" type="button" class="secondary">Revalidar sesión</button>
-        <button id="open-app" type="button" class="secondary">Entrar a /app</button>
-      </div>
+      <div id="error" class="error"></div>
     </div>
 
     <script>
@@ -173,112 +155,71 @@ export const Route = createFileRoute("/api/public/apk-login")({
         const BASE_URL = ${JSON.stringify(baseUrl)};
         const SUPABASE_URL = ${JSON.stringify(supabaseUrl)};
         const API_KEY = ${JSON.stringify(publishableKey)};
-        const statusEl = document.getElementById('status');
-        const diagEl = document.getElementById('diag');
         const form = document.getElementById('login-form');
         const submit = document.getElementById('submit');
-        const retryBtn = document.getElementById('retry');
-        const openAppBtn = document.getElementById('open-app');
+        const btnLabel = document.getElementById('btn-label');
+        const errorEl = document.getElementById('error');
 
-        function setStatus(text, kind) {
-          statusEl.textContent = text;
-          statusEl.className = 'status mono' + (kind ? ' ' + kind : '');
-          appendLog('status=' + text);
+        function setLoading(on) {
+          submit.disabled = on;
+          btnLabel.innerHTML = on ? '<span class="spinner"></span>' : 'Entrar';
         }
-
-        function appendLog(line) {
-          diagEl.textContent += '\\n' + line;
-          try { window.SolarWidgetBridge?.appendLaunchLog?.('LOGIN ' + line); } catch {}
+        function showError(msg) {
+          errorEl.textContent = msg;
+          errorEl.classList.add('show');
         }
-
-        function setSessionPayload(payload) {
-          localStorage.setItem(AUTH_KEY, JSON.stringify(payload));
-          localStorage.setItem(BOOTSTRAP_KEY, JSON.stringify(payload));
+        function clearError() {
+          errorEl.classList.remove('show');
+          errorEl.textContent = '';
+        }
+        function persist(payload) {
+          try { localStorage.setItem(AUTH_KEY, JSON.stringify(payload)); } catch {}
+          try { localStorage.setItem(BOOTSTRAP_KEY, JSON.stringify(payload)); } catch {}
           try { window.SolarWidgetBridge?.saveSession?.(JSON.stringify(payload)); } catch {}
-          appendLog('session-saved=yes');
         }
 
-        async function validateToken(payload) {
-          if (!payload?.access_token) {
-            appendLog('validateToken=no-access-token');
-            return false;
-          }
-          const res = await fetch(SUPABASE_URL + '/auth/v1/user', {
-            headers: {
-              apikey: API_KEY,
-              Authorization: 'Bearer ' + payload.access_token,
-            },
-          });
-          appendLog('getUser-status=' + res.status);
-          if (!res.ok) return false;
-          const user = await res.json().catch(() => null);
-          appendLog('getUser-id=' + (user?.id || 'unknown'));
-          return true;
-        }
-
-        async function tryExistingSession() {
-          setStatus('Verificando sesión existente…');
-          let raw = null;
+        async function validate(payload) {
+          if (!payload?.access_token) return false;
           try {
-            raw = localStorage.getItem(AUTH_KEY) || localStorage.getItem(BOOTSTRAP_KEY);
-          } catch (err) {
-            appendLog('storage-read-error=' + (err instanceof Error ? err.message : String(err)));
-          }
-          appendLog('existing-session=' + (raw ? 'yes' : 'no'));
-          if (!raw) {
-            setStatus('No hay sesión guardada. Ingresa tus credenciales.');
-            return;
-          }
+            const res = await fetch(SUPABASE_URL + '/auth/v1/user', {
+              headers: { apikey: API_KEY, Authorization: 'Bearer ' + payload.access_token },
+            });
+            return res.ok;
+          } catch { return false; }
+        }
+
+        async function tryExisting() {
+          let raw = null;
+          try { raw = localStorage.getItem(AUTH_KEY) || localStorage.getItem(BOOTSTRAP_KEY); } catch {}
+          if (!raw) return;
           try {
             const payload = JSON.parse(raw);
-            const ok = await validateToken(payload);
-            if (ok) {
-              setSessionPayload(payload);
-              setStatus('Sesión válida. Entrando al panel…', 'ok');
+            if (await validate(payload)) {
+              persist(payload);
               window.location.replace(BASE_URL + '/app');
-              return;
             }
-            setStatus('La sesión guardada ya no es válida. Ingresa de nuevo.', 'error');
-          } catch (err) {
-            appendLog('existing-session-parse-error=' + (err instanceof Error ? err.message : String(err)));
-            setStatus('No se pudo leer la sesión guardada.', 'error');
-          }
+          } catch {}
         }
 
         async function login(email, password) {
-          setStatus('Iniciando sesión…');
-          submit.disabled = true;
+          clearError();
+          setLoading(true);
           try {
             const res = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
               method: 'POST',
-              headers: {
-                apikey: API_KEY,
-                'Content-Type': 'application/json',
-              },
+              headers: { apikey: API_KEY, 'Content-Type': 'application/json' },
               body: JSON.stringify({ email, password }),
             });
-            appendLog('signIn-status=' + res.status);
             const payload = await res.json().catch(() => ({}));
             if (!res.ok) {
-              throw new Error(payload?.msg || payload?.error_description || payload?.error || 'Login rechazado');
+              throw new Error(payload?.msg || payload?.error_description || payload?.error || 'Credenciales inválidas');
             }
-            const ok = await validateToken(payload);
-            if (!ok) throw new Error('El backend rechazó el access token recién emitido');
-            setSessionPayload(payload);
-            setStatus('Login correcto. Entrando al panel…', 'ok');
+            persist(payload);
             window.location.replace(BASE_URL + '/app');
           } catch (err) {
-            setStatus(err instanceof Error ? err.message : String(err), 'error');
-          } finally {
-            submit.disabled = false;
+            setLoading(false);
+            showError(err instanceof Error ? err.message : String(err));
           }
-        }
-
-        try {
-          const native = window.SolarWidgetBridge?.getLaunchDiagnostics?.();
-          diagEl.textContent = native ? String(native) : 'native-diagnostics=unavailable';
-        } catch (err) {
-          diagEl.textContent = 'native-diagnostics-error=' + (err instanceof Error ? err.message : String(err));
         }
 
         form.addEventListener('submit', function (event) {
@@ -287,9 +228,7 @@ export const Route = createFileRoute("/api/public/apk-login")({
           const password = document.getElementById('password').value;
           void login(email, password);
         });
-        retryBtn.addEventListener('click', function () { void tryExistingSession(); });
-        openAppBtn.addEventListener('click', function () { window.location.replace(BASE_URL + '/app'); });
-        void tryExistingSession();
+        void tryExisting();
       })();
     </script>
   </body>
