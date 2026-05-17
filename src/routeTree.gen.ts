@@ -23,6 +23,7 @@ import { Route as SitesOverviewRouteImport } from './routes/sites.overview'
 import { Route as SitesSiteIdRouteImport } from './routes/sites.$siteId'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as AppWidgetsRouteImport } from './routes/app.widgets'
+import { Route as ApiPublicWidgetStreamRouteImport } from './routes/api/public/widget-stream'
 import { Route as ApiPublicWidgetDataRouteImport } from './routes/api/public/widget-data'
 import { Route as ApiPublicWidgetRouteImport } from './routes/api/public/widget'
 import { Route as ApiPublicSnapshotRouteImport } from './routes/api/public/snapshot'
@@ -112,6 +113,11 @@ const AppWidgetsRoute = AppWidgetsRouteImport.update({
   id: '/widgets',
   path: '/widgets',
   getParentRoute: () => AppRoute,
+} as any)
+const ApiPublicWidgetStreamRoute = ApiPublicWidgetStreamRouteImport.update({
+  id: '/api/public/widget-stream',
+  path: '/api/public/widget-stream',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicWidgetDataRoute = ApiPublicWidgetDataRouteImport.update({
   id: '/api/public/widget-data',
@@ -240,6 +246,7 @@ export interface FileRoutesByFullPath {
   '/api/public/snapshot': typeof ApiPublicSnapshotRoute
   '/api/public/widget': typeof ApiPublicWidgetRoute
   '/api/public/widget-data': typeof ApiPublicWidgetDataRoute
+  '/api/public/widget-stream': typeof ApiPublicWidgetStreamRoute
   '/api/public/agent/agent': typeof ApiPublicAgentAgentRoute
   '/api/public/agent/install': typeof ApiPublicAgentInstallRoute
   '/api/public/agent/update': typeof ApiPublicAgentUpdateRoute
@@ -275,6 +282,7 @@ export interface FileRoutesByTo {
   '/api/public/snapshot': typeof ApiPublicSnapshotRoute
   '/api/public/widget': typeof ApiPublicWidgetRoute
   '/api/public/widget-data': typeof ApiPublicWidgetDataRoute
+  '/api/public/widget-stream': typeof ApiPublicWidgetStreamRoute
   '/api/public/agent/agent': typeof ApiPublicAgentAgentRoute
   '/api/public/agent/install': typeof ApiPublicAgentInstallRoute
   '/api/public/agent/update': typeof ApiPublicAgentUpdateRoute
@@ -311,6 +319,7 @@ export interface FileRoutesById {
   '/api/public/snapshot': typeof ApiPublicSnapshotRoute
   '/api/public/widget': typeof ApiPublicWidgetRoute
   '/api/public/widget-data': typeof ApiPublicWidgetDataRoute
+  '/api/public/widget-stream': typeof ApiPublicWidgetStreamRoute
   '/api/public/agent/agent': typeof ApiPublicAgentAgentRoute
   '/api/public/agent/install': typeof ApiPublicAgentInstallRoute
   '/api/public/agent/update': typeof ApiPublicAgentUpdateRoute
@@ -348,6 +357,7 @@ export interface FileRouteTypes {
     | '/api/public/snapshot'
     | '/api/public/widget'
     | '/api/public/widget-data'
+    | '/api/public/widget-stream'
     | '/api/public/agent/agent'
     | '/api/public/agent/install'
     | '/api/public/agent/update'
@@ -383,6 +393,7 @@ export interface FileRouteTypes {
     | '/api/public/snapshot'
     | '/api/public/widget'
     | '/api/public/widget-data'
+    | '/api/public/widget-stream'
     | '/api/public/agent/agent'
     | '/api/public/agent/install'
     | '/api/public/agent/update'
@@ -418,6 +429,7 @@ export interface FileRouteTypes {
     | '/api/public/snapshot'
     | '/api/public/widget'
     | '/api/public/widget-data'
+    | '/api/public/widget-stream'
     | '/api/public/agent/agent'
     | '/api/public/agent/install'
     | '/api/public/agent/update'
@@ -453,6 +465,7 @@ export interface RootRouteChildren {
   ApiPublicSnapshotRoute: typeof ApiPublicSnapshotRoute
   ApiPublicWidgetRoute: typeof ApiPublicWidgetRoute
   ApiPublicWidgetDataRoute: typeof ApiPublicWidgetDataRoute
+  ApiPublicWidgetStreamRoute: typeof ApiPublicWidgetStreamRoute
   ApiPublicAgentAgentRoute: typeof ApiPublicAgentAgentRoute
   ApiPublicAgentInstallRoute: typeof ApiPublicAgentInstallRoute
   ApiPublicAgentUpdateRoute: typeof ApiPublicAgentUpdateRoute
@@ -557,6 +570,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/widgets'
       preLoaderRoute: typeof AppWidgetsRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/api/public/widget-stream': {
+      id: '/api/public/widget-stream'
+      path: '/api/public/widget-stream'
+      fullPath: '/api/public/widget-stream'
+      preLoaderRoute: typeof ApiPublicWidgetStreamRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/widget-data': {
       id: '/api/public/widget-data'
@@ -734,6 +754,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicSnapshotRoute: ApiPublicSnapshotRoute,
   ApiPublicWidgetRoute: ApiPublicWidgetRoute,
   ApiPublicWidgetDataRoute: ApiPublicWidgetDataRoute,
+  ApiPublicWidgetStreamRoute: ApiPublicWidgetStreamRoute,
   ApiPublicAgentAgentRoute: ApiPublicAgentAgentRoute,
   ApiPublicAgentInstallRoute: ApiPublicAgentInstallRoute,
   ApiPublicAgentUpdateRoute: ApiPublicAgentUpdateRoute,
