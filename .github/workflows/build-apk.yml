@@ -238,24 +238,9 @@ jobs:
           echo "vcode=$VCODE" >> $GITHUB_OUTPUT
           echo "vname=$VNAME" >> $GITHUB_OUTPUT
 
-      - name: Cache Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-            android/.gradle
-          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
-          restore-keys: |
-            gradle-${{ runner.os }}-
-
-      - name: Cache Android SDK
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.android/build-cache
-            ~/.android/cache
-          key: android-sdk-${{ runner.os }}-v1
+      # NOTE: Gradle / Android SDK caches intentionally NOT used.
+      # We want every run to produce a fully fresh APK so the user never
+      # downloads a stale artifact assembled from a previous workflow.
 
       - name: Grant gradlew permissions
         working-directory: android
