@@ -26,58 +26,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true;
 
-    const syncAuthState = async () => {
-      setAuthLoading(true);
+    const applySession = async (nextSession: Session | null) => {
+      if (!active) return;
 
+      setSession(nextSession);
+      const nextUser = nextSession?.user ?? null;
+      setUser(nextUser);
+
+      if (!nextUser) {
+        setRole(null);
+        setRoleLoading(false);
+        return;
+      }
+
+      setRoleLoading(true);
       try {
-        const { data: userData, error } = await supabase.auth.getUser();
+        const { data, error } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", nextUser.id);
         if (!active) return;
+        if (error) throw error;
+        if (data?.some((r) => r.role === "superadmin")) setRole("superadmin");
+        else setRole("user");
+      } catch {
+        if (active) setRole("user");
+      } finally {
+        if (active) setRoleLoading(false);
+      }
+    };
 
-        if (error || !userData.user) {
-          setSession(null);
-          setUser(null);
-          setRole(null);
-          setRoleLoading(false);
-          await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
-          return;
-        }
-
-        const { data: sessionData } = await supabase.auth.getSession();
+    const initialize = async () => {
+      setAuthLoading(true);
+      try {
+        const { data } = await supabase.auth.getSession();
         if (!active) return;
-
-        setSession(sessionData.session);
-        setUser(userData.user);
-        setRoleLoading(true);
-        setTimeout(() => fetchRole(userData.user.id), 0);
+        await applySession(data.session);
       } finally {
         if (active) setAuthLoading(false);
       }
     };
 
-    const { data: sub } = supabase.auth.onAuthStateChange(() => {
-      void syncAuthState();
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (!active) return;
+      setAuthLoading(true);
+      void applySession(nextSession).finally(() => {
+        if (active) setAuthLoading(false);
+      });
     });
 
-    void syncAuthState();
+    void initialize();
 
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
   }, []);
-
-  async function fetchRole(userId: string) {
-    try {
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId);
-      if (error) throw error;
-      if (data?.some((r) => r.role === "superadmin")) setRole("superadmin");
-      else setRole("user");
-    } catch {
-      setRole("user");
-    } finally {
-      setRoleLoading(false);
-    }
-  }
 
   return (
     <Ctx.Provider value={{
