@@ -134,6 +134,15 @@ class MainActivity : Activity() {
                     logLaunch("La sesión fue refrescada y guardada localmente")
                 }
 
+                // Sincronizar sitios en background para que WidgetConfigActivity
+                // (picker del home-screen widget) tenga datos sin requerir el
+                // login nativo antiguo.
+                thread {
+                    runCatching { syncSitesFromSession(validSession) }
+                        .onSuccess { count -> logLaunch("Sitios sincronizados para widgets: $count") }
+                        .onFailure { logLaunch("Sync de sitios falló: ${it.message ?: it.javaClass.simpleName}") }
+                }
+
                 web = buildWebView()
                 setContentView(web)
 
@@ -359,6 +368,37 @@ class MainActivity : Activity() {
     }
 
     private fun appPrefs() = getSharedPreferences(WidgetSetupActivity.PREFS, MODE_PRIVATE)
+
+    private fun syncSitesFromSession(rawSession: String): Int {
+        val accessToken = JSONObject(rawSession).optString("access_token")
+        if (accessToken.isBlank()) throw IllegalStateException("Sin access_token para sincronizar sitios")
+        val conn = (URL("${WidgetSetupActivity.SUPABASE_URL}/rest/v1/sites?select=id,name,device_token&order=name.asc").openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = 8000
+            readTimeout = 8000
+            setRequestProperty("apikey", WidgetSetupActivity.SUPABASE_ANON)
+            setRequestProperty("Authorization", "Bearer $accessToken")
+            setRequestProperty("Accept", "application/json")
+        }
+        if (conn.responseCode !in 200..299) {
+            throw IllegalStateException("sites HTTP ${conn.responseCode}")
+        }
+        val arr = JSONArray(conn.inputStream.bufferedReader().use { it.readText() })
+        val out = JSONArray()
+        for (i in 0 until arr.length()) {
+            val o = arr.getJSONObject(i)
+            out.put(
+                JSONObject()
+                    .put("id", o.optString("id"))
+                    .put("name", o.optString("name"))
+                    .put("token", o.optString("device_token")),
+            )
+        }
+        appPrefs().edit()
+            .putString(WidgetSetupActivity.KEY_SITES_JSON, out.toString())
+            .apply()
+        return out.length()
+    }
 
     private fun readLaunchDiagnostics(): JSONObject {
         val raw = appPrefs().getString(launchDiagnosticsKey, null)
