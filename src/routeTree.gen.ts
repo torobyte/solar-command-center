@@ -33,6 +33,7 @@ import { Route as ApiPublicManifestRouteImport } from './routes/api/public/manif
 import { Route as ApiPublicLicenseStatusRouteImport } from './routes/api/public/license-status'
 import { Route as ApiPublicIngestRouteImport } from './routes/api/public/ingest'
 import { Route as ApiPublicCommandsRouteImport } from './routes/api/public/commands'
+import { Route as ApiPublicApkLoginRouteImport } from './routes/api/public/apk-login'
 import { Route as ApiPublicApkBrandRouteImport } from './routes/api/public/apk-brand'
 import { Route as ApiPublicApkBootstrapRouteImport } from './routes/api/public/apk-bootstrap'
 import { Route as ApiPublicActivateRouteImport } from './routes/api/public/activate'
@@ -161,6 +162,11 @@ const ApiPublicCommandsRoute = ApiPublicCommandsRouteImport.update({
   path: '/api/public/commands',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicApkLoginRoute = ApiPublicApkLoginRouteImport.update({
+  id: '/api/public/apk-login',
+  path: '/api/public/apk-login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicApkBrandRoute = ApiPublicApkBrandRouteImport.update({
   id: '/api/public/apk-brand',
   path: '/api/public/apk-brand',
@@ -216,6 +222,7 @@ export interface FileRoutesByFullPath {
   '/api/public/activate': typeof ApiPublicActivateRoute
   '/api/public/apk-bootstrap': typeof ApiPublicApkBootstrapRoute
   '/api/public/apk-brand': typeof ApiPublicApkBrandRoute
+  '/api/public/apk-login': typeof ApiPublicApkLoginRoute
   '/api/public/commands': typeof ApiPublicCommandsRoute
   '/api/public/ingest': typeof ApiPublicIngestRoute
   '/api/public/license-status': typeof ApiPublicLicenseStatusRoute
@@ -249,6 +256,7 @@ export interface FileRoutesByTo {
   '/api/public/activate': typeof ApiPublicActivateRoute
   '/api/public/apk-bootstrap': typeof ApiPublicApkBootstrapRoute
   '/api/public/apk-brand': typeof ApiPublicApkBrandRoute
+  '/api/public/apk-login': typeof ApiPublicApkLoginRoute
   '/api/public/commands': typeof ApiPublicCommandsRoute
   '/api/public/ingest': typeof ApiPublicIngestRoute
   '/api/public/license-status': typeof ApiPublicLicenseStatusRoute
@@ -283,6 +291,7 @@ export interface FileRoutesById {
   '/api/public/activate': typeof ApiPublicActivateRoute
   '/api/public/apk-bootstrap': typeof ApiPublicApkBootstrapRoute
   '/api/public/apk-brand': typeof ApiPublicApkBrandRoute
+  '/api/public/apk-login': typeof ApiPublicApkLoginRoute
   '/api/public/commands': typeof ApiPublicCommandsRoute
   '/api/public/ingest': typeof ApiPublicIngestRoute
   '/api/public/license-status': typeof ApiPublicLicenseStatusRoute
@@ -318,6 +327,7 @@ export interface FileRouteTypes {
     | '/api/public/activate'
     | '/api/public/apk-bootstrap'
     | '/api/public/apk-brand'
+    | '/api/public/apk-login'
     | '/api/public/commands'
     | '/api/public/ingest'
     | '/api/public/license-status'
@@ -351,6 +361,7 @@ export interface FileRouteTypes {
     | '/api/public/activate'
     | '/api/public/apk-bootstrap'
     | '/api/public/apk-brand'
+    | '/api/public/apk-login'
     | '/api/public/commands'
     | '/api/public/ingest'
     | '/api/public/license-status'
@@ -384,6 +395,7 @@ export interface FileRouteTypes {
     | '/api/public/activate'
     | '/api/public/apk-bootstrap'
     | '/api/public/apk-brand'
+    | '/api/public/apk-login'
     | '/api/public/commands'
     | '/api/public/ingest'
     | '/api/public/license-status'
@@ -417,6 +429,7 @@ export interface RootRouteChildren {
   ApiPublicActivateRoute: typeof ApiPublicActivateRoute
   ApiPublicApkBootstrapRoute: typeof ApiPublicApkBootstrapRoute
   ApiPublicApkBrandRoute: typeof ApiPublicApkBrandRoute
+  ApiPublicApkLoginRoute: typeof ApiPublicApkLoginRoute
   ApiPublicCommandsRoute: typeof ApiPublicCommandsRoute
   ApiPublicIngestRoute: typeof ApiPublicIngestRoute
   ApiPublicLicenseStatusRoute: typeof ApiPublicLicenseStatusRoute
@@ -602,6 +615,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCommandsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/apk-login': {
+      id: '/api/public/apk-login'
+      path: '/api/public/apk-login'
+      fullPath: '/api/public/apk-login'
+      preLoaderRoute: typeof ApiPublicApkLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/apk-brand': {
       id: '/api/public/apk-brand'
       path: '/api/public/apk-brand'
@@ -682,6 +702,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicActivateRoute: ApiPublicActivateRoute,
   ApiPublicApkBootstrapRoute: ApiPublicApkBootstrapRoute,
   ApiPublicApkBrandRoute: ApiPublicApkBrandRoute,
+  ApiPublicApkLoginRoute: ApiPublicApkLoginRoute,
   ApiPublicCommandsRoute: ApiPublicCommandsRoute,
   ApiPublicIngestRoute: ApiPublicIngestRoute,
   ApiPublicLicenseStatusRoute: ApiPublicLicenseStatusRoute,
@@ -699,3 +720,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
