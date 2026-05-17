@@ -139,6 +139,9 @@ class WidgetStreamService : Service() {
             SolarOpsWidget::class.java,
             SolarOpsWidgetTiles::class.java,
             SolarOpsWidgetGauge::class.java,
+            SolarOpsWidgetNeon::class.java,
+            SolarOpsWidgetFlow::class.java,
+            SolarOpsWidgetMini::class.java,
         )
         for (cls in classes) {
             val intent = Intent(this, cls).apply {
