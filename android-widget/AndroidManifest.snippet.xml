@@ -1,6 +1,7 @@
 <!--
   Snippet para fusionar en android/app/src/main/AndroidManifest.xml dentro de <application>.
   Requiere: <uses-permission android:name="android.permission.INTERNET"/>
+            <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
 -->
 
 <!-- MainActivity launcher es generado por Capacitor, no se declara aquí. -->
