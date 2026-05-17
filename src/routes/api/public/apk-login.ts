@@ -187,7 +187,7 @@ export const Route = createFileRoute("/api/public/apk-login")({
         }
 
         function appendLog(line) {
-          diagEl.textContent += '\n' + line;
+          diagEl.textContent += '\\n' + line;
           try { window.SolarWidgetBridge?.appendLaunchLog?.('LOGIN ' + line); } catch {}
         }
 
