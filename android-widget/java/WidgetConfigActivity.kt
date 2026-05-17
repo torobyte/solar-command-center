@@ -185,6 +185,9 @@ class WidgetConfigActivity : Activity() {
             SolarOpsWidget::class.java,
             SolarOpsWidgetTiles::class.java,
             SolarOpsWidgetGauge::class.java,
+            SolarOpsWidgetNeon::class.java,
+            SolarOpsWidgetFlow::class.java,
+            SolarOpsWidgetMini::class.java,
         )) {
             sendBroadcast(Intent(this, cls).apply {
                 action = AppWidgetManager.ACTION_APPWIDGET_UPDATE

@@ -36,6 +36,24 @@
     <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_gauge_info" />
 </receiver>
 
+<!-- Variante 4 — Neon (iconos vectoriales + pulso) -->
+<receiver android:name="app.solarops.client.SolarOpsWidgetNeon" android:exported="true" android:label="SolarOps · Neon">
+    <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_neon_info" />
+</receiver>
+
+<!-- Variante 5 — Flow (Solar → Batería → Carga) -->
+<receiver android:name="app.solarops.client.SolarOpsWidgetFlow" android:exported="true" android:label="SolarOps · Flow">
+    <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_flow_info" />
+</receiver>
+
+<!-- Variante 6 — Mini (batería 2x1) -->
+<receiver android:name="app.solarops.client.SolarOpsWidgetMini" android:exported="true" android:label="SolarOps · Mini">
+    <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_mini_info" />
+</receiver>
+
 <!-- Picker compartido por las 3 variantes. -->
 <activity
     android:name="app.solarops.client.WidgetConfigActivity"
