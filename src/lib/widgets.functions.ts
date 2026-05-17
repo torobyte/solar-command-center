@@ -18,7 +18,7 @@ export const listWidgets = createServerFn({ method: "GET" })
     const [{ data: configs }, { data: tokens }, { data: sites }] = await Promise.all([
       supabase.from("widget_configs").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
       supabase.from("widget_tokens").select("id,label,token,created_at,last_used_at,revoked_at").eq("user_id", userId).order("created_at", { ascending: false }),
-      supabase.from("sites").select("id,name"),
+      supabase.from("sites").select("id,name,device_token"),
     ]);
     return { configs: configs ?? [], tokens: tokens ?? [], sites: sites ?? [] };
   });

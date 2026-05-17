@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ProtectedLayout } from "@/components/ProtectedLayout";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { listWidgets, saveWidget, deleteWidget, revokeWidgetToken } from "@/lib/widgets.functions";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Pencil, Smartphone, KeyRound, Copy, Battery, Sun, Plug, Power } from "lucide-react";
+import { Plus, Trash2, Pencil, Smartphone, KeyRound, Copy, Battery, Sun, Plug, Power, Activity, Wifi, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/widgets")({
@@ -36,7 +36,13 @@ type Cfg = {
 };
 
 type TokenRow = { id: string; label: string | null; token: string; created_at: string; last_used_at: string | null; revoked_at: string | null };
-type SiteRow = { id: string; name: string };
+type SiteRow = { id: string; name: string; device_token: string };
+type LiveSnapshot = {
+  site: { id: string; name: string; status: string | null; last_seen_at: string | null; fresh: boolean; age_seconds: number | null } | null;
+  sample: { recorded_at: string; pv_w: number | null; load_w: number | null; battery_pct: number | null; battery_v: number | null; grid_v: number | null; inverter_mode: string | null } | null;
+  recorded_at: string | null;
+};
+type StreamState = Record<string, { status: "connecting" | "live" | "offline"; snapshot: LiveSnapshot | null }>;
 
 function WidgetsPage() {
   const list = useServerFn(listWidgets);
@@ -48,8 +54,14 @@ function WidgetsPage() {
   const [tokens, setTokens] = useState<TokenRow[]>([]);
   const [sites, setSites] = useState<SiteRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [streams, setStreams] = useState<StreamState>({});
 
   const [editing, setEditing] = useState<Partial<Cfg> | null>(null);
+
+  const uniqueSites = useMemo(
+    () => sites.filter((site, index, arr) => !!site.device_token && arr.findIndex((item) => item.id === site.id) === index),
+    [sites],
+  );
 
   async function reload() {
     setLoading(true);
@@ -66,6 +78,58 @@ function WidgetsPage() {
   }
 
   useEffect(() => { reload(); }, []);
+
+  useEffect(() => {
+    if (uniqueSites.length === 0) {
+      setStreams({});
+      return;
+    }
+
+    const events: EventSource[] = [];
+    let cancelled = false;
+
+    const connect = (site: SiteRow) => {
+      const open = () => {
+        if (cancelled) return;
+        setStreams((cur) => ({ ...cur, [site.id]: { status: "connecting", snapshot: cur[site.id]?.snapshot ?? null } }));
+
+        const es = new EventSource(`/api/public/widget-stream?token=${encodeURIComponent(site.device_token)}`);
+        events.push(es);
+
+        es.addEventListener("sample", (event) => {
+          if (cancelled) return;
+          const data = JSON.parse((event as MessageEvent).data) as LiveSnapshot;
+          setStreams((cur) => ({ ...cur, [site.id]: { status: "live", snapshot: data } }));
+        });
+
+        es.addEventListener("ping", () => {
+          if (cancelled) return;
+          setStreams((cur) => ({ ...cur, [site.id]: { status: "live", snapshot: cur[site.id]?.snapshot ?? null } }));
+        });
+
+        es.addEventListener("bye", () => {
+          es.close();
+          if (!cancelled) window.setTimeout(open, 250);
+        });
+
+        es.onerror = () => {
+          es.close();
+          if (cancelled) return;
+          setStreams((cur) => ({ ...cur, [site.id]: { status: "offline", snapshot: cur[site.id]?.snapshot ?? null } }));
+          window.setTimeout(open, 1500);
+        };
+      };
+
+      open();
+    };
+
+    uniqueSites.forEach(connect);
+
+    return () => {
+      cancelled = true;
+      events.forEach((es) => es.close());
+    };
+  }, [uniqueSites]);
 
   function startNew() {
     setEditing({
@@ -147,14 +211,14 @@ function WidgetsPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <WidgetPreview cfg={c} siteName={site?.name ?? "—"} />
+                  <WidgetPreview cfg={c} siteName={site?.name ?? "—"} live={site ? streams[site.id] : undefined} />
                   <div className="flex flex-wrap gap-1">
                     {c.metrics.map((m) => {
                       const meta = ALL_METRICS.find((x) => x.id === m);
                       return <Badge key={m} variant="secondary">{meta?.label ?? m}</Badge>;
                     })}
                   </div>
-                  <p className="text-xs text-muted-foreground">Refresco: cada {c.refresh_minutes} min · Tema {c.theme}</p>
+                   <p className="text-xs text-muted-foreground">Actualización instantánea por canal en vivo · Tema {c.theme}</p>
                 </CardContent>
               </Card>
             );
@@ -198,7 +262,7 @@ function WidgetsPage() {
           <p>1. Instala la APK firmada generada desde el panel SuperAdmin.</p>
           <p>2. Abre la app e inicia sesión — el token se guardará automáticamente.</p>
           <p>3. Mantén pulsado un espacio vacío en la pantalla de inicio → Widgets → busca <b>SolarOps</b>.</p>
-          <p>4. Arrastra el widget al home. Se actualizará cada {configs[0]?.refresh_minutes ?? 30} min.</p>
+          <p>4. Arrastra el widget al home. Cuando llegue una nueva muestra desde el backend, el widget se actualizará al instante.</p>
         </CardContent>
       </Card>
 
@@ -267,7 +331,7 @@ function WidgetsPage() {
               {editing.site_id && (
                 <div>
                   <Label className="text-xs text-muted-foreground">Vista previa</Label>
-                  <WidgetPreview cfg={editing as Cfg} siteName={sites.find((s) => s.id === editing.site_id)?.name ?? ""} />
+                  <WidgetPreview cfg={editing as Cfg} siteName={sites.find((s) => s.id === editing.site_id)?.name ?? ""} live={editing.site_id ? streams[editing.site_id] : undefined} />
                 </div>
               )}
             </div>
@@ -282,39 +346,50 @@ function WidgetsPage() {
   );
 }
 
-function WidgetPreview({ cfg, siteName }: { cfg: Cfg; siteName: string }) {
-  const dark = cfg.theme === "dark";
-  const bg = dark ? "#0f0f0f" : "#ffffff";
-  const fg = dark ? "#ffffff" : "#0a0a0a";
-  const sub = dark ? "#a3a3a3" : "#525252";
-  const accent = "#f59e0b";
+function WidgetPreview({ cfg, siteName, live }: { cfg: Cfg; siteName: string; live?: StreamState[string] }) {
+  const sample = live?.snapshot?.sample ?? null;
+  const isLive = live?.status === "live";
+  const metrics = {
+    pv: sample?.pv_w != null ? `${Math.round(sample.pv_w).toLocaleString()} W` : "—",
+    battery: sample?.battery_pct != null ? `${Math.round(sample.battery_pct)} %` : "—",
+    load: sample?.load_w != null ? `${Math.round(sample.load_w).toLocaleString()} W` : "—",
+    grid: sample?.grid_v != null ? `${Math.round(sample.grid_v)} V` : "—",
+    mode: sample?.inverter_mode ?? "—",
+    alerts: live?.snapshot?.site?.fresh ? "Sin alertas" : "Revisar conexión",
+  } as const;
   return (
-    <div className="rounded-xl p-3 shadow-inner border" style={{ background: bg, color: fg, borderColor: dark ? "#262626" : "#e5e5e5" }}>
+    <div className={`rounded-xl border p-3 shadow-inner transition-all duration-300 ${cfg.theme === "dark" ? "border-border bg-card text-card-foreground" : "border-border/80 bg-background text-foreground"}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded-md flex items-center justify-center" style={{ background: accent }}>
-            <Sun className="h-4 w-4 text-white" />
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-accent text-accent-foreground shadow-glow">
+            <Sun className="h-4 w-4" />
           </div>
           <div>
             <div className="text-sm font-semibold leading-tight">{cfg.label || siteName}</div>
-            <div className="text-[10px]" style={{ color: sub }}>{siteName}</div>
+            <div className="text-[10px] text-muted-foreground">{siteName}</div>
           </div>
         </div>
-        <span className="text-[10px]" style={{ color: sub }}>ahora</span>
+        <div className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium ${isLive ? "bg-success/10 text-success" : live?.status === "connecting" ? "bg-warning/10 text-warning" : "bg-muted text-muted-foreground"}`}>
+          {isLive ? <Wifi className="h-3 w-3" /> : live?.status === "connecting" ? <Activity className="h-3 w-3 animate-pulse" /> : <WifiOff className="h-3 w-3" />}
+          {isLive ? "en vivo" : live?.status === "connecting" ? "conectando" : "sin señal"}
+        </div>
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2">
         {(cfg.metrics ?? []).slice(0, 4).map((m) => {
           const meta = ALL_METRICS.find((x) => x.id === m);
           const Icon = meta?.icon ?? Sun;
           return (
-            <div key={m} className="rounded-md p-2" style={{ background: dark ? "#1a1a1a" : "#f5f5f5" }}>
-              <div className="flex items-center gap-1 text-[10px]" style={{ color: sub }}>
+            <div key={m} className={`rounded-md border p-2 transition-all ${isLive ? "border-success/20 bg-success/5" : "bg-muted/60"}`}>
+              <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                 <Icon className="h-3 w-3" /> {meta?.label}
               </div>
-              <div className="text-base font-semibold">—</div>
+              <div className="text-base font-semibold">{metrics[m as keyof typeof metrics] ?? "—"}</div>
             </div>
           );
         })}
+      </div>
+      <div className="mt-3 text-[10px] text-muted-foreground">
+        Última muestra: {sample?.recorded_at ? new Date(sample.recorded_at).toLocaleTimeString() : "esperando datos"}
       </div>
     </div>
   );
