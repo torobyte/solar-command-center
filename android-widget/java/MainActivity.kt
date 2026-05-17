@@ -134,6 +134,15 @@ class MainActivity : Activity() {
                     logLaunch("La sesión fue refrescada y guardada localmente")
                 }
 
+                // Sincronizar sitios en background para que WidgetConfigActivity
+                // (picker del home-screen widget) tenga datos sin requerir el
+                // login nativo antiguo.
+                thread {
+                    runCatching { syncSitesFromSession(validSession) }
+                        .onSuccess { count -> logLaunch("Sitios sincronizados para widgets: $count") }
+                        .onFailure { logLaunch("Sync de sitios falló: ${it.message ?: it.javaClass.simpleName}") }
+                }
+
                 web = buildWebView()
                 setContentView(web)
 
