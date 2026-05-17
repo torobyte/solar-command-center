@@ -1,16 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sun } from "lucide-react";
+import { Loader2, Sun } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 import { LangSwitcher } from "@/components/LangSwitcher";
 import { ErrorDialog } from "@/components/ErrorDialog";
 import { useBranding } from "@/lib/branding";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -20,6 +21,7 @@ function LoginPage() {
   const navigate = useNavigate();
   const { t } = useI18n();
   const { branding, resolvedLogo } = useBranding();
+  const { user, loading: authLoading } = useAuth();
   const siteName = branding?.site_name ?? "SolarOps";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,16 +29,30 @@ function LoginPage() {
   const [errorOpen, setErrorOpen] = useState(false);
   const [errorDetails, setErrorDetails] = useState<string | undefined>();
 
-  async function attemptLogin() {
-    setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) {
-      setErrorDetails(error.message);
-      setErrorOpen(true);
-      return;
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate({ to: "/app", replace: true });
     }
-    navigate({ to: "/app" });
+  }, [authLoading, user, navigate]);
+
+  async function attemptLogin() {
+    if (!email.trim() || !password) return;
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      if (error) {
+        setErrorDetails(error.message);
+        setErrorOpen(true);
+        return;
+      }
+      navigate({ to: "/app", replace: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo iniciar sesión";
+      setErrorDetails(message);
+      setErrorOpen(true);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -45,13 +61,18 @@ function LoginPage() {
   }
 
   async function withGoogle() {
+    setLoading(true);
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: `${window.location.origin}/app`,
     });
     if (result.error) {
       setErrorDetails(result.error.message);
       setErrorOpen(true);
-    } else if (!result.redirected) navigate({ to: "/app" });
+      setLoading(false);
+    } else if (!result.redirected) {
+      setLoading(false);
+      navigate({ to: "/app", replace: true });
+    }
   }
 
   async function forgot() {
@@ -61,6 +82,14 @@ function LoginPage() {
     });
     if (error) return toast.error(error.message);
     toast.success(t("login.resetSent"));
+  }
+
+  if (authLoading) {
+    return (
+      <div className="ambient-bg flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
   return (
