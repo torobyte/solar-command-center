@@ -1,38 +1,44 @@
 <!--
   Snippet para fusionar en android/app/src/main/AndroidManifest.xml dentro de <application>.
-  Requiere: <uses-permission android:name="android.permission.INTERNET"/>
-            <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+  Requiere:
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+
+  Importante: usamos nombres totalmente calificados (app.solarops.client.X) en lugar
+  de la forma corta ".X" porque Capacitor puede generar un `namespace` distinto al
+  package real de las clases Kotlin del widget, y eso provoca ClassNotFoundException
+  cuando Android intenta resolver el ConfigActivity al agregar el widget.
 -->
 
 <!-- MainActivity launcher es generado por Capacitor, no se declara aquí. -->
 
 <!-- Login + lista de sitios. Solo se abre desde el picker del widget. -->
 <activity
-    android:name=".WidgetSetupActivity"
+    android:name="app.solarops.client.WidgetSetupActivity"
     android:exported="false"
     android:label="Configurar widget SolarOps" />
 
 <!-- Variante 1 — Compacto (Solar / Carga / Batería) -->
-<receiver android:name=".SolarOpsWidget" android:exported="true" android:label="SolarOps · Compacto">
+<receiver android:name="app.solarops.client.SolarOpsWidget" android:exported="true" android:label="SolarOps · Compacto">
     <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
     <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_info" />
 </receiver>
 
 <!-- Variante 2 — Tiles 4 paneles a color -->
-<receiver android:name=".SolarOpsWidgetTiles" android:exported="true" android:label="SolarOps · Tiles">
+<receiver android:name="app.solarops.client.SolarOpsWidgetTiles" android:exported="true" android:label="SolarOps · Tiles">
     <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
     <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_tiles_info" />
 </receiver>
 
 <!-- Variante 3 — Gauge grande de batería -->
-<receiver android:name=".SolarOpsWidgetGauge" android:exported="true" android:label="SolarOps · Gauge">
+<receiver android:name="app.solarops.client.SolarOpsWidgetGauge" android:exported="true" android:label="SolarOps · Gauge">
     <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
     <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_gauge_info" />
 </receiver>
 
 <!-- Picker compartido por las 3 variantes. -->
 <activity
-    android:name=".WidgetConfigActivity"
+    android:name="app.solarops.client.WidgetConfigActivity"
     android:exported="true"
     android:theme="@android:style/Theme.DeviceDefault.Dialog">
     <intent-filter>
