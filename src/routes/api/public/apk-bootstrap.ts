@@ -8,7 +8,7 @@ export const Route = createFileRoute("/api/public/apk-bootstrap")({
     handlers: {
       GET: async ({ request }) => {
         const baseUrl = new URL(request.url).origin;
-        const targetUrl = `${baseUrl}/app-login`;
+        const targetUrl = `${baseUrl}/api/public/apk-login`;
 
         const html = `<!doctype html>
 <html lang="es">
