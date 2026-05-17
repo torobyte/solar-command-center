@@ -4,23 +4,34 @@ import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.TextView
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.OutputStreamWriter
+import java.net.HttpURLConnection
+import java.net.URL
+import kotlin.concurrent.thread
 
 /**
- * Picker shown when the user drops the SolarOps widget on the home screen.
- *
- * It lists the sites previously fetched by MainActivity (login → /rest/v1/sites)
- * and stores the chosen device_token under the widget's id, so the user never
- * has to copy/paste anything by hand.
+ * Picker que aparece al añadir el widget. Carga la lista de sitios usando:
+ *  1) caché local (KEY_SITES_JSON)
+ *  2) si hay sesión guardada, consulta Supabase REST directamente
+ *     (refrescando access_token si hace falta) — sin depender del WebView.
+ *  3) si no hay sesión, abre WidgetSetupActivity para login nativo.
  */
 class WidgetConfigActivity : Activity() {
 
     private var widgetId = AppWidgetManager.INVALID_APPWIDGET_ID
+    private lateinit var root: LinearLayout
+    private lateinit var status: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,32 +43,66 @@ class WidgetConfigActivity : Activity() {
         ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
         if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID) { finish(); return }
 
-        val root = LinearLayout(this).apply {
+        root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(40, 40, 40, 40)
         }
-
         TextView(this).apply {
             text = "Elige el sitio"
             textSize = 18f
             setPadding(0, 0, 0, 16)
             root.addView(this)
         }
+        status = TextView(this).apply {
+            setTextColor(0xFF94A3B8.toInt())
+            setPadding(0, 0, 0, 12)
+        }
+        root.addView(status)
+        setContentView(ScrollView(this).apply { addView(root) })
 
-        val sites = WidgetSetupActivity.savedSites(this)
+        renderSites(WidgetSetupActivity.savedSites(this), fromCache = true)
+
+        // Siempre intentamos refrescar desde Supabase para tener la lista al día.
+        val session = getSharedPreferences(WidgetSetupActivity.PREFS, MODE_PRIVATE)
+            .getString(WidgetSetupActivity.KEY_AUTH_SESSION, null)
+        if (!session.isNullOrBlank()) {
+            status.text = "Sincronizando sitios…"
+            val progress = ProgressBar(this)
+            root.addView(progress, 1)
+            thread {
+                val result = runCatching { fetchSitesNative(session) }
+                Handler(Looper.getMainLooper()).post {
+                    root.removeView(progress)
+                    result.onSuccess { sites ->
+                        getSharedPreferences(WidgetSetupActivity.PREFS, MODE_PRIVATE).edit()
+                            .putString(WidgetSetupActivity.KEY_SITES_JSON, sites.toString())
+                            .apply()
+                        status.text = "${sites.length()} sitio(s)"
+                        renderSites(sites, fromCache = false)
+                    }.onFailure {
+                        status.text = "No se pudieron sincronizar (${it.message?.take(60)})"
+                    }
+                }
+            }
+        }
+    }
+
+    private fun renderSites(sites: JSONArray, fromCache: Boolean) {
+        // Limpia botones previos (mantiene título + status + progress).
+        while (root.childCount > 2) root.removeViewAt(2)
+
         if (sites.length() == 0) {
             root.addView(TextView(this).apply {
-                text = "No hay sitios guardados.\nAbre la app SolarOps e inicia sesión primero."
+                text = if (fromCache) "Cargando sitios…" else "No hay sitios en tu cuenta."
                 setPadding(0, 0, 0, 16)
             })
             root.addView(Button(this).apply {
-                text = "Iniciar sesión"
+                text = "Iniciar sesión / Refrescar"
                 setOnClickListener {
                     startActivity(Intent(this@WidgetConfigActivity, WidgetSetupActivity::class.java))
                     finish()
                 }
             })
-            setContentView(ScrollView(this).apply { addView(root) })
             return
         }
 
@@ -75,8 +120,59 @@ class WidgetConfigActivity : Activity() {
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply { bottomMargin = 12 })
         }
+    }
 
-        setContentView(ScrollView(this).apply { addView(root) })
+    private fun fetchSitesNative(rawSession: String): JSONArray {
+        val session = JSONObject(rawSession)
+        var accessToken = session.optString("access_token")
+        val refreshToken = session.optString("refresh_token")
+        val expiresAt = session.optLong("expires_at", 0L)
+        val now = System.currentTimeMillis() / 1000L
+        if ((accessToken.isBlank() || (expiresAt in 1..(now + 60))) && refreshToken.isNotBlank()) {
+            val refreshed = JSONObject(refreshSession(refreshToken))
+            accessToken = refreshed.optString("access_token")
+            if (!refreshed.has("expires_at") && refreshed.has("expires_in")) {
+                refreshed.put("expires_at", now + refreshed.optLong("expires_in", 0L))
+            }
+            getSharedPreferences(WidgetSetupActivity.PREFS, MODE_PRIVATE).edit()
+                .putString(WidgetSetupActivity.KEY_AUTH_SESSION, refreshed.toString())
+                .apply()
+        }
+        if (accessToken.isBlank()) throw IllegalStateException("Sin token")
+
+        val conn = (URL("${WidgetSetupActivity.SUPABASE_URL}/rest/v1/sites?select=id,name,device_token&order=name.asc").openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = 8000; readTimeout = 8000
+            setRequestProperty("apikey", WidgetSetupActivity.SUPABASE_ANON)
+            setRequestProperty("Authorization", "Bearer $accessToken")
+            setRequestProperty("Accept", "application/json")
+        }
+        if (conn.responseCode !in 200..299) throw IllegalStateException("HTTP ${conn.responseCode}")
+        val arr = JSONArray(conn.inputStream.bufferedReader().use { it.readText() })
+        val out = JSONArray()
+        for (i in 0 until arr.length()) {
+            val o = arr.getJSONObject(i)
+            out.put(JSONObject()
+                .put("id", o.optString("id"))
+                .put("name", o.optString("name"))
+                .put("token", o.optString("device_token")))
+        }
+        return out
+    }
+
+    private fun refreshSession(refreshToken: String): String {
+        val conn = (URL("${WidgetSetupActivity.SUPABASE_URL}/auth/v1/token?grant_type=refresh_token").openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            doOutput = true
+            connectTimeout = 8000; readTimeout = 8000
+            setRequestProperty("apikey", WidgetSetupActivity.SUPABASE_ANON)
+            setRequestProperty("Content-Type", "application/json")
+        }
+        OutputStreamWriter(conn.outputStream).use {
+            it.write(JSONObject().put("refresh_token", refreshToken).toString())
+        }
+        if (conn.responseCode !in 200..299) throw IllegalStateException("Refresh HTTP ${conn.responseCode}")
+        return conn.inputStream.bufferedReader().use { it.readText() }
     }
 
     private fun selectSite(token: String) {
@@ -85,7 +181,6 @@ class WidgetConfigActivity : Activity() {
             .putString("${WidgetCommon.KEY_TOKEN}.$widgetId", token)
             .apply()
 
-        // Trigger immediate refresh on the 3 variants + ensure alarms are scheduled.
         for (cls in listOf(
             SolarOpsWidget::class.java,
             SolarOpsWidgetTiles::class.java,
