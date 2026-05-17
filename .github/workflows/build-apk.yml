@@ -195,14 +195,14 @@ jobs:
           proguard = Path("android/app/proguard-rules.pro")
           existing = proguard.read_text() if proguard.exists() else ""
           rules = """
--keep class app.solarops.client.MainActivity { *; }
--keep class app.solarops.client.WidgetSetupActivity { *; }
--keep class app.solarops.client.WidgetConfigActivity { *; }
--keep class app.solarops.client.SolarOpsWidget { *; }
--keep class app.solarops.client.SolarOpsWidgetTiles { *; }
--keep class app.solarops.client.SolarOpsWidgetGauge { *; }
--keep class app.solarops.client.UpdateManager { *; }
-""".strip()
+          -keep class app.solarops.client.MainActivity { *; }
+          -keep class app.solarops.client.WidgetSetupActivity { *; }
+          -keep class app.solarops.client.WidgetConfigActivity { *; }
+          -keep class app.solarops.client.SolarOpsWidget { *; }
+          -keep class app.solarops.client.SolarOpsWidgetTiles { *; }
+          -keep class app.solarops.client.SolarOpsWidgetGauge { *; }
+          -keep class app.solarops.client.UpdateManager { *; }
+          """.strip()
           if rules not in existing:
               proguard.write_text((existing.rstrip() + "\n\n" + rules + "\n").lstrip())
           PY
