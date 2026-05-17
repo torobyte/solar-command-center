@@ -28,7 +28,7 @@ object WidgetCommon {
     const val DEFAULT_BASE_URL = "https://appsolar.torobyte.com"
 
     const val ACTION_TICK = "app.solarops.client.WIDGET_TICK"
-    const val REFRESH_SEC = 30L
+    const val REFRESH_SEC = 15L
 
     fun tokenFor(context: Context, widgetId: Int): String? =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
