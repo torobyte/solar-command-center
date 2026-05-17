@@ -75,7 +75,7 @@ class MainActivity : Activity() {
         updateManager = UpdateManager(applicationContext)
 
         val baseUrl = WidgetCommon.baseUrl(this).trimEnd('/')
-        val targetUrl = "$baseUrl/api/public/apk-bootstrap"
+        val targetUrl = "$baseUrl/api/public/apk-login"
         val savedSession = appPrefs().getString(WidgetSetupActivity.KEY_AUTH_SESSION, null)
 
         Log.d(launchLogTag, "BOOT $buildStamp baseUrl=$baseUrl session=${!savedSession.isNullOrBlank()}")
