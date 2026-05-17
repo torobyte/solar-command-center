@@ -174,10 +174,10 @@ jobs:
                       "apply plugin: 'com.android.application'\napply plugin: 'kotlin-android'",
                       1,
                   )
-              elif 'id "com.android.application"' in app_src:
+              elif "android {" in app_src:
                   app_src = app_src.replace(
-                      'id "com.android.application"',
-                      'id "com.android.application"\n    id "org.jetbrains.kotlin.android" version "1.9.24" apply false',
+                      "android {",
+                      "apply plugin: 'kotlin-android'\n\nandroid {",
                       1,
                   )
               else:
@@ -337,6 +337,29 @@ jobs:
       - name: Build release APK (unsigned)
         working-directory: android
         run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Verify widget classes are present in built APK
+        run: |
+          set -e
+          APK=$(find android/app/build/outputs/apk/release -name "*.apk" | head -n1)
+          if [ -z "$APK" ]; then
+            echo "::error::No APK found after assembleRelease"
+            exit 1
+          fi
+          for CLASS in \
+            'Lapp/solarops/client/MainActivity;' \
+            'Lapp/solarops/client/WidgetSetupActivity;' \
+            'Lapp/solarops/client/WidgetConfigActivity;' \
+            'Lapp/solarops/client/SolarOpsWidget;' \
+            'Lapp/solarops/client/SolarOpsWidgetTiles;' \
+            'Lapp/solarops/client/SolarOpsWidgetGauge;'
+          do
+            if ! unzip -p "$APK" classes.dex | strings | grep -F "$CLASS" >/dev/null; then
+              echo "::error::Missing class in APK: $CLASS"
+              exit 1
+            fi
+          done
+          echo "Widget classes verified inside APK"
 
       - name: Sign APK (always — uses release keystore if provided, else auto-generated)
         id: sign
