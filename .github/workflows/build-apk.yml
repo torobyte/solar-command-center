@@ -13,26 +13,38 @@ on:
 
 permissions:
   contents: write
+  actions: write
+
+concurrency:
+  group: build-apk
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Cancel previous in-progress runs of this workflow
+        uses: styfle/cancel-workflow-action@0.12.1
+        with:
+          access_token: ${{ github.token }}
+          all_but_latest: true
+
+      - name: Checkout (full clean)
         uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Wipe workspace caches and stale build outputs
+        run: |
+          set -e
+          echo "Cleaning any leftover build outputs / caches before building"
+          rm -rf android/app/build android/build android/.gradle dist node_modules ~/.gradle/caches ~/.gradle/wrapper ~/.android/build-cache ~/.android/cache /tmp/aligned.apk /tmp/release.keystore || true
 
       - name: Set up Node 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
-      - name: Cache npx / Capacitor CLI downloads
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json', 'bun.lockb', 'package.json') }}
-          restore-keys: |
-            npm-${{ runner.os }}-
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
