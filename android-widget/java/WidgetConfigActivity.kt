@@ -193,6 +193,9 @@ class WidgetConfigActivity : Activity() {
             WidgetCommon.scheduleAlarmFor(this, cls)
         }
 
+        // Arranca/refresca el stream SSE para empuje en tiempo real.
+        WidgetStreamService.start(this)
+
         setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
         finish()
     }

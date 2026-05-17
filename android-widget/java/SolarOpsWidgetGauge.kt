@@ -27,6 +27,7 @@ class SolarOpsWidgetGauge : AppWidgetProvider() {
 
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
+        WidgetStreamService.start(context)
         WidgetCommon.scheduleAlarmFor(context, SolarOpsWidgetGauge::class.java)
     }
 
@@ -39,6 +40,7 @@ class SolarOpsWidgetGauge : AppWidgetProvider() {
         val e = context.getSharedPreferences(WidgetCommon.PREFS, Context.MODE_PRIVATE).edit()
         for (id in ids) e.remove("${WidgetCommon.KEY_TOKEN}.$id")
         e.apply()
+        WidgetStreamService.stopIfNoWidgets(context)
     }
 
     private fun refreshAll(context: Context) {

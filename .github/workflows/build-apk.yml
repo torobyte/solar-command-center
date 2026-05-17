@@ -190,6 +190,13 @@ jobs:
                   app_src,
                   count=1,
               )
+          if "androidx.core:core-ktx" not in app_src and "androidx.core:core:" not in app_src:
+              app_src = re.sub(
+                  r"(dependencies\s*\{)",
+                  r'\1\n    implementation "androidx.core:core-ktx:1.13.1"',
+                  app_src,
+                  count=1,
+              )
           app.write_text(app_src)
 
           proguard = Path("android/app/proguard-rules.pro")
@@ -201,6 +208,7 @@ jobs:
           -keep class app.solarops.client.SolarOpsWidget { *; }
           -keep class app.solarops.client.SolarOpsWidgetTiles { *; }
           -keep class app.solarops.client.SolarOpsWidgetGauge { *; }
+          -keep class app.solarops.client.WidgetStreamService { *; }
           -keep class app.solarops.client.UpdateManager { *; }
           """.strip()
           if rules not in existing:
@@ -280,6 +288,10 @@ jobs:
             sed -i 's|<application|<uses-permission android:name="android.permission.INTERNET"/>\n    <application|' "$MANIFEST"
           grep -q "android.permission.REQUEST_INSTALL_PACKAGES" "$MANIFEST" || \
             sed -i 's|<application|<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>\n    <application|' "$MANIFEST"
+          grep -q "android.permission.FOREGROUND_SERVICE\"" "$MANIFEST" || \
+            sed -i 's|<application|<uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>\n    <application|' "$MANIFEST"
+          grep -q "android.permission.FOREGROUND_SERVICE_DATA_SYNC" "$MANIFEST" || \
+            sed -i 's|<application|<uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>\n    <application|' "$MANIFEST"
           # Strip any previously-injected SolarOps widget block (between markers or matching the old short-form classes)
           python3 - <<'PY'
           import re
@@ -290,6 +302,7 @@ jobs:
               r'<activity[^>]*android:name="(?:\.|app\.solarops\.client\.)WidgetSetupActivity"[^>]*(?:/>|>[\s\S]*?</activity>)',
               r'<activity[^>]*android:name="(?:\.|app\.solarops\.client\.)WidgetConfigActivity"[^>]*(?:/>|>[\s\S]*?</activity>)',
               r'<receiver[^>]*android:name="(?:\.|app\.solarops\.client\.)SolarOpsWidget(?:Tiles|Gauge)?"[^>]*(?:/>|>[\s\S]*?</receiver>)',
+              r'<service[^>]*android:name="(?:\.|app\.solarops\.client\.)WidgetStreamService"[^>]*(?:/>|>[\s\S]*?</service>)',
           ]
           for pat in patterns:
               s = re.sub(pat, '', s)
@@ -352,7 +365,8 @@ jobs:
             'Lapp/solarops/client/WidgetConfigActivity;' \
             'Lapp/solarops/client/SolarOpsWidget;' \
             'Lapp/solarops/client/SolarOpsWidgetTiles;' \
-            'Lapp/solarops/client/SolarOpsWidgetGauge;'
+            'Lapp/solarops/client/SolarOpsWidgetGauge;' \
+            'Lapp/solarops/client/WidgetStreamService;'
           do
             if ! unzip -p "$APK" classes.dex | strings | grep -F "$CLASS" >/dev/null; then
               echo "::error::Missing class in APK: $CLASS"
