@@ -3,7 +3,14 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
 const ApkConfigSchema = z.object({
-  app_id: z.string().min(3).max(120).regex(/^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$/i, "Formato de paquete inválido (ej: app.miempresa.cliente)"),
+  app_id: z
+    .string()
+    .min(3)
+    .max(120)
+    .regex(
+      /^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$/i,
+      "Formato de paquete inválido (ej: app.miempresa.cliente)",
+    ),
   app_name: z.string().min(1).max(60),
   version_name: z.string().min(1).max(20),
   version_code: z.number().int().min(1).max(2147483647),
@@ -28,9 +35,9 @@ function normalizeApkServerUrl(raw?: string | null) {
     const hostname = url.hostname.toLowerCase();
 
     if (
-      hostname === "project--7cb3041b-eb20-43aa-ba17-b0848cb53051.lovable.app"
-      || hostname === "project--7cb3041b-eb20-43aa-ba17-b0848cb53051-dev.lovable.app"
-      || hostname === "id-preview--7cb3041b-eb20-43aa-ba17-b0848cb53051.lovable.app"
+      hostname === "project--7cb3041b-eb20-43aa-ba17-b0848cb53051.lovable.app" ||
+      hostname === "project--7cb3041b-eb20-43aa-ba17-b0848cb53051-dev.lovable.app" ||
+      hostname === "id-preview--7cb3041b-eb20-43aa-ba17-b0848cb53051.lovable.app"
     ) {
       return fallback;
     }
@@ -41,16 +48,24 @@ function normalizeApkServerUrl(raw?: string | null) {
   }
 }
 
-function normalizeApkConfig<T extends { server_url?: string | null; start_path?: string | null }>(config: T): T {
+function normalizeApkConfig<T extends { server_url?: string | null; start_path?: string | null }>(
+  config: T,
+): T {
   return {
     ...config,
     server_url: normalizeApkServerUrl(config.server_url),
-    start_path: !config.start_path || config.start_path === "/app-login" ? "/apk-auth" : config.start_path,
+    start_path:
+      !config.start_path || config.start_path === "/app-login" ? "/apk-auth" : config.start_path,
   };
 }
 
 async function ensureSuperadmin(supabase: any, userId: string) {
-  const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "superadmin").maybeSingle();
+  const { data } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "superadmin")
+    .maybeSingle();
   if (!data) throw new Error("Acceso denegado: solo superadmin");
 }
 
@@ -73,7 +88,10 @@ export const saveApkConfig = createServerFn({ method: "POST" })
     const { supabase, userId } = context as any;
     await ensureSuperadmin(supabase, userId);
     const normalized = normalizeApkConfig(data);
-    const { error } = await supabase.from("apk_config").update({ ...normalized }).eq("id", 1);
+    const { error } = await supabase
+      .from("apk_config")
+      .update({ ...normalized })
+      .eq("id", 1);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -90,7 +108,11 @@ async function fetchBytes(url: string): Promise<ArrayBuffer | null> {
 
 function hexToRgb(hex: string) {
   const m = hex.replace("#", "");
-  return { r: parseInt(m.slice(0, 2), 16), g: parseInt(m.slice(2, 4), 16), b: parseInt(m.slice(4, 6), 16) };
+  return {
+    r: parseInt(m.slice(0, 2), 16),
+    g: parseInt(m.slice(2, 4), 16),
+    b: parseInt(m.slice(4, 6), 16),
+  };
 }
 
 export const generateApkProject = createServerFn({ method: "POST" })
@@ -98,7 +120,11 @@ export const generateApkProject = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { supabase, userId } = context as any;
     await ensureSuperadmin(supabase, userId);
-    const { data: rawCfg } = await supabase.from("apk_config").select("*").eq("id", 1).maybeSingle();
+    const { data: rawCfg } = await supabase
+      .from("apk_config")
+      .select("*")
+      .eq("id", 1)
+      .maybeSingle();
     const cfg = rawCfg ? normalizeApkConfig(rawCfg) : rawCfg;
     if (!cfg) throw new Error("Configuración no encontrada");
 
@@ -146,10 +172,16 @@ export default config;
       version: cfg.version_name,
       private: true,
       scripts: {
-        prepare: "mkdir -p dist && echo '<!doctype html><html><body></body></html>' > dist/index.html",
+        prepare:
+          "mkdir -p dist && echo '<!doctype html><html><body></body></html>' > dist/index.html",
         "android:add": "npx cap add android",
-        "android:assets": "npx @capacitor/assets generate --android --iconBackgroundColor " + cfg.background_color + " --splashBackgroundColor " + cfg.splash_color,
-        "android:apply-overrides": "cp -r android-overrides/. android/app/src/main/ && echo 'Overrides aplicados'",
+        "android:assets":
+          "npx @capacitor/assets generate --android --iconBackgroundColor " +
+          cfg.background_color +
+          " --splashBackgroundColor " +
+          cfg.splash_color,
+        "android:apply-overrides":
+          "cp -r android-overrides/. android/app/src/main/ && echo 'Overrides aplicados'",
         "android:sync": "npx cap sync android",
         "android:open": "npx cap open android",
       },
@@ -222,7 +254,19 @@ export default config;
     }
     if (splashBytes) {
       zip.file("resources/splash.png", splashBytes);
-      const drawables = ["drawable", "drawable-port-mdpi", "drawable-port-hdpi", "drawable-port-xhdpi", "drawable-port-xxhdpi", "drawable-port-xxxhdpi", "drawable-land-mdpi", "drawable-land-hdpi", "drawable-land-xhdpi", "drawable-land-xxhdpi", "drawable-land-xxxhdpi"];
+      const drawables = [
+        "drawable",
+        "drawable-port-mdpi",
+        "drawable-port-hdpi",
+        "drawable-port-xhdpi",
+        "drawable-port-xxhdpi",
+        "drawable-port-xxxhdpi",
+        "drawable-land-mdpi",
+        "drawable-land-hdpi",
+        "drawable-land-xhdpi",
+        "drawable-land-xxhdpi",
+        "drawable-land-xxxhdpi",
+      ];
       for (const d of drawables) {
         zip.file(`${OVERRIDE_BASE}/${d}/splash.png`, splashBytes);
       }
@@ -254,16 +298,21 @@ export default config;
     const pkgPath = cfg.app_id.replace(/\./g, "/");
     const widgetEndpoint = cfg.server_url.replace(/\/$/, "") + "/api/public/widget-data";
 
-    zip.file(`${OVERRIDE_BASE}/xml/widget_solar_info.xml`, `<?xml version="1.0" encoding="utf-8"?>
+    zip.file(
+      `${OVERRIDE_BASE}/xml/widget_solar_info.xml`,
+      `<?xml version="1.0" encoding="utf-8"?>
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="250dp" android:minHeight="110dp"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_solar"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen" />
-`);
+`,
+    );
 
-    zip.file(`${OVERRIDE_BASE}/layout/widget_solar.xml`, `<?xml version="1.0" encoding="utf-8"?>
+    zip.file(
+      `${OVERRIDE_BASE}/layout/widget_solar.xml`,
+      `<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent" android:layout_height="match_parent"
     android:orientation="vertical" android:padding="12dp" android:background="#0f0f0f">
@@ -288,9 +337,12 @@ export default config;
     <TextView android:id="@+id/widget_ts" android:layout_width="match_parent" android:layout_height="wrap_content"
         android:textColor="#737373" android:textSize="10sp" android:layout_marginTop="6dp" android:gravity="end" android:text="—" />
 </LinearLayout>
-`);
+`,
+    );
 
-    zip.file(`android-overrides/java/${pkgPath}/SolarWidgetProvider.kt`, `package ${cfg.app_id}
+    zip.file(
+      `android-overrides/java/${pkgPath}/SolarWidgetProvider.kt`,
+      `package ${cfg.app_id}
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
@@ -362,9 +414,12 @@ class SolarWidgetProvider : AppWidgetProvider() {
         return try { String.format(Locale.US, "%.0f", (v as Number).toDouble()) } catch (e: Exception) { v.toString() }
     }
 }
-`);
+`,
+    );
 
-    zip.file(`android-overrides/java/${pkgPath}/SolarWidgetBridge.kt`, `package ${cfg.app_id}
+    zip.file(
+      `android-overrides/java/${pkgPath}/SolarWidgetBridge.kt`,
+      `package ${cfg.app_id}
 
 import android.appwidget.AppWidgetManager
 import com.getcapacitor.JSObject
@@ -395,9 +450,12 @@ class SolarWidgetBridge : Plugin() {
         val res = JSObject(); res.put("ok", true); call.resolve(res)
     }
 }
-`);
+`,
+    );
 
-    zip.file("android-overrides/AndroidManifest.fragment.xml", `<!-- Insertar dentro de <application> en android/app/src/main/AndroidManifest.xml -->
+    zip.file(
+      "android-overrides/AndroidManifest.fragment.xml",
+      `<!-- Insertar dentro de <application> en android/app/src/main/AndroidManifest.xml -->
 <receiver android:name="${cfg.app_id}.SolarWidgetProvider" android:exported="true">
     <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -405,11 +463,15 @@ class SolarWidgetBridge : Plugin() {
     </intent-filter>
     <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solar_info" />
 </receiver>
-`);
+`,
+    );
 
-    zip.file("android-overrides/MainActivity.snippet.txt", `// En MainActivity.java, dentro de onCreate(), ANTES de super.onCreate():
+    zip.file(
+      "android-overrides/MainActivity.snippet.txt",
+      `// En MainActivity.java, dentro de onCreate(), ANTES de super.onCreate():
 // registerPlugin(${cfg.app_id}.SolarWidgetBridge.class);
-`);
+`,
+    );
 
     // ---------------- Script de post-instalación ----------------
     const postScript = `#!/usr/bin/env bash
@@ -461,9 +523,11 @@ npx cap open android
 
 ## Push Notifications
 
-${cfg.enable_push
-  ? "Habilitadas. Configura Firebase Cloud Messaging: descarga `google-services.json` y colócalo en `android/app/`. Añade el plugin en `android/build.gradle` y `android/app/build.gradle` según la doc de @capacitor/push-notifications."
-  : "Deshabilitadas. Para habilitarlas, vuelve al panel SuperAdmin → App APK."}
+${
+  cfg.enable_push
+    ? "Habilitadas. Configura Firebase Cloud Messaging: descarga `google-services.json` y colócalo en `android/app/`. Añade el plugin en `android/build.gradle` y `android/app/build.gradle` según la doc de @capacitor/push-notifications."
+    : "Deshabilitadas. Para habilitarlas, vuelve al panel SuperAdmin → App APK."
+}
 
 ## Cambios de configuración
 
@@ -480,12 +544,25 @@ Para actualizar colores, versión, ícono o splash: vuelve al panel **SuperAdmin
   });
 
 function escapeXml(s: string) {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
 }
 
 const TriggerBuildSchema = z.object({
-  owner: z.string().min(1).max(100).regex(/^[A-Za-z0-9_.-]+$/),
-  repo: z.string().min(1).max(100).regex(/^[A-Za-z0-9_.-]+$/),
+  owner: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[A-Za-z0-9_.-]+$/),
+  repo: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[A-Za-z0-9_.-]+$/),
   ref: z.string().min(1).max(100).default("main"),
   workflow: z.string().min(1).max(100).default("build-apk.yml"),
   release_tag: z.string().max(60).optional(),
@@ -526,8 +603,16 @@ export const triggerApkBuild = createServerFn({ method: "POST" })
   });
 
 const BuildStatusSchema = z.object({
-  owner: z.string().min(1).max(100).regex(/^[A-Za-z0-9_.-]+$/),
-  repo: z.string().min(1).max(100).regex(/^[A-Za-z0-9_.-]+$/),
+  owner: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[A-Za-z0-9_.-]+$/),
+  repo: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[A-Za-z0-9_.-]+$/),
   workflow: z.string().min(1).max(100).default("build-apk.yml"),
 });
 
@@ -566,5 +651,3 @@ export const getApkBuildStatus = createServerFn({ method: "POST" })
     }));
     return { runs };
   });
-
-

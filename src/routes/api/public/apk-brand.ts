@@ -13,7 +13,9 @@ function normalizeApkBrandUrl(raw?: string | null) {
       "id-preview--7cb3041b-eb20-43aa-ba17-b0848cb53051.lovable.app",
     ]);
 
-    return blocked.has(url.hostname.toLowerCase()) ? fallback : `${url.protocol}//${url.host}`.replace(/\/$/, "");
+    return blocked.has(url.hostname.toLowerCase())
+      ? fallback
+      : `${url.protocol}//${url.host}`.replace(/\/$/, "");
   } catch {
     return fallback;
   }
@@ -30,7 +32,9 @@ export const Route = createFileRoute("/api/public/apk-brand")({
       GET: async () => {
         const { data } = await supabaseAdmin
           .from("apk_config")
-          .select("app_id, app_name, version_name, version_code, server_url, start_path, primary_color, background_color, splash_color, status_bar_style, icon_url, splash_url, cleartext")
+          .select(
+            "app_id, app_name, version_name, version_code, server_url, start_path, primary_color, background_color, splash_color, status_bar_style, icon_url, splash_url, cleartext",
+          )
           .eq("id", 1)
           .maybeSingle();
 
@@ -38,23 +42,26 @@ export const Route = createFileRoute("/api/public/apk-brand")({
           ? {
               ...data,
               server_url: normalizeApkBrandUrl(data.server_url),
-              start_path: !data.start_path || data.start_path === "/app-login" ? "/apk-auth" : data.start_path,
+              start_path:
+                !data.start_path || data.start_path === "/app-login"
+                  ? "/apk-auth"
+                  : data.start_path,
             }
           : {
-          app_id: "app.solarops.client",
-          app_name: "SolarOps",
-          version_name: "1.0.0",
-          version_code: 1,
-          server_url: "https://appsolar.torobyte.com",
-          start_path: "/apk-auth",
-          primary_color: "#f59e0b",
-          background_color: "#0a0a0a",
-          splash_color: "#0a0a0a",
-          status_bar_style: "dark",
-          icon_url: null,
-          splash_url: null,
-          cleartext: false,
-        };
+              app_id: "app.solarops.client",
+              app_name: "SolarOps",
+              version_name: "1.0.0",
+              version_code: 1,
+              server_url: "https://appsolar.torobyte.com",
+              start_path: "/apk-auth",
+              primary_color: "#f59e0b",
+              background_color: "#0a0a0a",
+              splash_color: "#0a0a0a",
+              status_bar_style: "dark",
+              icon_url: null,
+              splash_url: null,
+              cleartext: false,
+            };
 
         return new Response(JSON.stringify(body), {
           headers: {
