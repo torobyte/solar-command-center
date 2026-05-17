@@ -72,7 +72,7 @@ jobs:
           APP_NAME=$(python3 -c "import json;d=json.load(open('/tmp/brand.json'));print(d.get('app_name') or d.get('name') or 'SolarOps')")
           APP_ID=$(python3 -c "import json;d=json.load(open('/tmp/brand.json'));print(d.get('app_id') or 'app.solarops.client')")
           SERVER_URL=$(python3 -c "import json;d=json.load(open('/tmp/brand.json'));print((d.get('server_url') or 'https://appsolar.torobyte.com').rstrip('/'))")
-          START_PATH=$(python3 -c "import json;d=json.load(open('/tmp/brand.json'));p=d.get('start_path') or '/apk-auth';print(p if p.startswith('/') else '/'+p)")
+          START_PATH=$(python3 -c "import json;d=json.load(open('/tmp/brand.json'));p=d.get('start_path') or '/api/public/apk-bootstrap';print(p if p.startswith('/') else '/'+p)")
           THEME=$(python3 -c "import json;d=json.load(open('/tmp/brand.json'));print(d.get('primary_color') or d.get('theme_color') or '#f59e0b')")
           BG=$(python3 -c "import json;d=json.load(open('/tmp/brand.json'));print(d.get('background_color') or '#0a0a0a')")
           ICON_URL=$(python3 -c "import json;d=json.load(open('/tmp/brand.json'));icons=d.get('icons') or [];print(d.get('icon_url') or (icons[-1].get('src') if icons else ''))")
@@ -213,7 +213,6 @@ jobs:
             ~/.gradle/caches
             ~/.gradle/wrapper
             android/.gradle
-            android/app/build/intermediates
           key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
           restore-keys: |
             gradle-${{ runner.os }}-
@@ -229,6 +228,10 @@ jobs:
       - name: Grant gradlew permissions
         working-directory: android
         run: chmod +x ./gradlew
+
+      - name: Clean Android build outputs
+        working-directory: android
+        run: ./gradlew clean --no-daemon
 
       - name: Build release APK (unsigned)
         working-directory: android
