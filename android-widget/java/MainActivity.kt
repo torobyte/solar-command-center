@@ -37,6 +37,7 @@ import kotlin.concurrent.thread
 class MainActivity : Activity() {
 
     private lateinit var web: WebView
+    private lateinit var updateManager: UpdateManager
     private val authStorageKey = "sb-mtsxmdwraxnwobxsdrqr-auth-token"
     private val bootstrapStorageKey = "solarops_native_session_bootstrap"
     private val launchLogTag = "SolarOpsLaunch"
@@ -71,6 +72,7 @@ class MainActivity : Activity() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        updateManager = UpdateManager(applicationContext)
 
         val baseUrl = WidgetCommon.baseUrl(this).trimEnd('/')
         val targetUrl = "$baseUrl/api/public/apk-bootstrap"
@@ -118,6 +120,8 @@ class MainActivity : Activity() {
             runCatching { syncSitesFromSession(effective) }
                 .onSuccess { Log.d(launchLogTag, "Sitios sincronizados: $it") }
                 .onFailure { Log.w(launchLogTag, "Sync sitios: ${it.message}") }
+            runCatching { updateManager.checkForUpdates() }
+                .onFailure { Log.w(launchLogTag, "Auto-update: ${it.message}") }
         }
 
         web = buildWebView()

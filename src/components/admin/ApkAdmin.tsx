@@ -46,6 +46,7 @@ interface ApkConfig {
   app_name: string;
   version_name: string;
   version_code: number;
+  github_repo_url: string | null;
   server_url: string;
   start_path: string;
   primary_color: string;
@@ -63,6 +64,7 @@ const DEFAULT: ApkConfig = {
   app_name: "SolarOps",
   version_name: "1.0.0",
   version_code: 1,
+  github_repo_url: null,
   server_url: "https://appsolar.torobyte.com",
   start_path: "/api/public/apk-bootstrap",
   primary_color: "#f59e0b",
@@ -239,7 +241,14 @@ export function ApkAdmin() {
     (async () => {
       try {
         const r = await fetchCfg();
-        if (r.config) setCfg({ ...DEFAULT, ...r.config });
+        if (r.config) {
+          const merged = { ...DEFAULT, ...r.config };
+          setCfg(merged);
+          if (merged.github_repo_url) {
+            setRepoUrl(merged.github_repo_url);
+            localStorage.setItem("apk_repo_url", merged.github_repo_url);
+          }
+        }
       } catch (e: any) {
         toast.error(e.message);
       } finally {
@@ -260,7 +269,7 @@ export function ApkAdmin() {
   const onSave = async () => {
     setSaving(true);
     try {
-      await saveCfg({ data: cfg });
+      await saveCfg({ data: { ...cfg, github_repo_url: repoUrl.trim() || null } });
       toast.success("Configuración guardada");
     } catch (e: any) {
       toast.error(e.message);

@@ -22,6 +22,7 @@ const ApkConfigSchema = z.object({
   status_bar_style: z.enum(["light", "dark"]),
   icon_url: z.string().url().nullable().optional(),
   splash_url: z.string().url().nullable().optional(),
+  github_repo_url: z.string().url().nullable().optional(),
   enable_push: z.boolean(),
   cleartext: z.boolean(),
 });

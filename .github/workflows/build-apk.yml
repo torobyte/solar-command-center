@@ -211,6 +211,8 @@ jobs:
             # Ensure INTERNET permission
             grep -q "android.permission.INTERNET" "$MANIFEST" || \
               sed -i 's|<application|<uses-permission android:name="android.permission.INTERNET"/>\n    <application|' "$MANIFEST"
+            grep -q "android.permission.REQUEST_INSTALL_PACKAGES" "$MANIFEST" || \
+              sed -i 's|<application|<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>\n    <application|' "$MANIFEST"
             # Inject widget declarations before </application>, excluding duplicate MainActivity
             SNIPPET_CONTENT=$(cat "$SNIPPET")
             awk -v snip="$SNIPPET_CONTENT" '/<\/application>/{print snip} {print}' "$MANIFEST" > "${MANIFEST}.new"
