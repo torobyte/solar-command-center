@@ -347,13 +347,8 @@ function WidgetsPage() {
 }
 
 function WidgetPreview({ cfg, siteName, live }: { cfg: Cfg; siteName: string; live?: StreamState[string] }) {
-  const dark = cfg.theme === "dark";
   const sample = live?.snapshot?.sample ?? null;
   const isLive = live?.status === "live";
-  const bg = dark ? "hsl(var(--card))" : "hsl(var(--background))";
-  const fg = dark ? "hsl(var(--card-foreground))" : "hsl(var(--foreground))";
-  const sub = "hsl(var(--muted-foreground))";
-  const accent = "hsl(var(--accent))";
   const metrics = {
     pv: sample?.pv_w != null ? `${Math.round(sample.pv_w).toLocaleString()} W` : "—",
     battery: sample?.battery_pct != null ? `${Math.round(sample.battery_pct)} %` : "—",
@@ -363,15 +358,15 @@ function WidgetPreview({ cfg, siteName, live }: { cfg: Cfg; siteName: string; li
     alerts: live?.snapshot?.site?.fresh ? "Sin alertas" : "Revisar conexión",
   } as const;
   return (
-    <div className="rounded-xl border bg-card p-3 shadow-inner transition-all duration-300" style={{ background: bg, color: fg }}>
+    <div className={`rounded-xl border p-3 shadow-inner transition-all duration-300 ${cfg.theme === "dark" ? "border-border bg-card text-card-foreground" : "border-border/80 bg-background text-foreground"}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-accent text-accent-foreground shadow-glow">
-            <Sun className="h-4 w-4 text-white" />
+            <Sun className="h-4 w-4" />
           </div>
           <div>
             <div className="text-sm font-semibold leading-tight">{cfg.label || siteName}</div>
-            <div className="text-[10px]" style={{ color: sub }}>{siteName}</div>
+            <div className="text-[10px] text-muted-foreground">{siteName}</div>
           </div>
         </div>
         <div className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium ${isLive ? "bg-success/10 text-success" : live?.status === "connecting" ? "bg-warning/10 text-warning" : "bg-muted text-muted-foreground"}`}>
@@ -385,7 +380,7 @@ function WidgetPreview({ cfg, siteName, live }: { cfg: Cfg; siteName: string; li
           const Icon = meta?.icon ?? Sun;
           return (
             <div key={m} className={`rounded-md border p-2 transition-all ${isLive ? "border-success/20 bg-success/5" : "bg-muted/60"}`}>
-              <div className="flex items-center gap-1 text-[10px]" style={{ color: sub }}>
+              <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                 <Icon className="h-3 w-3" /> {meta?.label}
               </div>
               <div className="text-base font-semibold">{metrics[m as keyof typeof metrics] ?? "—"}</div>
