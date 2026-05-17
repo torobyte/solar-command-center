@@ -59,7 +59,23 @@ class WidgetSetupActivity : Activity() {
     private lateinit var logoutBtn: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
         super.onCreate(savedInstanceState)
+        actionBar?.hide()
+        window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(0xFF0A0A0A.toInt()))
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            window.statusBarColor = 0xFF0A0A0A.toInt()
+            window.navigationBarColor = 0xFF0A0A0A.toInt()
+        }
+
+        // Si esta pantalla se abre y no hay sesión, mejor abrir el WebView con el
+        // login HTML bonito.
+        val savedSession = getSharedPreferences(PREFS, MODE_PRIVATE).getString(KEY_AUTH_SESSION, null)
+        if (savedSession.isNullOrBlank() && intent?.action != android.appwidget.AppWidgetManager.ACTION_APPWIDGET_CONFIGURE) {
+            startActivity(android.content.Intent(this, MainActivity::class.java))
+            finish()
+            return
+        }
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL

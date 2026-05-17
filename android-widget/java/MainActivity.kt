@@ -164,6 +164,7 @@ class MainActivity : Activity() {
     private fun buildWebView(): WebView = WebView(this).apply {
         WebView.setWebContentsDebuggingEnabled(true)
         layoutParams = android.view.ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+        setBackgroundColor(0xFF0A0A0A.toInt())
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
         settings.databaseEnabled = true
