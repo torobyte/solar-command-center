@@ -75,7 +75,7 @@ class MainActivity : Activity() {
         updateManager = UpdateManager(applicationContext)
 
         val baseUrl = WidgetCommon.baseUrl(this).trimEnd('/')
-        val targetUrl = "$baseUrl/api/public/apk-bootstrap"
+        val targetUrl = "$baseUrl/api/public/apk-login"
         val savedSession = appPrefs().getString(WidgetSetupActivity.KEY_AUTH_SESSION, null)
 
         Log.d(launchLogTag, "BOOT $buildStamp baseUrl=$baseUrl session=${!savedSession.isNullOrBlank()}")
@@ -172,7 +172,7 @@ class MainActivity : Activity() {
 
     private fun loadBootstrapPage(rawSession: String) {
         val baseUrl = WidgetCommon.baseUrl(this).trimEnd('/')
-        val targetUrl = "$baseUrl/api/public/apk-bootstrap"
+        val targetUrl = "$baseUrl/app"
         val storageKey = JSONObject.quote(authStorageKey)
         val bootstrapKey = JSONObject.quote(bootstrapStorageKey)
         val escapedSession = JSONObject.quote(rawSession)
@@ -181,8 +181,8 @@ class MainActivity : Activity() {
             <!doctype html>
             <html><head><meta charset="utf-8"/>
             <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-            <style>html,body{margin:0;height:100%;background:#0a0a0a;color:#e2e8f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center}</style>
-            </head><body><div>Abriendo SolarOps…</div>
+            <style>html,body{margin:0;height:100%;background:#0a0a0a}</style>
+            </head><body>
             <script>
               try { localStorage.setItem($storageKey, $escapedSession); } catch (e) {}
               try { localStorage.setItem($bootstrapKey, $escapedSession); } catch (e) {}
