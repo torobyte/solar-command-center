@@ -35,11 +35,20 @@ function AppLoginPage() {
 
   // si ya hay sesión, salta directo a widgets
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
-        pushTokenToNative().finally(() => navigate({ to: "/app" }));
+    let cancelled = false;
+
+    supabase.auth.getUser().then(({ data, error }) => {
+      if (cancelled) return;
+      if (!error && data.user) {
+        pushTokenToNative().finally(() => {
+          if (!cancelled) navigate({ to: "/apk-auth", replace: true });
+        });
       }
     });
+
+    return () => {
+      cancelled = true;
+    };
   }, [navigate]);
 
   async function pushTokenToNative() {
@@ -73,7 +82,7 @@ function AppLoginPage() {
     } catch {}
     await pushTokenToNative();
     setLoading(false);
-    navigate({ to: "/app" });
+    navigate({ to: "/apk-auth", replace: true });
   }
 
   return (
