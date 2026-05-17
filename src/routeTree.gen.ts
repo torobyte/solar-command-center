@@ -34,6 +34,7 @@ import { Route as ApiPublicLicenseStatusRouteImport } from './routes/api/public/
 import { Route as ApiPublicIngestRouteImport } from './routes/api/public/ingest'
 import { Route as ApiPublicCommandsRouteImport } from './routes/api/public/commands'
 import { Route as ApiPublicApkLoginRouteImport } from './routes/api/public/apk-login'
+import { Route as ApiPublicApkLatestRouteImport } from './routes/api/public/apk-latest'
 import { Route as ApiPublicApkBrandRouteImport } from './routes/api/public/apk-brand'
 import { Route as ApiPublicApkBootstrapRouteImport } from './routes/api/public/apk-bootstrap'
 import { Route as ApiPublicActivateRouteImport } from './routes/api/public/activate'
@@ -167,6 +168,11 @@ const ApiPublicApkLoginRoute = ApiPublicApkLoginRouteImport.update({
   path: '/api/public/apk-login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicApkLatestRoute = ApiPublicApkLatestRouteImport.update({
+  id: '/api/public/apk-latest',
+  path: '/api/public/apk-latest',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicApkBrandRoute = ApiPublicApkBrandRouteImport.update({
   id: '/api/public/apk-brand',
   path: '/api/public/apk-brand',
@@ -222,6 +228,7 @@ export interface FileRoutesByFullPath {
   '/api/public/activate': typeof ApiPublicActivateRoute
   '/api/public/apk-bootstrap': typeof ApiPublicApkBootstrapRoute
   '/api/public/apk-brand': typeof ApiPublicApkBrandRoute
+  '/api/public/apk-latest': typeof ApiPublicApkLatestRoute
   '/api/public/apk-login': typeof ApiPublicApkLoginRoute
   '/api/public/commands': typeof ApiPublicCommandsRoute
   '/api/public/ingest': typeof ApiPublicIngestRoute
@@ -256,6 +263,7 @@ export interface FileRoutesByTo {
   '/api/public/activate': typeof ApiPublicActivateRoute
   '/api/public/apk-bootstrap': typeof ApiPublicApkBootstrapRoute
   '/api/public/apk-brand': typeof ApiPublicApkBrandRoute
+  '/api/public/apk-latest': typeof ApiPublicApkLatestRoute
   '/api/public/apk-login': typeof ApiPublicApkLoginRoute
   '/api/public/commands': typeof ApiPublicCommandsRoute
   '/api/public/ingest': typeof ApiPublicIngestRoute
@@ -291,6 +299,7 @@ export interface FileRoutesById {
   '/api/public/activate': typeof ApiPublicActivateRoute
   '/api/public/apk-bootstrap': typeof ApiPublicApkBootstrapRoute
   '/api/public/apk-brand': typeof ApiPublicApkBrandRoute
+  '/api/public/apk-latest': typeof ApiPublicApkLatestRoute
   '/api/public/apk-login': typeof ApiPublicApkLoginRoute
   '/api/public/commands': typeof ApiPublicCommandsRoute
   '/api/public/ingest': typeof ApiPublicIngestRoute
@@ -327,6 +336,7 @@ export interface FileRouteTypes {
     | '/api/public/activate'
     | '/api/public/apk-bootstrap'
     | '/api/public/apk-brand'
+    | '/api/public/apk-latest'
     | '/api/public/apk-login'
     | '/api/public/commands'
     | '/api/public/ingest'
@@ -361,6 +371,7 @@ export interface FileRouteTypes {
     | '/api/public/activate'
     | '/api/public/apk-bootstrap'
     | '/api/public/apk-brand'
+    | '/api/public/apk-latest'
     | '/api/public/apk-login'
     | '/api/public/commands'
     | '/api/public/ingest'
@@ -395,6 +406,7 @@ export interface FileRouteTypes {
     | '/api/public/activate'
     | '/api/public/apk-bootstrap'
     | '/api/public/apk-brand'
+    | '/api/public/apk-latest'
     | '/api/public/apk-login'
     | '/api/public/commands'
     | '/api/public/ingest'
@@ -429,6 +441,7 @@ export interface RootRouteChildren {
   ApiPublicActivateRoute: typeof ApiPublicActivateRoute
   ApiPublicApkBootstrapRoute: typeof ApiPublicApkBootstrapRoute
   ApiPublicApkBrandRoute: typeof ApiPublicApkBrandRoute
+  ApiPublicApkLatestRoute: typeof ApiPublicApkLatestRoute
   ApiPublicApkLoginRoute: typeof ApiPublicApkLoginRoute
   ApiPublicCommandsRoute: typeof ApiPublicCommandsRoute
   ApiPublicIngestRoute: typeof ApiPublicIngestRoute
@@ -622,6 +635,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicApkLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/apk-latest': {
+      id: '/api/public/apk-latest'
+      path: '/api/public/apk-latest'
+      fullPath: '/api/public/apk-latest'
+      preLoaderRoute: typeof ApiPublicApkLatestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/apk-brand': {
       id: '/api/public/apk-brand'
       path: '/api/public/apk-brand'
@@ -702,6 +722,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicActivateRoute: ApiPublicActivateRoute,
   ApiPublicApkBootstrapRoute: ApiPublicApkBootstrapRoute,
   ApiPublicApkBrandRoute: ApiPublicApkBrandRoute,
+  ApiPublicApkLatestRoute: ApiPublicApkLatestRoute,
   ApiPublicApkLoginRoute: ApiPublicApkLoginRoute,
   ApiPublicCommandsRoute: ApiPublicCommandsRoute,
   ApiPublicIngestRoute: ApiPublicIngestRoute,
