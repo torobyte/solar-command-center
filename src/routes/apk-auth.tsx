@@ -4,6 +4,17 @@ import { AlertCircle, CheckCircle2, ChevronRight, Loader2, RefreshCw, Smartphone
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
+declare global {
+  interface Window {
+    SolarWidgetBridge?: {
+      saveSession?: (payload: string) => void;
+      clearSession?: () => void;
+      getLaunchDiagnostics?: () => string;
+      appendLaunchLog?: (message: string) => void;
+    };
+  }
+}
+
 export const Route = createFileRoute("/apk-auth")({
   component: ApkAuthPage,
 });
@@ -93,12 +104,7 @@ function ApkAuthPage() {
   const [finalError, setFinalError] = useState<string | null>(null);
   const [autoContinue, setAutoContinue] = useState(true);
   const nativeBridge = typeof window !== "undefined"
-    ? (window.SolarWidgetBridge as {
-        saveSession?: (payload: string) => void;
-        clearSession?: () => void;
-        getLaunchDiagnostics?: () => string;
-        appendLaunchLog?: (message: string) => void;
-      } | undefined)
+    ? window.SolarWidgetBridge
     : undefined;
 
   const storageSnapshot = useMemo(() => {
@@ -239,8 +245,7 @@ function ApkAuthPage() {
           setMessage("La sesión no quedó válida; revisa el diagnóstico.");
           appendBridgeLog(`getUser falló: ${error?.message ?? "sin usuario"}`);
         }
-      } catch {
-        const err = arguments[0] as unknown;
+      } catch (err) {
         const messageText = err instanceof Error ? err.message : "Fallo desconocido al validar la sesión";
         try {
           localStorage.removeItem(NATIVE_BOOTSTRAP_KEY);
