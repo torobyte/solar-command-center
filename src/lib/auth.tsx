@@ -18,46 +18,62 @@ const Ctx = createContext<AuthCtx>({
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<Role | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [roleLoading, setRoleLoading] = useState(true);
 
   useEffect(() => {
-    let currentUserId: string | null = null;
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s);
-      const nextUserId = s?.user?.id ?? null;
-      if (nextUserId === currentUserId) return; // ignore TOKEN_REFRESHED / same-user events
-      currentUserId = nextUserId;
-      if (nextUserId) {
+    let active = true;
+
+    const syncAuthState = async () => {
+      setAuthLoading(true);
+
+      try {
+        const { data: userData, error } = await supabase.auth.getUser();
+        if (!active) return;
+
+        if (error || !userData.user) {
+          setSession(null);
+          setUser(null);
+          setRole(null);
+          setRoleLoading(false);
+          await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+          return;
+        }
+
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!active) return;
+
+        setSession(sessionData.session);
+        setUser(userData.user);
         setRoleLoading(true);
-        setTimeout(() => fetchRole(nextUserId), 0);
-      } else {
-        setRole(null);
-        setRoleLoading(false);
+        setTimeout(() => fetchRole(userData.user.id), 0);
+      } finally {
+        if (active) setAuthLoading(false);
       }
+    };
+
+    const { data: sub } = supabase.auth.onAuthStateChange(() => {
+      void syncAuthState();
     });
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      currentUserId = data.session?.user?.id ?? null;
-      if (data.session?.user) {
-        fetchRole(data.session.user.id);
-      } else {
-        setRoleLoading(false);
-      }
-      setAuthLoading(false);
-    });
+
+    void syncAuthState();
+
     return () => sub.subscription.unsubscribe();
   }, []);
 
   async function fetchRole(userId: string) {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", userId);
+      if (error) throw error;
       if (data?.some((r) => r.role === "superadmin")) setRole("superadmin");
       else setRole("user");
+    } catch {
+      setRole("user");
     } finally {
       setRoleLoading(false);
     }
@@ -65,9 +81,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <Ctx.Provider value={{
-      user: session?.user ?? null,
+      user,
       session, role,
-      loading: authLoading || (!!session?.user && roleLoading),
+      loading: authLoading || (!!user && roleLoading),
       signOut: async () => { await supabase.auth.signOut(); },
     }}>
       {children}
