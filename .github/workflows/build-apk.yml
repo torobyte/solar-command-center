@@ -206,6 +206,26 @@ jobs:
           fi
           cat "$MANIFEST"
 
+      - name: Force fresh versionCode / versionName (timestamp-based)
+        id: ver
+        run: |
+          set -e
+          GRADLE="android/app/build.gradle"
+          VCODE=$(date -u +%s)
+          VNAME="1.0.$(date -u +%Y%m%d%H%M)"
+          echo "Patching $GRADLE -> versionCode=$VCODE versionName=$VNAME"
+          python3 - <<PY
+          import re, os
+          p = "$GRADLE"
+          s = open(p).read()
+          s = re.sub(r'versionCode\s+\d+', 'versionCode $VCODE', s)
+          s = re.sub(r'versionName\s+"[^"]*"', 'versionName "$VNAME"', s)
+          open(p,"w").write(s)
+          PY
+          grep -E "versionCode|versionName" "$GRADLE" || true
+          echo "vcode=$VCODE" >> $GITHUB_OUTPUT
+          echo "vname=$VNAME" >> $GITHUB_OUTPUT
+
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
@@ -322,9 +342,11 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
-          name: APK ${{ steps.tag.outputs.tag }}
+          name: APK ${{ steps.tag.outputs.tag }} (v${{ steps.ver.outputs.vname }})
           body: |
             APK firmado generado automáticamente.
+            versionName: `${{ steps.ver.outputs.vname }}`
+            versionCode: `${{ steps.ver.outputs.vcode }}`
             SHA-256: `${{ steps.sha.outputs.sha }}`
           files: |
             ${{ steps.locate.outputs.apk }}
