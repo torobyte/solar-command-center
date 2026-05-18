@@ -72,6 +72,12 @@
     <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_stats_info" />
 </receiver>
 
+<!-- Variante 10 — Radial (gauge circular animado con gradiente) -->
+<receiver android:name="app.solarops.client.SolarOpsWidgetRadial" android:exported="true" android:label="SolarOps · Radial">
+    <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_radial_info" />
+</receiver>
+
 <!-- Picker compartido por las 3 variantes. -->
 <activity
     android:name="app.solarops.client.WidgetConfigActivity"
