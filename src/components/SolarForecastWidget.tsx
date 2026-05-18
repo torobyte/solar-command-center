@@ -227,6 +227,20 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
   if (!data) return null;
   const peak = Math.max(1, ...data.hourly.map((h) => h.radiation));
 
+  // Calibrate PVWatts model against the actual inverter output for current radiation.
+  // GHI from Open-Meteo ignores panel tilt; the calibration factor absorbs tilt, soiling, temperature drift, etc.
+  const kwpForCalib = pvConfig?.kwp ?? null;
+  const lossesForCalib = pvConfig?.lossesPct ?? 14;
+  const liveKwForCalib = live?.pv_w != null ? Math.max(0, Number(live.pv_w)) / 1000 : null;
+  let calibration = 1;
+  if (liveKwForCalib != null && kwpForCalib && data.current.radiation > 50) {
+    const theoreticalKw =
+      kwpForCalib * (data.current.radiation / 1000) * (1 - Math.max(0, Math.min(50, lossesForCalib)) / 100);
+    if (theoreticalKw > 0.05) {
+      calibration = Math.max(0.3, Math.min(3, liveKwForCalib / theoreticalKw));
+    }
+  }
+
   // Dynamic gradient based on weather
   const wc = data.current.weatherCode;
   const isSunny = wc <= 1;
