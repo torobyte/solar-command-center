@@ -63,7 +63,10 @@ class MainActivity : Activity() {
                 .apply()
             Log.d(launchLogTag, "Bridge.saveSession() recibió sesión nueva")
             // Re-sincronizar sitios en background con la sesión nueva.
-            thread { runCatching { syncSitesFromSession(payload) } }
+            thread {
+                runCatching { syncSitesFromSession(payload) }
+                runCatching { AlertsStreamService.start(applicationContext) }
+            }
         }
 
         @JavascriptInterface
