@@ -94,6 +94,36 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
     setPersistedCalib(isFinite(v) && v > 0 ? v : 1);
   }, [calibStorageKey]);
 
+  // Auto-calibration: smoothed EMA against inverter, only when sun is meaningful.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const manualVal = pvConfig?.manualCalibration;
+    if (manualVal != null && manualVal > 0) return; // manual override active
+    const kwp = pvConfig?.kwp ?? null;
+    const losses = pvConfig?.lossesPct ?? 14;
+    const liveKw = live?.pv_w != null ? Math.max(0, Number(live.pv_w)) / 1000 : null;
+    if (!kwp || liveKw == null) return;
+    const radiation = (typeof window !== "undefined" && (window as unknown as { __solarRad?: number }).__solarRad) ?? null;
+    // Use a side-channel because radiation lives in component state below;
+    // we read it from a ref-like global set by the data load. Skip if unavailable.
+    if (radiation == null) return;
+    if (radiation < 120) return;
+    if (liveKw < 0.05) return;
+    const theoreticalKw = kwp * (radiation / 1000) * (1 - Math.max(0, Math.min(50, losses)) / 100);
+    if (theoreticalKw < 0.1) return;
+    const instant = Math.max(0.3, Math.min(3, liveKw / theoreticalKw));
+    const alpha = Math.max(0.05, Math.min(1, pvConfig?.smoothingAlpha ?? 0.1));
+    const next = persistedCalib * (1 - alpha) + instant * alpha;
+    if (Math.abs(next - persistedCalib) < 0.005) return;
+    try { localStorage.setItem(calibStorageKey, String(next)); } catch { /* ignore */ }
+    setPersistedCalib(next);
+  }, [
+    live?.pv_w, live?.recorded_at, pvConfig?.kwp, pvConfig?.lossesPct,
+    pvConfig?.manualCalibration, pvConfig?.smoothingAlpha,
+    calibStorageKey, persistedCalib,
+  ]);
+
+
 
   useEffect(() => {
     // PV config coords take precedence
