@@ -25,7 +25,7 @@ function LoginPage() {
   const { t } = useI18n();
   const { branding, resolvedLogo } = useBranding();
   const { user, loading: authLoading } = useAuth();
-  const siteName = branding?.site_name ?? "SolarOps";
+  const siteName = branding?.site_name ?? "Mi plataforma";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);

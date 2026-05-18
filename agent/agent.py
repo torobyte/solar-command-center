@@ -147,16 +147,38 @@ def _looks_like_qpiri(reply: str) -> bool:
 
 
 def _try_open(path: str):
-    """Open the right transport for `path` and return it, or None on failure."""
+    """Open the right transport for `path` and return it, or None on failure.
+
+    Si falla por permisos (típico cuando udev aún no aplicó la regla 99-solarops
+    en la primera arranque), intenta `chmod 660` + add a group `dialout` una
+    sola vez antes de rendirse — así la instalación funciona sin reinicio.
+    """
+    def _fix_perms(p: str) -> None:
+        try:
+            os.chmod(p, 0o666)
+        except Exception:
+            pass
+
     try:
         if "hidraw" in path:
-            return HidrawTransport(path)
-        # Serial: try common Voltronic baud rates (2400 default, 9600 some MPP-Solar)
-        for baud in (2400, 9600):
-            try: return SerialTransport(path, baud=baud)
-            except Exception: continue
+            try:
+                return HidrawTransport(path)
+            except PermissionError:
+                _fix_perms(path)
+                return HidrawTransport(path)
+        # Serial: intenta baudios típicos de Voltronic (2400 default, 9600 MPP-Solar,
+        # 19200 algunos clones). Si falla por permiso, también auto-arregla.
+        for baud in (2400, 9600, 19200):
+            try:
+                return SerialTransport(path, baud=baud)
+            except PermissionError:
+                _fix_perms(path)
+                try: return SerialTransport(path, baud=baud)
+                except Exception: continue
+            except Exception:
+                continue
         return None
-    except (PermissionError, FileNotFoundError, OSError):
+    except (FileNotFoundError, OSError):
         return None
 
 

@@ -261,7 +261,7 @@ function WidgetsPage() {
         <CardContent className="text-sm space-y-2 text-muted-foreground">
           <p>1. Instala la APK firmada generada desde el panel SuperAdmin.</p>
           <p>2. Abre la app e inicia sesión — el token se guardará automáticamente.</p>
-          <p>3. Mantén pulsado un espacio vacío en la pantalla de inicio → Widgets → busca <b>SolarOps</b>.</p>
+          <p>3. Mantén pulsado un espacio vacío en la pantalla de inicio → Widgets → busca tu app.</p>
           <p>4. Arrastra el widget al home. Cuando llegue una nueva muestra desde el backend, el widget se actualizará al instante.</p>
         </CardContent>
       </Card>

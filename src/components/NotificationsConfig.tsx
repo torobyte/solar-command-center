@@ -17,6 +17,7 @@ import {
   type NotificationRule, type NotificationEvent, type Operator, type Severity,
 } from "@/lib/notifications";
 import { isPushSupported, subscribeToPush, unsubscribeFromPush, registerServiceWorker } from "@/lib/push";
+import { useBranding } from "@/lib/branding";
 
 const NUMERIC_OPS: { value: Operator; label: string }[] = [
   { value: "<", label: "Menor que" },
@@ -39,6 +40,9 @@ const SEV_META: Record<Severity, { label: string; icon: typeof Info; color: stri
 };
 
 export function NotificationsConfig({ siteId, userId }: { siteId: string; userId: string }) {
+  const { branding, resolvedLogo } = useBranding();
+  const brandName = branding?.site_name ?? "Mi plataforma";
+  const brandIcon = resolvedLogo ?? "/icon.svg";
   const [rules, setRules] = useState<NotificationRule[]>([]);
   const [events, setEvents] = useState<NotificationEvent[]>([]);
   const [permission, setPermission] = useState<NotificationPermission>(
@@ -126,7 +130,7 @@ export function NotificationsConfig({ siteId, userId }: { siteId: string; userId
     const p = await ensureNotificationPermission();
     setPermission(p);
     if (p !== "granted") return toast.error("Activa los permisos primero");
-    new Notification("SolarOps · Prueba", { body: "Las notificaciones funcionan correctamente.", icon: "/icon.svg" });
+    new Notification(`${brandName} · Prueba`, { body: "Las notificaciones funcionan correctamente.", icon: brandIcon });
   }
 
   return (

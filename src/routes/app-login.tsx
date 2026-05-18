@@ -27,7 +27,7 @@ function AppLoginPage() {
   const primary = branding?.primary_color ?? "#f59e0b";
   const bg = branding?.background_color_dark ?? "#0a0a0a";
   const fg = branding?.foreground_color_dark ?? "#fafafa";
-  const siteName = branding?.site_name ?? "SolarOps";
+  const siteName = branding?.site_name ?? "Mi plataforma";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

@@ -16,7 +16,7 @@ export function AppHeader() {
   const { t } = useI18n();
   const { branding, resolvedLogo } = useBranding();
   const [open, setOpen] = useState(false);
-  const siteName = branding?.site_name ?? "SolarOps";
+  const siteName = branding?.site_name ?? "Mi plataforma";
   const logoUrl = resolvedLogo;
 
   const onSites = location.pathname.startsWith("/sites") || location.pathname === "/app";

@@ -227,18 +227,31 @@ export function ApkAdmin() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repoUrl]);
 
-  // Poll cada 10s si hay un build activo
+  // Poll cada 15s SOLO si hay un build activo. Usamos un ref para no
+  // recrear el interval cada vez que cambia `runs` (eso causaba que la UI
+  // se sintiera en "loop" recargando todo el rato).
+  const hasActiveBuildRef = useRef(false);
   useEffect(() => {
-    if (!repoUrl) return;
-    const active = building || runs.some((r) => r.status !== "completed");
-    if (!active) return;
-    const t = setInterval(() => refreshBuildStatus(true), 10000);
-    return () => clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [repoUrl, runs, building]);
+    hasActiveBuildRef.current =
+      building || runs.some((r) => r.status !== "completed");
+  }, [building, runs]);
 
   useEffect(() => {
-    if (repoUrl && autoMode) fetchLatestRelease(true);
+    if (!repoUrl) return;
+    const t = setInterval(() => {
+      if (hasActiveBuildRef.current) refreshBuildStatus(true);
+    }, 15000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repoUrl]);
+
+  // Fetch del último release SOLO al montar / cambiar de repo, no en cada render.
+  const didFetchReleaseRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (repoUrl && autoMode && didFetchReleaseRef.current !== repoUrl) {
+      didFetchReleaseRef.current = repoUrl;
+      fetchLatestRelease(true);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repoUrl, autoMode]);
 
