@@ -51,6 +51,7 @@ export const renderEmailPreview = createServerFn({ method: "POST" })
     const subject = render(data.subject || def.subject, vars);
     const innerHtml = render(data.html || def.html, vars);
     const ctaHtml = ctaButton(data.cta || def.cta, vars, brand);
-    const html = wrapHtml(innerHtml, brand, ctaHtml);
+    const wrap = data.wrapWithBrand ?? true;
+    const html = wrap ? wrapHtml(innerHtml, brand, ctaHtml) : innerHtml;
     return { subject, html };
   });
