@@ -26,6 +26,8 @@ export interface PvConfig {
   energy_price?: number | null;
   feed_in_price?: number | null;
   currency?: string | null;
+  manual_calibration?: number | null;
+  calibration_smoothing_alpha?: number | null;
 }
 
 const BATTERY_TYPES: { v: string; l: string; dod: number }[] = [
@@ -77,6 +79,7 @@ export function PvSystemConfigCard({ siteId, maxAcOutputPower, nominalBatteryV }
     battery_voltage_each: null, battery_ah_each: null, battery_usable_dod_pct: 90,
     location_label: null,
     energy_price: null, feed_in_price: null, currency: "CLP",
+    manual_calibration: null, calibration_smoothing_alpha: 0.1,
   });
   const [saving, setSaving] = useState(false);
 
