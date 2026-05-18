@@ -22,6 +22,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as SitesOverviewRouteImport } from './routes/sites.overview'
 import { Route as SitesSiteIdRouteImport } from './routes/sites.$siteId'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as AuthConfirmRouteImport } from './routes/auth.confirm'
 import { Route as AppWidgetsRouteImport } from './routes/app.widgets'
 import { Route as ApiPublicWidgetStreamRouteImport } from './routes/api/public/widget-stream'
 import { Route as ApiPublicWidgetDataRouteImport } from './routes/api/public/widget-data'
@@ -108,6 +109,11 @@ const SitesSiteIdRoute = SitesSiteIdRouteImport.update({
 const InviteTokenRoute = InviteTokenRouteImport.update({
   id: '/invite/$token',
   path: '/invite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthConfirmRoute = AuthConfirmRouteImport.update({
+  id: '/auth/confirm',
+  path: '/auth/confirm',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppWidgetsRoute = AppWidgetsRouteImport.update({
@@ -233,6 +239,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/app/widgets': typeof AppWidgetsRoute
+  '/auth/confirm': typeof AuthConfirmRoute
   '/invite/$token': typeof InviteTokenRoute
   '/sites/$siteId': typeof SitesSiteIdRoute
   '/sites/overview': typeof SitesOverviewRoute
@@ -270,6 +277,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/app/widgets': typeof AppWidgetsRoute
+  '/auth/confirm': typeof AuthConfirmRoute
   '/invite/$token': typeof InviteTokenRoute
   '/sites/$siteId': typeof SitesSiteIdRoute
   '/sites/overview': typeof SitesOverviewRoute
@@ -308,6 +316,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/app/widgets': typeof AppWidgetsRoute
+  '/auth/confirm': typeof AuthConfirmRoute
   '/invite/$token': typeof InviteTokenRoute
   '/sites/$siteId': typeof SitesSiteIdRoute
   '/sites/overview': typeof SitesOverviewRoute
@@ -347,6 +356,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/app/widgets'
+    | '/auth/confirm'
     | '/invite/$token'
     | '/sites/$siteId'
     | '/sites/overview'
@@ -384,6 +394,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/app/widgets'
+    | '/auth/confirm'
     | '/invite/$token'
     | '/sites/$siteId'
     | '/sites/overview'
@@ -421,6 +432,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/app/widgets'
+    | '/auth/confirm'
     | '/invite/$token'
     | '/sites/$siteId'
     | '/sites/overview'
@@ -458,6 +470,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  AuthConfirmRoute: typeof AuthConfirmRoute
   InviteTokenRoute: typeof InviteTokenRoute
   SitesSiteIdRoute: typeof SitesSiteIdRoute
   SitesOverviewRoute: typeof SitesOverviewRoute
@@ -575,6 +588,13 @@ declare module '@tanstack/react-router' {
       path: '/invite/$token'
       fullPath: '/invite/$token'
       preLoaderRoute: typeof InviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/confirm': {
+      id: '/auth/confirm'
+      path: '/auth/confirm'
+      fullPath: '/auth/confirm'
+      preLoaderRoute: typeof AuthConfirmRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/widgets': {
@@ -755,6 +775,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  AuthConfirmRoute: AuthConfirmRoute,
   InviteTokenRoute: InviteTokenRoute,
   SitesSiteIdRoute: SitesSiteIdRoute,
   SitesOverviewRoute: SitesOverviewRoute,

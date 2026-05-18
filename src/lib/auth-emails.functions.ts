@@ -15,6 +15,21 @@ const recoverySchema = z.object({
   origin: z.string().url(),
 });
 
+function buildBrandedLink(
+  origin: string,
+  tokenHash: string,
+  type: "signup" | "recovery" | "invite" | "magiclink" | "email_change",
+  next: string,
+) {
+  const base = origin.replace(/\/$/, "");
+  const params = new URLSearchParams({
+    token_hash: tokenHash,
+    type,
+    next,
+  });
+  return `${base}/auth/confirm?${params.toString()}`;
+}
+
 export const signUpWithCustomEmail = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => signupSchema.parse(input))
   .handler(async ({ data }) => {
@@ -28,9 +43,16 @@ export const signUpWithCustomEmail = createServerFn({ method: "POST" })
       },
     });
 
-    if (error || !generated?.properties?.action_link) {
+    if (error || !generated?.properties?.hashed_token) {
       throw new Error(error?.message || "No se pudo crear la cuenta");
     }
+
+    const link = buildBrandedLink(
+      data.origin,
+      generated.properties.hashed_token,
+      "signup",
+      "/app",
+    );
 
     await sendMail({
       to: data.email,
@@ -38,7 +60,7 @@ export const signUpWithCustomEmail = createServerFn({ method: "POST" })
       vars: {
         name: data.full_name || data.email,
         email: data.email,
-        link: generated.properties.action_link,
+        link,
       },
     });
 
@@ -56,9 +78,16 @@ export const sendRecoveryEmail = createServerFn({ method: "POST" })
       },
     });
 
-    if (error || !generated?.properties?.action_link) {
+    if (error || !generated?.properties?.hashed_token) {
       throw new Error(error?.message || "No se pudo generar el correo de recuperación");
     }
+
+    const link = buildBrandedLink(
+      data.origin,
+      generated.properties.hashed_token,
+      "recovery",
+      "/reset-password",
+    );
 
     await sendMail({
       to: data.email,
@@ -66,7 +95,7 @@ export const sendRecoveryEmail = createServerFn({ method: "POST" })
       vars: {
         name: data.email,
         email: data.email,
-        link: generated.properties.action_link,
+        link,
       },
     });
 
