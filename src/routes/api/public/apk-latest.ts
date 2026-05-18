@@ -76,9 +76,10 @@ export const Route = createFileRoute("/api/public/apk-latest")({
         const latestVersionCode = Number(release.body?.match(/versionCode:\s*`?(\d+)`?/)?.[1] ?? data.version_code ?? 0);
         const latestVersionName = String(release.body?.match(/versionName:\s*`?([^`\n]+)`?/)?.[1] ?? data.version_name ?? "");
 
-        // URL estable que SIEMPRE redirige al último APK (no caduca al recrear assets).
+        // URL anclada al tag `latest` (no al puntero "latest release" de
+        // GitHub, que puede quedar en un release timestamped viejo).
         const stableApkUrl = apkAsset
-          ? `https://github.com/${repo.owner}/${repo.repo}/releases/latest/download/${apkAsset.name}`
+          ? `https://github.com/${repo.owner}/${repo.repo}/releases/download/latest/${apkAsset.name}`
           : null;
 
         return new Response(
