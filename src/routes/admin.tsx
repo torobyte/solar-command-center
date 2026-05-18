@@ -1146,7 +1146,7 @@ function DevicesAdmin() {
                   <td className="px-3 py-3 text-right">
                     <div className="flex flex-wrap justify-end gap-1">
                       <Button size="sm" variant="ghost" title="Activar con código"
-                        onClick={() => { setCode(""); setReason(""); setActivateRow(r); }}>
+                        onClick={() => { setCode(""); setReason(""); setLicMode("existing"); setActivateRow(r); }}>
                         <KeyRound className="h-3.5 w-3.5" />
                       </Button>
                       <Button size="sm" variant="ghost" title="Extender N días"
