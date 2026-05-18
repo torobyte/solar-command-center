@@ -23,6 +23,9 @@ export interface PvConfig {
   battery_ah_each: number | null;
   battery_usable_dod_pct: number | null;
   location_label?: string | null;
+  energy_price?: number | null;
+  feed_in_price?: number | null;
+  currency?: string | null;
 }
 
 const BATTERY_TYPES: { v: string; l: string; dod: number }[] = [
