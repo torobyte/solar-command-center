@@ -449,7 +449,7 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
           {data.hourly.map((h, i) => {
             const height = (h.radiation / peak) * 100;
             const hour = new Date(h.time).getHours();
-            const kwh = pvConfig?.kwp ? estimateKwh(h.radiation, pvConfig.kwp, pvConfig.lossesPct ?? 14) : 0;
+            const kwh = pvConfig?.kwp ? estimateKwh(h.radiation, pvConfig.kwp, pvConfig.lossesPct ?? 14, calibration) : 0;
             return (
               <div key={h.time} className="flex flex-1 flex-col items-center gap-1">
                 <div
@@ -476,9 +476,9 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
       {/* Daily summary */}
       <div className="grid grid-cols-5 gap-2 border-t pt-3">
         {data.daily.slice(0, 5).map((d, i) => {
-          // Daily kWh estimate: sunshine hours × kWp × (1 - losses) × ~0.65 capacity factor during sun
+          // Daily kWh estimate: sunshine hours × kWp × (1 - losses) × capacity factor × inverter calibration
           const dailyKwh = pvConfig?.kwp
-            ? pvConfig.kwp * d.sunshineHours * 0.65 * (1 - (pvConfig.lossesPct ?? 14) / 100)
+            ? pvConfig.kwp * d.sunshineHours * 0.65 * (1 - (pvConfig.lossesPct ?? 14) / 100) * calibration
             : null;
           return (
             <div
