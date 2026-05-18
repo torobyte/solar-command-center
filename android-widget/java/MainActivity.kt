@@ -1,13 +1,19 @@
 package app.solarops.client
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.NotificationManager
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
 import android.view.View
@@ -23,6 +29,7 @@ import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.app.NotificationManagerCompat
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.OutputStreamWriter
