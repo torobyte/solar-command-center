@@ -271,7 +271,13 @@ function SitesAdmin() {
 
   return (
     <>
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <Input
+          placeholder="Buscar por nombre, modelo, plan o email del propietario…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="h-9 w-full max-w-sm"
+        />
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" />{t("asite.new")}</Button></DialogTrigger>
           <DialogContent>
@@ -317,7 +323,7 @@ function SitesAdmin() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => {
+            {filteredRows.map((r) => {
               const s = syncStatus(r.last_seen_at);
               return (
                 <tr key={r.id} className="border-b last:border-0">
@@ -357,8 +363,8 @@ function SitesAdmin() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
-                      <Button size="sm" variant="ghost" title={t("asite.activateTitle")}
-                        onClick={() => { setLicCode(""); setLicDlg(r); }}>
+                      <Button size="sm" variant="ghost" title="Asignar licencia (existente o nueva)"
+                        onClick={() => openLicenseDialog(r)}>
                         <KeyRound className="h-3.5 w-3.5" />
                       </Button>
                       <Button size="sm" variant="ghost" title={t("asite.copyToken")}
@@ -396,45 +402,77 @@ function SitesAdmin() {
             })}
           </tbody>
         </table>
-        {rows.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">{t("asite.empty")}</p>}
+        {filteredRows.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">{rows.length === 0 ? t("asite.empty") : "Sin resultados."}</p>}
       </div>
 
       <Dialog open={!!licDlg} onOpenChange={(o) => !o && setLicDlg(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{t("asite.lic.title")} — {licDlg?.name}</DialogTitle></DialogHeader>
-          <form onSubmit={async (e) => {
-            e.preventDefault();
-            if (!licDlg) return;
-            try {
-              const res = await runAdminAction(activate, { site_id: licDlg.id, code: licCode.trim() });
-              const d = new Date(res.expires_at);
-              toast.success(t("asite.lic.success", { plan: res.plan, date: `${d.toLocaleDateString()} ${d.toLocaleTimeString()}` }));
-              setLicDlg(null); load();
-            } catch (e) { toast.error((e as Error).message); }
-          }} className="space-y-4">
-            <div className="rounded-md border bg-muted/30 p-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">{t("asite.lic.currentPlan")}</span>
-                <span className="font-medium">{licDlg?.plan ?? "—"}</span>
+          <DialogHeader><DialogTitle>Asignar licencia — {licDlg?.name}</DialogTitle></DialogHeader>
+
+          <div className="rounded-md border bg-muted/30 p-3 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Plan actual</span>
+              <span className="font-medium">{licDlg?.plan ?? "—"}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Expira</span>
+              <span className="font-medium">
+                {licDlg?.license_expires_at
+                  ? new Date(licDlg.license_expires_at).toLocaleString()
+                  : "Sin licencia activa"}
+              </span>
+            </div>
+          </div>
+
+          <Tabs value={licMode} onValueChange={(v) => setLicMode(v as "existing" | "generate")}>
+            <TabsList className="w-full">
+              <TabsTrigger value="existing" className="flex-1">Aplicar código existente</TabsTrigger>
+              <TabsTrigger value="generate" className="flex-1">Generar nueva</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="existing" className="mt-3">
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                if (!licDlg) return;
+                try {
+                  const res = await runAdminAction(activate, { site_id: licDlg.id, code: licCode.trim() });
+                  const d = new Date(res.expires_at);
+                  toast.success(`Activado: ${res.plan} hasta ${d.toLocaleDateString()}`);
+                  setLicDlg(null); load();
+                } catch (e) { toast.error((e as Error).message); }
+              }} className="space-y-3">
+                <div className="space-y-2">
+                  <Label>Código de licencia</Label>
+                  <Input value={licCode} onChange={(e) => setLicCode(e.target.value)} placeholder="XXXXX-XXXXX-XXXXX-XXXXX" required />
+                </div>
+                <DialogFooter><Button type="submit">Aplicar código</Button></DialogFooter>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="generate" className="mt-3 space-y-3">
+              <div className="space-y-2">
+                <Label>Plan</Label>
+                <Select value={genPlanSlug} onValueChange={setGenPlanSlug}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {availablePlans.map((p) => (
+                      <SelectItem key={p.slug} value={p.slug}>
+                        {p.name} {p.is_lifetime ? "(de por vida)" : `(${p.duration_days}d)`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">{t("asite.lic.currentExp")}</span>
-                <span className="font-medium">
-                  {licDlg?.license_expires_at
-                    ? new Date(licDlg.license_expires_at).toLocaleString()
-                    : t("asite.lic.noActive")}
-                </span>
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                {t("asite.lic.note")}
+              <p className="text-xs text-muted-foreground">
+                Se genera un código nuevo, queda registrado en Licencias y se aplica al instante a este sitio.
               </p>
-            </div>
-            <div className="space-y-2">
-              <Label>{t("asite.lic.code")}</Label>
-              <Input value={licCode} onChange={(e) => setLicCode(e.target.value)} placeholder="XXXXX-XXXXX-XXXXX-XXXXX" required />
-            </div>
-            <DialogFooter><Button type="submit">{t("asite.lic.activate")}</Button></DialogFooter>
-          </form>
+              <DialogFooter>
+                <Button onClick={generateAndActivate} disabled={generating || availablePlans.length === 0}>
+                  {generating ? "Generando…" : "Generar y aplicar"}
+                </Button>
+              </DialogFooter>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
     </>
