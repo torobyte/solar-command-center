@@ -449,6 +449,15 @@ function SiteDetail() {
         </TabsContent>
 
         <TabsContent value="totals" className="mt-6 space-y-6">
+          <ProductionHistoryCompare
+            siteId={siteId}
+            kwp={pvForCompare?.array_kwp ?? null}
+            lossesPct={pvForCompare?.system_losses_pct ?? null}
+            lat={pvForCompare?.latitude ?? null}
+            lon={pvForCompare?.longitude ?? null}
+            manualCalibration={pvForCompare?.manual_calibration ?? null}
+          />
+
           <ChartCard title="Daily energy (kWh)">
             <AreaChart data={totals}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
