@@ -316,6 +316,7 @@ jobs:
               r'<activity[^>]*android:name="(?:\.|app\.solarops\.client\.)WidgetConfigActivity"[^>]*(?:/>|>[\s\S]*?</activity>)',
               r'<receiver[^>]*android:name="(?:\.|app\.solarops\.client\.)SolarOpsWidget(?:Tiles|Gauge|Neon|Flow|Mini|Speedo|Wave|Stats|Radial)?"[^>]*(?:/>|>[\s\S]*?</receiver>)',
               r'<service[^>]*android:name="(?:\.|app\.solarops\.client\.)WidgetStreamService"[^>]*(?:/>|>[\s\S]*?</service>)',
+              r'<service[^>]*android:name="(?:\.|app\.solarops\.client\.)LockscreenLiveService"[^>]*(?:/>|>[\s\S]*?</service>)',
           ]
           for pat in patterns:
               s = re.sub(pat, '', s)
