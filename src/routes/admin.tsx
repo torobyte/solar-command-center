@@ -487,6 +487,12 @@ function UsersAdmin() {
   const delUser = useServerFn(adminDeleteUser);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ email: "", password: "", full_name: "", role: "user" as "user" | "superadmin" });
+  const [search, setSearch] = useState("");
+  const filteredUsers = users.filter((u) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (u.email ?? "").toLowerCase().includes(q) || (u.full_name ?? "").toLowerCase().includes(q);
+  });
 
   async function runAdminAction<TData, TResult>(
     action: (opts: { data: TData; headers?: HeadersInit }) => Promise<TResult>,
