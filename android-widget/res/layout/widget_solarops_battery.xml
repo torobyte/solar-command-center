@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Variante BATTERY — réplica de la tarjeta "Batería" de la web.
+  Batería vertical animada a la izquierda + valores PV y Consumo a la derecha.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="12dp"
+    android:background="@drawable/widget_background"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+        <TextView
+            android:id="@+id/bat_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Batería"
+            android:textColor="#F8FAFC"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:singleLine="true"
+            android:ellipsize="end" />
+        <TextView
+            android:id="@+id/bat_state"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#94A3B8"
+            android:textSize="10sp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
+            android:background="@drawable/widget_bg_card" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical">
+
+        <!-- Batería vertical (carcasa + tapón + nivel + texto centrado). -->
+        <FrameLayout
+            android:layout_width="78dp"
+            android:layout_height="match_parent">
+
+            <View
+                android:layout_width="22dp"
+                android:layout_height="6dp"
+                android:layout_gravity="center_horizontal|top"
+                android:background="@drawable/battery_cap" />
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginTop="6dp"
+                android:background="@drawable/battery_shell">
+
+                <ProgressBar
+                    android:id="@+id/bat_level"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_margin="3dp"
+                    android:max="100"
+                    android:progress="0"
+                    android:progressDrawable="@drawable/battery_fill" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:gravity="center">
+                    <TextView
+                        android:id="@+id/bat_pct"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="—"
+                        android:textColor="#0B1220"
+                        android:textSize="22sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/bat_volt"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=""
+                        android:textColor="#0B1220"
+                        android:textSize="10sp" />
+                </LinearLayout>
+            </FrameLayout>
+        </FrameLayout>
+
+        <!-- Métricas a la derecha: PV y Consumo. -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="14dp"
+            android:gravity="center_vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="10dp">
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_solar_sun"
+                    android:contentDescription="@null" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="8dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Solar"
+                        android:textColor="#94A3B8"
+                        android:textSize="10sp" />
+                    <TextView
+                        android:id="@+id/bat_pv"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="— W"
+                        android:textColor="#FBBF24"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_load_plug"
+                    android:contentDescription="@null" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="8dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Consumo"
+                        android:textColor="#94A3B8"
+                        android:textSize="10sp" />
+                    <TextView
+                        android:id="@+id/bat_load"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="— W"
+                        android:textColor="#60A5FA"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>
