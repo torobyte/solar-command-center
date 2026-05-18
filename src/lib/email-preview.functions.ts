@@ -5,8 +5,14 @@ import { loadBrand, wrapHtml, ctaButton, render, DEFAULTS, type MailVars } from 
 
 const SAMPLE_VARS: MailVars = {
   name: "María González",
+  full_name: "María González",
+  user_name: "María González",
+  first_name: "María",
   email: "maria@ejemplo.cl",
+  user_email: "maria@ejemplo.cl",
   link: "https://ejemplo.cl/accion",
+  url: "https://ejemplo.cl/accion",
+  action_url: "https://ejemplo.cl/accion",
   message: "Batería al 18% — considera reducir cargas no esenciales.",
   inviter: "Juan Pérez",
   role: "admin",
