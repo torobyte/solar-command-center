@@ -392,7 +392,8 @@ jobs:
             'Lapp/solarops/client/UpdateManager;' \
             'Lapp/solarops/client/BrandSync;' \
             'Lapp/solarops/client/WidgetStreamService;' \
-            'Lapp/solarops/client/LockscreenLiveService;'
+            'Lapp/solarops/client/LockscreenLiveService;' \
+            'Lapp/solarops/client/AlertsStreamService;'
           do
             if ! unzip -p "$APK" classes.dex | strings | grep -F "$CLASS" >/dev/null; then
               echo "::error::Missing class in APK: $CLASS"
