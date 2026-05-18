@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
-import { renderEmailPreview } from "@/lib/email-preview.functions";
+import { renderEmailPreview, getDefaultEmailHtml } from "@/lib/email-preview.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Save, Eye } from "lucide-react";
+import { Save, Eye, Code2 } from "lucide-react";
 
 interface Tpl {
   id: string;
@@ -19,6 +19,7 @@ interface Tpl {
   html_body: string;
   text_body: string | null;
   enabled: boolean | null;
+  wrap_with_brand: boolean | null;
 }
 
 const KNOWN: { id: string; name: string }[] = [
@@ -37,6 +38,7 @@ export function EmailTemplatesAdmin() {
   const [preview, setPreview] = useState<{ subject: string; html: string } | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const renderPreview = useServerFn(renderEmailPreview);
+  const loadDefault = useServerFn(getDefaultEmailHtml);
 
   async function load() {
     const { data } = await supabase.from("email_templates").select("*");
@@ -45,7 +47,7 @@ export function EmailTemplatesAdmin() {
     for (const k of KNOWN) {
       if (!map[k.id]) {
         map[k.id] = {
-          id: k.id, name: k.name, subject: "", html_body: "", text_body: "", enabled: true,
+          id: k.id, name: k.name, subject: "", html_body: "", text_body: "", enabled: true, wrap_with_brand: true,
         };
       }
     }
@@ -75,6 +77,7 @@ export function EmailTemplatesAdmin() {
           templateId: id,
           subject: t.subject || undefined,
           html: t.html_body || undefined,
+          wrapWithBrand: t.wrap_with_brand ?? true,
         },
       });
       setPreview(res);
@@ -82,6 +85,16 @@ export function EmailTemplatesAdmin() {
       toast.error((e as Error).message);
     } finally {
       setLoadingPreview(false);
+    }
+  }
+
+  async function loadDefaultHtml(id: string) {
+    try {
+      const res = await loadDefault({ data: { templateId: id } });
+      up(id, { html_body: res.html, subject: tpls[id]?.subject || res.subject, wrap_with_brand: false });
+      toast.success("Plantilla completa cargada — ya puedes editarla por completo");
+    } catch (e) {
+      toast.error((e as Error).message);
     }
   }
 
