@@ -98,15 +98,12 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
   useEffect(() => {
     if (typeof window === "undefined") return;
     const manualVal = pvConfig?.manualCalibration;
-    if (manualVal != null && manualVal > 0) return; // manual override active
+    if (manualVal != null && manualVal > 0) return;
     const kwp = pvConfig?.kwp ?? null;
     const losses = pvConfig?.lossesPct ?? 14;
     const liveKw = live?.pv_w != null ? Math.max(0, Number(live.pv_w)) / 1000 : null;
-    if (!kwp || liveKw == null) return;
-    const radiation = (typeof window !== "undefined" && (window as unknown as { __solarRad?: number }).__solarRad) ?? null;
-    // Use a side-channel because radiation lives in component state below;
-    // we read it from a ref-like global set by the data load. Skip if unavailable.
-    if (radiation == null) return;
+    const radiation = data?.current?.radiation ?? null;
+    if (!kwp || liveKw == null || radiation == null) return;
     if (radiation < 120) return;
     if (liveKw < 0.05) return;
     const theoreticalKw = kwp * (radiation / 1000) * (1 - Math.max(0, Math.min(50, losses)) / 100);
@@ -118,7 +115,8 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
     try { localStorage.setItem(calibStorageKey, String(next)); } catch { /* ignore */ }
     setPersistedCalib(next);
   }, [
-    live?.pv_w, live?.recorded_at, pvConfig?.kwp, pvConfig?.lossesPct,
+    live?.pv_w, live?.recorded_at, data?.current?.radiation,
+    pvConfig?.kwp, pvConfig?.lossesPct,
     pvConfig?.manualCalibration, pvConfig?.smoothingAlpha,
     calibStorageKey, persistedCalib,
   ]);
