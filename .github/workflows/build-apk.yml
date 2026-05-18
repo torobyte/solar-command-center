@@ -215,6 +215,7 @@ jobs:
           -keep class app.solarops.client.SolarOpsWidgetWave { *; }
           -keep class app.solarops.client.SolarOpsWidgetStats { *; }
           -keep class app.solarops.client.SolarOpsWidgetRadial { *; }
+          -keep class app.solarops.client.SolarOpsWidgetBattery { *; }
           -keep class app.solarops.client.WidgetStreamService { *; }
           -keep class app.solarops.client.LockscreenLiveService { *; }
           -keep class app.solarops.client.AlertsStreamService { *; }
@@ -306,6 +307,8 @@ jobs:
             sed -i 's|<application|<uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>\n    <application|' "$MANIFEST"
           grep -q "android.permission.POST_NOTIFICATIONS" "$MANIFEST" || \
             sed -i 's|<application|<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <application|' "$MANIFEST"
+          grep -q "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" "$MANIFEST" || \
+            sed -i 's|<application|<uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>\n    <application|' "$MANIFEST"
           # Strip any previously-injected SolarOps widget block (between markers or matching the old short-form classes)
           python3 - <<'PY'
           import re
@@ -315,7 +318,7 @@ jobs:
           patterns = [
               r'<activity[^>]*android:name="(?:\.|app\.solarops\.client\.)WidgetSetupActivity"[^>]*(?:/>|>[\s\S]*?</activity>)',
               r'<activity[^>]*android:name="(?:\.|app\.solarops\.client\.)WidgetConfigActivity"[^>]*(?:/>|>[\s\S]*?</activity>)',
-              r'<receiver[^>]*android:name="(?:\.|app\.solarops\.client\.)SolarOpsWidget(?:Tiles|Gauge|Neon|Flow|Mini|Speedo|Wave|Stats|Radial)?"[^>]*(?:/>|>[\s\S]*?</receiver>)',
+              r'<receiver[^>]*android:name="(?:\.|app\.solarops\.client\.)SolarOpsWidget(?:Tiles|Gauge|Neon|Flow|Mini|Speedo|Wave|Stats|Radial|Battery)?"[^>]*(?:/>|>[\s\S]*?</receiver>)',
               r'<service[^>]*android:name="(?:\.|app\.solarops\.client\.)WidgetStreamService"[^>]*(?:/>|>[\s\S]*?</service>)',
               r'<service[^>]*android:name="(?:\.|app\.solarops\.client\.)LockscreenLiveService"[^>]*(?:/>|>[\s\S]*?</service>)',
               r'<service[^>]*android:name="(?:\.|app\.solarops\.client\.)AlertsStreamService"[^>]*(?:/>|>[\s\S]*?</service>)',
@@ -389,6 +392,7 @@ jobs:
             'Lapp/solarops/client/SolarOpsWidgetWave;' \
             'Lapp/solarops/client/SolarOpsWidgetStats;' \
             'Lapp/solarops/client/SolarOpsWidgetRadial;' \
+            'Lapp/solarops/client/SolarOpsWidgetBattery;' \
             'Lapp/solarops/client/UpdateManager;' \
             'Lapp/solarops/client/BrandSync;' \
             'Lapp/solarops/client/WidgetStreamService;' \

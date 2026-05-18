@@ -78,6 +78,12 @@
     <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_radial_info" />
 </receiver>
 
+<!-- Variante 11 — Battery (réplica de la tarjeta web: SoC + PV + Consumo) -->
+<receiver android:name="app.solarops.client.SolarOpsWidgetBattery" android:exported="true" android:label="SolarOps · Battery">
+    <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_battery_info" />
+</receiver>
+
 <!-- Picker compartido por las 3 variantes. -->
 <activity
     android:name="app.solarops.client.WidgetConfigActivity"

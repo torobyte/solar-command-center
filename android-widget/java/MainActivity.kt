@@ -1,13 +1,19 @@
 package app.solarops.client
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.NotificationManager
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
 import android.view.View
@@ -23,6 +29,7 @@ import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.app.NotificationManagerCompat
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.OutputStreamWriter
@@ -105,6 +112,10 @@ class MainActivity : Activity() {
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         super.onCreate(savedInstanceState)
         actionBar?.hide()
+
+        // Solicita los permisos necesarios para que las alertas se vean
+        // (notificaciones, DND bypass y exención de optimización de batería).
+        ensureNotificationPermissions()
 
         // Cargar branding cacheado (instantáneo, sin red) y refrescar en background.
         val brand = BrandSync.cached(this)
@@ -309,6 +320,99 @@ class MainActivity : Activity() {
     }
 
     private fun appPrefs() = getSharedPreferences(WidgetSetupActivity.PREFS, MODE_PRIVATE)
+
+    /* --------------- Permisos para que las alertas se vean --------------- */
+
+    override fun onResume() {
+        super.onResume()
+        // Re-verifica permisos al volver de Ajustes; relanza el servicio si todo OK.
+        if (areNotificationsEnabled() && appPrefs().getString(WidgetSetupActivity.KEY_AUTH_SESSION, null) != null) {
+            runCatching { AlertsStreamService.start(applicationContext) }
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<out String>, grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQ_NOTIF) {
+            val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
+            if (!granted) {
+                // El usuario rechazó: ofrecemos abrir Ajustes para activarlas manualmente.
+                showOpenNotifSettingsToast()
+            } else {
+                runCatching { AlertsStreamService.start(applicationContext) }
+            }
+        }
+    }
+
+    private fun areNotificationsEnabled(): Boolean =
+        NotificationManagerCompat.from(this).areNotificationsEnabled()
+
+    /**
+     * Flujo de permisos para que las alertas lleguen al teléfono:
+     *  1. POST_NOTIFICATIONS (Android 13+).
+     *  2. Si el sistema dice que las notifs están deshabilitadas, abrir
+     *     Ajustes de la app (cubre el caso de Xiaomi/MIUI/HyperOS que las
+     *     desactiva por defecto incluso aunque exista el permiso).
+     *  3. Pedir exención de optimización de batería (una sola vez), para
+     *     que el servicio SSE no muera en segundo plano.
+     */
+    private fun ensureNotificationPermissions() {
+        // Paso 1 — runtime permission Android 13+.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val granted = checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) ==
+                PackageManager.PERMISSION_GRANTED
+            if (!granted) {
+                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQ_NOTIF)
+            }
+        }
+        // Paso 2 — si están bloqueadas a nivel de app, sugerir Ajustes.
+        if (!areNotificationsEnabled()) {
+            showOpenNotifSettingsToast()
+        }
+        // Paso 3 — battery optimization (solo se pide una vez).
+        maybeRequestBatteryOptimizationExemption()
+    }
+
+    private fun showOpenNotifSettingsToast() {
+        Toast.makeText(
+            this,
+            "Activa las notificaciones para recibir alertas",
+            Toast.LENGTH_LONG,
+        ).show()
+        runCatching {
+            val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
+        }
+    }
+
+    @SuppressLint("BatteryLife")
+    private fun maybeRequestBatteryOptimizationExemption() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
+        val prefs = getSharedPreferences("solarops_perms", MODE_PRIVATE)
+        if (prefs.getBoolean("battery_asked", false)) return
+        val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+        if (pm.isIgnoringBatteryOptimizations(packageName)) return
+        prefs.edit().putBoolean("battery_asked", true).apply()
+        runCatching {
+            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                data = Uri.parse("package:$packageName")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
+        }
+    }
+
+    companion object {
+        private const val REQ_NOTIF = 7421
+    }
+
+    /* --------------------------------------------------------------------- */
+
 
     private fun syncSitesFromSession(rawSession: String): Int {
         val accessToken = JSONObject(rawSession).optString("access_token")
