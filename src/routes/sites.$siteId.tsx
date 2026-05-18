@@ -20,6 +20,7 @@ import { PowerGauges } from "@/components/PowerGauges";
 import { Battery3D, SolarRays, GridSineWave, ConcentricRings, SolarPanelsViz, HouseLoadViz, BackupTimeCard } from "@/components/AdvancedVisuals";
 import { DashboardGrid, useDashboardLayout, type WidgetDef } from "@/components/DashboardCustomizer";
 import { PvSystemConfigCard, usePvConfig } from "@/components/PvSystemConfig";
+import { ProductionHistoryCompare } from "@/components/ProductionHistoryCompare";
 import { DeviceSelector, useDevices, type Device } from "@/components/DeviceManager";
 import { NotificationsConfig } from "@/components/NotificationsConfig";
 import { useNotificationWatcher } from "@/lib/notifications";
@@ -184,6 +185,7 @@ function SiteDetail() {
   const { user } = useAuth();
   const { devices, selected: selectedDevice, loaded: devicesLoaded } = useDevices(siteId);
   const roleInfo = useSiteRole(siteId);
+  const { config: pvForCompare } = usePvConfig(siteId);
   const [site, setSite] = useState<Site | null>(null);
   const [latest, setLatest] = useState<Sample | null>(null);
   const [history, setHistory] = useState<Sample[]>([]);
