@@ -83,6 +83,18 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
   const [searching, setSearching] = useState(false);
   const debounceRef = useRef<number | null>(null);
 
+  // --- Calibration state (must be declared before any early return) ---
+  const calibSiteKey = pvConfig?.siteKey
+    ?? (pvConfig?.lat != null && pvConfig?.lon != null ? `${pvConfig.lat},${pvConfig.lon}` : "global");
+  const calibStorageKey = CALIB_KEY(calibSiteKey);
+  const [persistedCalib, setPersistedCalib] = useState<number>(1);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const v = parseFloat(localStorage.getItem(calibStorageKey) ?? "1");
+    setPersistedCalib(isFinite(v) && v > 0 ? v : 1);
+  }, [calibStorageKey]);
+
+
   useEffect(() => {
     // PV config coords take precedence
     if (pvConfig?.lat != null && pvConfig?.lon != null) {
