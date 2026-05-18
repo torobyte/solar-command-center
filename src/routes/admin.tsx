@@ -514,7 +514,13 @@ function UsersAdmin() {
 
   return (
     <>
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <Input
+          placeholder="Buscar por email o nombre…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="h-9 w-full max-w-sm"
+        />
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" />{t("ausers.new")}</Button></DialogTrigger>
           <DialogContent>
@@ -541,6 +547,7 @@ function UsersAdmin() {
           </DialogContent>
         </Dialog>
       </div>
+
 
       <div className="overflow-x-auto rounded-lg border bg-card">
         <table className="w-full min-w-[720px] text-sm">
