@@ -343,7 +343,7 @@ function SiteDetail() {
       setLatest((prev) => {
         if (prev && prev.recorded_at === row.recorded_at) return prev;
         setHistory((h) => (h.length && h[h.length - 1].recorded_at === row.recorded_at) ? h : [...h.slice(-719), row]);
-        return mergeSample(prev, row);
+        return mergeSample(prev, filterSpikes(prev, row, spikeRef.current));
       });
     }
     const pollId = setInterval(poll, 1000);
