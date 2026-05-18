@@ -15,32 +15,42 @@ import java.net.URL
 /**
  * Shared logic for every SolarOps widget variant:
  *  - reads the device_token saved by WidgetConfigActivity (keyed by widgetId)
+ *  - reads the per-widget metric + refresh interval
  *  - fetches /api/public/widget
  *  - schedules the AlarmManager tick that drives near-realtime refresh
- *
- * Each variant (Compact / Tiles / Gauge) is its own AppWidgetProvider with
- * its own layout, and just consumes the JSON returned here.
  */
 object WidgetCommon {
     const val PREFS = "solarops_widget_prefs"
     const val KEY_TOKEN = "device_token"
+    const val KEY_METRIC = "metric"          // "auto" | "pv" | "battery" | "load"
+    const val KEY_INTERVAL = "interval_sec"  // per-widget int
     const val KEY_BASE_URL = "base_url"
     const val DEFAULT_BASE_URL = "https://appsolar.torobyte.com"
 
     const val ACTION_TICK = "app.solarops.client.WIDGET_TICK"
-    const val REFRESH_SEC = 15L
+    const val DEFAULT_REFRESH_SEC = 15
+
+    // Allowed values
+    val METRICS = listOf("auto", "pv", "battery", "load")
+    val INTERVALS = listOf(15, 30, 60, 300, 900)
 
     fun tokenFor(context: Context, widgetId: Int): String? =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString("$KEY_TOKEN.$widgetId", null)
+
+    fun metricFor(context: Context, widgetId: Int): String =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString("$KEY_METRIC.$widgetId", "auto") ?: "auto"
+
+    fun intervalFor(context: Context, widgetId: Int): Int =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getInt("$KEY_INTERVAL.$widgetId", DEFAULT_REFRESH_SEC)
 
     fun baseUrl(context: Context): String =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(KEY_BASE_URL, DEFAULT_BASE_URL) ?: DEFAULT_BASE_URL
 
     fun openAppIntent(context: Context, widgetId: Int): PendingIntent {
-        // Launch the SolarOps app shell (WebView), falling back to the browser
-        // if for some reason the launcher activity is not resolvable.
         val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
             ?: Intent(Intent.ACTION_VIEW, Uri.parse(baseUrl(context)))
         launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
@@ -62,10 +72,14 @@ object WidgetCommon {
         else null
     } catch (_: Exception) { null }
 
+    /** Schedules a global refresh tick for every widget of [providerClass] using the SHORTEST per-widget interval. */
     fun scheduleAlarmFor(context: Context, providerClass: Class<*>) {
         val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val pi = tickIntent(context, providerClass)
-        val intervalMs = REFRESH_SEC * 1000L
+        val ids = widgetIdsFor(context, providerClass)
+        val intervalSec = if (ids.isEmpty()) DEFAULT_REFRESH_SEC
+            else ids.minOf { intervalFor(context, it) }.coerceAtLeast(15)
+        val intervalMs = intervalSec * 1000L
         val first = SystemClock.elapsedRealtime() + intervalMs
         am.setRepeating(AlarmManager.ELAPSED_REALTIME, first, intervalMs, pi)
     }
