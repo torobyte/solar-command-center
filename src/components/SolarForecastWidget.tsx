@@ -364,19 +364,7 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
         const losses = pvConfig?.lossesPct ?? 14;
         const liveW = live?.pv_w != null ? Math.max(0, Number(live.pv_w)) : null;
         const liveKw = liveW != null ? liveW / 1000 : null;
-        // Calibrate the PVWatts estimate using actual inverter output vs theoretical for current radiation.
-        // Open-Meteo's shortwave_radiation is GHI; the real array (with tilt) often produces ~30-80% more.
-        // This calibration absorbs tilt, soiling, temperature and any model bias.
-        let calibration = 1;
-        let calibrated = false;
-        if (liveKw != null && kwp && data.current.radiation > 50) {
-          const theoreticalNowKw = kwp * (data.current.radiation / 1000) * (1 - Math.max(0, Math.min(50, losses)) / 100);
-          if (theoreticalNowKw > 0.05) {
-            // Clamp between 0.3x and 3x to avoid extreme spikes (e.g. partial shading at low sun).
-            calibration = Math.max(0.3, Math.min(3, liveKw / theoreticalNowKw));
-            calibrated = true;
-          }
-        }
+        const calibrated = calibration !== 1;
         const next12kwh = kwp
           ? data.hourly.reduce((acc, h) => acc + estimateKwh(h.radiation, kwp, losses, calibration), 0)
           : 0;
