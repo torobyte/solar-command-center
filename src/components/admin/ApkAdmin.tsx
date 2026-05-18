@@ -90,9 +90,17 @@ export function ApkAdmin() {
   const [downloading, setDownloading] = useState(false);
   const [previewKey, setPreviewKey] = useState(0);
   const [showSplash, setShowSplash] = useState(true);
-  const [apkUrl, setApkUrl] = useState<string>(
-    () => localStorage.getItem("apk_download_url") ?? "",
-  );
+  const [apkUrl, setApkUrl] = useState<string>(() => {
+    const cached = localStorage.getItem("apk_download_url") ?? "";
+    // Invalida URLs viejas con el patrón /releases/latest/download/ que GitHub
+    // a veces resolvía a un release timestamped antiguo. Ahora usamos el tag
+    // explícito /releases/download/latest/.
+    if (cached.includes("/releases/latest/download/")) {
+      localStorage.removeItem("apk_download_url");
+      return "";
+    }
+    return cached;
+  });
   const [repoUrl, setRepoUrl] = useState<string>(() => localStorage.getItem("apk_repo_url") ?? "");
   const [latestTag, setLatestTag] = useState<string | null>(null);
   const [latestSha, setLatestSha] = useState<string | null>(null);
