@@ -3,88 +3,79 @@
   Requiere:
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
-
-  Importante: usamos nombres totalmente calificados (app.solarops.client.X) en lugar
-  de la forma corta ".X" porque Capacitor puede generar un `namespace` distinto al
-  package real de las clases Kotlin del widget, y eso provoca ClassNotFoundException
-  cuando Android intenta resolver el ConfigActivity al agregar el widget.
 -->
 
-<!-- MainActivity launcher es generado por Capacitor, no se declara aquí. -->
-
-<!-- Login + lista de sitios. Solo se abre desde el picker del widget. -->
 <activity
     android:name="app.solarops.client.WidgetSetupActivity"
     android:exported="false"
-    android:label="Configurar widget SolarOps" />
+    android:label="Configurar widget" />
 
-<!-- Variante 1 — Compacto (Solar / Carga / Batería) -->
-<receiver android:name="app.solarops.client.SolarOpsWidget" android:exported="true" android:label="SolarOps · Compacto">
+<!-- Variante 1 — Compacto -->
+<receiver android:name="app.solarops.client.SolarOpsWidget" android:exported="true" android:label="Compacto">
     <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
     <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_info" />
 </receiver>
 
-<!-- Variante 2 — Tiles 4 paneles a color -->
-<receiver android:name="app.solarops.client.SolarOpsWidgetTiles" android:exported="true" android:label="SolarOps · Tiles">
+<!-- Variante 2 — Tiles -->
+<receiver android:name="app.solarops.client.SolarOpsWidgetTiles" android:exported="true" android:label="Tiles">
     <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
     <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_tiles_info" />
 </receiver>
 
-<!-- Variante 3 — Gauge grande de batería -->
-<receiver android:name="app.solarops.client.SolarOpsWidgetGauge" android:exported="true" android:label="SolarOps · Gauge">
+<!-- Variante 3 — Gauge -->
+<receiver android:name="app.solarops.client.SolarOpsWidgetGauge" android:exported="true" android:label="Gauge">
     <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
     <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_gauge_info" />
 </receiver>
 
-<!-- Variante 4 — Neon (iconos vectoriales + pulso) -->
-<receiver android:name="app.solarops.client.SolarOpsWidgetNeon" android:exported="true" android:label="SolarOps · Neon">
+<!-- Variante 4 — Neon -->
+<receiver android:name="app.solarops.client.SolarOpsWidgetNeon" android:exported="true" android:label="Neon">
     <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
     <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_neon_info" />
 </receiver>
 
-<!-- Variante 5 — Flow (Solar → Batería → Carga) -->
-<receiver android:name="app.solarops.client.SolarOpsWidgetFlow" android:exported="true" android:label="SolarOps · Flow">
+<!-- Variante 5 — Flow -->
+<receiver android:name="app.solarops.client.SolarOpsWidgetFlow" android:exported="true" android:label="Flow">
     <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
     <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_flow_info" />
 </receiver>
 
-<!-- Variante 6 — Mini (batería 2x1) -->
-<receiver android:name="app.solarops.client.SolarOpsWidgetMini" android:exported="true" android:label="SolarOps · Mini">
+<!-- Variante 6 — Mini -->
+<receiver android:name="app.solarops.client.SolarOpsWidgetMini" android:exported="true" android:label="Mini">
     <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
     <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_mini_info" />
 </receiver>
 
-<!-- Variante 7 — Speedo (velocímetro de producción solar) -->
-<receiver android:name="app.solarops.client.SolarOpsWidgetSpeedo" android:exported="true" android:label="SolarOps · Speedo">
+<!-- Variante 7 — Speedo -->
+<receiver android:name="app.solarops.client.SolarOpsWidgetSpeedo" android:exported="true" android:label="Speedo">
     <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
     <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_speedo_info" />
 </receiver>
 
-<!-- Variante 8 — Wave (% batería con onda animada) -->
-<receiver android:name="app.solarops.client.SolarOpsWidgetWave" android:exported="true" android:label="SolarOps · Wave">
+<!-- Variante 8 — Wave -->
+<receiver android:name="app.solarops.client.SolarOpsWidgetWave" android:exported="true" android:label="Wave">
     <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
     <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_wave_info" />
 </receiver>
 
-<!-- Variante 9 — Stats (mosaico 2x2 con 4 métricas) -->
-<receiver android:name="app.solarops.client.SolarOpsWidgetStats" android:exported="true" android:label="SolarOps · Stats">
+<!-- Variante 9 — Stats -->
+<receiver android:name="app.solarops.client.SolarOpsWidgetStats" android:exported="true" android:label="Stats">
     <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
     <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_stats_info" />
 </receiver>
 
-<!-- Variante 10 — Radial (gauge circular animado con gradiente) -->
-<receiver android:name="app.solarops.client.SolarOpsWidgetRadial" android:exported="true" android:label="SolarOps · Radial">
+<!-- Variante 10 — Radial -->
+<receiver android:name="app.solarops.client.SolarOpsWidgetRadial" android:exported="true" android:label="Radial">
     <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
     <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_radial_info" />
 </receiver>
 
-<!-- Variante 11 — Battery (réplica de la tarjeta web: SoC + PV + Consumo) -->
-<receiver android:name="app.solarops.client.SolarOpsWidgetBattery" android:exported="true" android:label="SolarOps · Battery">
+<!-- Variante 11 — Battery -->
+<receiver android:name="app.solarops.client.SolarOpsWidgetBattery" android:exported="true" android:label="Batería">
     <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
     <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_battery_info" />
 </receiver>
 
-<!-- Picker compartido por las 3 variantes. -->
 <activity
     android:name="app.solarops.client.WidgetConfigActivity"
     android:exported="true"
@@ -94,21 +85,16 @@
     </intent-filter>
 </activity>
 
-<!-- Foreground service que mantiene SSE abierto y empuja refresh a los widgets en tiempo real. -->
 <service
     android:name="app.solarops.client.WidgetStreamService"
     android:exported="false"
     android:foregroundServiceType="dataSync" />
 
-<!-- Foreground service que mantiene una notificación "Live" visible en pantalla
-     de bloqueo y barra de notificaciones, con PV/Batería/Carga en tiempo real. -->
 <service
     android:name="app.solarops.client.LockscreenLiveService"
     android:exported="false"
     android:foregroundServiceType="dataSync" />
 
-<!-- Foreground service que escucha alertas (SSE) y dispara notificaciones
-     nativas con sonido / vibración / pantalla de bloqueo. -->
 <service
     android:name="app.solarops.client.AlertsStreamService"
     android:exported="false"

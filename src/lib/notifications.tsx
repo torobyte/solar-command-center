@@ -103,6 +103,12 @@ export function useNotificationWatcher(siteId: string | undefined, userId: strin
   const rulesRef = useRef<NotificationRule[]>([]);
   const lastFiredRef = useRef<Record<string, number>>({});
   const lastValuesRef = useRef<Record<string, number | string | null>>({});
+  // Edge-trigger state: tracks whether each rule's condition was matching
+  // on the previous sample. We only fire on transitions FALSE -> TRUE
+  // so a sustained alert doesn't repeat every poll cycle.
+  // Initialized to `null` (unknown) so the first sample seeds state
+  // without firing — even if the condition is already true.
+  const matchedRef = useRef<Record<string, boolean | null>>({});
 
   const reloadRules = useCallback(async () => {
     if (!siteId || !userId) return;
@@ -133,23 +139,38 @@ export function useNotificationWatcher(siteId: string | undefined, userId: strin
       if (!rules.length) return;
       const now = Date.now();
       for (const rule of rules) {
-        const cdMs = (rule.cooldown_minutes || 0) * 60 * 1000;
-        const last = lastFiredRef.current[rule.id] ?? 0;
-        if (now - last < cdMs) continue;
-
         const raw = sample[rule.metric];
         if (raw === undefined || raw === null) continue;
 
-        // For 'changes_to' we need previous value to ensure transition
-        if (rule.operator === "changes_to") {
-          const prev = lastValuesRef.current[rule.metric];
-          lastValuesRef.current[rule.metric] = raw;
-          if (prev === raw) continue;
-        } else {
-          lastValuesRef.current[rule.metric] = raw;
+        const matches = evalRule(rule, raw);
+        const prevMatched = matchedRef.current[rule.id];
+        const prevValue = lastValuesRef.current[rule.metric];
+        lastValuesRef.current[rule.metric] = raw;
+
+        // First sample for this rule: seed state without firing.
+        if (prevMatched === undefined || prevMatched === null) {
+          matchedRef.current[rule.id] = matches;
+          continue;
         }
 
-        if (!evalRule(rule, raw)) continue;
+        // Edge-trigger:
+        //  - 'changes_to' requires the VALUE itself to transition this tick.
+        //  - everything else fires only on FALSE -> TRUE transitions.
+        let shouldFire = false;
+        if (rule.operator === "changes_to") {
+          shouldFire = matches && prevValue !== raw;
+        } else {
+          shouldFire = matches && !prevMatched;
+        }
+        matchedRef.current[rule.id] = matches;
+
+        if (!shouldFire) continue;
+
+        // Defensive cooldown on top of edge-trigger (avoids double-fire from
+        // duplicated telemetry inserts within the same second).
+        const cdMs = Math.max((rule.cooldown_minutes || 0) * 60 * 1000, 5_000);
+        const last = lastFiredRef.current[rule.id] ?? 0;
+        if (now - last < cdMs) continue;
 
         const meta = METRIC_OPTIONS.find((m) => m.value === rule.metric);
         const valueLabel = meta?.numeric === false ? String(raw) : `${raw}${meta?.unit ?? ""}`;
@@ -159,7 +180,6 @@ export function useNotificationWatcher(siteId: string | undefined, userId: strin
         lastFiredRef.current[rule.id] = now;
         fireBrowserNotification(title, body, rule.severity);
 
-        // persist event + update last_triggered_at
         const numericVal = meta?.numeric === false ? null : Number(raw);
         (supabase as any).from("notification_events").insert({
           user_id: userId, site_id: siteId, rule_id: rule.id,
