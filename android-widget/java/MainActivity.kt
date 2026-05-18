@@ -72,6 +72,29 @@ class MainActivity : Activity() {
             // El usuario solo cierra sesión desde la propia app web.
             Log.d(launchLogTag, "Bridge.clearSession() ignorado (sesión perpetua)")
         }
+
+        /** Activa la notificación persistente en la pantalla de bloqueo. */
+        @JavascriptInterface
+        fun enableLockscreen(token: String?, name: String?) {
+            Log.d(launchLogTag, "Bridge.enableLockscreen($name)")
+            LockscreenLiveService.start(applicationContext, token, name)
+        }
+
+        /** Detiene la notificación de pantalla de bloqueo. */
+        @JavascriptInterface
+        fun disableLockscreen() {
+            Log.d(launchLogTag, "Bridge.disableLockscreen()")
+            LockscreenLiveService.stop(applicationContext)
+        }
+
+        /** Devuelve "1" si la notificación está activa, "0" si no. */
+        @JavascriptInterface
+        fun isLockscreenEnabled(): String =
+            if (LockscreenLiveService.isEnabled(applicationContext)) "1" else "0"
+
+        /** Marca que esta sesión está corriendo dentro de la APK nativa. */
+        @JavascriptInterface
+        fun isNativeApp(): String = "1"
     }
 
     @SuppressLint("SetJavaScriptEnabled")
