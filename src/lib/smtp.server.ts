@@ -108,7 +108,7 @@ async function loadTemplate(id: string): Promise<Tpl | null> {
   return (data as Tpl | null) || null;
 }
 
-async function loadBrand(): Promise<Brand> {
+export async function loadBrand(): Promise<Brand> {
   const { data } = await supabaseAdmin
     .from("branding_settings")
     .select(
