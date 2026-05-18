@@ -49,6 +49,9 @@ export interface ForecastPvConfig {
   lat?: number | null;
   lon?: number | null;
   locationLabel?: string | null;
+  manualCalibration?: number | null;
+  smoothingAlpha?: number | null;
+  siteKey?: string | null;
 }
 
 /** Estimate produced kWh from radiation Wh/m² using PVWatts-style formula:
@@ -66,6 +69,8 @@ export interface ForecastLiveSample {
   battery_pct?: number | null;
   recorded_at?: string | null;
 }
+
+const CALIB_KEY = (k: string) => `solarforecast.calib.${k}`;
 
 export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvConfig; live?: ForecastLiveSample } = {}) {
   const [data, setData] = useState<ForecastData | null>(null);
