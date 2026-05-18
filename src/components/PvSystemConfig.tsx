@@ -76,6 +76,7 @@ export function PvSystemConfigCard({ siteId, maxAcOutputPower, nominalBatteryV }
     battery_count: null, battery_type: "lithium",
     battery_voltage_each: null, battery_ah_each: null, battery_usable_dod_pct: 90,
     location_label: null,
+    energy_price: null, feed_in_price: null, currency: "CLP",
   });
   const [saving, setSaving] = useState(false);
 
