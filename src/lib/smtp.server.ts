@@ -44,7 +44,7 @@ interface Brand {
   border_color: string;
 }
 
-const DEFAULTS: Record<string, { subject: string; html: string; text: string; cta?: string }> = {
+export const DEFAULTS: Record<string, { subject: string; html: string; text: string; cta?: string }> = {
   signup: {
     subject: "Bienvenido a {{site_name}}",
     html: `<h1>¡Hola {{name}}!</h1><p>Tu cuenta en <strong>{{site_name}}</strong> fue creada con éxito. Ya puedes acceder a tu panel de control y empezar a monitorear tu sistema.</p>`,
