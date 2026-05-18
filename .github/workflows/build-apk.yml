@@ -211,6 +211,9 @@ jobs:
           -keep class app.solarops.client.SolarOpsWidgetNeon { *; }
           -keep class app.solarops.client.SolarOpsWidgetFlow { *; }
           -keep class app.solarops.client.SolarOpsWidgetMini { *; }
+          -keep class app.solarops.client.SolarOpsWidgetSpeedo { *; }
+          -keep class app.solarops.client.SolarOpsWidgetWave { *; }
+          -keep class app.solarops.client.SolarOpsWidgetStats { *; }
           -keep class app.solarops.client.WidgetStreamService { *; }
           -keep class app.solarops.client.UpdateManager { *; }
           """.strip()
@@ -304,7 +307,7 @@ jobs:
           patterns = [
               r'<activity[^>]*android:name="(?:\.|app\.solarops\.client\.)WidgetSetupActivity"[^>]*(?:/>|>[\s\S]*?</activity>)',
               r'<activity[^>]*android:name="(?:\.|app\.solarops\.client\.)WidgetConfigActivity"[^>]*(?:/>|>[\s\S]*?</activity>)',
-              r'<receiver[^>]*android:name="(?:\.|app\.solarops\.client\.)SolarOpsWidget(?:Tiles|Gauge|Neon|Flow|Mini)?"[^>]*(?:/>|>[\s\S]*?</receiver>)',
+              r'<receiver[^>]*android:name="(?:\.|app\.solarops\.client\.)SolarOpsWidget(?:Tiles|Gauge|Neon|Flow|Mini|Speedo|Wave|Stats)?"[^>]*(?:/>|>[\s\S]*?</receiver>)',
               r'<service[^>]*android:name="(?:\.|app\.solarops\.client\.)WidgetStreamService"[^>]*(?:/>|>[\s\S]*?</service>)',
           ]
           for pat in patterns:
@@ -372,6 +375,9 @@ jobs:
             'Lapp/solarops/client/SolarOpsWidgetNeon;' \
             'Lapp/solarops/client/SolarOpsWidgetFlow;' \
             'Lapp/solarops/client/SolarOpsWidgetMini;' \
+            'Lapp/solarops/client/SolarOpsWidgetSpeedo;' \
+            'Lapp/solarops/client/SolarOpsWidgetWave;' \
+            'Lapp/solarops/client/SolarOpsWidgetStats;' \
             'Lapp/solarops/client/WidgetStreamService;'
           do
             if ! unzip -p "$APK" classes.dex | strings | grep -F "$CLASS" >/dev/null; then

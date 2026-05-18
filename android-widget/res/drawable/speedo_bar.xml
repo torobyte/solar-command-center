@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Arco de velocímetro (PV power). ProgressBar horizontal estilizado con gradiente verde→amarillo→rojo. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@android:id/background">
+        <shape>
+            <corners android:radius="20dp" />
+            <solid android:color="#1F2937" />
+        </shape>
+    </item>
+    <item android:id="@android:id/progress">
+        <clip>
+            <shape>
+                <corners android:radius="20dp" />
+                <gradient
+                    android:startColor="#10B981"
+                    android:centerColor="#FACC15"
+                    android:endColor="#EF4444"
+                    android:angle="0"
+                    android:type="linear" />
+            </shape>
+        </clip>
+    </item>
+</layer-list>

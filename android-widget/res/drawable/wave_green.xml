@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Onda decorativa estilo "CPU 96%" del widget de referencia. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp" android:height="40dp"
+    android:viewportWidth="160" android:viewportHeight="40">
+    <path android:strokeWidth="3"
+        android:strokeColor="#22C55E"
+        android:fillColor="#3322C55E"
+        android:pathData="M0,28 C20,8 40,38 60,20 C80,4 100,34 120,18 C140,6 150,26 160,18 L160,40 L0,40 Z"/>
+</vector>
