@@ -592,7 +592,7 @@ function UsersAdmin() {
             ))}
           </tbody>
         </table>
-        {users.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">{t("ausers.empty")}</p>}
+        {filteredUsers.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">{users.length === 0 ? t("ausers.empty") : "Sin resultados."}</p>}
       </div>
     </>
   );
