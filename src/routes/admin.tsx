@@ -143,6 +143,7 @@ function useSyncStatus() {
 
 function SitesAdmin() {
   const { t } = useI18n();
+  const { user } = useAuth();
   const licenseInfo = useLicenseInfo();
   const syncStatus = useSyncStatus();
   const [rows, setRows] = useState<SiteRow[]>([]);
@@ -153,11 +154,16 @@ function SitesAdmin() {
   const requestRefresh = useServerFn(adminRequestRefresh);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", inverter_model: "", owner_id: "" });
+  const [search, setSearch] = useState("");
 
   const activate = useServerFn(adminActivateSite);
   const revoke = useServerFn(adminRevokeLicense);
   const [licDlg, setLicDlg] = useState<SiteRow | null>(null);
   const [licCode, setLicCode] = useState("");
+  const [licMode, setLicMode] = useState<"existing" | "generate">("existing");
+  const [genPlanSlug, setGenPlanSlug] = useState("pro");
+  const [availablePlans, setAvailablePlans] = useState<Array<{ slug: string; name: string; duration_days: number | null; is_lifetime: boolean }>>([]);
+  const [generating, setGenerating] = useState(false);
 
   async function runAdminAction<TData, TResult>(
     action: (opts: { data: TData; headers?: HeadersInit }) => Promise<TResult>,
@@ -177,6 +183,35 @@ function SitesAdmin() {
   }
   useEffect(() => { load(); }, []);
 
+  // Cargar planes disponibles para "Generar licencia nueva".
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("plans")
+        .select("slug,name,duration_days,is_lifetime")
+        .eq("active", true)
+        .order("sort_order");
+      setAvailablePlans((data ?? []) as typeof availablePlans);
+      if (data && data.length && !data.find((p) => p.slug === genPlanSlug)) {
+        setGenPlanSlug(data[0].slug);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Filtro de búsqueda: nombre, modelo, plan o email del owner.
+  const ownerEmailMap = new Map(users.map((u) => [u.id, (u.email ?? "").toLowerCase()]));
+  const filteredRows = rows.filter((r) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      r.name.toLowerCase().includes(q) ||
+      (r.inverter_model ?? "").toLowerCase().includes(q) ||
+      r.plan.toLowerCase().includes(q) ||
+      (ownerEmailMap.get(r.owner_id) ?? "").includes(q)
+    );
+  });
+
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!form.owner_id) return toast.error(t("asite.selectOwner"));
@@ -188,9 +223,61 @@ function SitesAdmin() {
     } catch (e) { toast.error((e as Error).message); }
   }
 
+  function openLicenseDialog(row: SiteRow) {
+    setLicCode("");
+    setLicMode("existing");
+    setLicDlg(row);
+  }
+
+  async function generateAndActivate() {
+    if (!licDlg || !user) return;
+    const plan = availablePlans.find((p) => p.slug === genPlanSlug);
+    if (!plan) return toast.error("Selecciona un plan");
+    setGenerating(true);
+    try {
+      const code = generateCode();
+      const ownerEmail = ownerEmailMap.get(licDlg.owner_id) ?? null;
+      const { error } = await supabase.from("license_codes").insert({
+        code,
+        plan: plan.slug,
+        duration_days: plan.is_lifetime ? null : (plan.duration_days ?? 365),
+        is_lifetime: plan.is_lifetime,
+        assigned_email: ownerEmail,
+        site_name: licDlg.name,
+        notes: `Generada y aplicada desde Sitios por ${user.email ?? "admin"}`,
+        created_by: user.id,
+      });
+      if (error) throw error;
+      const res = await runAdminAction(activate, { site_id: licDlg.id, code });
+      await supabase.from("license_audit_log").insert({
+        license_code: code,
+        plan: plan.slug,
+        action: "created_and_applied",
+        performed_by: user.id,
+        performed_by_email: user.email ?? null,
+        reason: "Generada y aplicada desde Sitios",
+        details: { site_id: licDlg.id, site_name: licDlg.name } as never,
+      });
+      const d = new Date(res.expires_at);
+      toast.success(`Licencia ${plan.name} aplicada hasta ${d.toLocaleDateString()}`);
+      setLicDlg(null);
+      load();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   return (
     <>
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <Input
+          placeholder="Buscar por nombre, modelo, plan o email del propietario…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="h-9 w-full max-w-sm"
+        />
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" />{t("asite.new")}</Button></DialogTrigger>
           <DialogContent>
@@ -236,7 +323,7 @@ function SitesAdmin() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => {
+            {filteredRows.map((r) => {
               const s = syncStatus(r.last_seen_at);
               return (
                 <tr key={r.id} className="border-b last:border-0">
@@ -276,8 +363,8 @@ function SitesAdmin() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
-                      <Button size="sm" variant="ghost" title={t("asite.activateTitle")}
-                        onClick={() => { setLicCode(""); setLicDlg(r); }}>
+                      <Button size="sm" variant="ghost" title="Asignar licencia (existente o nueva)"
+                        onClick={() => openLicenseDialog(r)}>
                         <KeyRound className="h-3.5 w-3.5" />
                       </Button>
                       <Button size="sm" variant="ghost" title={t("asite.copyToken")}
@@ -315,45 +402,77 @@ function SitesAdmin() {
             })}
           </tbody>
         </table>
-        {rows.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">{t("asite.empty")}</p>}
+        {filteredRows.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">{rows.length === 0 ? t("asite.empty") : "Sin resultados."}</p>}
       </div>
 
       <Dialog open={!!licDlg} onOpenChange={(o) => !o && setLicDlg(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{t("asite.lic.title")} — {licDlg?.name}</DialogTitle></DialogHeader>
-          <form onSubmit={async (e) => {
-            e.preventDefault();
-            if (!licDlg) return;
-            try {
-              const res = await runAdminAction(activate, { site_id: licDlg.id, code: licCode.trim() });
-              const d = new Date(res.expires_at);
-              toast.success(t("asite.lic.success", { plan: res.plan, date: `${d.toLocaleDateString()} ${d.toLocaleTimeString()}` }));
-              setLicDlg(null); load();
-            } catch (e) { toast.error((e as Error).message); }
-          }} className="space-y-4">
-            <div className="rounded-md border bg-muted/30 p-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">{t("asite.lic.currentPlan")}</span>
-                <span className="font-medium">{licDlg?.plan ?? "—"}</span>
+          <DialogHeader><DialogTitle>Asignar licencia — {licDlg?.name}</DialogTitle></DialogHeader>
+
+          <div className="rounded-md border bg-muted/30 p-3 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Plan actual</span>
+              <span className="font-medium">{licDlg?.plan ?? "—"}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Expira</span>
+              <span className="font-medium">
+                {licDlg?.license_expires_at
+                  ? new Date(licDlg.license_expires_at).toLocaleString()
+                  : "Sin licencia activa"}
+              </span>
+            </div>
+          </div>
+
+          <Tabs value={licMode} onValueChange={(v) => setLicMode(v as "existing" | "generate")}>
+            <TabsList className="w-full">
+              <TabsTrigger value="existing" className="flex-1">Aplicar código existente</TabsTrigger>
+              <TabsTrigger value="generate" className="flex-1">Generar nueva</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="existing" className="mt-3">
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                if (!licDlg) return;
+                try {
+                  const res = await runAdminAction(activate, { site_id: licDlg.id, code: licCode.trim() });
+                  const d = new Date(res.expires_at);
+                  toast.success(`Activado: ${res.plan} hasta ${d.toLocaleDateString()}`);
+                  setLicDlg(null); load();
+                } catch (e) { toast.error((e as Error).message); }
+              }} className="space-y-3">
+                <div className="space-y-2">
+                  <Label>Código de licencia</Label>
+                  <Input value={licCode} onChange={(e) => setLicCode(e.target.value)} placeholder="XXXXX-XXXXX-XXXXX-XXXXX" required />
+                </div>
+                <DialogFooter><Button type="submit">Aplicar código</Button></DialogFooter>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="generate" className="mt-3 space-y-3">
+              <div className="space-y-2">
+                <Label>Plan</Label>
+                <Select value={genPlanSlug} onValueChange={setGenPlanSlug}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {availablePlans.map((p) => (
+                      <SelectItem key={p.slug} value={p.slug}>
+                        {p.name} {p.is_lifetime ? "(de por vida)" : `(${p.duration_days}d)`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">{t("asite.lic.currentExp")}</span>
-                <span className="font-medium">
-                  {licDlg?.license_expires_at
-                    ? new Date(licDlg.license_expires_at).toLocaleString()
-                    : t("asite.lic.noActive")}
-                </span>
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                {t("asite.lic.note")}
+              <p className="text-xs text-muted-foreground">
+                Se genera un código nuevo, queda registrado en Licencias y se aplica al instante a este sitio.
               </p>
-            </div>
-            <div className="space-y-2">
-              <Label>{t("asite.lic.code")}</Label>
-              <Input value={licCode} onChange={(e) => setLicCode(e.target.value)} placeholder="XXXXX-XXXXX-XXXXX-XXXXX" required />
-            </div>
-            <DialogFooter><Button type="submit">{t("asite.lic.activate")}</Button></DialogFooter>
-          </form>
+              <DialogFooter>
+                <Button onClick={generateAndActivate} disabled={generating || availablePlans.length === 0}>
+                  {generating ? "Generando…" : "Generar y aplicar"}
+                </Button>
+              </DialogFooter>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
     </>
@@ -368,6 +487,12 @@ function UsersAdmin() {
   const delUser = useServerFn(adminDeleteUser);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ email: "", password: "", full_name: "", role: "user" as "user" | "superadmin" });
+  const [search, setSearch] = useState("");
+  const filteredUsers = users.filter((u) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (u.email ?? "").toLowerCase().includes(q) || (u.full_name ?? "").toLowerCase().includes(q);
+  });
 
   async function runAdminAction<TData, TResult>(
     action: (opts: { data: TData; headers?: HeadersInit }) => Promise<TResult>,

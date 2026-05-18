@@ -90,9 +90,17 @@ export function ApkAdmin() {
   const [downloading, setDownloading] = useState(false);
   const [previewKey, setPreviewKey] = useState(0);
   const [showSplash, setShowSplash] = useState(true);
-  const [apkUrl, setApkUrl] = useState<string>(
-    () => localStorage.getItem("apk_download_url") ?? "",
-  );
+  const [apkUrl, setApkUrl] = useState<string>(() => {
+    const cached = localStorage.getItem("apk_download_url") ?? "";
+    // Invalida URLs viejas con el patrón /releases/latest/download/ que GitHub
+    // a veces resolvía a un release timestamped antiguo. Ahora usamos el tag
+    // explícito /releases/download/latest/.
+    if (cached.includes("/releases/latest/download/")) {
+      localStorage.removeItem("apk_download_url");
+      return "";
+    }
+    return cached;
+  });
   const [repoUrl, setRepoUrl] = useState<string>(() => localStorage.getItem("apk_repo_url") ?? "");
   const [latestTag, setLatestTag] = useState<string | null>(null);
   const [latestSha, setLatestSha] = useState<string | null>(null);
@@ -144,11 +152,12 @@ export function ApkAdmin() {
       const apkAsset = (j.assets ?? []).find((a: any) => a.name.endsWith(".apk"));
       const shaAsset = (j.assets ?? []).find((a: any) => a.name.endsWith(".sha256"));
       if (!apkAsset) throw new Error("El último release no contiene .apk");
-      // IMPORTANTE: usamos la URL estable /releases/latest/download/<file>
-      // que SIEMPRE redirige al último APK publicado. browser_download_url
-      // apunta a un asset_id concreto y queda obsoleto cuando el workflow
-      // borra/recrea assets en cada build.
-      const stableUrl = `https://github.com/${parsed.owner}/${parsed.repo}/releases/latest/download/${apkAsset.name}`;
+      // IMPORTANTE: usamos /releases/download/latest/<file> (anclado al tag
+      // `latest` que el workflow republica en cada build) en vez de
+      // /releases/latest/download/<file> (que depende del puntero "latest
+      // release" de GitHub, que puede quedar apuntando a un release
+      // timestamped viejo y servir un APK desactualizado al escanear el QR).
+      const stableUrl = `https://github.com/${parsed.owner}/${parsed.repo}/releases/download/latest/${apkAsset.name}`;
       if (autoMode) {
         setApkUrl(stableUrl);
         localStorage.setItem("apk_download_url", stableUrl);

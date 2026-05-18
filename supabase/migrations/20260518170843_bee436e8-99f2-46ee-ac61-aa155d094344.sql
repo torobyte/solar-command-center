@@ -1,0 +1,1 @@
+ALTER TABLE public.plans ALTER COLUMN currency SET DEFAULT 'CLP';
