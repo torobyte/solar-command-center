@@ -9,15 +9,16 @@ import { Button } from "@/components/ui/button";
  * indica que la función requiere la app móvil.
  */
 
-declare global {
-  interface Window {
-    SolarWidgetBridge?: {
-      enableLockscreen?: (token: string, name: string) => void;
-      disableLockscreen?: () => void;
-      isLockscreenEnabled?: () => string;
-      isNativeApp?: () => string;
-    };
-  }
+type LockBridge = {
+  enableLockscreen?: (token: string, name: string) => void;
+  disableLockscreen?: () => void;
+  isLockscreenEnabled?: () => string;
+  isNativeApp?: () => string;
+};
+
+function getBridge(): LockBridge | undefined {
+  if (typeof window === "undefined") return undefined;
+  return (window as unknown as { SolarWidgetBridge?: LockBridge }).SolarWidgetBridge;
 }
 
 export function LockscreenLiveCard({
@@ -27,7 +28,7 @@ export function LockscreenLiveCard({
   siteToken: string;
   siteName: string;
 }) {
-  const bridge = typeof window !== "undefined" ? window.SolarWidgetBridge : undefined;
+  const bridge = getBridge();
   const isNative = !!bridge?.isNativeApp?.();
   const [enabled, setEnabled] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);

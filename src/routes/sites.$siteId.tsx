@@ -30,6 +30,7 @@ import { MobileBottomNav, type SiteTab } from "@/components/MobileBottomNav";
 import { PageHeaderSkeleton, DashboardSkeleton, SectionSkeleton } from "@/components/LoadingStates";
 import { InverterConfigWizard } from "@/components/InverterConfigWizard";
 import { QuickActions, QuickActionsConfigCard, useQuickActionsConfig } from "@/components/QuickActions";
+import { LockscreenLiveCard } from "@/components/LockscreenLiveCard";
 import { CommandStatusFeed } from "@/components/CommandStatusFeed";
 import { SiteSharing } from "@/components/SiteSharing";
 import { Share2, Lock } from "lucide-react";
