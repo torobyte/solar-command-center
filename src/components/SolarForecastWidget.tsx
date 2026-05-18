@@ -411,8 +411,17 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
           ? data.hourly.reduce((acc, h) => acc + estimateKwh(h.radiation, kwp, losses, calibration), 0)
           : 0;
         const batteryKwh = pvConfig?.batteryKwh ?? 0;
-        const batteryFillH = batteryKwh > 0 && next12kwh > 0
-          ? batteryKwh / Math.max(0.01, next12kwh / 12)
+        const batteryPct = live?.battery_pct != null ? Math.max(0, Math.min(100, Number(live.battery_pct))) : null;
+        const remainingKwh = batteryKwh > 0 && batteryPct != null
+          ? batteryKwh * (1 - batteryPct / 100)
+          : batteryKwh;
+        const loadW = live?.load_w != null ? Math.max(0, Number(live.load_w)) : 0;
+        const surplusKwAvg = next12kwh > 0
+          ? Math.max(0, next12kwh / 12 - loadW / 1000)
+          : 0;
+        const batteryFull = batteryPct != null && batteryPct >= 99;
+        const batteryFillH = !batteryFull && remainingKwh > 0.01 && surplusKwAvg > 0.05
+          ? remainingKwh / surplusKwAvg
           : 0;
         const pctOfPeak = liveKw != null && kwp ? Math.min(100, (liveKw / kwp) * 100) : null;
         const ageSec = live?.recorded_at
