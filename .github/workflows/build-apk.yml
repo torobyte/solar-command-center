@@ -218,6 +218,8 @@ jobs:
           -keep class app.solarops.client.WidgetStreamService { *; }
           -keep class app.solarops.client.WaveAnimator { *; }
           -keep class app.solarops.client.UpdateManager { *; }
+          -keep class app.solarops.client.BrandSync { *; }
+          -keep class app.solarops.client.BrandSync$Brand { *; }
           """.strip()
           if rules not in existing:
               proguard.write_text((existing.rstrip() + "\n\n" + rules + "\n").lstrip())
