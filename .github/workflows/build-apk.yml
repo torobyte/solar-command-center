@@ -216,6 +216,7 @@ jobs:
           -keep class app.solarops.client.SolarOpsWidgetStats { *; }
           -keep class app.solarops.client.SolarOpsWidgetRadial { *; }
           -keep class app.solarops.client.WidgetStreamService { *; }
+          -keep class app.solarops.client.LockscreenLiveService { *; }
           -keep class app.solarops.client.WaveAnimator { *; }
           -keep class app.solarops.client.UpdateManager { *; }
           -keep class app.solarops.client.BrandSync { *; }
@@ -302,6 +303,8 @@ jobs:
             sed -i 's|<application|<uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>\n    <application|' "$MANIFEST"
           grep -q "android.permission.FOREGROUND_SERVICE_DATA_SYNC" "$MANIFEST" || \
             sed -i 's|<application|<uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>\n    <application|' "$MANIFEST"
+          grep -q "android.permission.POST_NOTIFICATIONS" "$MANIFEST" || \
+            sed -i 's|<application|<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <application|' "$MANIFEST"
           # Strip any previously-injected SolarOps widget block (between markers or matching the old short-form classes)
           python3 - <<'PY'
           import re
@@ -313,6 +316,7 @@ jobs:
               r'<activity[^>]*android:name="(?:\.|app\.solarops\.client\.)WidgetConfigActivity"[^>]*(?:/>|>[\s\S]*?</activity>)',
               r'<receiver[^>]*android:name="(?:\.|app\.solarops\.client\.)SolarOpsWidget(?:Tiles|Gauge|Neon|Flow|Mini|Speedo|Wave|Stats|Radial)?"[^>]*(?:/>|>[\s\S]*?</receiver>)',
               r'<service[^>]*android:name="(?:\.|app\.solarops\.client\.)WidgetStreamService"[^>]*(?:/>|>[\s\S]*?</service>)',
+              r'<service[^>]*android:name="(?:\.|app\.solarops\.client\.)LockscreenLiveService"[^>]*(?:/>|>[\s\S]*?</service>)',
           ]
           for pat in patterns:
               s = re.sub(pat, '', s)
@@ -385,7 +389,8 @@ jobs:
             'Lapp/solarops/client/SolarOpsWidgetRadial;' \
             'Lapp/solarops/client/UpdateManager;' \
             'Lapp/solarops/client/BrandSync;' \
-            'Lapp/solarops/client/WidgetStreamService;'
+            'Lapp/solarops/client/WidgetStreamService;' \
+            'Lapp/solarops/client/LockscreenLiveService;'
           do
             if ! unzip -p "$APK" classes.dex | strings | grep -F "$CLASS" >/dev/null; then
               echo "::error::Missing class in APK: $CLASS"

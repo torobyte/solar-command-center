@@ -30,6 +30,7 @@ import { MobileBottomNav, type SiteTab } from "@/components/MobileBottomNav";
 import { PageHeaderSkeleton, DashboardSkeleton, SectionSkeleton } from "@/components/LoadingStates";
 import { InverterConfigWizard } from "@/components/InverterConfigWizard";
 import { QuickActions, QuickActionsConfigCard, useQuickActionsConfig } from "@/components/QuickActions";
+import { LockscreenLiveCard } from "@/components/LockscreenLiveCard";
 import { CommandStatusFeed } from "@/components/CommandStatusFeed";
 import { SiteSharing } from "@/components/SiteSharing";
 import { Share2, Lock } from "lucide-react";
@@ -703,6 +704,10 @@ function ConfigurationView({ site, subTab, onSubTabChange, role }: { site: Site;
 
           <div className="mt-6">
             <QuickActionsConfigCard siteId={site.id} />
+          </div>
+
+          <div className="mt-6">
+            <LockscreenLiveCard siteToken={site.device_token} siteName={site.name} />
           </div>
 
           <div className="mt-6">

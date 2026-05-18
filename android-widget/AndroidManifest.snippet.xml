@@ -93,3 +93,10 @@
     android:name="app.solarops.client.WidgetStreamService"
     android:exported="false"
     android:foregroundServiceType="dataSync" />
+
+<!-- Foreground service que mantiene una notificación "Live" visible en pantalla
+     de bloqueo y barra de notificaciones, con PV/Batería/Carga en tiempo real. -->
+<service
+    android:name="app.solarops.client.LockscreenLiveService"
+    android:exported="false"
+    android:foregroundServiceType="dataSync" />
