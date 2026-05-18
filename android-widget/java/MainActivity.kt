@@ -113,6 +113,10 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         actionBar?.hide()
 
+        // Solicita los permisos necesarios para que las alertas se vean
+        // (notificaciones, DND bypass y exención de optimización de batería).
+        ensureNotificationPermissions()
+
         // Cargar branding cacheado (instantáneo, sin red) y refrescar en background.
         val brand = BrandSync.cached(this)
         window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(brand.bgColor))
