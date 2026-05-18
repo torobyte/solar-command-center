@@ -94,6 +94,48 @@ function mergeSample(prev: Sample | null, next: Sample): Sample {
   return merged;
 }
 
+/**
+ * Rechaza picos transitorios del inversor (lecturas que se disparan o se
+ * desploman un solo sample y vuelven a la normalidad). Si un valor numérico
+ * cambia más allá del delta permitido respecto al sample anterior, lo
+ * sustituimos por el valor previo durante hasta MAX_SKIPS samples
+ * consecutivos; si el valor "anómalo" persiste se acepta como nuevo normal.
+ */
+type SpikeKey = "ac_output_active_power" | "pv_input_power" | "battery_capacity" | "battery_voltage" | "grid_voltage";
+const SPIKE_LIMITS: Record<SpikeKey, number> = {
+  ac_output_active_power: 4000, // W entre samples
+  pv_input_power: 4000,         // W
+  battery_capacity: 25,         // % SoC
+  battery_voltage: 6,           // V
+  grid_voltage: 60,             // V
+};
+const MAX_SKIPS = 2;
+export type SpikeState = Partial<Record<SpikeKey, number>>;
+
+function filterSpikes(prev: Sample | null, next: Sample, skips: SpikeState): Sample {
+  if (!prev) return next;
+  const cleaned: Sample = { ...next };
+  for (const k of Object.keys(SPIKE_LIMITS) as SpikeKey[]) {
+    const p = prev[k] as number | null;
+    const n = next[k] as number | null;
+    if (p == null || n == null || !Number.isFinite(p) || !Number.isFinite(n)) {
+      skips[k] = 0;
+      continue;
+    }
+    const delta = Math.abs(n - p);
+    if (delta > SPIKE_LIMITS[k]) {
+      const c = (skips[k] ?? 0) + 1;
+      if (c <= MAX_SKIPS) {
+        (cleaned as unknown as Record<string, unknown>)[k] = p;
+        skips[k] = c;
+        continue;
+      }
+    }
+    skips[k] = 0;
+  }
+  return cleaned;
+}
+
 /* ---------------- Chart smoothing ---------------- */
 type SeriesPoint = { t: number; pv: number | null; load: number | null; soc: number | null; grid: number | null };
 
