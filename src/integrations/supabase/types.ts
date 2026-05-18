@@ -968,6 +968,7 @@ export type Database = {
           battery_type: string | null
           battery_usable_dod_pct: number | null
           battery_voltage_each: number | null
+          calibration_smoothing_alpha: number | null
           currency: string | null
           device_id: string | null
           energy_price: number | null
@@ -975,6 +976,7 @@ export type Database = {
           latitude: number | null
           location_label: string | null
           longitude: number | null
+          manual_calibration: number | null
           panel_count: number | null
           panel_watts: number | null
           site_id: string
@@ -991,6 +993,7 @@ export type Database = {
           battery_type?: string | null
           battery_usable_dod_pct?: number | null
           battery_voltage_each?: number | null
+          calibration_smoothing_alpha?: number | null
           currency?: string | null
           device_id?: string | null
           energy_price?: number | null
@@ -998,6 +1001,7 @@ export type Database = {
           latitude?: number | null
           location_label?: string | null
           longitude?: number | null
+          manual_calibration?: number | null
           panel_count?: number | null
           panel_watts?: number | null
           site_id: string
@@ -1014,6 +1018,7 @@ export type Database = {
           battery_type?: string | null
           battery_usable_dod_pct?: number | null
           battery_voltage_each?: number | null
+          calibration_smoothing_alpha?: number | null
           currency?: string | null
           device_id?: string | null
           energy_price?: number | null
@@ -1021,6 +1026,7 @@ export type Database = {
           latitude?: number | null
           location_label?: string | null
           longitude?: number | null
+          manual_calibration?: number | null
           panel_count?: number | null
           panel_watts?: number | null
           site_id?: string

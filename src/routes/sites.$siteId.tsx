@@ -20,6 +20,7 @@ import { PowerGauges } from "@/components/PowerGauges";
 import { Battery3D, SolarRays, GridSineWave, ConcentricRings, SolarPanelsViz, HouseLoadViz, BackupTimeCard } from "@/components/AdvancedVisuals";
 import { DashboardGrid, useDashboardLayout, type WidgetDef } from "@/components/DashboardCustomizer";
 import { PvSystemConfigCard, usePvConfig } from "@/components/PvSystemConfig";
+import { ProductionHistoryCompare } from "@/components/ProductionHistoryCompare";
 import { DeviceSelector, useDevices, type Device } from "@/components/DeviceManager";
 import { NotificationsConfig } from "@/components/NotificationsConfig";
 import { useNotificationWatcher } from "@/lib/notifications";
@@ -184,6 +185,7 @@ function SiteDetail() {
   const { user } = useAuth();
   const { devices, selected: selectedDevice, loaded: devicesLoaded } = useDevices(siteId);
   const roleInfo = useSiteRole(siteId);
+  const { config: pvForCompare } = usePvConfig(siteId);
   const [site, setSite] = useState<Site | null>(null);
   const [latest, setLatest] = useState<Sample | null>(null);
   const [history, setHistory] = useState<Sample[]>([]);
@@ -449,6 +451,15 @@ function SiteDetail() {
         </TabsContent>
 
         <TabsContent value="totals" className="mt-6 space-y-6">
+          <ProductionHistoryCompare
+            siteId={siteId}
+            kwp={pvForCompare?.array_kwp ?? null}
+            lossesPct={pvForCompare?.system_losses_pct ?? null}
+            lat={pvForCompare?.latitude ?? null}
+            lon={pvForCompare?.longitude ?? null}
+            manualCalibration={pvForCompare?.manual_calibration ?? null}
+          />
+
           <ChartCard title="Daily energy (kWh)">
             <AreaChart data={totals}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
@@ -1044,7 +1055,7 @@ function DashboardView({ latest, siteId, spec: _spec, device: _device }: { lates
     ),
     forecast: (
       <SolarForecastWidget
-        pvConfig={{ kwp: pv?.array_kwp, lossesPct: pv?.system_losses_pct, batteryKwh: pv?.battery_kwh, lat: pv?.latitude, lon: pv?.longitude, locationLabel: pv?.location_label }}
+        pvConfig={{ kwp: pv?.array_kwp, lossesPct: pv?.system_losses_pct, batteryKwh: pv?.battery_kwh, lat: pv?.latitude, lon: pv?.longitude, locationLabel: pv?.location_label, manualCalibration: pv?.manual_calibration ?? null, smoothingAlpha: pv?.calibration_smoothing_alpha ?? null, siteKey: siteId }}
         live={{ pv_w: pv_W, load_w: load, battery_pct: battery, recorded_at: latest?.recorded_at }}
       />
     ),

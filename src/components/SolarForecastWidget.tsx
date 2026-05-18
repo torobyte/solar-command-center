@@ -49,6 +49,9 @@ export interface ForecastPvConfig {
   lat?: number | null;
   lon?: number | null;
   locationLabel?: string | null;
+  manualCalibration?: number | null;
+  smoothingAlpha?: number | null;
+  siteKey?: string | null;
 }
 
 /** Estimate produced kWh from radiation Wh/m² using PVWatts-style formula:
@@ -67,6 +70,8 @@ export interface ForecastLiveSample {
   recorded_at?: string | null;
 }
 
+const CALIB_KEY = (k: string) => `solarforecast.calib.${k}`;
+
 export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvConfig; live?: ForecastLiveSample } = {}) {
   const [data, setData] = useState<ForecastData | null>(null);
   const [coords, setCoords] = useState<Coords | null>(null);
@@ -77,6 +82,46 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
   const [results, setResults] = useState<Array<{ name: string; country?: string; admin1?: string; latitude: number; longitude: number }>>([]);
   const [searching, setSearching] = useState(false);
   const debounceRef = useRef<number | null>(null);
+
+  // --- Calibration state (must be declared before any early return) ---
+  const calibSiteKey = pvConfig?.siteKey
+    ?? (pvConfig?.lat != null && pvConfig?.lon != null ? `${pvConfig.lat},${pvConfig.lon}` : "global");
+  const calibStorageKey = CALIB_KEY(calibSiteKey);
+  const [persistedCalib, setPersistedCalib] = useState<number>(1);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const v = parseFloat(localStorage.getItem(calibStorageKey) ?? "1");
+    setPersistedCalib(isFinite(v) && v > 0 ? v : 1);
+  }, [calibStorageKey]);
+
+  // Auto-calibration: smoothed EMA against inverter, only when sun is meaningful.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const manualVal = pvConfig?.manualCalibration;
+    if (manualVal != null && manualVal > 0) return;
+    const kwp = pvConfig?.kwp ?? null;
+    const losses = pvConfig?.lossesPct ?? 14;
+    const liveKw = live?.pv_w != null ? Math.max(0, Number(live.pv_w)) / 1000 : null;
+    const radiation = data?.current?.radiation ?? null;
+    if (!kwp || liveKw == null || radiation == null) return;
+    if (radiation < 120) return;
+    if (liveKw < 0.05) return;
+    const theoreticalKw = kwp * (radiation / 1000) * (1 - Math.max(0, Math.min(50, losses)) / 100);
+    if (theoreticalKw < 0.1) return;
+    const instant = Math.max(0.3, Math.min(3, liveKw / theoreticalKw));
+    const alpha = Math.max(0.05, Math.min(1, pvConfig?.smoothingAlpha ?? 0.1));
+    const next = persistedCalib * (1 - alpha) + instant * alpha;
+    if (Math.abs(next - persistedCalib) < 0.005) return;
+    try { localStorage.setItem(calibStorageKey, String(next)); } catch { /* ignore */ }
+    setPersistedCalib(next);
+  }, [
+    live?.pv_w, live?.recorded_at, data?.current?.radiation,
+    pvConfig?.kwp, pvConfig?.lossesPct,
+    pvConfig?.manualCalibration, pvConfig?.smoothingAlpha,
+    calibStorageKey, persistedCalib,
+  ]);
+
+
 
   useEffect(() => {
     // PV config coords take precedence
@@ -227,19 +272,16 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
   if (!data) return null;
   const peak = Math.max(1, ...data.hourly.map((h) => h.radiation));
 
-  // Calibrate PVWatts model against the actual inverter output for current radiation.
-  // GHI from Open-Meteo ignores panel tilt; the calibration factor absorbs tilt, soiling, temperature drift, etc.
+  // Calibration values (state already declared near top of component).
   const kwpForCalib = pvConfig?.kwp ?? null;
   const lossesForCalib = pvConfig?.lossesPct ?? 14;
   const liveKwForCalib = live?.pv_w != null ? Math.max(0, Number(live.pv_w)) / 1000 : null;
-  let calibration = 1;
-  if (liveKwForCalib != null && kwpForCalib && data.current.radiation > 50) {
-    const theoreticalKw =
-      kwpForCalib * (data.current.radiation / 1000) * (1 - Math.max(0, Math.min(50, lossesForCalib)) / 100);
-    if (theoreticalKw > 0.05) {
-      calibration = Math.max(0.3, Math.min(3, liveKwForCalib / theoreticalKw));
-    }
-  }
+  const manual = pvConfig?.manualCalibration != null && pvConfig.manualCalibration > 0
+    ? Math.max(0.2, Math.min(3, Number(pvConfig.manualCalibration)))
+    : null;
+  const calibration = manual ?? persistedCalib;
+
+
 
   // Dynamic gradient based on weather
   const wc = data.current.weatherCode;
@@ -369,8 +411,17 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
           ? data.hourly.reduce((acc, h) => acc + estimateKwh(h.radiation, kwp, losses, calibration), 0)
           : 0;
         const batteryKwh = pvConfig?.batteryKwh ?? 0;
-        const batteryFillH = batteryKwh > 0 && next12kwh > 0
-          ? batteryKwh / Math.max(0.01, next12kwh / 12)
+        const batteryPct = live?.battery_pct != null ? Math.max(0, Math.min(100, Number(live.battery_pct))) : null;
+        const remainingKwh = batteryKwh > 0 && batteryPct != null
+          ? batteryKwh * (1 - batteryPct / 100)
+          : batteryKwh;
+        const loadW = live?.load_w != null ? Math.max(0, Number(live.load_w)) : 0;
+        const surplusKwAvg = next12kwh > 0
+          ? Math.max(0, next12kwh / 12 - loadW / 1000)
+          : 0;
+        const batteryFull = batteryPct != null && batteryPct >= 99;
+        const batteryFillH = !batteryFull && remainingKwh > 0.01 && surplusKwAvg > 0.05
+          ? remainingKwh / surplusKwAvg
           : 0;
         const pctOfPeak = liveKw != null && kwp ? Math.min(100, (liveKw / kwp) * 100) : null;
         const ageSec = live?.recorded_at
@@ -428,9 +479,15 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
                 <div className="flex flex-wrap items-baseline gap-2">
                   <div className="text-2xl font-bold text-[var(--solar)] tabular-nums @[420px]:text-3xl">{next12kwh.toFixed(2)}</div>
                   <div className="text-sm text-muted-foreground">kWh</div>
-                  {batteryKwh > 0 && batteryFillH > 0 && (
+                  {batteryKwh > 0 && (
                     <div className="basis-full text-[10px] text-muted-foreground @[420px]:basis-auto @[420px]:ml-auto">
-                      ≈ {batteryFillH.toFixed(1)} h para llenar {batteryKwh} kWh
+                      {batteryFull
+                        ? `🔋 Batería llena (${batteryKwh} kWh)`
+                        : batteryFillH > 0
+                          ? `≈ ${batteryFillH < 1 ? `${Math.round(batteryFillH * 60)} min` : `${batteryFillH.toFixed(1)} h`} para llenar ${remainingKwh.toFixed(1)} kWh restantes`
+                          : surplusKwAvg <= 0
+                            ? "Sin excedente — consumo ≥ producción prevista"
+                            : `${remainingKwh.toFixed(1)} kWh restantes`}
                     </div>
                   )}
                 </div>

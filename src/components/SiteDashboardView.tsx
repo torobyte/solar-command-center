@@ -148,7 +148,7 @@ export function SiteDashboardView({
     ),
     forecast: (
       <SolarForecastWidget
-        pvConfig={{ kwp: pv?.array_kwp, lossesPct: pv?.system_losses_pct, batteryKwh: pv?.battery_kwh, lat: pv?.latitude, lon: pv?.longitude, locationLabel: pv?.location_label }}
+        pvConfig={{ kwp: pv?.array_kwp, lossesPct: pv?.system_losses_pct, batteryKwh: pv?.battery_kwh, lat: pv?.latitude, lon: pv?.longitude, locationLabel: pv?.location_label, manualCalibration: (pv as PvConfig & { manual_calibration?: number | null })?.manual_calibration ?? null, smoothingAlpha: (pv as PvConfig & { calibration_smoothing_alpha?: number | null })?.calibration_smoothing_alpha ?? null, siteKey: siteId }}
         live={{ pv_w: pv_W, load_w: load, battery_pct: battery, recorded_at: latest?.recorded_at }}
       />
     ),
