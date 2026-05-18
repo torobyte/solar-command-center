@@ -44,7 +44,7 @@ interface Brand {
   border_color: string;
 }
 
-const DEFAULTS: Record<string, { subject: string; html: string; text: string; cta?: string }> = {
+export const DEFAULTS: Record<string, { subject: string; html: string; text: string; cta?: string }> = {
   signup: {
     subject: "Bienvenido a {{site_name}}",
     html: `<h1>¡Hola {{name}}!</h1><p>Tu cuenta en <strong>{{site_name}}</strong> fue creada con éxito. Ya puedes acceder a tu panel de control y empezar a monitorear tu sistema.</p>`,
@@ -83,7 +83,7 @@ const DEFAULTS: Record<string, { subject: string; html: string; text: string; ct
   },
 };
 
-function render(tpl: string, vars: MailVars): string {
+export function render(tpl: string, vars: MailVars): string {
   return tpl.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, k) => {
     const v = vars[k];
     return v === undefined || v === null ? "" : String(v);
@@ -108,7 +108,7 @@ async function loadTemplate(id: string): Promise<Tpl | null> {
   return (data as Tpl | null) || null;
 }
 
-async function loadBrand(): Promise<Brand> {
+export async function loadBrand(): Promise<Brand> {
   const { data } = await supabaseAdmin
     .from("branding_settings")
     .select(
@@ -130,7 +130,7 @@ async function loadBrand(): Promise<Brand> {
   };
 }
 
-function ctaButton(cta: string | undefined, vars: MailVars, brand: Brand): string {
+export function ctaButton(cta: string | undefined, vars: MailVars, brand: Brand): string {
   if (!cta) return "";
   const [labelTpl, hrefTpl] = cta.split("|");
   const href = render(hrefTpl || "", vars);
@@ -139,7 +139,7 @@ function ctaButton(cta: string | undefined, vars: MailVars, brand: Brand): strin
   return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:32px 0"><tr><td align="center" bgcolor="${brand.primary_color}" style="border-radius:8px"><a href="${href}" target="_blank" style="display:inline-block;padding:14px 28px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:15px;font-weight:600;color:${brand.primary_foreground};text-decoration:none;border-radius:8px">${label}</a></td></tr></table><p style="color:#64748b;font-size:13px;line-height:1.5;margin:16px 0 0">O copia este enlace en tu navegador:<br><a href="${href}" style="color:${brand.primary_color};word-break:break-all">${href}</a></p>`;
 }
 
-function wrapHtml(innerHtml: string, brand: Brand, ctaHtml: string): string {
+export function wrapHtml(innerHtml: string, brand: Brand, ctaHtml: string): string {
   const logo = brand.logo_url
     ? `<img src="${brand.logo_url}" alt="${brand.site_name}" style="max-height:44px;max-width:200px;display:inline-block">`
     : `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:22px;font-weight:700;color:${brand.primary_color}">${brand.site_name}</div>`;
