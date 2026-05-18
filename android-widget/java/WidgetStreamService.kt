@@ -145,6 +145,7 @@ class WidgetStreamService : Service() {
             SolarOpsWidgetSpeedo::class.java,
             SolarOpsWidgetWave::class.java,
             SolarOpsWidgetStats::class.java,
+            SolarOpsWidgetRadial::class.java,
         )
         for (cls in classes) {
             val intent = Intent(this, cls).apply {
@@ -152,6 +153,8 @@ class WidgetStreamService : Service() {
             }
             sendBroadcast(intent)
         }
+        // Asegura que el animador esté corriendo cuando hay widgets Wave en pantalla.
+        WaveAnimator.start(applicationContext)
     }
 
     private fun buildNotification(): Notification {

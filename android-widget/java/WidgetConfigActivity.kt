@@ -113,12 +113,72 @@ class WidgetConfigActivity : Activity() {
             val btn = Button(this).apply {
                 text = name
                 gravity = Gravity.START or Gravity.CENTER_VERTICAL
-                setOnClickListener { selectSite(token) }
+                setOnClickListener { showMetricStep(token) }
             }
             root.addView(btn, LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply { bottomMargin = 12 })
+        }
+    }
+
+    private var chosenMetric: String = "auto"
+    private var chosenInterval: Int = WidgetCommon.DEFAULT_REFRESH_SEC
+
+    private fun showMetricStep(token: String) {
+        root.removeAllViews()
+        root.addView(TextView(this).apply {
+            text = "¿Qué métrica mostrar?"
+            textSize = 18f
+            setPadding(0, 0, 0, 16)
+        })
+        val labels = mapOf(
+            "auto" to "Automático (según widget)",
+            "pv" to "Producción PV (W)",
+            "battery" to "Batería (%)",
+            "load" to "Carga / Descarga (W)",
+        )
+        for (m in WidgetCommon.METRICS) {
+            root.addView(Button(this).apply {
+                text = labels[m] ?: m
+                gravity = Gravity.START or Gravity.CENTER_VERTICAL
+                setOnClickListener {
+                    chosenMetric = m
+                    showIntervalStep(token)
+                }
+            }, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply { bottomMargin = 10 })
+        }
+    }
+
+    private fun showIntervalStep(token: String) {
+        root.removeAllViews()
+        root.addView(TextView(this).apply {
+            text = "Intervalo de actualización"
+            textSize = 18f
+            setPadding(0, 0, 0, 8)
+        })
+        root.addView(TextView(this).apply {
+            text = "Los datos también se empujan al instante por canal en vivo; el intervalo cubre cuando el stream se cae."
+            setTextColor(0xFF94A3B8.toInt())
+            textSize = 12f
+            setPadding(0, 0, 0, 16)
+        })
+        val labels = mapOf(15 to "15 segundos", 30 to "30 segundos", 60 to "1 minuto", 300 to "5 minutos", 900 to "15 minutos")
+        for (sec in WidgetCommon.INTERVALS) {
+            root.addView(Button(this).apply {
+                text = labels[sec] ?: "${sec}s"
+                gravity = Gravity.START or Gravity.CENTER_VERTICAL
+                setOnClickListener {
+                    chosenInterval = sec
+                    selectSite(token)
+                }
+            }, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply { bottomMargin = 10 })
         }
     }
 
@@ -179,6 +239,8 @@ class WidgetConfigActivity : Activity() {
         if (token.isEmpty()) { finish(); return }
         getSharedPreferences(WidgetCommon.PREFS, MODE_PRIVATE).edit()
             .putString("${WidgetCommon.KEY_TOKEN}.$widgetId", token)
+            .putString("${WidgetCommon.KEY_METRIC}.$widgetId", chosenMetric)
+            .putInt("${WidgetCommon.KEY_INTERVAL}.$widgetId", chosenInterval)
             .apply()
 
         for (cls in listOf(
@@ -191,6 +253,7 @@ class WidgetConfigActivity : Activity() {
             SolarOpsWidgetSpeedo::class.java,
             SolarOpsWidgetWave::class.java,
             SolarOpsWidgetStats::class.java,
+            SolarOpsWidgetRadial::class.java,
         )) {
             sendBroadcast(Intent(this, cls).apply {
                 action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
@@ -199,7 +262,6 @@ class WidgetConfigActivity : Activity() {
             WidgetCommon.scheduleAlarmFor(this, cls)
         }
 
-        // Arranca/refresca el stream SSE para empuje en tiempo real.
         WidgetStreamService.start(this)
 
         setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))

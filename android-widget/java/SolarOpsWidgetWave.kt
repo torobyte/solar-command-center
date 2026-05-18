@@ -20,12 +20,14 @@ class SolarOpsWidgetWave : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, mgr: AppWidgetManager, ids: IntArray) {
         for (id in ids) refresh(context, mgr, id)
+        WaveAnimator.start(context)
     }
 
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
         WidgetStreamService.start(context)
         WidgetCommon.scheduleAlarmFor(context, SolarOpsWidgetWave::class.java)
+        WaveAnimator.start(context)
     }
 
     override fun onDisabled(context: Context) {
@@ -35,7 +37,11 @@ class SolarOpsWidgetWave : AppWidgetProvider() {
 
     override fun onDeleted(context: Context, ids: IntArray) {
         val e = context.getSharedPreferences(WidgetCommon.PREFS, Context.MODE_PRIVATE).edit()
-        for (id in ids) e.remove("${WidgetCommon.KEY_TOKEN}.$id")
+        for (id in ids) {
+            e.remove("${WidgetCommon.KEY_TOKEN}.$id")
+            e.remove("${WidgetCommon.KEY_METRIC}.$id")
+            e.remove("${WidgetCommon.KEY_INTERVAL}.$id")
+        }
         e.apply()
         WidgetStreamService.stopIfNoWidgets(context)
     }
@@ -55,13 +61,14 @@ class SolarOpsWidgetWave : AppWidgetProvider() {
             mgr.updateAppWidget(widgetId, views); return
         }
         val base = WidgetCommon.baseUrl(context)
+        val metric = WidgetCommon.metricFor(context, widgetId)
         thread {
             val json = WidgetCommon.fetchSnapshot(token, base)
-            Handler(Looper.getMainLooper()).post { apply(mgr, widgetId, views, json) }
+            Handler(Looper.getMainLooper()).post { apply(mgr, widgetId, views, json, metric) }
         }
     }
 
-    private fun apply(mgr: AppWidgetManager, id: Int, v: RemoteViews, json: JSONObject?) {
+    private fun apply(mgr: AppWidgetManager, id: Int, v: RemoteViews, json: JSONObject?, metric: String) {
         if (json == null) {
             v.setTextViewText(R.id.wave_sub, "Sin conexión")
             mgr.updateAppWidget(id, v); return
@@ -70,16 +77,26 @@ class SolarOpsWidgetWave : AppWidgetProvider() {
         val s = json.optJSONObject("sample")
         val bat = (s?.optDouble("battery_pct", 0.0) ?: 0.0).toInt().coerceIn(0, 100)
         val pv = (s?.optDouble("pv_w", 0.0) ?: 0.0).toInt()
-        v.setTextViewText(R.id.wave_title, site?.optString("name") ?: "Batería")
-        v.setTextViewText(R.id.wave_value, "$bat")
-        v.setTextViewText(R.id.wave_sub, when {
-            pv > 50 -> "cargando · ${pv} W"
-            bat >= 80 -> "óptimo"
-            bat >= 40 -> "estable"
-            else -> "bajo"
-        })
-        // Cambia el color de la onda según estado.
-        v.setImageViewResource(R.id.wave_graph, if (pv > 50 || bat >= 60) R.drawable.wave_green else R.drawable.wave_blue)
+        val load = (s?.optDouble("load_w", 0.0) ?: 0.0).toInt()
+
+        val (title, valueText, subText) = when (metric) {
+            "pv" -> Triple("Solar", "$pv", "W · ${site?.optString("name") ?: ""}")
+            "load" -> Triple("Carga", "$load", "W · ${site?.optString("name") ?: ""}")
+            else -> Triple(
+                site?.optString("name") ?: "Batería",
+                "$bat",
+                when {
+                    pv > 50 -> "cargando · $pv W"
+                    bat >= 80 -> "óptimo"
+                    bat >= 40 -> "estable"
+                    else -> "bajo"
+                },
+            )
+        }
+        v.setTextViewText(R.id.wave_title, title)
+        v.setTextViewText(R.id.wave_value, valueText)
+        v.setTextViewText(R.id.wave_sub, subText)
+        // El recurso base se mantiene; WaveAnimator se encarga de la animación de frames.
         mgr.updateAppWidget(id, v)
     }
 }
