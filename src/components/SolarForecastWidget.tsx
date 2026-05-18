@@ -232,19 +232,50 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
   if (!data) return null;
   const peak = Math.max(1, ...data.hourly.map((h) => h.radiation));
 
-  // Calibrate PVWatts model against the actual inverter output for current radiation.
-  // GHI from Open-Meteo ignores panel tilt; the calibration factor absorbs tilt, soiling, temperature drift, etc.
+  // Calibrate PVWatts model against actual inverter output.
+  // - Manual override (pvConfig.manualCalibration) wins if set.
+  // - Auto: EMA smoothed and persisted per site so it stays stable even with low/zero radiation.
   const kwpForCalib = pvConfig?.kwp ?? null;
   const lossesForCalib = pvConfig?.lossesPct ?? 14;
   const liveKwForCalib = live?.pv_w != null ? Math.max(0, Number(live.pv_w)) / 1000 : null;
-  let calibration = 1;
-  if (liveKwForCalib != null && kwpForCalib && data.current.radiation > 50) {
+  const manual = pvConfig?.manualCalibration != null && pvConfig.manualCalibration > 0
+    ? Math.max(0.2, Math.min(3, Number(pvConfig.manualCalibration)))
+    : null;
+  const alpha = Math.max(0.05, Math.min(1, pvConfig?.smoothingAlpha ?? 0.1));
+  const calibSiteKey = pvConfig?.siteKey
+    ?? (pvConfig?.lat != null && pvConfig?.lon != null ? `${pvConfig.lat},${pvConfig.lon}` : "global");
+  const calibStorageKey = CALIB_KEY(calibSiteKey);
+
+  // Load persisted calibration once per site key.
+  const [persistedCalib, setPersistedCalib] = useState<number>(() => {
+    if (typeof window === "undefined") return 1;
+    const v = parseFloat(localStorage.getItem(CALIB_KEY(calibSiteKey)) ?? "1");
+    return isFinite(v) && v > 0 ? v : 1;
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const v = parseFloat(localStorage.getItem(calibStorageKey) ?? "1");
+    setPersistedCalib(isFinite(v) && v > 0 ? v : 1);
+  }, [calibStorageKey]);
+
+  // Only update auto calibration when there's meaningful sun + production.
+  useEffect(() => {
+    if (manual != null) return;
+    if (liveKwForCalib == null || !kwpForCalib) return;
+    if (data.current.radiation < 120) return; // not enough sun → keep stable
+    if (liveKwForCalib < 0.05) return; // inverter idle / battery full curtailment
     const theoreticalKw =
       kwpForCalib * (data.current.radiation / 1000) * (1 - Math.max(0, Math.min(50, lossesForCalib)) / 100);
-    if (theoreticalKw > 0.05) {
-      calibration = Math.max(0.3, Math.min(3, liveKwForCalib / theoreticalKw));
-    }
-  }
+    if (theoreticalKw < 0.1) return;
+    const instant = Math.max(0.3, Math.min(3, liveKwForCalib / theoreticalKw));
+    const next = persistedCalib * (1 - alpha) + instant * alpha;
+    if (Math.abs(next - persistedCalib) < 0.005) return;
+    try { localStorage.setItem(calibStorageKey, String(next)); } catch { /* ignore */ }
+    setPersistedCalib(next);
+  }, [liveKwForCalib, kwpForCalib, lossesForCalib, data.current.radiation, alpha, manual, calibStorageKey, persistedCalib]);
+
+  const calibration = manual ?? persistedCalib;
+
 
   // Dynamic gradient based on weather
   const wc = data.current.weatherCode;
