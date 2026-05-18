@@ -924,6 +924,63 @@ function DevicesAdmin() {
   const [days, setDays] = useState(30);
   const [reason, setReason] = useState("");
   const [expDate, setExpDate] = useState("");
+  const [licMode, setLicMode] = useState<"existing" | "generate">("existing");
+  const [genPlanSlug, setGenPlanSlug] = useState<string>("pro");
+  const [generating, setGenerating] = useState(false);
+  const [availablePlans, setAvailablePlans] = useState<Array<{ slug: string; name: string; duration_days: number | null; is_lifetime: boolean }>>([]);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("plans")
+        .select("slug,name,duration_days,is_lifetime,active,sort_order")
+        .eq("active", true)
+        .order("sort_order");
+      setAvailablePlans((data ?? []) as typeof availablePlans);
+      const first = (data ?? [])[0];
+      if (first) setGenPlanSlug(first.slug);
+    })();
+  }, []);
+
+  async function generateAndActivateDevice() {
+    if (!activateRow || !user) return;
+    const plan = availablePlans.find((p) => p.slug === genPlanSlug);
+    if (!plan) return toast.error("Selecciona un plan");
+    setGenerating(true);
+    try {
+      const newCode = generateCode();
+      const { error } = await supabase.from("license_codes").insert({
+        code: newCode,
+        plan: plan.slug,
+        duration_days: plan.is_lifetime ? null : (plan.duration_days ?? 365),
+        is_lifetime: plan.is_lifetime,
+        assigned_email: activateRow.owner_email,
+        site_name: activateRow.name,
+        notes: `Generada y aplicada desde Dispositivos por ${user.email ?? "admin"}`,
+        created_by: user.id,
+      });
+      if (error) throw error;
+      const res = await runAdminAction(activateFn, { site_id: activateRow.site_id, code: newCode });
+      await supabase.from("license_audit_log").insert({
+        license_code: newCode,
+        plan: plan.slug,
+        action: "created_and_applied",
+        performed_by: user.id,
+        performed_by_email: user.email ?? null,
+        reason: "Generada y aplicada desde Dispositivos",
+        details: { site_id: activateRow.site_id, hardware_id: activateRow.hardware_id, site_name: activateRow.name } as never,
+      });
+      toast.success(`Licencia ${plan.name} aplicada hasta ${new Date(res.expires_at).toLocaleDateString()}`);
+      setActivateRow(null);
+      load();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setGenerating(false);
+    }
+  }
+
 
   const activateFn = useServerFn(adminActivateSite);
   const extendFn = useServerFn(adminExtendLicense);
