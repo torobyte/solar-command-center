@@ -474,6 +474,7 @@ export type Database = {
           subject: string
           text_body: string | null
           updated_at: string
+          wrap_with_brand: boolean
         }
         Insert: {
           enabled?: boolean | null
@@ -483,6 +484,7 @@ export type Database = {
           subject: string
           text_body?: string | null
           updated_at?: string
+          wrap_with_brand?: boolean
         }
         Update: {
           enabled?: boolean | null
@@ -492,6 +494,7 @@ export type Database = {
           subject?: string
           text_body?: string | null
           updated_at?: string
+          wrap_with_brand?: boolean
         }
         Relationships: []
       }

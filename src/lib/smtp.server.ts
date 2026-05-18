@@ -30,6 +30,7 @@ interface Tpl {
   html_body: string;
   text_body: string | null;
   enabled: boolean | null;
+  wrap_with_brand: boolean | null;
 }
 
 interface Brand {
@@ -102,7 +103,7 @@ async function loadSmtp(): Promise<SmtpRow | null> {
 async function loadTemplate(id: string): Promise<Tpl | null> {
   const { data } = await supabaseAdmin
     .from("email_templates")
-    .select("id,subject,html_body,text_body,enabled")
+    .select("id,subject,html_body,text_body,enabled,wrap_with_brand")
     .eq("id", id)
     .maybeSingle();
   return (data as Tpl | null) || null;
@@ -220,9 +221,10 @@ export async function sendMail(input: SendMailInput): Promise<SendMailResult> {
       if (tpl && tpl.enabled === false) return { ok: false, skipped: "template_disabled" };
       const def = DEFAULTS[input.templateId] || DEFAULTS.alert;
       subject = subject ?? render(tpl?.subject || def.subject, vars);
-      const innerHtml = render(tpl?.html_body || def.html, vars);
+      const rawInner = render(tpl?.html_body || def.html, vars);
       const ctaHtml = ctaButton(ctaSpec || def.cta, vars, brand);
-      html = html ?? wrapHtml(innerHtml, brand, ctaHtml);
+      const wrap = tpl?.wrap_with_brand ?? true;
+      html = html ?? (wrap ? wrapHtml(rawInner, brand, ctaHtml) : rawInner);
       text = text ?? render(tpl?.text_body || def.text, vars);
     }
 

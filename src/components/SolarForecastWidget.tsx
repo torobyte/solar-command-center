@@ -55,9 +55,9 @@ export interface ForecastPvConfig {
  *  E = kWp * (H / 1000) * (1 - losses)
  *  H is plane-of-array radiation in Wh/m². For a hourly W/m² value, hourly Wh/m² ≈ W/m² * 1h.
  */
-function estimateKwh(radWhPerM2: number, kwp: number, lossesPct: number): number {
+function estimateKwh(radWhPerM2: number, kwp: number, lossesPct: number, calibration = 1): number {
   const losses = Math.max(0, Math.min(50, lossesPct)) / 100;
-  return Math.max(0, kwp * (radWhPerM2 / 1000) * (1 - losses));
+  return Math.max(0, kwp * (radWhPerM2 / 1000) * (1 - losses) * calibration);
 }
 
 export interface ForecastLiveSample {
@@ -227,6 +227,20 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
   if (!data) return null;
   const peak = Math.max(1, ...data.hourly.map((h) => h.radiation));
 
+  // Calibrate PVWatts model against the actual inverter output for current radiation.
+  // GHI from Open-Meteo ignores panel tilt; the calibration factor absorbs tilt, soiling, temperature drift, etc.
+  const kwpForCalib = pvConfig?.kwp ?? null;
+  const lossesForCalib = pvConfig?.lossesPct ?? 14;
+  const liveKwForCalib = live?.pv_w != null ? Math.max(0, Number(live.pv_w)) / 1000 : null;
+  let calibration = 1;
+  if (liveKwForCalib != null && kwpForCalib && data.current.radiation > 50) {
+    const theoreticalKw =
+      kwpForCalib * (data.current.radiation / 1000) * (1 - Math.max(0, Math.min(50, lossesForCalib)) / 100);
+    if (theoreticalKw > 0.05) {
+      calibration = Math.max(0.3, Math.min(3, liveKwForCalib / theoreticalKw));
+    }
+  }
+
   // Dynamic gradient based on weather
   const wc = data.current.weatherCode;
   const isSunny = wc <= 1;
@@ -348,15 +362,16 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
       {(pvConfig?.kwp || live?.pv_w != null) ? (() => {
         const kwp = pvConfig?.kwp ?? null;
         const losses = pvConfig?.lossesPct ?? 14;
+        const liveW = live?.pv_w != null ? Math.max(0, Number(live.pv_w)) : null;
+        const liveKw = liveW != null ? liveW / 1000 : null;
+        const calibrated = calibration !== 1;
         const next12kwh = kwp
-          ? data.hourly.reduce((acc, h) => acc + estimateKwh(h.radiation, kwp, losses), 0)
+          ? data.hourly.reduce((acc, h) => acc + estimateKwh(h.radiation, kwp, losses, calibration), 0)
           : 0;
         const batteryKwh = pvConfig?.batteryKwh ?? 0;
         const batteryFillH = batteryKwh > 0 && next12kwh > 0
           ? batteryKwh / Math.max(0.01, next12kwh / 12)
           : 0;
-        const liveW = live?.pv_w != null ? Math.max(0, Number(live.pv_w)) : null;
-        const liveKw = liveW != null ? liveW / 1000 : null;
         const pctOfPeak = liveKw != null && kwp ? Math.min(100, (liveKw / kwp) * 100) : null;
         const ageSec = live?.recorded_at
           ? Math.max(0, Math.round((Date.now() - new Date(live.recorded_at).getTime()) / 1000))
@@ -400,8 +415,15 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
                 <div className="mb-1 flex flex-wrap items-center justify-between gap-1">
                   <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                     Producción estimada 12 h
+                    {calibrated && (
+                      <span className="ml-1 text-emerald-600" title={`Calibrado con tu inversor (×${calibration.toFixed(2)})`}>
+                        · calibrado
+                      </span>
+                    )}
                   </div>
-                  <div className="text-[10px] text-muted-foreground">{kwp} kWp · {losses}%</div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {kwp} kWp · {losses}%{calibrated ? ` · ×${calibration.toFixed(2)}` : ""}
+                  </div>
                 </div>
                 <div className="flex flex-wrap items-baseline gap-2">
                   <div className="text-2xl font-bold text-[var(--solar)] tabular-nums @[420px]:text-3xl">{next12kwh.toFixed(2)}</div>
@@ -427,7 +449,7 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
           {data.hourly.map((h, i) => {
             const height = (h.radiation / peak) * 100;
             const hour = new Date(h.time).getHours();
-            const kwh = pvConfig?.kwp ? estimateKwh(h.radiation, pvConfig.kwp, pvConfig.lossesPct ?? 14) : 0;
+            const kwh = pvConfig?.kwp ? estimateKwh(h.radiation, pvConfig.kwp, pvConfig.lossesPct ?? 14, calibration) : 0;
             return (
               <div key={h.time} className="flex flex-1 flex-col items-center gap-1">
                 <div
@@ -454,9 +476,9 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
       {/* Daily summary */}
       <div className="grid grid-cols-5 gap-2 border-t pt-3">
         {data.daily.slice(0, 5).map((d, i) => {
-          // Daily kWh estimate: sunshine hours × kWp × (1 - losses) × ~0.65 capacity factor during sun
+          // Daily kWh estimate: sunshine hours × kWp × (1 - losses) × capacity factor × inverter calibration
           const dailyKwh = pvConfig?.kwp
-            ? pvConfig.kwp * d.sunshineHours * 0.65 * (1 - (pvConfig.lossesPct ?? 14) / 100)
+            ? pvConfig.kwp * d.sunshineHours * 0.65 * (1 - (pvConfig.lossesPct ?? 14) / 100) * calibration
             : null;
           return (
             <div

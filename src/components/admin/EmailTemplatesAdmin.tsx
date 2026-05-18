@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
-import { renderEmailPreview } from "@/lib/email-preview.functions";
+import { renderEmailPreview, getDefaultEmailHtml } from "@/lib/email-preview.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Save, Eye } from "lucide-react";
+import { Save, Eye, Code2 } from "lucide-react";
 
 interface Tpl {
   id: string;
@@ -19,6 +19,7 @@ interface Tpl {
   html_body: string;
   text_body: string | null;
   enabled: boolean | null;
+  wrap_with_brand: boolean | null;
 }
 
 const KNOWN: { id: string; name: string }[] = [
@@ -37,6 +38,7 @@ export function EmailTemplatesAdmin() {
   const [preview, setPreview] = useState<{ subject: string; html: string } | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const renderPreview = useServerFn(renderEmailPreview);
+  const loadDefault = useServerFn(getDefaultEmailHtml);
 
   async function load() {
     const { data } = await supabase.from("email_templates").select("*");
@@ -45,7 +47,7 @@ export function EmailTemplatesAdmin() {
     for (const k of KNOWN) {
       if (!map[k.id]) {
         map[k.id] = {
-          id: k.id, name: k.name, subject: "", html_body: "", text_body: "", enabled: true,
+          id: k.id, name: k.name, subject: "", html_body: "", text_body: "", enabled: true, wrap_with_brand: true,
         };
       }
     }
@@ -75,6 +77,7 @@ export function EmailTemplatesAdmin() {
           templateId: id,
           subject: t.subject || undefined,
           html: t.html_body || undefined,
+          wrapWithBrand: t.wrap_with_brand ?? true,
         },
       });
       setPreview(res);
@@ -82,6 +85,16 @@ export function EmailTemplatesAdmin() {
       toast.error((e as Error).message);
     } finally {
       setLoadingPreview(false);
+    }
+  }
+
+  async function loadDefaultHtml(id: string) {
+    try {
+      const res = await loadDefault({ data: { templateId: id } });
+      up(id, { html_body: res.html, subject: tpls[id]?.subject || res.subject, wrap_with_brand: false });
+      toast.success("Plantilla completa cargada — ya puedes editarla por completo");
+    } catch (e) {
+      toast.error((e as Error).message);
     }
   }
 
@@ -95,8 +108,10 @@ export function EmailTemplatesAdmin() {
           <code>{"{{expires_at}}"}</code>, <code>{"{{inviter}}"}</code>, <code>{"{{role}}"}</code>.
         </p>
         <p className="text-muted-foreground">
-          El HTML que escribas se inyecta dentro de la plantilla con marca, logo, colores y footer.
-          Usa "Vista previa" para ver el resultado final tal como llega al correo.
+          Por defecto el HTML se inyecta dentro de la plantilla con marca, logo, colores y footer.
+          Desactiva <strong>"Envolver con marca"</strong> para editar el HTML completo del correo (puedes
+          pulsar <strong>"Cargar plantilla completa"</strong> para empezar desde la plantilla de marca actual).
+          Usa "Vista previa" para ver el resultado final.
         </p>
       </div>
 
@@ -113,11 +128,17 @@ export function EmailTemplatesAdmin() {
           if (!t) return null;
           return (
             <TabsContent key={k.id} value={k.id} className="mt-4 space-y-3 max-w-3xl">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="font-semibold">{k.name}</h3>
-                <div className="flex items-center gap-2">
-                  <Label htmlFor={`en-${k.id}`} className="text-xs">Activa</Label>
-                  <Switch id={`en-${k.id}`} checked={!!t.enabled} onCheckedChange={(v) => up(k.id, { enabled: v })} />
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor={`wrap-${k.id}`} className="text-xs">Envolver con marca</Label>
+                    <Switch id={`wrap-${k.id}`} checked={t.wrap_with_brand ?? true} onCheckedChange={(v) => up(k.id, { wrap_with_brand: v })} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor={`en-${k.id}`} className="text-xs">Activa</Label>
+                    <Switch id={`en-${k.id}`} checked={!!t.enabled} onCheckedChange={(v) => up(k.id, { enabled: v })} />
+                  </div>
                 </div>
               </div>
               <div>
@@ -125,11 +146,18 @@ export function EmailTemplatesAdmin() {
                 <Input value={t.subject} onChange={(e) => up(k.id, { subject: e.target.value })} placeholder="(usa el predeterminado si lo dejas vacío)" />
               </div>
               <div>
-                <Label className="text-xs">HTML (cuerpo interior)</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">
+                    HTML {t.wrap_with_brand === false ? "(documento completo)" : "(cuerpo interior)"}
+                  </Label>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={() => loadDefaultHtml(k.id)}>
+                    <Code2 className="h-3 w-3 mr-1" />Cargar plantilla completa
+                  </Button>
+                </div>
                 <Textarea
                   value={t.html_body}
                   onChange={(e) => up(k.id, { html_body: e.target.value })}
-                  rows={14}
+                  rows={t.wrap_with_brand === false ? 24 : 14}
                   className="font-mono text-xs"
                   placeholder="<h1>Hola {{name}}</h1><p>...</p>"
                 />
