@@ -50,13 +50,21 @@ async function getAuthHeaders() {
 
 function AdminPanel() {
   const { t } = useI18n();
+  const [tab, setTab] = useState(() => {
+    if (typeof window === "undefined") return "sites";
+    return localStorage.getItem("admin.activeTab") || "sites";
+  });
+
   return (
     <>
       <div className="mb-6">
         <h1 className="text-2xl font-bold">{t("admin.title")}</h1>
         <p className="text-sm text-muted-foreground">{t("admin.subtitle")}</p>
       </div>
-      <Tabs defaultValue="sites">
+      <Tabs value={tab} onValueChange={(value) => {
+        setTab(value);
+        if (typeof window !== "undefined") localStorage.setItem("admin.activeTab", value);
+      }}>
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
           <TabsList className="w-max">
             <TabsTrigger value="sites">{t("admin.tab.sites")}</TabsTrigger>

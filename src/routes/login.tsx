@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
@@ -12,6 +13,7 @@ import { LangSwitcher } from "@/components/LangSwitcher";
 import { ErrorDialog } from "@/components/ErrorDialog";
 import { useBranding } from "@/lib/branding";
 import { useAuth } from "@/lib/auth";
+import { sendRecoveryEmail } from "@/lib/auth-emails.functions";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -19,6 +21,7 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
+  const sendRecovery = useServerFn(sendRecoveryEmail);
   const { t } = useI18n();
   const { branding, resolvedLogo } = useBranding();
   const { user, loading: authLoading } = useAuth();
@@ -77,10 +80,11 @@ function LoginPage() {
 
   async function forgot() {
     if (!email) return toast.error(t("login.forgotEmpty"));
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    if (error) return toast.error(error.message);
+    try {
+      await sendRecovery({ data: { email, origin: window.location.origin } });
+    } catch (error) {
+      return toast.error(error instanceof Error ? error.message : "No se pudo enviar el correo");
+    }
     toast.success(t("login.resetSent"));
   }
 

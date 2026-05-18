@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { LangSwitcher } from "@/components/LangSwitcher";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useI18n } from "@/lib/i18n";
+import { useAuth } from "@/lib/auth";
+import { useBranding } from "@/lib/branding";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -11,28 +13,42 @@ export const Route = createFileRoute("/")({
 
 function Landing() {
   const { t } = useI18n();
+  const { user, loading } = useAuth();
+  const { branding, resolvedLogo } = useBranding();
+  const siteName = branding?.site_name ?? "Mi plataforma";
   return (
     <div className="ambient-bg min-h-screen bg-background">
       <header className="sticky top-0 z-40 border-b border-border/60 glass-strong">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-2.5">
-            <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 shadow-glow">
-              <Sun className="h-5 w-5 text-accent" strokeWidth={2.4} />
-            </div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-lg font-bold tracking-tight text-gradient">solar</span>
-              <span className="text-lg font-light text-muted-foreground">ops</span>
-            </div>
+            {resolvedLogo ? (
+              <img src={resolvedLogo} alt={siteName} className="h-10 max-w-[180px] object-contain" />
+            ) : (
+              <>
+                <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 shadow-glow">
+                  <Sun className="h-5 w-5 text-accent" strokeWidth={2.4} />
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-lg font-bold tracking-tight text-gradient">{siteName}</span>
+                </div>
+              </>
+            )}
           </div>
           <div className="flex items-center gap-1.5">
             <ThemeToggle />
             <LangSwitcher />
-            <Link to="/login"><Button variant="ghost" size="sm" className="rounded-full">{t("landing.signIn")}</Button></Link>
-            <Link to="/signup">
-              <Button size="sm" className="rounded-full bg-gradient-to-r from-primary to-primary/80 shadow-glow">
-                {t("landing.getStarted")} <ArrowRight className="ml-1 h-3.5 w-3.5" />
-              </Button>
-            </Link>
+            {!loading && user ? (
+              <Link to="/app"><Button size="sm" className="rounded-full bg-gradient-to-r from-primary to-primary/80 shadow-glow">Ir al panel <ArrowRight className="ml-1 h-3.5 w-3.5" /></Button></Link>
+            ) : (
+              <>
+                <Link to="/login"><Button variant="ghost" size="sm" className="rounded-full">{t("landing.signIn")}</Button></Link>
+                <Link to="/signup">
+                  <Button size="sm" className="rounded-full bg-gradient-to-r from-primary to-primary/80 shadow-glow">
+                    {t("landing.getStarted")} <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
