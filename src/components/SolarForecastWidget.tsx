@@ -55,9 +55,9 @@ export interface ForecastPvConfig {
  *  E = kWp * (H / 1000) * (1 - losses)
  *  H is plane-of-array radiation in Wh/m². For a hourly W/m² value, hourly Wh/m² ≈ W/m² * 1h.
  */
-function estimateKwh(radWhPerM2: number, kwp: number, lossesPct: number): number {
+function estimateKwh(radWhPerM2: number, kwp: number, lossesPct: number, calibration = 1): number {
   const losses = Math.max(0, Math.min(50, lossesPct)) / 100;
-  return Math.max(0, kwp * (radWhPerM2 / 1000) * (1 - losses));
+  return Math.max(0, kwp * (radWhPerM2 / 1000) * (1 - losses) * calibration);
 }
 
 export interface ForecastLiveSample {
