@@ -348,15 +348,28 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
       {(pvConfig?.kwp || live?.pv_w != null) ? (() => {
         const kwp = pvConfig?.kwp ?? null;
         const losses = pvConfig?.lossesPct ?? 14;
+        const liveW = live?.pv_w != null ? Math.max(0, Number(live.pv_w)) : null;
+        const liveKw = liveW != null ? liveW / 1000 : null;
+        // Calibrate the PVWatts estimate using actual inverter output vs theoretical for current radiation.
+        // Open-Meteo's shortwave_radiation is GHI; the real array (with tilt) often produces ~30-80% more.
+        // This calibration absorbs tilt, soiling, temperature and any model bias.
+        let calibration = 1;
+        let calibrated = false;
+        if (liveKw != null && kwp && data.current.radiation > 50) {
+          const theoreticalNowKw = kwp * (data.current.radiation / 1000) * (1 - Math.max(0, Math.min(50, losses)) / 100);
+          if (theoreticalNowKw > 0.05) {
+            // Clamp between 0.3x and 3x to avoid extreme spikes (e.g. partial shading at low sun).
+            calibration = Math.max(0.3, Math.min(3, liveKw / theoreticalNowKw));
+            calibrated = true;
+          }
+        }
         const next12kwh = kwp
-          ? data.hourly.reduce((acc, h) => acc + estimateKwh(h.radiation, kwp, losses), 0)
+          ? data.hourly.reduce((acc, h) => acc + estimateKwh(h.radiation, kwp, losses, calibration), 0)
           : 0;
         const batteryKwh = pvConfig?.batteryKwh ?? 0;
         const batteryFillH = batteryKwh > 0 && next12kwh > 0
           ? batteryKwh / Math.max(0.01, next12kwh / 12)
           : 0;
-        const liveW = live?.pv_w != null ? Math.max(0, Number(live.pv_w)) : null;
-        const liveKw = liveW != null ? liveW / 1000 : null;
         const pctOfPeak = liveKw != null && kwp ? Math.min(100, (liveKw / kwp) * 100) : null;
         const ageSec = live?.recorded_at
           ? Math.max(0, Math.round((Date.now() - new Date(live.recorded_at).getTime()) / 1000))
@@ -400,8 +413,15 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
                 <div className="mb-1 flex flex-wrap items-center justify-between gap-1">
                   <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                     Producción estimada 12 h
+                    {calibrated && (
+                      <span className="ml-1 text-emerald-600" title={`Calibrado con tu inversor (×${calibration.toFixed(2)})`}>
+                        · calibrado
+                      </span>
+                    )}
                   </div>
-                  <div className="text-[10px] text-muted-foreground">{kwp} kWp · {losses}%</div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {kwp} kWp · {losses}%{calibrated ? ` · ×${calibration.toFixed(2)}` : ""}
+                  </div>
                 </div>
                 <div className="flex flex-wrap items-baseline gap-2">
                   <div className="text-2xl font-bold text-[var(--solar)] tabular-nums @[420px]:text-3xl">{next12kwh.toFixed(2)}</div>
