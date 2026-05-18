@@ -37,7 +37,7 @@ export const Route = createFileRoute("/api/public/apk-latest")({
         }
 
         const releaseRes = await fetch(
-          `https://api.github.com/repos/${repo.owner}/${repo.repo}/releases/latest`,
+          `https://api.github.com/repos/${repo.owner}/${repo.repo}/releases/tags/latest`,
           { headers },
         );
         if (!releaseRes.ok) {
