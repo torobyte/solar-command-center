@@ -55,10 +55,10 @@ export function usePvConfig(siteId: string) {
       const { data } = await supabase.from("pv_system_config").select("*").eq("site_id", siteId).maybeSingle();
       if (!cancelled) { setConfig((data ?? null) as PvConfig | null); setLoaded(true); }
     })();
-    const ch = supabase.channel(`pvcfg-${siteId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "pv_system_config", filter: `site_id=eq.${siteId}` },
-        (p) => setConfig(p.new as PvConfig))
-      .subscribe();
+    const ch = supabase.channel(`pvcfg-${siteId}-${Math.random().toString(36).slice(2)}`);
+    ch.on("postgres_changes", { event: "*", schema: "public", table: "pv_system_config", filter: `site_id=eq.${siteId}` },
+        (p) => setConfig(p.new as PvConfig));
+    ch.subscribe();
     return () => { cancelled = true; supabase.removeChannel(ch); };
   }, [siteId]);
   return { config, loaded };
