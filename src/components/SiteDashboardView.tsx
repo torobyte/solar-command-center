@@ -49,6 +49,7 @@ export function formatInverterMode(raw: string | null | undefined): { label: str
 export const WIDGET_DEFS: WidgetDef[] = [
   { id: "mode", label: "Modo del inversor" },
   { id: "icons", label: "Tarjetas resumen" },
+  { id: "savings", label: "Ahorro económico" },
   { id: "backup", label: "Tiempo de respaldo" },
   { id: "rings", label: "Anillos concéntricos" },
   { id: "gauges", label: "Medidores radiales" },
