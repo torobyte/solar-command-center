@@ -1,0 +1,1 @@
+ALTER TABLE public.email_templates ADD COLUMN IF NOT EXISTS wrap_with_brand boolean NOT NULL DEFAULT true;
