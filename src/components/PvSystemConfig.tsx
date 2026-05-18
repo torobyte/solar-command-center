@@ -222,6 +222,24 @@ export function PvSystemConfigCard({ siteId, maxAcOutputPower, nominalBatteryV }
           </div>
         </div>
 
+        <div className="sm:col-span-2 mt-1 rounded-lg border border-dashed bg-muted/20 p-2.5 sm:p-3">
+          <h4 className="mb-2 text-xs font-semibold sm:text-sm">Calibración del modelo de producción</h4>
+          <p className="mb-2 text-[10px] text-muted-foreground">
+            El sistema calibra automáticamente las estimaciones contra la lectura en vivo del inversor.
+            Usa estos controles para suavizar el ajuste o forzar un factor manual si el modelo no coincide
+            (útil con poca radiación o si la app sobre/subestima sistemáticamente).
+          </p>
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+            <Field label="Factor manual (×)" hint="Vacío = automático. Ej. 0.9 reduce 10%, 1.2 aumenta 20%">
+              <Input type="number" step="0.05" min={0.2} max={3} value={form.manual_calibration ?? ""} onChange={(e) => set("manual_calibration", parseFloat(e.target.value) || null)} placeholder="auto" />
+            </Field>
+            <Field label="Suavizado (0.05–1)" hint="Menor = más estable / más lento de reaccionar. Por defecto 0.1">
+              <Input type="number" step="0.05" min={0.05} max={1} value={form.calibration_smoothing_alpha ?? ""} onChange={(e) => set("calibration_smoothing_alpha", parseFloat(e.target.value) || null)} placeholder="0.1" />
+            </Field>
+          </div>
+        </div>
+
+
         <div className="sm:col-span-2">
           <AddressPicker
             lat={form.latitude}
