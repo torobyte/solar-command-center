@@ -89,7 +89,8 @@ export function EmailTemplatesAdmin() {
     <div className="space-y-4">
       <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-1">
         <p>
-          Variables: <code>{"{{name}}"}</code>, <code>{"{{email}}"}</code>, <code>{"{{link}}"}</code>,{" "}
+          Variables: <code>{"{{name}}"}</code> (alias: <code>{"{{full_name}}"}</code>, <code>{"{{first_name}}"}</code>),{" "}
+          <code>{"{{email}}"}</code>, <code>{"{{link}}"}</code> (alias: <code>{"{{url}}"}</code>),{" "}
           <code>{"{{site_name}}"}</code>, <code>{"{{message}}"}</code>, <code>{"{{plan}}"}</code>,{" "}
           <code>{"{{expires_at}}"}</code>, <code>{"{{inviter}}"}</code>, <code>{"{{role}}"}</code>.
         </p>

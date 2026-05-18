@@ -965,7 +965,10 @@ export type Database = {
           battery_type: string | null
           battery_usable_dod_pct: number | null
           battery_voltage_each: number | null
+          currency: string | null
           device_id: string | null
+          energy_price: number | null
+          feed_in_price: number | null
           latitude: number | null
           location_label: string | null
           longitude: number | null
@@ -985,7 +988,10 @@ export type Database = {
           battery_type?: string | null
           battery_usable_dod_pct?: number | null
           battery_voltage_each?: number | null
+          currency?: string | null
           device_id?: string | null
+          energy_price?: number | null
+          feed_in_price?: number | null
           latitude?: number | null
           location_label?: string | null
           longitude?: number | null
@@ -1005,7 +1011,10 @@ export type Database = {
           battery_type?: string | null
           battery_usable_dod_pct?: number | null
           battery_voltage_each?: number | null
+          currency?: string | null
           device_id?: string | null
+          energy_price?: number | null
+          feed_in_price?: number | null
           latitude?: number | null
           location_label?: string | null
           longitude?: number | null

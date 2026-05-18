@@ -60,7 +60,14 @@ function estimateKwh(radWhPerM2: number, kwp: number, lossesPct: number): number
   return Math.max(0, kwp * (radWhPerM2 / 1000) * (1 - losses));
 }
 
-export function SolarForecastWidget({ pvConfig }: { pvConfig?: ForecastPvConfig } = {}) {
+export interface ForecastLiveSample {
+  pv_w?: number | null;
+  load_w?: number | null;
+  battery_pct?: number | null;
+  recorded_at?: string | null;
+}
+
+export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvConfig; live?: ForecastLiveSample } = {}) {
   const [data, setData] = useState<ForecastData | null>(null);
   const [coords, setCoords] = useState<Coords | null>(null);
   const [loading, setLoading] = useState(true);
@@ -337,30 +344,76 @@ export function SolarForecastWidget({ pvConfig }: { pvConfig?: ForecastPvConfig 
         </div>
       )}
 
-      {/* Production estimate (requires PV config) */}
-      {pvConfig?.kwp ? (() => {
-        const kwp = pvConfig.kwp!;
-        const losses = pvConfig.lossesPct ?? 14;
-        const next12kwh = data.hourly.reduce((acc, h) => acc + estimateKwh(h.radiation, kwp, losses), 0);
-        const batteryKwh = pvConfig.batteryKwh ?? 0;
-        const batteryFillH = batteryKwh > 0 ? batteryKwh / Math.max(0.01, next12kwh / 12) : 0;
+      {/* Production: live from inverter + 12h forecast */}
+      {(pvConfig?.kwp || live?.pv_w != null) ? (() => {
+        const kwp = pvConfig?.kwp ?? null;
+        const losses = pvConfig?.lossesPct ?? 14;
+        const next12kwh = kwp
+          ? data.hourly.reduce((acc, h) => acc + estimateKwh(h.radiation, kwp, losses), 0)
+          : 0;
+        const batteryKwh = pvConfig?.batteryKwh ?? 0;
+        const batteryFillH = batteryKwh > 0 && next12kwh > 0
+          ? batteryKwh / Math.max(0.01, next12kwh / 12)
+          : 0;
+        const liveW = live?.pv_w != null ? Math.max(0, Number(live.pv_w)) : null;
+        const liveKw = liveW != null ? liveW / 1000 : null;
+        const pctOfPeak = liveKw != null && kwp ? Math.min(100, (liveKw / kwp) * 100) : null;
+        const ageSec = live?.recorded_at
+          ? Math.max(0, Math.round((Date.now() - new Date(live.recorded_at).getTime()) / 1000))
+          : null;
+        const fresh = ageSec != null && ageSec < 120;
         return (
-          <div className="mb-4 rounded-lg border bg-gradient-to-br from-[var(--solar)]/10 to-transparent p-3">
-            <div className="mb-1 flex flex-wrap items-center justify-between gap-1">
-              <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                Producción 12 h
-              </div>
-              <div className="text-[10px] text-muted-foreground">{kwp} kWp · {losses}%</div>
-            </div>
-            <div className="flex flex-wrap items-baseline gap-2">
-              <div className="text-2xl font-bold text-[var(--solar)] tabular-nums @[420px]:text-3xl">{next12kwh.toFixed(2)}</div>
-              <div className="text-sm text-muted-foreground">kWh</div>
-              {batteryKwh > 0 && batteryFillH > 0 && (
-                <div className="basis-full text-[10px] text-muted-foreground @[420px]:basis-auto @[420px]:ml-auto">
-                  ≈ {batteryFillH.toFixed(1)} h para llenar {batteryKwh} kWh
+          <div className="mb-4 grid gap-2 sm:grid-cols-2">
+            {liveW != null && (
+              <div className="rounded-lg border bg-gradient-to-br from-emerald-500/10 to-transparent p-3">
+                <div className="mb-1 flex flex-wrap items-center justify-between gap-1">
+                  <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Producción ahora <span className="text-emerald-600">(inversor)</span>
+                  </div>
+                  {ageSec != null && (
+                    <div className={`text-[10px] ${fresh ? "text-emerald-600" : "text-muted-foreground"}`}>
+                      {fresh ? "en vivo" : `hace ${ageSec < 60 ? `${ageSec}s` : `${Math.round(ageSec / 60)}min`}`}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+                <div className="flex flex-wrap items-baseline gap-2">
+                  <div className="text-2xl font-bold text-emerald-600 tabular-nums @[420px]:text-3xl">
+                    {liveKw! < 1 ? Math.round(liveW) : liveKw!.toFixed(2)}
+                  </div>
+                  <div className="text-sm text-muted-foreground">{liveKw! < 1 ? "W" : "kW"}</div>
+                  {pctOfPeak != null && (
+                    <div className="ml-auto text-[10px] text-muted-foreground">{pctOfPeak.toFixed(0)}% del pico</div>
+                  )}
+                </div>
+                {pctOfPeak != null && (
+                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-[var(--solar)] transition-all"
+                      style={{ width: `${pctOfPeak}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+            {kwp && (
+              <div className="rounded-lg border bg-gradient-to-br from-[var(--solar)]/10 to-transparent p-3">
+                <div className="mb-1 flex flex-wrap items-center justify-between gap-1">
+                  <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Producción estimada 12 h
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">{kwp} kWp · {losses}%</div>
+                </div>
+                <div className="flex flex-wrap items-baseline gap-2">
+                  <div className="text-2xl font-bold text-[var(--solar)] tabular-nums @[420px]:text-3xl">{next12kwh.toFixed(2)}</div>
+                  <div className="text-sm text-muted-foreground">kWh</div>
+                  {batteryKwh > 0 && batteryFillH > 0 && (
+                    <div className="basis-full text-[10px] text-muted-foreground @[420px]:basis-auto @[420px]:ml-auto">
+                      ≈ {batteryFillH.toFixed(1)} h para llenar {batteryKwh} kWh
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         );
       })() : null}

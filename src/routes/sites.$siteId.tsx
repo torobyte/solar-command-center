@@ -14,6 +14,7 @@ import {
 import { format } from "date-fns";
 import { useI18n } from "@/lib/i18n";
 import { SolarForecastWidget } from "@/components/SolarForecastWidget";
+import { SavingsCard } from "@/components/SavingsCard";
 import { EnergyFlowDiagram } from "@/components/EnergyFlowDiagram";
 import { PowerGauges } from "@/components/PowerGauges";
 import { Battery3D, SolarRays, GridSineWave, ConcentricRings, SolarPanelsViz, HouseLoadViz, BackupTimeCard } from "@/components/AdvancedVisuals";
@@ -956,6 +957,7 @@ const WIDGET_DEFS: WidgetDef[] = [
   { id: "cmdstatus", label: "Estado de comandos" },
   { id: "mode", label: "Modo del inversor" },
   { id: "icons", label: "Tarjetas resumen" },
+  { id: "savings", label: "Ahorro económico" },
   { id: "backup", label: "Tiempo de respaldo" },
   { id: "rings", label: "Anillos concéntricos" },
   { id: "gauges", label: "Medidores radiales" },
@@ -1031,9 +1033,19 @@ function DashboardView({ latest, siteId, spec: _spec, device: _device }: { lates
     solarrays: <SolarRays pv={pv_W} pvMax={pvMax} />,
     gridwave: <GridSineWave voltage={gridV} frequency={50} />,
     flow: <EnergyFlowDiagram pv={pv_W} load={load} gridV={gridV} battery={battery} batteryV={batteryV} />,
+    savings: (
+      <SavingsCard
+        siteId={siteId}
+        pvW={pv_W}
+        energyPrice={pv?.energy_price ?? null}
+        feedInPrice={pv?.feed_in_price ?? null}
+        currency={pv?.currency ?? "CLP"}
+      />
+    ),
     forecast: (
       <SolarForecastWidget
         pvConfig={{ kwp: pv?.array_kwp, lossesPct: pv?.system_losses_pct, batteryKwh: pv?.battery_kwh, lat: pv?.latitude, lon: pv?.longitude, locationLabel: pv?.location_label }}
+        live={{ pv_w: pv_W, load_w: load, battery_pct: battery, recorded_at: latest?.recorded_at }}
       />
     ),
   };

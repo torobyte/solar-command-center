@@ -23,6 +23,9 @@ export interface PvConfig {
   battery_ah_each: number | null;
   battery_usable_dod_pct: number | null;
   location_label?: string | null;
+  energy_price?: number | null;
+  feed_in_price?: number | null;
+  currency?: string | null;
 }
 
 const BATTERY_TYPES: { v: string; l: string; dod: number }[] = [
@@ -73,6 +76,7 @@ export function PvSystemConfigCard({ siteId, maxAcOutputPower, nominalBatteryV }
     battery_count: null, battery_type: "lithium",
     battery_voltage_each: null, battery_ah_each: null, battery_usable_dod_pct: 90,
     location_label: null,
+    energy_price: null, feed_in_price: null, currency: "CLP",
   });
   const [saving, setSaving] = useState(false);
 
@@ -186,6 +190,35 @@ export function PvSystemConfigCard({ siteId, maxAcOutputPower, nominalBatteryV }
         <Field label="Pérdidas del sistema (%)" hint="Cableado, suciedad, inversor (~14% típico)">
           <Input type="number" value={form.system_losses_pct ?? ""} onChange={(e) => set("system_losses_pct", parseFloat(e.target.value) || null)} />
         </Field>
+
+        <div className="sm:col-span-2 mt-1 rounded-lg border border-dashed bg-muted/20 p-2.5 sm:p-3">
+          <h4 className="mb-2 text-xs font-semibold sm:text-sm">Tarifa eléctrica (para cálculo de ahorro)</h4>
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+            <Field label="Moneda" hint="CLP, USD, EUR…">
+              <select
+                className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                value={form.currency ?? "CLP"}
+                onChange={(e) => set("currency", e.target.value)}
+              >
+                <option value="CLP">CLP — Peso chileno</option>
+                <option value="USD">USD — Dólar</option>
+                <option value="EUR">EUR — Euro</option>
+                <option value="MXN">MXN — Peso mexicano</option>
+                <option value="ARS">ARS — Peso argentino</option>
+                <option value="COP">COP — Peso colombiano</option>
+                <option value="PEN">PEN — Sol peruano</option>
+                <option value="BRL">BRL — Real brasileño</option>
+              </select>
+            </Field>
+            <Field label="Precio kWh consumido" hint="Cuánto cobra la distribuidora por kWh">
+              <Input type="number" step="0.01" value={form.energy_price ?? ""} onChange={(e) => set("energy_price", parseFloat(e.target.value) || null)} placeholder="ej. 180" />
+            </Field>
+            <Field label="Precio kWh inyectado" hint="Opcional — net billing / feed-in">
+              <Input type="number" step="0.01" value={form.feed_in_price ?? ""} onChange={(e) => set("feed_in_price", parseFloat(e.target.value) || null)} placeholder="ej. 60" />
+            </Field>
+          </div>
+        </div>
+
         <div className="sm:col-span-2">
           <AddressPicker
             lat={form.latitude}
