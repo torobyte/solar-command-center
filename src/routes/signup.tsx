@@ -20,7 +20,7 @@ function SignupPage() {
   const signupWithEmail = useServerFn(signUpWithCustomEmail);
   const { t } = useI18n();
   const { branding, resolvedLogo } = useBranding();
-  const siteName = branding?.site_name ?? "SolarOps";
+  const siteName = branding?.site_name ?? "Mi plataforma";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
