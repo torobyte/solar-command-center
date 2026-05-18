@@ -390,6 +390,7 @@ jobs:
             'Lapp/solarops/client/SolarOpsWidgetWave;' \
             'Lapp/solarops/client/SolarOpsWidgetStats;' \
             'Lapp/solarops/client/SolarOpsWidgetRadial;' \
+            'Lapp/solarops/client/SolarOpsWidgetBattery;' \
             'Lapp/solarops/client/UpdateManager;' \
             'Lapp/solarops/client/BrandSync;' \
             'Lapp/solarops/client/WidgetStreamService;' \
