@@ -956,6 +956,7 @@ const WIDGET_DEFS: WidgetDef[] = [
   { id: "cmdstatus", label: "Estado de comandos" },
   { id: "mode", label: "Modo del inversor" },
   { id: "icons", label: "Tarjetas resumen" },
+  { id: "savings", label: "Ahorro económico" },
   { id: "backup", label: "Tiempo de respaldo" },
   { id: "rings", label: "Anillos concéntricos" },
   { id: "gauges", label: "Medidores radiales" },
