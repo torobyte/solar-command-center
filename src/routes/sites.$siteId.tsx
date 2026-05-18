@@ -232,7 +232,7 @@ function SiteDetail() {
   const [site, setSite] = useState<Site | null>(null);
   const [latest, setLatest] = useState<Sample | null>(null);
   const [history, setHistory] = useState<Sample[]>([]);
-  const [totals, setTotals] = useState<DailyTotal[]>([]);
+  const spikeRef = useRef<SpikeState>({});
   const [tab, setTab] = useState<SiteTab>("dashboard");
   const [configSubTab, setConfigSubTab] = useState<string>("inverter");
 
