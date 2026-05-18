@@ -27,6 +27,7 @@ const Schema = z.object({
   subject: z.string().max(300).optional(),
   html: z.string().max(50_000).optional(),
   cta: z.string().max(300).optional(),
+  wrapWithBrand: z.boolean().optional(),
 });
 
 export const renderEmailPreview = createServerFn({ method: "POST" })
