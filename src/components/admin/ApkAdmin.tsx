@@ -133,9 +133,10 @@ export function ApkAdmin() {
     setFetchingRelease(true);
     try {
       const r = await fetch(
-        `https://api.github.com/repos/${parsed.owner}/${parsed.repo}/releases/latest`,
+        `https://api.github.com/repos/${parsed.owner}/${parsed.repo}/releases/latest?_=${Date.now()}`,
         {
           headers: { Accept: "application/vnd.github+json" },
+          cache: "no-store",
         },
       );
       if (!r.ok) throw new Error(`GitHub API ${r.status}`);
@@ -143,13 +144,17 @@ export function ApkAdmin() {
       const apkAsset = (j.assets ?? []).find((a: any) => a.name.endsWith(".apk"));
       const shaAsset = (j.assets ?? []).find((a: any) => a.name.endsWith(".sha256"));
       if (!apkAsset) throw new Error("El último release no contiene .apk");
+      // IMPORTANTE: usamos la URL estable /releases/latest/download/<file>
+      // que SIEMPRE redirige al último APK publicado. browser_download_url
+      // apunta a un asset_id concreto y queda obsoleto cuando el workflow
+      // borra/recrea assets en cada build.
+      const stableUrl = `https://github.com/${parsed.owner}/${parsed.repo}/releases/latest/download/${apkAsset.name}`;
       if (autoMode) {
-        setApkUrl(apkAsset.browser_download_url);
-        localStorage.setItem("apk_download_url", apkAsset.browser_download_url);
+        setApkUrl(stableUrl);
+        localStorage.setItem("apk_download_url", stableUrl);
       }
       setLatestTag(j.tag_name ?? null);
       setPublishedAt(j.published_at ?? null);
-      // Intenta extraer SHA del body, o descargar el .sha256
       const bodyMatch = (j.body ?? "").match(/[A-Fa-f0-9]{64}/);
       if (bodyMatch) setLatestSha(bodyMatch[0].toLowerCase());
       else if (shaAsset) {

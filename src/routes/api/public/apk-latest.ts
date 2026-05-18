@@ -37,7 +37,7 @@ export const Route = createFileRoute("/api/public/apk-latest")({
         }
 
         const releaseRes = await fetch(
-          `https://api.github.com/repos/${repo.owner}/${repo.repo}/releases/tags/latest`,
+          `https://api.github.com/repos/${repo.owner}/${repo.repo}/releases/latest`,
           { headers },
         );
         if (!releaseRes.ok) {
@@ -76,6 +76,11 @@ export const Route = createFileRoute("/api/public/apk-latest")({
         const latestVersionCode = Number(release.body?.match(/versionCode:\s*`?(\d+)`?/)?.[1] ?? data.version_code ?? 0);
         const latestVersionName = String(release.body?.match(/versionName:\s*`?([^`\n]+)`?/)?.[1] ?? data.version_name ?? "");
 
+        // URL estable que SIEMPRE redirige al último APK (no caduca al recrear assets).
+        const stableApkUrl = apkAsset
+          ? `https://github.com/${repo.owner}/${repo.repo}/releases/latest/download/${apkAsset.name}`
+          : null;
+
         return new Response(
           JSON.stringify({
             app_id: data.app_id,
@@ -84,9 +89,9 @@ export const Route = createFileRoute("/api/public/apk-latest")({
             published_at: release.published_at ?? null,
             version_code: latestVersionCode,
             version_name: latestVersionName,
-            apk_url: apkAsset?.browser_download_url ?? null,
+            apk_url: stableApkUrl,
             checksum_sha256: checksumSha256,
-            update_available: Boolean(apkAsset?.browser_download_url) && latestVersionCode > currentVersionCode,
+            update_available: Boolean(stableApkUrl) && latestVersionCode > currentVersionCode,
           }),
           {
             headers: { "content-type": "application/json", "cache-control": "public, max-age=60" },

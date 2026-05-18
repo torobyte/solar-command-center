@@ -19,6 +19,7 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
@@ -75,19 +76,20 @@ class MainActivity : Activity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Quitar barra de título blanca y pintar de oscuro toda la ventana
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         super.onCreate(savedInstanceState)
         actionBar?.hide()
-        window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(0xFF0A0A0A.toInt()))
+
+        // Cargar branding cacheado (instantáneo, sin red) y refrescar en background.
+        val brand = BrandSync.cached(this)
+        window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(brand.bgColor))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            window.statusBarColor = 0xFF0A0A0A.toInt()
-            window.navigationBarColor = 0xFF0A0A0A.toInt()
+            window.statusBarColor = brand.bgColor
+            window.navigationBarColor = brand.bgColor
         }
+        thread { runCatching { BrandSync.refresh(applicationContext) } }
 
         updateManager = UpdateManager(applicationContext)
-        // Chequear updates de inmediato — antes del WebView — para que la APK
-        // se autoactualice incluso si la sesión está caducada o el login falla.
         thread { runCatching { updateManager.checkForUpdates() } }
 
         val baseUrl = WidgetCommon.baseUrl(this).trimEnd('/')
@@ -96,33 +98,15 @@ class MainActivity : Activity() {
         Log.d(launchLogTag, "BOOT $buildStamp baseUrl=$baseUrl session=${!savedSession.isNullOrBlank()}")
 
         if (savedSession.isNullOrBlank()) {
-            // Cargar el login HTML bonito dentro del WebView, en vez de la
-            // pantalla nativa fea de WidgetSetupActivity.
             web = buildWebView()
             setContentView(web)
             web.loadUrl("$baseUrl/api/public/apk-login")
             return
         }
 
-        // Mostramos splash mientras se prepara el WebView.
-        setContentView(
-            FrameLayout(this).apply {
-                setBackgroundColor(0xFF0A0A0A.toInt())
-                addView(ProgressBar(this@MainActivity).apply { isIndeterminate = true },
-                    FrameLayout.LayoutParams(96, 96).apply { gravity = Gravity.CENTER })
-                addView(TextView(this@MainActivity).apply {
-                    text = "Abriendo SolarOps…"
-                    gravity = Gravity.CENTER_HORIZONTAL
-                    setTextColor(0xFFCBD5E1.toInt())
-                    textSize = 16f
-                }, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT).apply {
-                    topMargin = 220
-                    gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-                })
-            }
-        )
+        // Splash branded (color + icono configurados por el superadmin).
+        setContentView(buildBrandedSplash(brand))
 
-        // Refresh + sincronización en background, pero abrimos el WebView ya.
         thread {
             val refreshed = runCatching { ensureFreshSession(savedSession) }
                 .onFailure { Log.w(launchLogTag, "ensureFreshSession falló: ${it.message}") }
@@ -139,15 +123,54 @@ class MainActivity : Activity() {
         }
 
         web = buildWebView()
-        setContentView(web)
-        if (savedInstanceState != null) {
-            web.restoreState(savedInstanceState)
-            val restored = web.url
-            if (restored.isNullOrBlank() || !restored.startsWith(baseUrl)) {
+        // Pequeño delay para que el splash sea visible antes de cargar WebView.
+        Handler(Looper.getMainLooper()).postDelayed({
+            setContentView(web)
+            if (savedInstanceState != null) {
+                web.restoreState(savedInstanceState)
+                val restored = web.url
+                if (restored.isNullOrBlank() || !restored.startsWith(baseUrl)) {
+                    loadBootstrapPage(savedSession)
+                }
+            } else {
                 loadBootstrapPage(savedSession)
             }
-        } else {
-            loadBootstrapPage(savedSession)
+        }, 700)
+    }
+
+    private fun buildBrandedSplash(brand: BrandSync.Brand): FrameLayout {
+        return FrameLayout(this).apply {
+            setBackgroundColor(brand.splashColor)
+            // Icono centrado: usa splash si existe, si no el icon, si no la inicial.
+            val centerBmp = brand.splashBitmap ?: brand.iconBitmap
+            if (centerBmp != null) {
+                addView(
+                    ImageView(this@MainActivity).apply { setImageBitmap(centerBmp) },
+                    FrameLayout.LayoutParams(360, 360).apply { gravity = Gravity.CENTER },
+                )
+            } else {
+                addView(TextView(this@MainActivity).apply {
+                    text = brand.appName.firstOrNull()?.uppercase() ?: "S"
+                    setTextColor(0xFFFFFFFF.toInt())
+                    textSize = 64f
+                    gravity = Gravity.CENTER
+                    setBackgroundColor(brand.primaryColor)
+                }, FrameLayout.LayoutParams(220, 220).apply { gravity = Gravity.CENTER })
+            }
+            addView(TextView(this@MainActivity).apply {
+                text = brand.appName
+                gravity = Gravity.CENTER_HORIZONTAL
+                setTextColor(0xFFFFFFFF.toInt())
+                textSize = 18f
+            }, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT).apply {
+                topMargin = 540
+                gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            })
+            addView(ProgressBar(this@MainActivity).apply { isIndeterminate = true },
+                FrameLayout.LayoutParams(72, 72).apply {
+                    gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                    bottomMargin = 200
+                })
         }
     }
 
