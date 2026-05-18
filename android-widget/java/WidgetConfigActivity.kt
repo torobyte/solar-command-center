@@ -254,6 +254,7 @@ class WidgetConfigActivity : Activity() {
             SolarOpsWidgetWave::class.java,
             SolarOpsWidgetStats::class.java,
             SolarOpsWidgetRadial::class.java,
+            SolarOpsWidgetBattery::class.java,
         )) {
             sendBroadcast(Intent(this, cls).apply {
                 action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
