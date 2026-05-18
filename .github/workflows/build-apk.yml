@@ -380,6 +380,7 @@ jobs:
             'Lapp/solarops/client/SolarOpsWidgetSpeedo;' \
             'Lapp/solarops/client/SolarOpsWidgetWave;' \
             'Lapp/solarops/client/SolarOpsWidgetStats;' \
+            'Lapp/solarops/client/SolarOpsWidgetRadial;' \
             'Lapp/solarops/client/WidgetStreamService;'
           do
             if ! unzip -p "$APK" classes.dex | strings | grep -F "$CLASS" >/dev/null; then
