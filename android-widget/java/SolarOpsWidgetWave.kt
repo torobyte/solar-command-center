@@ -20,12 +20,14 @@ class SolarOpsWidgetWave : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, mgr: AppWidgetManager, ids: IntArray) {
         for (id in ids) refresh(context, mgr, id)
+        WaveAnimator.start(context)
     }
 
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
         WidgetStreamService.start(context)
         WidgetCommon.scheduleAlarmFor(context, SolarOpsWidgetWave::class.java)
+        WaveAnimator.start(context)
     }
 
     override fun onDisabled(context: Context) {
@@ -35,7 +37,11 @@ class SolarOpsWidgetWave : AppWidgetProvider() {
 
     override fun onDeleted(context: Context, ids: IntArray) {
         val e = context.getSharedPreferences(WidgetCommon.PREFS, Context.MODE_PRIVATE).edit()
-        for (id in ids) e.remove("${WidgetCommon.KEY_TOKEN}.$id")
+        for (id in ids) {
+            e.remove("${WidgetCommon.KEY_TOKEN}.$id")
+            e.remove("${WidgetCommon.KEY_METRIC}.$id")
+            e.remove("${WidgetCommon.KEY_INTERVAL}.$id")
+        }
         e.apply()
         WidgetStreamService.stopIfNoWidgets(context)
     }
