@@ -34,7 +34,18 @@ export const renderEmailPreview = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => Schema.parse(input))
   .handler(async ({ data }) => {
     const brand = await loadBrand();
-    const vars: MailVars = { site_name: brand.site_name, ...SAMPLE_VARS };
+    const baseVars: MailVars = { site_name: brand.site_name, ...SAMPLE_VARS };
+    const vars: MailVars = {
+      ...baseVars,
+      full_name: baseVars.full_name ?? baseVars.name,
+      user_name: baseVars.user_name ?? baseVars.name,
+      first_name:
+        baseVars.first_name ??
+        (typeof baseVars.name === "string" ? baseVars.name.split(" ")[0] : baseVars.name),
+      user_email: baseVars.user_email ?? baseVars.email,
+      url: baseVars.url ?? baseVars.link,
+      action_url: baseVars.action_url ?? baseVars.link,
+    };
     const def = DEFAULTS[data.templateId] || DEFAULTS.alert;
     const subject = render(data.subject || def.subject, vars);
     const innerHtml = render(data.html || def.html, vars);
