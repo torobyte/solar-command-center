@@ -303,6 +303,8 @@ jobs:
             sed -i 's|<application|<uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>\n    <application|' "$MANIFEST"
           grep -q "android.permission.FOREGROUND_SERVICE_DATA_SYNC" "$MANIFEST" || \
             sed -i 's|<application|<uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>\n    <application|' "$MANIFEST"
+          grep -q "android.permission.POST_NOTIFICATIONS" "$MANIFEST" || \
+            sed -i 's|<application|<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <application|' "$MANIFEST"
           # Strip any previously-injected SolarOps widget block (between markers or matching the old short-form classes)
           python3 - <<'PY'
           import re
