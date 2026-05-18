@@ -40,6 +40,9 @@ const SEV_META: Record<Severity, { label: string; icon: typeof Info; color: stri
 };
 
 export function NotificationsConfig({ siteId, userId }: { siteId: string; userId: string }) {
+  const { branding, resolvedLogo } = useBranding();
+  const brandName = branding?.site_name ?? "Mi plataforma";
+  const brandIcon = resolvedLogo ?? "/icon.svg";
   const [rules, setRules] = useState<NotificationRule[]>([]);
   const [events, setEvents] = useState<NotificationEvent[]>([]);
   const [permission, setPermission] = useState<NotificationPermission>(
