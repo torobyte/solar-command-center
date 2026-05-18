@@ -137,9 +137,19 @@ export function SiteDashboardView({
     solarrays: <SolarRays pv={pv_W} pvMax={pvMax} />,
     gridwave: <GridSineWave voltage={gridV} frequency={50} />,
     flow: <EnergyFlowDiagram pv={pv_W} load={load} gridV={gridV} battery={battery} batteryV={batteryV} />,
+    savings: (
+      <SavingsCard
+        siteId={siteId}
+        pvW={pv_W}
+        energyPrice={pv?.energy_price ?? null}
+        feedInPrice={pv?.feed_in_price ?? null}
+        currency={pv?.currency ?? "CLP"}
+      />
+    ),
     forecast: (
       <SolarForecastWidget
         pvConfig={{ kwp: pv?.array_kwp, lossesPct: pv?.system_losses_pct, batteryKwh: pv?.battery_kwh, lat: pv?.latitude, lon: pv?.longitude, locationLabel: pv?.location_label }}
+        live={{ pv_w: pv_W, load_w: load, battery_pct: battery, recorded_at: latest?.recorded_at }}
       />
     ),
   };
