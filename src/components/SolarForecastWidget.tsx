@@ -60,7 +60,14 @@ function estimateKwh(radWhPerM2: number, kwp: number, lossesPct: number): number
   return Math.max(0, kwp * (radWhPerM2 / 1000) * (1 - losses));
 }
 
-export function SolarForecastWidget({ pvConfig }: { pvConfig?: ForecastPvConfig } = {}) {
+export interface ForecastLiveSample {
+  pv_w?: number | null;
+  load_w?: number | null;
+  battery_pct?: number | null;
+  recorded_at?: string | null;
+}
+
+export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvConfig; live?: ForecastLiveSample } = {}) {
   const [data, setData] = useState<ForecastData | null>(null);
   const [coords, setCoords] = useState<Coords | null>(null);
   const [loading, setLoading] = useState(true);
