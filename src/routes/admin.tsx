@@ -1203,29 +1203,61 @@ function DevicesAdmin() {
       {/* Activar */}
       <Dialog open={!!activateRow} onOpenChange={(o) => !o && setActivateRow(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Activar licencia · {activateRow?.name}</DialogTitle></DialogHeader>
-          <form onSubmit={async (e) => {
-            e.preventDefault();
-            if (!activateRow) return;
-            try {
-              const res = await runAdminAction(activateFn, { site_id: activateRow.site_id, code: code.trim() });
-              toast.success(`Activado: ${res.plan} hasta ${new Date(res.expires_at).toLocaleDateString()}`);
-              setActivateRow(null); load();
-            } catch (e) { toast.error((e as Error).message); }
-          }} className="space-y-4">
-            <div className="rounded-md border bg-muted/30 p-3 text-xs">
-              <div>Hardware: <span className="font-mono">{activateRow?.hardware_id}</span></div>
-              <div>Plan actual: <strong>{activateRow?.plan}</strong></div>
-              <div>Expira: {activateRow?.license_expires_at ? new Date(activateRow.license_expires_at).toLocaleString() : "—"}</div>
-            </div>
-            <div className="space-y-2">
-              <Label>Código de licencia</Label>
-              <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="XXXXX-XXXXX-XXXXX-XXXXX" required />
-            </div>
-            <DialogFooter><Button type="submit">Activar</Button></DialogFooter>
-          </form>
+          <DialogHeader><DialogTitle>Asignar licencia · {activateRow?.name}</DialogTitle></DialogHeader>
+          <div className="rounded-md border bg-muted/30 p-3 text-xs">
+            <div>Hardware: <span className="font-mono">{activateRow?.hardware_id}</span></div>
+            <div>Plan actual: <strong>{activateRow?.plan}</strong></div>
+            <div>Expira: {activateRow?.license_expires_at ? new Date(activateRow.license_expires_at).toLocaleString() : "—"}</div>
+          </div>
+          <Tabs value={licMode} onValueChange={(v) => setLicMode(v as "existing" | "generate")}>
+            <TabsList className="w-full">
+              <TabsTrigger value="existing" className="flex-1">Aplicar código existente</TabsTrigger>
+              <TabsTrigger value="generate" className="flex-1">Generar nueva</TabsTrigger>
+            </TabsList>
+            <TabsContent value="existing" className="mt-3">
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                if (!activateRow) return;
+                try {
+                  const res = await runAdminAction(activateFn, { site_id: activateRow.site_id, code: code.trim() });
+                  toast.success(`Activado: ${res.plan} hasta ${new Date(res.expires_at).toLocaleDateString()}`);
+                  setActivateRow(null); load();
+                } catch (e) { toast.error((e as Error).message); }
+              }} className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Código de licencia</Label>
+                  <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="XXXXX-XXXXX-XXXXX-XXXXX" required />
+                </div>
+                <DialogFooter><Button type="submit">Aplicar código</Button></DialogFooter>
+              </form>
+            </TabsContent>
+            <TabsContent value="generate" className="mt-3 space-y-3">
+              <div className="space-y-2">
+                <Label>Plan</Label>
+                <Select value={genPlanSlug} onValueChange={setGenPlanSlug}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {availablePlans.map((p) => (
+                      <SelectItem key={p.slug} value={p.slug}>
+                        {p.name} {p.is_lifetime ? "(de por vida)" : `(${p.duration_days}d)`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Se genera un código nuevo, queda registrado en Licencias y se aplica al instante a este dispositivo.
+              </p>
+              <DialogFooter>
+                <Button onClick={generateAndActivateDevice} disabled={generating || availablePlans.length === 0}>
+                  {generating ? "Generando…" : "Generar y aplicar"}
+                </Button>
+              </DialogFooter>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
+
 
       {/* Extender */}
       <Dialog open={!!extendRow} onOpenChange={(o) => !o && setExtendRow(null)}>
