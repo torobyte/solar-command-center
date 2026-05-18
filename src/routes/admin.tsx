@@ -143,6 +143,7 @@ function useSyncStatus() {
 
 function SitesAdmin() {
   const { t } = useI18n();
+  const { user } = useAuth();
   const licenseInfo = useLicenseInfo();
   const syncStatus = useSyncStatus();
   const [rows, setRows] = useState<SiteRow[]>([]);
@@ -153,11 +154,16 @@ function SitesAdmin() {
   const requestRefresh = useServerFn(adminRequestRefresh);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", inverter_model: "", owner_id: "" });
+  const [search, setSearch] = useState("");
 
   const activate = useServerFn(adminActivateSite);
   const revoke = useServerFn(adminRevokeLicense);
   const [licDlg, setLicDlg] = useState<SiteRow | null>(null);
   const [licCode, setLicCode] = useState("");
+  const [licMode, setLicMode] = useState<"existing" | "generate">("existing");
+  const [genPlanSlug, setGenPlanSlug] = useState("pro");
+  const [availablePlans, setAvailablePlans] = useState<Array<{ slug: string; name: string; duration_days: number | null; is_lifetime: boolean }>>([]);
+  const [generating, setGenerating] = useState(false);
 
   async function runAdminAction<TData, TResult>(
     action: (opts: { data: TData; headers?: HeadersInit }) => Promise<TResult>,
@@ -177,6 +183,35 @@ function SitesAdmin() {
   }
   useEffect(() => { load(); }, []);
 
+  // Cargar planes disponibles para "Generar licencia nueva".
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("plans")
+        .select("slug,name,duration_days,is_lifetime")
+        .eq("active", true)
+        .order("sort_order");
+      setAvailablePlans((data ?? []) as typeof availablePlans);
+      if (data && data.length && !data.find((p) => p.slug === genPlanSlug)) {
+        setGenPlanSlug(data[0].slug);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Filtro de búsqueda: nombre, modelo, plan o email del owner.
+  const ownerEmailMap = new Map(users.map((u) => [u.id, (u.email ?? "").toLowerCase()]));
+  const filteredRows = rows.filter((r) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      r.name.toLowerCase().includes(q) ||
+      (r.inverter_model ?? "").toLowerCase().includes(q) ||
+      r.plan.toLowerCase().includes(q) ||
+      (ownerEmailMap.get(r.owner_id) ?? "").includes(q)
+    );
+  });
+
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!form.owner_id) return toast.error(t("asite.selectOwner"));
@@ -186,6 +221,52 @@ function SitesAdmin() {
       setOpen(false); setForm({ name: "", description: "", inverter_model: "", owner_id: "" });
       load();
     } catch (e) { toast.error((e as Error).message); }
+  }
+
+  function openLicenseDialog(row: SiteRow) {
+    setLicCode("");
+    setLicMode("existing");
+    setLicDlg(row);
+  }
+
+  async function generateAndActivate() {
+    if (!licDlg || !user) return;
+    const plan = availablePlans.find((p) => p.slug === genPlanSlug);
+    if (!plan) return toast.error("Selecciona un plan");
+    setGenerating(true);
+    try {
+      const code = generateCode();
+      const ownerEmail = ownerEmailMap.get(licDlg.owner_id) ?? null;
+      const { error } = await supabase.from("license_codes").insert({
+        code,
+        plan: plan.slug,
+        duration_days: plan.is_lifetime ? null : (plan.duration_days ?? 365),
+        is_lifetime: plan.is_lifetime,
+        assigned_email: ownerEmail,
+        site_name: licDlg.name,
+        notes: `Generada y aplicada desde Sitios por ${user.email ?? "admin"}`,
+        created_by: user.id,
+      });
+      if (error) throw error;
+      const res = await runAdminAction(activate, { site_id: licDlg.id, code });
+      await supabase.from("license_audit_log").insert({
+        license_code: code,
+        plan: plan.slug,
+        action: "created_and_applied",
+        performed_by: user.id,
+        performed_by_email: user.email ?? null,
+        reason: "Generada y aplicada desde Sitios",
+        details: { site_id: licDlg.id, site_name: licDlg.name } as never,
+      });
+      const d = new Date(res.expires_at);
+      toast.success(`Licencia ${plan.name} aplicada hasta ${d.toLocaleDateString()}`);
+      setLicDlg(null);
+      load();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setGenerating(false);
+    }
   }
 
   return (
