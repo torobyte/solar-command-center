@@ -197,7 +197,18 @@ export async function sendMail(input: SendMailInput): Promise<SendMailResult> {
     }
 
     const brand = await loadBrand();
-    const vars: MailVars = { site_name: brand.site_name, ...(input.vars || {}) };
+    const baseVars: MailVars = { site_name: brand.site_name, ...(input.vars || {}) };
+    const vars: MailVars = {
+      ...baseVars,
+      full_name: baseVars.full_name ?? baseVars.name,
+      user_name: baseVars.user_name ?? baseVars.name,
+      first_name:
+        baseVars.first_name ??
+        (typeof baseVars.name === "string" ? baseVars.name.split(" ")[0] : baseVars.name),
+      user_email: baseVars.user_email ?? baseVars.email,
+      url: baseVars.url ?? baseVars.link,
+      action_url: baseVars.action_url ?? baseVars.link,
+    };
 
     let subject = input.subject;
     let html = input.html;
