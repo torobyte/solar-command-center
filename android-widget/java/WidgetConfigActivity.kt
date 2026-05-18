@@ -239,6 +239,8 @@ class WidgetConfigActivity : Activity() {
         if (token.isEmpty()) { finish(); return }
         getSharedPreferences(WidgetCommon.PREFS, MODE_PRIVATE).edit()
             .putString("${WidgetCommon.KEY_TOKEN}.$widgetId", token)
+            .putString("${WidgetCommon.KEY_METRIC}.$widgetId", chosenMetric)
+            .putInt("${WidgetCommon.KEY_INTERVAL}.$widgetId", chosenInterval)
             .apply()
 
         for (cls in listOf(
@@ -251,6 +253,7 @@ class WidgetConfigActivity : Activity() {
             SolarOpsWidgetSpeedo::class.java,
             SolarOpsWidgetWave::class.java,
             SolarOpsWidgetStats::class.java,
+            SolarOpsWidgetRadial::class.java,
         )) {
             sendBroadcast(Intent(this, cls).apply {
                 action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
@@ -259,7 +262,6 @@ class WidgetConfigActivity : Activity() {
             WidgetCommon.scheduleAlarmFor(this, cls)
         }
 
-        // Arranca/refresca el stream SSE para empuje en tiempo real.
         WidgetStreamService.start(this)
 
         setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
