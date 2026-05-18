@@ -211,6 +211,9 @@ jobs:
           -keep class app.solarops.client.SolarOpsWidgetNeon { *; }
           -keep class app.solarops.client.SolarOpsWidgetFlow { *; }
           -keep class app.solarops.client.SolarOpsWidgetMini { *; }
+          -keep class app.solarops.client.SolarOpsWidgetSpeedo { *; }
+          -keep class app.solarops.client.SolarOpsWidgetWave { *; }
+          -keep class app.solarops.client.SolarOpsWidgetStats { *; }
           -keep class app.solarops.client.WidgetStreamService { *; }
           -keep class app.solarops.client.UpdateManager { *; }
           """.strip()
