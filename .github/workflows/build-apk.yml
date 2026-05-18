@@ -217,6 +217,7 @@ jobs:
           -keep class app.solarops.client.SolarOpsWidgetRadial { *; }
           -keep class app.solarops.client.WidgetStreamService { *; }
           -keep class app.solarops.client.LockscreenLiveService { *; }
+          -keep class app.solarops.client.AlertsStreamService { *; }
           -keep class app.solarops.client.WaveAnimator { *; }
           -keep class app.solarops.client.UpdateManager { *; }
           -keep class app.solarops.client.BrandSync { *; }
@@ -317,6 +318,7 @@ jobs:
               r'<receiver[^>]*android:name="(?:\.|app\.solarops\.client\.)SolarOpsWidget(?:Tiles|Gauge|Neon|Flow|Mini|Speedo|Wave|Stats|Radial)?"[^>]*(?:/>|>[\s\S]*?</receiver>)',
               r'<service[^>]*android:name="(?:\.|app\.solarops\.client\.)WidgetStreamService"[^>]*(?:/>|>[\s\S]*?</service>)',
               r'<service[^>]*android:name="(?:\.|app\.solarops\.client\.)LockscreenLiveService"[^>]*(?:/>|>[\s\S]*?</service>)',
+              r'<service[^>]*android:name="(?:\.|app\.solarops\.client\.)AlertsStreamService"[^>]*(?:/>|>[\s\S]*?</service>)',
           ]
           for pat in patterns:
               s = re.sub(pat, '', s)
@@ -390,7 +392,8 @@ jobs:
             'Lapp/solarops/client/UpdateManager;' \
             'Lapp/solarops/client/BrandSync;' \
             'Lapp/solarops/client/WidgetStreamService;' \
-            'Lapp/solarops/client/LockscreenLiveService;'
+            'Lapp/solarops/client/LockscreenLiveService;' \
+            'Lapp/solarops/client/AlertsStreamService;'
           do
             if ! unzip -p "$APK" classes.dex | strings | grep -F "$CLASS" >/dev/null; then
               echo "::error::Missing class in APK: $CLASS"

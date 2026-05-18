@@ -100,3 +100,10 @@
     android:name="app.solarops.client.LockscreenLiveService"
     android:exported="false"
     android:foregroundServiceType="dataSync" />
+
+<!-- Foreground service que escucha alertas (SSE) y dispara notificaciones
+     nativas con sonido / vibración / pantalla de bloqueo. -->
+<service
+    android:name="app.solarops.client.AlertsStreamService"
+    android:exported="false"
+    android:foregroundServiceType="dataSync" />

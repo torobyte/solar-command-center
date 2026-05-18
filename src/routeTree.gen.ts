@@ -38,6 +38,7 @@ import { Route as ApiPublicApkLoginRouteImport } from './routes/api/public/apk-l
 import { Route as ApiPublicApkLatestRouteImport } from './routes/api/public/apk-latest'
 import { Route as ApiPublicApkBrandRouteImport } from './routes/api/public/apk-brand'
 import { Route as ApiPublicApkBootstrapRouteImport } from './routes/api/public/apk-bootstrap'
+import { Route as ApiPublicAlertsStreamRouteImport } from './routes/api/public/alerts-stream'
 import { Route as ApiPublicActivateRouteImport } from './routes/api/public/activate'
 import { Route as ApiAdminSmtpTestRouteImport } from './routes/api/admin/smtp-test'
 import { Route as ApiPublicAgentUpdateRouteImport } from './routes/api/public/agent.update'
@@ -189,6 +190,11 @@ const ApiPublicApkBootstrapRoute = ApiPublicApkBootstrapRouteImport.update({
   path: '/api/public/apk-bootstrap',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicAlertsStreamRoute = ApiPublicAlertsStreamRouteImport.update({
+  id: '/api/public/alerts-stream',
+  path: '/api/public/alerts-stream',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicActivateRoute = ApiPublicActivateRouteImport.update({
   id: '/api/public/activate',
   path: '/api/public/activate',
@@ -232,6 +238,7 @@ export interface FileRoutesByFullPath {
   '/sites/overview': typeof SitesOverviewRoute
   '/api/admin/smtp-test': typeof ApiAdminSmtpTestRoute
   '/api/public/activate': typeof ApiPublicActivateRoute
+  '/api/public/alerts-stream': typeof ApiPublicAlertsStreamRoute
   '/api/public/apk-bootstrap': typeof ApiPublicApkBootstrapRoute
   '/api/public/apk-brand': typeof ApiPublicApkBrandRoute
   '/api/public/apk-latest': typeof ApiPublicApkLatestRoute
@@ -268,6 +275,7 @@ export interface FileRoutesByTo {
   '/sites/overview': typeof SitesOverviewRoute
   '/api/admin/smtp-test': typeof ApiAdminSmtpTestRoute
   '/api/public/activate': typeof ApiPublicActivateRoute
+  '/api/public/alerts-stream': typeof ApiPublicAlertsStreamRoute
   '/api/public/apk-bootstrap': typeof ApiPublicApkBootstrapRoute
   '/api/public/apk-brand': typeof ApiPublicApkBrandRoute
   '/api/public/apk-latest': typeof ApiPublicApkLatestRoute
@@ -305,6 +313,7 @@ export interface FileRoutesById {
   '/sites/overview': typeof SitesOverviewRoute
   '/api/admin/smtp-test': typeof ApiAdminSmtpTestRoute
   '/api/public/activate': typeof ApiPublicActivateRoute
+  '/api/public/alerts-stream': typeof ApiPublicAlertsStreamRoute
   '/api/public/apk-bootstrap': typeof ApiPublicApkBootstrapRoute
   '/api/public/apk-brand': typeof ApiPublicApkBrandRoute
   '/api/public/apk-latest': typeof ApiPublicApkLatestRoute
@@ -343,6 +352,7 @@ export interface FileRouteTypes {
     | '/sites/overview'
     | '/api/admin/smtp-test'
     | '/api/public/activate'
+    | '/api/public/alerts-stream'
     | '/api/public/apk-bootstrap'
     | '/api/public/apk-brand'
     | '/api/public/apk-latest'
@@ -379,6 +389,7 @@ export interface FileRouteTypes {
     | '/sites/overview'
     | '/api/admin/smtp-test'
     | '/api/public/activate'
+    | '/api/public/alerts-stream'
     | '/api/public/apk-bootstrap'
     | '/api/public/apk-brand'
     | '/api/public/apk-latest'
@@ -415,6 +426,7 @@ export interface FileRouteTypes {
     | '/sites/overview'
     | '/api/admin/smtp-test'
     | '/api/public/activate'
+    | '/api/public/alerts-stream'
     | '/api/public/apk-bootstrap'
     | '/api/public/apk-brand'
     | '/api/public/apk-latest'
@@ -451,6 +463,7 @@ export interface RootRouteChildren {
   SitesOverviewRoute: typeof SitesOverviewRoute
   ApiAdminSmtpTestRoute: typeof ApiAdminSmtpTestRoute
   ApiPublicActivateRoute: typeof ApiPublicActivateRoute
+  ApiPublicAlertsStreamRoute: typeof ApiPublicAlertsStreamRoute
   ApiPublicApkBootstrapRoute: typeof ApiPublicApkBootstrapRoute
   ApiPublicApkBrandRoute: typeof ApiPublicApkBrandRoute
   ApiPublicApkLatestRoute: typeof ApiPublicApkLatestRoute
@@ -676,6 +689,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicApkBootstrapRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/alerts-stream': {
+      id: '/api/public/alerts-stream'
+      path: '/api/public/alerts-stream'
+      fullPath: '/api/public/alerts-stream'
+      preLoaderRoute: typeof ApiPublicAlertsStreamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/activate': {
       id: '/api/public/activate'
       path: '/api/public/activate'
@@ -740,6 +760,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitesOverviewRoute: SitesOverviewRoute,
   ApiAdminSmtpTestRoute: ApiAdminSmtpTestRoute,
   ApiPublicActivateRoute: ApiPublicActivateRoute,
+  ApiPublicAlertsStreamRoute: ApiPublicAlertsStreamRoute,
   ApiPublicApkBootstrapRoute: ApiPublicApkBootstrapRoute,
   ApiPublicApkBrandRoute: ApiPublicApkBrandRoute,
   ApiPublicApkLatestRoute: ApiPublicApkLatestRoute,

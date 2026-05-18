@@ -63,7 +63,10 @@ class MainActivity : Activity() {
                 .apply()
             Log.d(launchLogTag, "Bridge.saveSession() recibió sesión nueva")
             // Re-sincronizar sitios en background con la sesión nueva.
-            thread { runCatching { syncSitesFromSession(payload) } }
+            thread {
+                runCatching { syncSitesFromSession(payload) }
+                runCatching { AlertsStreamService.start(applicationContext) }
+            }
         }
 
         @JavascriptInterface
@@ -143,6 +146,8 @@ class MainActivity : Activity() {
             runCatching { syncSitesFromSession(effective) }
                 .onSuccess { Log.d(launchLogTag, "Sitios sincronizados: $it") }
                 .onFailure { Log.w(launchLogTag, "Sync sitios: ${it.message}") }
+            // Inicia el servicio nativo de alertas (Web Push no funciona en WebView).
+            runCatching { AlertsStreamService.start(applicationContext) }
         }
 
         web = buildWebView()
