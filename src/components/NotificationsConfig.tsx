@@ -17,6 +17,7 @@ import {
   type NotificationRule, type NotificationEvent, type Operator, type Severity,
 } from "@/lib/notifications";
 import { isPushSupported, subscribeToPush, unsubscribeFromPush, registerServiceWorker } from "@/lib/push";
+import { useBranding } from "@/lib/branding";
 
 const NUMERIC_OPS: { value: Operator; label: string }[] = [
   { value: "<", label: "Menor que" },
