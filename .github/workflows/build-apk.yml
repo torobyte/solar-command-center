@@ -216,6 +216,7 @@ jobs:
           -keep class app.solarops.client.SolarOpsWidgetStats { *; }
           -keep class app.solarops.client.SolarOpsWidgetRadial { *; }
           -keep class app.solarops.client.WidgetStreamService { *; }
+          -keep class app.solarops.client.LockscreenLiveService { *; }
           -keep class app.solarops.client.WaveAnimator { *; }
           -keep class app.solarops.client.UpdateManager { *; }
           -keep class app.solarops.client.BrandSync { *; }
@@ -385,7 +386,8 @@ jobs:
             'Lapp/solarops/client/SolarOpsWidgetRadial;' \
             'Lapp/solarops/client/UpdateManager;' \
             'Lapp/solarops/client/BrandSync;' \
-            'Lapp/solarops/client/WidgetStreamService;'
+            'Lapp/solarops/client/WidgetStreamService;' \
+            'Lapp/solarops/client/LockscreenLiveService;'
           do
             if ! unzip -p "$APK" classes.dex | strings | grep -F "$CLASS" >/dev/null; then
               echo "::error::Missing class in APK: $CLASS"
