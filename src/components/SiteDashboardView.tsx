@@ -4,6 +4,7 @@ import { useI18n } from "@/lib/i18n";
 import { PowerGauges } from "@/components/PowerGauges";
 import { EnergyFlowDiagram } from "@/components/EnergyFlowDiagram";
 import { SolarForecastWidget } from "@/components/SolarForecastWidget";
+import { SavingsCard } from "@/components/SavingsCard";
 import {
   Battery3D, SolarRays, GridSineWave, ConcentricRings,
   SolarPanelsViz, HouseLoadViz, BackupTimeCard,
