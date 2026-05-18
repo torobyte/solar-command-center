@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 import { LangSwitcher } from "@/components/LangSwitcher";
 import { useBranding } from "@/lib/branding";
+import { signUpWithCustomEmail } from "@/lib/auth-emails.functions";
 
 export const Route = createFileRoute("/signup")({
   component: SignupPage,
@@ -16,6 +17,7 @@ export const Route = createFileRoute("/signup")({
 
 function SignupPage() {
   const navigate = useNavigate();
+  const signupWithEmail = useServerFn(signUpWithCustomEmail);
   const { t } = useI18n();
   const { branding, resolvedLogo } = useBranding();
   const siteName = branding?.site_name ?? "SolarOps";
@@ -33,17 +35,21 @@ function SignupPage() {
     if (password !== password2) return toast.error("Las contraseñas no coinciden");
     if (password.length < 8) return toast.error("La contraseña debe tener al menos 8 caracteres");
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
-        data: { full_name: name },
-      },
-    });
+    try {
+      await signupWithEmail({
+        data: {
+          email,
+          password,
+          full_name: name,
+          origin: window.location.origin,
+        },
+      });
+      toast.success(t("signup.created"));
+    } catch (error) {
+      setLoading(false);
+      return toast.error(error instanceof Error ? error.message : "No se pudo crear la cuenta");
+    }
     setLoading(false);
-    if (error) return toast.error(error.message);
-    toast.success(t("signup.created"));
     navigate({ to: "/login" });
   }
 

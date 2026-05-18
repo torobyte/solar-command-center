@@ -88,6 +88,15 @@ async function loadTemplate(id: string): Promise<Tpl | null> {
   return (data as Tpl | null) || null;
 }
 
+async function loadBrandSiteName(): Promise<string> {
+  const { data } = await supabaseAdmin
+    .from("branding_settings")
+    .select("site_name")
+    .eq("key", "global")
+    .maybeSingle();
+  return ((data as { site_name?: string | null } | null)?.site_name || "Mi plataforma").trim();
+}
+
 export interface SendMailInput {
   to: string;
   templateId: keyof typeof DEFAULTS | string;
@@ -118,7 +127,8 @@ export async function sendMail(input: SendMailInput): Promise<SendMailResult> {
       return { ok: false, skipped: "smtp_disabled" };
     }
 
-    const vars: MailVars = { site_name: "SolarOps", ...(input.vars || {}) };
+    const brandSiteName = await loadBrandSiteName();
+    const vars: MailVars = { site_name: brandSiteName, ...(input.vars || {}) };
 
     let subject = input.subject;
     let html = input.html;
@@ -141,7 +151,7 @@ export async function sendMail(input: SendMailInput): Promise<SendMailResult> {
     });
 
     await transporter.sendMail({
-      from: `"${smtp.from_name || "SolarOps"}" <${smtp.from_email}>`,
+      from: `"${smtp.from_name || brandSiteName}" <${smtp.from_email}>`,
       to,
       subject,
       text,
