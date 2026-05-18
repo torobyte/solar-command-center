@@ -479,9 +479,15 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
                 <div className="flex flex-wrap items-baseline gap-2">
                   <div className="text-2xl font-bold text-[var(--solar)] tabular-nums @[420px]:text-3xl">{next12kwh.toFixed(2)}</div>
                   <div className="text-sm text-muted-foreground">kWh</div>
-                  {batteryKwh > 0 && batteryFillH > 0 && (
+                  {batteryKwh > 0 && (
                     <div className="basis-full text-[10px] text-muted-foreground @[420px]:basis-auto @[420px]:ml-auto">
-                      ≈ {batteryFillH.toFixed(1)} h para llenar {batteryKwh} kWh
+                      {batteryFull
+                        ? `🔋 Batería llena (${batteryKwh} kWh)`
+                        : batteryFillH > 0
+                          ? `≈ ${batteryFillH < 1 ? `${Math.round(batteryFillH * 60)} min` : `${batteryFillH.toFixed(1)} h`} para llenar ${remainingKwh.toFixed(1)} kWh restantes`
+                          : surplusKwAvg <= 0
+                            ? "Sin excedente — consumo ≥ producción prevista"
+                            : `${remainingKwh.toFixed(1)} kWh restantes`}
                     </div>
                   )}
                 </div>
