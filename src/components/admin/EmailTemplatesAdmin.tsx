@@ -108,8 +108,10 @@ export function EmailTemplatesAdmin() {
           <code>{"{{expires_at}}"}</code>, <code>{"{{inviter}}"}</code>, <code>{"{{role}}"}</code>.
         </p>
         <p className="text-muted-foreground">
-          El HTML que escribas se inyecta dentro de la plantilla con marca, logo, colores y footer.
-          Usa "Vista previa" para ver el resultado final tal como llega al correo.
+          Por defecto el HTML se inyecta dentro de la plantilla con marca, logo, colores y footer.
+          Desactiva <strong>"Envolver con marca"</strong> para editar el HTML completo del correo (puedes
+          pulsar <strong>"Cargar plantilla completa"</strong> para empezar desde la plantilla de marca actual).
+          Usa "Vista previa" para ver el resultado final.
         </p>
       </div>
 
@@ -126,11 +128,17 @@ export function EmailTemplatesAdmin() {
           if (!t) return null;
           return (
             <TabsContent key={k.id} value={k.id} className="mt-4 space-y-3 max-w-3xl">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="font-semibold">{k.name}</h3>
-                <div className="flex items-center gap-2">
-                  <Label htmlFor={`en-${k.id}`} className="text-xs">Activa</Label>
-                  <Switch id={`en-${k.id}`} checked={!!t.enabled} onCheckedChange={(v) => up(k.id, { enabled: v })} />
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor={`wrap-${k.id}`} className="text-xs">Envolver con marca</Label>
+                    <Switch id={`wrap-${k.id}`} checked={t.wrap_with_brand ?? true} onCheckedChange={(v) => up(k.id, { wrap_with_brand: v })} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor={`en-${k.id}`} className="text-xs">Activa</Label>
+                    <Switch id={`en-${k.id}`} checked={!!t.enabled} onCheckedChange={(v) => up(k.id, { enabled: v })} />
+                  </div>
                 </div>
               </div>
               <div>
@@ -138,11 +146,18 @@ export function EmailTemplatesAdmin() {
                 <Input value={t.subject} onChange={(e) => up(k.id, { subject: e.target.value })} placeholder="(usa el predeterminado si lo dejas vacío)" />
               </div>
               <div>
-                <Label className="text-xs">HTML (cuerpo interior)</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">
+                    HTML {t.wrap_with_brand === false ? "(documento completo)" : "(cuerpo interior)"}
+                  </Label>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={() => loadDefaultHtml(k.id)}>
+                    <Code2 className="h-3 w-3 mr-1" />Cargar plantilla completa
+                  </Button>
+                </div>
                 <Textarea
                   value={t.html_body}
                   onChange={(e) => up(k.id, { html_body: e.target.value })}
-                  rows={14}
+                  rows={t.wrap_with_brand === false ? 24 : 14}
                   className="font-mono text-xs"
                   placeholder="<h1>Hola {{name}}</h1><p>...</p>"
                 />
