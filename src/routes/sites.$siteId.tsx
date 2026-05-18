@@ -706,6 +706,10 @@ function ConfigurationView({ site, subTab, onSubTabChange, role }: { site: Site;
           </div>
 
           <div className="mt-6">
+            <LockscreenLiveCard siteToken={site.device_token} siteName={site.name} />
+          </div>
+
+          <div className="mt-6">
             <h4 className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><Terminal className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2.2} /> Últimos comandos</h4>
             {commands.length === 0 ? (
               <p className="text-xs text-muted-foreground">Sin comandos enviados todavía.</p>
