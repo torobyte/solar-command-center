@@ -130,7 +130,7 @@ export function NotificationsConfig({ siteId, userId }: { siteId: string; userId
     const p = await ensureNotificationPermission();
     setPermission(p);
     if (p !== "granted") return toast.error("Activa los permisos primero");
-    new Notification("SolarOps · Prueba", { body: "Las notificaciones funcionan correctamente.", icon: "/icon.svg" });
+    new Notification(`${brandName} · Prueba`, { body: "Las notificaciones funcionan correctamente.", icon: brandIcon });
   }
 
   return (
