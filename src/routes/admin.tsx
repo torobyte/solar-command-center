@@ -560,7 +560,7 @@ function UsersAdmin() {
             </tr>
           </thead>
           <tbody>
-            {users.map((u) => (
+            {filteredUsers.map((u) => (
               <tr key={u.id} className="border-b last:border-0">
                 <td className="px-4 py-3">{u.email}</td>
                 <td className="px-4 py-3 text-muted-foreground">{u.full_name ?? "—"}</td>
