@@ -14,7 +14,7 @@
         android:id="@+id/tile_site"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="SolarOps"
+        android:text=""
         android:textColor="#FAFAFA"
         android:textSize="12sp"
         android:textStyle="bold"
