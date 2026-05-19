@@ -19,6 +19,8 @@ export interface DashboardSample {
   pv_input_power: number | null;
   battery_capacity: number | null;
   battery_voltage: number | null;
+  battery_discharge_current?: number | null;
+  battery_charging_current?: number | null;
   grid_voltage: number | null;
   inverter_mode: string | null;
 }
