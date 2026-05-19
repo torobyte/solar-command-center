@@ -159,6 +159,12 @@ class MainActivity : Activity() {
                 .onFailure { Log.w(launchLogTag, "Sync sitios: ${it.message}") }
             // Inicia el servicio nativo de alertas (Web Push no funciona en WebView).
             runCatching { AlertsStreamService.start(applicationContext) }
+            // Si el usuario tenía activada la notificación persistente de
+            // pantalla de bloqueo, la relanzamos automáticamente al abrir la
+            // app (sobrevive reinicios / reinstalaciones del APK).
+            if (LockscreenLiveService.isEnabled(applicationContext)) {
+                runCatching { LockscreenLiveService.start(applicationContext, null, null) }
+            }
         }
 
         web = buildWebView()
