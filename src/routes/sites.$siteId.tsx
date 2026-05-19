@@ -279,7 +279,7 @@ function SiteDetail() {
 
     let tq = supabase
       .from("telemetry_samples")
-      .select("recorded_at, ac_output_active_power, pv_input_power, battery_capacity, battery_voltage, grid_voltage, inverter_mode, device_id")
+      .select("recorded_at, ac_output_active_power, pv_input_power, battery_capacity, battery_voltage, battery_discharge_current, battery_charging_current, grid_voltage, inverter_mode, device_id")
       .eq("site_id", siteId);
     tq = applyDeviceFilter(tq as never) as never;
     const { data: t } = await tq.order("recorded_at", { ascending: false }).limit(720);
@@ -336,7 +336,7 @@ function SiteDetail() {
     async function poll() {
       let q = supabase
         .from("telemetry_samples")
-        .select("recorded_at, ac_output_active_power, pv_input_power, battery_capacity, battery_voltage, grid_voltage, inverter_mode, device_id")
+        .select("recorded_at, ac_output_active_power, pv_input_power, battery_capacity, battery_voltage, battery_discharge_current, battery_charging_current, grid_voltage, inverter_mode, device_id")
         .eq("site_id", siteId);
       q = applyDeviceFilter(q as never) as never;
       const { data } = await q.order("recorded_at", { ascending: false }).limit(1);
