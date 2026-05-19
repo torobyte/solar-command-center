@@ -57,7 +57,7 @@ class UpdateManager(private val context: Context) {
         val apkUrl = payload.optString("apk_url")
         val versionName = payload.optString("version_name", "nueva versión")
         val request = DownloadManager.Request(Uri.parse(apkUrl)).apply {
-            setTitle("Actualizando ${payload.optString("app_name", "SolarOps")}")
+            setTitle("Actualizando ${payload.optString("app_name", BrandSync.cached(context).appName)}")
             setDescription("Descargando $versionName")
             setMimeType("application/vnd.android.package-archive")
             setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
