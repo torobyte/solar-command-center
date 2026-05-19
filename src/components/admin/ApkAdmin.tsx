@@ -100,7 +100,12 @@ export function ApkAdmin() {
     // /api/public/apk-download, que resuelve el binario más reciente en
     // tiempo real y evita problemas con punteros "latest" desactualizados
     // o caches HTTP.
-    if (cached.includes("github.com/")) {
+    if (
+      cached.includes("github.com/") ||
+      cached.includes("lovableproject.com") ||
+      cached.includes("id-preview--7cb3041b-eb20-43aa-ba17-b0848cb53051.lovable.app") ||
+      cached.includes("project--7cb3041b-eb20-43aa-ba17-b0848cb53051")
+    ) {
       localStorage.removeItem("apk_download_url");
       return "";
     }
@@ -135,6 +140,18 @@ export function ApkAdmin() {
   function parseRepo(url: string): { owner: string; repo: string } | null {
     const m = url.match(/github\.com[/:]([^/]+)\/([^/.]+)/i);
     return m ? { owner: m[1], repo: m[2].replace(/\.git$/, "") } : null;
+  }
+
+  function normalizePublicBaseUrl(raw?: string | null) {
+    const fallback = DEFAULT.server_url;
+    if (!raw) return fallback;
+
+    try {
+      const url = new URL(raw);
+      return `${url.protocol}//${url.host}`.replace(/\/$/, "");
+    } catch {
+      return fallback;
+    }
   }
 
   async function fetchLatestRelease(silent = false) {
@@ -175,7 +192,7 @@ export function ApkAdmin() {
       // (no depende del puntero "latest release", que puede quedar atrás, ni
       // de cache HTTP/CDN). Añadimos un cache-bust con el id del asset para
       // que cualquier proxy intermedio invalide.
-      const base = window.location.origin;
+      const base = normalizePublicBaseUrl(cfg.server_url);
       const stableUrl = `${base}/api/public/apk-download?v=${apkAsset.id ?? Date.now()}`;
       if (autoMode) {
         setApkUrl(stableUrl);

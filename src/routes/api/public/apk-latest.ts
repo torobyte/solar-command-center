@@ -7,6 +7,29 @@ function parseRepo(url?: string | null) {
   return match ? { owner: match[1], repo: match[2].replace(/\.git$/, "") } : null;
 }
 
+function normalizePublicBaseUrl(raw?: string | null) {
+  const fallback = "https://appsolar.torobyte.com";
+  if (!raw) return fallback;
+
+  try {
+    const url = new URL(raw);
+    const hostname = url.hostname.toLowerCase();
+
+    if (
+      hostname === "project--7cb3041b-eb20-43aa-ba17-b0848cb53051.lovable.app" ||
+      hostname === "project--7cb3041b-eb20-43aa-ba17-b0848cb53051-dev.lovable.app" ||
+      hostname === "id-preview--7cb3041b-eb20-43aa-ba17-b0848cb53051.lovable.app" ||
+      hostname === "7cb3041b-eb20-43aa-ba17-b0848cb53051.lovableproject.com"
+    ) {
+      return fallback;
+    }
+
+    return `${url.protocol}//${url.host}`.replace(/\/$/, "");
+  } catch {
+    return fallback;
+  }
+}
+
 export const Route = createFileRoute("/api/public/apk-latest")({
   server: {
     handlers: {
@@ -15,7 +38,7 @@ export const Route = createFileRoute("/api/public/apk-latest")({
 
         const { data } = await supabaseAdmin
           .from("apk_config")
-          .select("app_id, app_name, version_name, version_code, github_repo_url")
+          .select("app_id, app_name, version_name, version_code, github_repo_url, server_url")
           .eq("id", 1)
           .maybeSingle();
 
@@ -76,10 +99,14 @@ export const Route = createFileRoute("/api/public/apk-latest")({
         const latestVersionCode = Number(release.body?.match(/versionCode:\s*`?(\d+)`?/)?.[1] ?? data.version_code ?? 0);
         const latestVersionName = String(release.body?.match(/versionName:\s*`?([^`\n]+)`?/)?.[1] ?? data.version_name ?? "");
 
-        // URL anclada al tag `latest` (no al puntero "latest release" de
-        // GitHub, que puede quedar en un release timestamped viejo).
+        // Siempre devolvemos nuestro endpoint público para que el cliente y el
+        // panel usen el dominio configurado y resuelvan el asset más nuevo en
+        // cada descarga. El query param invalida caches intermedios cuando el
+        // release reemplaza el binario manteniendo el mismo nombre.
+        const cacheBust = apkAsset?.id ?? apkAsset?.updated_at ?? release.published_at ?? Date.now();
+        const publicBaseUrl = normalizePublicBaseUrl((data as any)?.server_url);
         const stableApkUrl = apkAsset
-          ? `https://github.com/${repo.owner}/${repo.repo}/releases/download/latest/${apkAsset.name}`
+          ? `${publicBaseUrl}/api/public/apk-download?v=${encodeURIComponent(String(cacheBust))}`
           : null;
 
         return new Response(
@@ -99,7 +126,11 @@ export const Route = createFileRoute("/api/public/apk-latest")({
             update_available: Boolean(stableApkUrl) && latestVersionCode > currentVersionCode,
           }),
           {
-            headers: { "content-type": "application/json", "cache-control": "public, max-age=60" },
+            headers: {
+              "content-type": "application/json",
+              "cache-control": "no-store, no-cache, must-revalidate",
+              pragma: "no-cache",
+            },
           },
         );
       },
