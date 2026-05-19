@@ -182,7 +182,10 @@ export function ApkAdmin() {
         localStorage.setItem("apk_download_url", stableUrl);
       }
       setLatestTag(j.tag_name ?? null);
-      setPublishedAt(j.published_at ?? null);
+      // El release "latest" se actualiza in-place: su `published_at` queda
+      // congelado en la fecha original del tag, pero los assets se reemplazan
+      // en cada build. Mostramos la fecha real del binario.
+      setPublishedAt(apkAsset?.updated_at ?? apkAsset?.created_at ?? j.published_at ?? null);
       const bodyMatch = (j.body ?? "").match(/[A-Fa-f0-9]{64}/);
       if (bodyMatch) setLatestSha(bodyMatch[0].toLowerCase());
       else if (shaAsset) {
