@@ -7,11 +7,33 @@ function parseRepo(url?: string | null) {
   return match ? { owner: match[1], repo: match[2].replace(/\.git$/, "") } : null;
 }
 
+function normalizePublicBaseUrl(raw?: string | null) {
+  const fallback = "https://appsolar.torobyte.com";
+  if (!raw) return fallback;
+
+  try {
+    const url = new URL(raw);
+    const hostname = url.hostname.toLowerCase();
+
+    if (
+      hostname === "project--7cb3041b-eb20-43aa-ba17-b0848cb53051.lovable.app" ||
+      hostname === "project--7cb3041b-eb20-43aa-ba17-b0848cb53051-dev.lovable.app" ||
+      hostname === "id-preview--7cb3041b-eb20-43aa-ba17-b0848cb53051.lovable.app" ||
+      hostname === "7cb3041b-eb20-43aa-ba17-b0848cb53051.lovableproject.com"
+    ) {
+      return fallback;
+    }
+
+    return `${url.protocol}//${url.host}`.replace(/\/$/, "");
+  } catch {
+    return fallback;
+  }
+}
+
 export const Route = createFileRoute("/api/public/apk-latest")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        const requestUrl = new URL(request.url);
         const currentVersionCode = Number(new URL(request.url).searchParams.get("current_version_code") ?? "0");
 
         const { data } = await supabaseAdmin
@@ -82,8 +104,9 @@ export const Route = createFileRoute("/api/public/apk-latest")({
         // cada descarga. El query param invalida caches intermedios cuando el
         // release reemplaza el binario manteniendo el mismo nombre.
         const cacheBust = apkAsset?.id ?? apkAsset?.updated_at ?? release.published_at ?? Date.now();
+        const publicBaseUrl = normalizePublicBaseUrl((data as any)?.server_url);
         const stableApkUrl = apkAsset
-          ? `${requestUrl.origin}/api/public/apk-download?v=${encodeURIComponent(String(cacheBust))}`
+          ? `${publicBaseUrl}/api/public/apk-download?v=${encodeURIComponent(String(cacheBust))}`
           : null;
 
         return new Response(
