@@ -137,6 +137,18 @@ export function ApkAdmin() {
     return m ? { owner: m[1], repo: m[2].replace(/\.git$/, "") } : null;
   }
 
+  function normalizePublicBaseUrl(raw?: string | null) {
+    const fallback = DEFAULT.server_url;
+    if (!raw) return fallback;
+
+    try {
+      const url = new URL(raw);
+      return `${url.protocol}//${url.host}`.replace(/\/$/, "");
+    } catch {
+      return fallback;
+    }
+  }
+
   async function fetchLatestRelease(silent = false) {
     const parsed = parseRepo(repoUrl);
     if (!parsed) {
@@ -175,7 +187,7 @@ export function ApkAdmin() {
       // (no depende del puntero "latest release", que puede quedar atrás, ni
       // de cache HTTP/CDN). Añadimos un cache-bust con el id del asset para
       // que cualquier proxy intermedio invalide.
-      const base = window.location.origin;
+      const base = normalizePublicBaseUrl(cfg.server_url);
       const stableUrl = `${base}/api/public/apk-download?v=${apkAsset.id ?? Date.now()}`;
       if (autoMode) {
         setApkUrl(stableUrl);
