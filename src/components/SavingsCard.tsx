@@ -100,7 +100,7 @@ export function SavingsCard({ siteId, pvW, batteryDischargeW, energyPrice, feedI
     );
   }
 
-  const liveW = Math.max(0, Number(pvW ?? 0));
+  const liveW = Math.max(0, Number(pvW ?? 0)) + Math.max(0, Number(batteryDischargeW ?? 0));
   const savingsPerHour = (liveW / 1000) * price;
   const savingsToday = (todayKwh ?? 0) * price;
   const savingsMonth = (monthKwh ?? 0) * price;
