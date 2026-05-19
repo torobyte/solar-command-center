@@ -1,6 +1,7 @@
 package app.solarops.client
 
 import android.app.DownloadManager
+import android.app.NotificationManager
 import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -11,6 +12,8 @@ import android.os.Build
 import android.os.Environment
 import android.provider.Settings
 import android.widget.Toast
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -19,6 +22,11 @@ import kotlin.concurrent.thread
 class UpdateManager(private val context: Context) {
     private var downloadId: Long = -1L
     private var receiverRegistered = false
+
+    companion object {
+        private const val CHANNEL_ID = "apk_updates"
+        private const val NOTIFICATION_ID = 12041
+    }
 
     private val completeReceiver = object : BroadcastReceiver() {
         override fun onReceive(ctx: Context?, intent: Intent?) {
@@ -48,10 +56,25 @@ class UpdateManager(private val context: Context) {
                 val payload = JSONObject(conn.inputStream.bufferedReader().use { it.readText() })
                 if (payload.optBoolean("update_available") && payload.optString("apk_url").isNotBlank()) {
                     startDownload(payload)
+                } else {
+                    notifyAlreadyUpToDate(payload)
                 }
             }
         }
     }
+
+    private fun notifyAlreadyUpToDate(payload: JSONObject) {
+        val latestName = payload.optString("version_name").ifBlank { currentVersionName() }
+        showStatusNotification(
+            title = "Tu app ya está actualizada",
+            message = "Ya tienes instalada la build $latestName.",
+        )
+    }
+
+    private fun currentVersionName(): String = runCatching {
+        val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+        packageInfo.versionName ?: "actual"
+    }.getOrDefault("actual")
 
     private fun startDownload(payload: JSONObject) {
         val apkUrl = payload.optString("apk_url")
@@ -69,6 +92,41 @@ class UpdateManager(private val context: Context) {
         val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
         downloadId = dm.enqueue(request)
         Toast.makeText(context, "Descargando actualización…", Toast.LENGTH_LONG).show()
+        showStatusNotification(
+            title = "Nueva versión disponible",
+            message = "Descargando la build $versionName para instalarla.",
+        )
+    }
+
+    private fun showStatusNotification(title: String, message: String) {
+        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return
+
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val existing = manager.getNotificationChannel(CHANNEL_ID)
+            if (existing == null) {
+                manager.createNotificationChannel(
+                    android.app.NotificationChannel(
+                        CHANNEL_ID,
+                        "Actualizaciones APK",
+                        NotificationManager.IMPORTANCE_DEFAULT,
+                    ).apply {
+                        description = "Avisos sobre builds nuevas y estado de actualización"
+                    },
+                )
+            }
+        }
+
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.stat_sys_download_done)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+
+        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
     }
 
     private fun ensureReceiver() {
