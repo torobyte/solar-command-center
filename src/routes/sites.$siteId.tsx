@@ -1113,6 +1113,7 @@ function DashboardView({ latest, siteId, spec: _spec, device: _device }: { lates
       <SavingsCard
         siteId={siteId}
         pvW={pv_W}
+        batteryDischargeW={Math.max(0, Number(latest?.battery_discharge_current ?? 0) * batteryV)}
         energyPrice={pv?.energy_price ?? null}
         feedInPrice={pv?.feed_in_price ?? null}
         currency={pv?.currency ?? "CLP"}
