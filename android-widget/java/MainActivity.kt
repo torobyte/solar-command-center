@@ -162,7 +162,9 @@ class MainActivity : Activity() {
         }
 
         web = buildWebView()
-        // Pequeño delay para que el splash sea visible antes de cargar WebView.
+        // Mantenemos el splash visible ~1800ms para que se vea claramente la
+        // marca antes de saltar al WebView. Antes eran 700ms y en muchos
+        // dispositivos pasaba desapercibido o aparecía un fogonazo negro.
         Handler(Looper.getMainLooper()).postDelayed({
             setContentView(web)
             if (savedInstanceState != null) {
@@ -174,41 +176,58 @@ class MainActivity : Activity() {
             } else {
                 loadBootstrapPage(savedSession)
             }
-        }, 700)
+        }, 1800)
     }
 
+    private fun dp(v: Int): Int =
+        (v * resources.displayMetrics.density).toInt()
+
     private fun buildBrandedSplash(brand: BrandSync.Brand): FrameLayout {
+        val iconSize = dp(140)
+        val nameTopMargin = dp(220)
+        val progressBottomMargin = dp(96)
+        val progressSize = dp(36)
+
         return FrameLayout(this).apply {
             setBackgroundColor(brand.splashColor)
             // Icono centrado: usa splash si existe, si no el icon, si no la inicial.
             val centerBmp = brand.splashBitmap ?: brand.iconBitmap
             if (centerBmp != null) {
                 addView(
-                    ImageView(this@MainActivity).apply { setImageBitmap(centerBmp) },
-                    FrameLayout.LayoutParams(360, 360).apply { gravity = Gravity.CENTER },
+                    ImageView(this@MainActivity).apply {
+                        setImageBitmap(centerBmp)
+                        scaleType = ImageView.ScaleType.FIT_CENTER
+                    },
+                    FrameLayout.LayoutParams(iconSize, iconSize).apply {
+                        gravity = Gravity.CENTER
+                    },
                 )
             } else {
                 addView(TextView(this@MainActivity).apply {
-                    text = brand.appName.firstOrNull()?.uppercase() ?: "S"
+                    text = (brand.appName.firstOrNull()?.uppercase() ?: "S")
                     setTextColor(0xFFFFFFFF.toInt())
-                    textSize = 64f
+                    textSize = 56f
                     gravity = Gravity.CENTER
                     setBackgroundColor(brand.primaryColor)
-                }, FrameLayout.LayoutParams(220, 220).apply { gravity = Gravity.CENTER })
+                }, FrameLayout.LayoutParams(dp(96), dp(96)).apply {
+                    gravity = Gravity.CENTER
+                })
             }
+            // Nombre de la app debajo del icono.
             addView(TextView(this@MainActivity).apply {
-                text = brand.appName
-                gravity = Gravity.CENTER_HORIZONTAL
+                text = brand.appName.ifBlank { "SolarOps" }
                 setTextColor(0xFFFFFFFF.toInt())
                 textSize = 18f
-            }, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT).apply {
-                topMargin = 540
-                gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                gravity = Gravity.CENTER
+            }, FrameLayout.LayoutParams(MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                gravity = Gravity.CENTER_HORIZONTAL or Gravity.CENTER_VERTICAL
+                topMargin = nameTopMargin
             })
+            // Progreso indeterminado abajo.
             addView(ProgressBar(this@MainActivity).apply { isIndeterminate = true },
-                FrameLayout.LayoutParams(72, 72).apply {
+                FrameLayout.LayoutParams(progressSize, progressSize).apply {
                     gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-                    bottomMargin = 200
+                    bottomMargin = progressBottomMargin
                 })
         }
     }

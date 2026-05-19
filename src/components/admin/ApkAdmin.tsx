@@ -92,10 +92,12 @@ export function ApkAdmin() {
   const [showSplash, setShowSplash] = useState(true);
   const [apkUrl, setApkUrl] = useState<string>(() => {
     const cached = localStorage.getItem("apk_download_url") ?? "";
-    // Invalida URLs viejas con el patrón /releases/latest/download/ que GitHub
-    // a veces resolvía a un release timestamped antiguo. Ahora usamos el tag
-    // explícito /releases/download/latest/.
-    if (cached.includes("/releases/latest/download/")) {
+    // Invalida cualquier URL cacheada que apunte directamente a github.com.
+    // Ahora siempre queremos servir desde nuestro endpoint propio
+    // /api/public/apk-download, que resuelve el binario más reciente en
+    // tiempo real y evita problemas con punteros "latest" desactualizados
+    // o caches HTTP.
+    if (cached.includes("github.com/")) {
       localStorage.removeItem("apk_download_url");
       return "";
     }
@@ -140,24 +142,38 @@ export function ApkAdmin() {
     }
     setFetchingRelease(true);
     try {
-      const r = await fetch(
-        `https://api.github.com/repos/${parsed.owner}/${parsed.repo}/releases/latest?_=${Date.now()}`,
-        {
-          headers: { Accept: "application/vnd.github+json" },
-          cache: "no-store",
-        },
+      // Intentamos primero el tag rolling "latest"; si no existe (release
+      // recién borrado por el workflow), caemos al release más reciente
+      // que tenga un .apk.
+      let j: any = null;
+      const tagRes = await fetch(
+        `https://api.github.com/repos/${parsed.owner}/${parsed.repo}/releases/tags/latest?_=${Date.now()}`,
+        { headers: { Accept: "application/vnd.github+json" }, cache: "no-store" },
       );
-      if (!r.ok) throw new Error(`GitHub API ${r.status}`);
-      const j = await r.json();
+      if (tagRes.ok) {
+        j = await tagRes.json();
+      } else {
+        const listRes = await fetch(
+          `https://api.github.com/repos/${parsed.owner}/${parsed.repo}/releases?per_page=10&_=${Date.now()}`,
+          { headers: { Accept: "application/vnd.github+json" }, cache: "no-store" },
+        );
+        if (!listRes.ok) throw new Error(`GitHub API ${listRes.status}`);
+        const arr: any[] = await listRes.json();
+        j = arr
+          .filter((r) => Array.isArray(r.assets) && r.assets.some((a: any) => String(a.name).endsWith(".apk")))
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+        if (!j) throw new Error("No hay releases con APK");
+      }
       const apkAsset = (j.assets ?? []).find((a: any) => a.name.endsWith(".apk"));
       const shaAsset = (j.assets ?? []).find((a: any) => a.name.endsWith(".sha256"));
       if (!apkAsset) throw new Error("El último release no contiene .apk");
-      // IMPORTANTE: usamos /releases/download/latest/<file> (anclado al tag
-      // `latest` que el workflow republica en cada build) en vez de
-      // /releases/latest/download/<file> (que depende del puntero "latest
-      // release" de GitHub, que puede quedar apuntando a un release
-      // timestamped viejo y servir un APK desactualizado al escanear el QR).
-      const stableUrl = `https://github.com/${parsed.owner}/${parsed.repo}/releases/download/latest/${apkAsset.name}`;
+      // El QR siempre apunta a nuestro endpoint público de redirección, que
+      // resuelve el asset más reciente en tiempo real desde la API de GitHub
+      // (no depende del puntero "latest release", que puede quedar atrás, ni
+      // de cache HTTP/CDN). Añadimos un cache-bust con el id del asset para
+      // que cualquier proxy intermedio invalide.
+      const base = window.location.origin;
+      const stableUrl = `${base}/api/public/apk-download?v=${apkAsset.id ?? Date.now()}`;
       if (autoMode) {
         setApkUrl(stableUrl);
         localStorage.setItem("apk_download_url", stableUrl);
