@@ -87,7 +87,11 @@ export const Route = createFileRoute("/api/public/apk-latest")({
             app_id: data.app_id,
             app_name: data.app_name,
             release_tag: release.tag_name ?? "latest",
-            published_at: release.published_at ?? null,
+            // Para el tag rolling "latest", `release.published_at` queda fijo
+            // en la fecha original del tag. Usamos `updated_at` del asset
+            // (que sí se refresca con cada subida) para reportar la fecha
+            // real de la última build.
+            published_at: apkAsset?.updated_at ?? apkAsset?.created_at ?? release.published_at ?? null,
             version_code: latestVersionCode,
             version_name: latestVersionName,
             apk_url: stableApkUrl,

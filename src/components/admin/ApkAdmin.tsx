@@ -88,8 +88,11 @@ export function ApkAdmin() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  // previewKey=0 → iframe NOT mounted. Solo se monta cuando el usuario
+  // pulsa explícitamente "Preview" (evita que el iframe cargue el propio
+  // origen y se vea como un loop de "página actualizándose").
   const [previewKey, setPreviewKey] = useState(0);
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(false);
   const [apkUrl, setApkUrl] = useState<string>(() => {
     const cached = localStorage.getItem("apk_download_url") ?? "";
     // Invalida cualquier URL cacheada que apunte directamente a github.com.
@@ -179,7 +182,10 @@ export function ApkAdmin() {
         localStorage.setItem("apk_download_url", stableUrl);
       }
       setLatestTag(j.tag_name ?? null);
-      setPublishedAt(j.published_at ?? null);
+      // El release "latest" se actualiza in-place: su `published_at` queda
+      // congelado en la fecha original del tag, pero los assets se reemplazan
+      // en cada build. Mostramos la fecha real del binario.
+      setPublishedAt(apkAsset?.updated_at ?? apkAsset?.created_at ?? j.published_at ?? null);
       const bodyMatch = (j.body ?? "").match(/[A-Fa-f0-9]{64}/);
       if (bodyMatch) setLatestSha(bodyMatch[0].toLowerCase());
       else if (shaAsset) {
@@ -301,6 +307,7 @@ export function ApkAdmin() {
   }, []);
 
   useEffect(() => {
+    if (previewKey === 0) return; // no preview hasta que se pulse el botón
     setShowSplash(true);
     const t = setTimeout(() => setShowSplash(false), 1500);
     return () => clearTimeout(t);
@@ -612,7 +619,27 @@ export function ApkAdmin() {
                 <span>100%</span>
               </div>
 
-              {showSplash ? (
+              {previewKey === 0 ? (
+                <div
+                  className="absolute inset-0 flex flex-col items-center justify-center gap-3"
+                  style={{ background: cfg.splash_color }}
+                >
+                  {cfg.icon_url ? (
+                    <img src={cfg.icon_url} alt="" className="h-20 w-20 rounded-2xl" />
+                  ) : (
+                    <div
+                      className="h-20 w-20 rounded-2xl flex items-center justify-center text-2xl font-bold"
+                      style={{ background: cfg.primary_color, color: "#fff" }}
+                    >
+                      {cfg.app_name.slice(0, 1).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="text-sm" style={{ color: "#fff" }}>{cfg.app_name}</div>
+                  <p className="text-[10px] px-6 text-center" style={{ color: "#ffffff99" }}>
+                    Pulsa "Preview" para cargar la app dentro de este marco.
+                  </p>
+                </div>
+              ) : showSplash ? (
                 <div
                   className="absolute inset-0 flex flex-col items-center justify-center"
                   style={{ background: cfg.splash_color }}

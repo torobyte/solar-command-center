@@ -159,6 +159,12 @@ class MainActivity : Activity() {
                 .onFailure { Log.w(launchLogTag, "Sync sitios: ${it.message}") }
             // Inicia el servicio nativo de alertas (Web Push no funciona en WebView).
             runCatching { AlertsStreamService.start(applicationContext) }
+            // Si el usuario tenía activada la notificación persistente de
+            // pantalla de bloqueo, la relanzamos automáticamente al abrir la
+            // app (sobrevive reinicios / reinstalaciones del APK).
+            if (LockscreenLiveService.isEnabled(applicationContext)) {
+                runCatching { LockscreenLiveService.start(applicationContext, null, null) }
+            }
         }
 
         web = buildWebView()
@@ -185,23 +191,54 @@ class MainActivity : Activity() {
     private fun buildBrandedSplash(brand: BrandSync.Brand): FrameLayout {
         val iconSize = dp(140)
         val nameTopMargin = dp(220)
-        val progressBottomMargin = dp(96)
+        val progressBottomMargin = dp(64)
         val progressSize = dp(36)
 
         return FrameLayout(this).apply {
             setBackgroundColor(brand.splashColor)
-            // Icono centrado: usa splash si existe, si no el icon, si no la inicial.
-            val centerBmp = brand.splashBitmap ?: brand.iconBitmap
-            if (centerBmp != null) {
+            layoutParams = android.view.ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+
+            // Splash: si el superadmin subió una imagen de splash, se renderiza
+            // a pantalla completa (CENTER_CROP). Si no, mostramos el icono
+            // centrado o la inicial de la app.
+            if (brand.splashBitmap != null) {
                 addView(
                     ImageView(this@MainActivity).apply {
-                        setImageBitmap(centerBmp)
+                        setImageBitmap(brand.splashBitmap)
+                        scaleType = ImageView.ScaleType.CENTER_CROP
+                    },
+                    FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT),
+                )
+                // Nombre de la app sobre el splash (semi-overlay).
+                addView(TextView(this@MainActivity).apply {
+                    text = brand.appName.ifBlank { "" }
+                    setTextColor(0xFFFFFFFF.toInt())
+                    textSize = 18f
+                    gravity = Gravity.CENTER
+                    setShadowLayer(8f, 0f, 2f, 0xAA000000.toInt())
+                }, FrameLayout.LayoutParams(MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                    gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                    bottomMargin = dp(140)
+                })
+            } else if (brand.iconBitmap != null) {
+                addView(
+                    ImageView(this@MainActivity).apply {
+                        setImageBitmap(brand.iconBitmap)
                         scaleType = ImageView.ScaleType.FIT_CENTER
                     },
                     FrameLayout.LayoutParams(iconSize, iconSize).apply {
                         gravity = Gravity.CENTER
                     },
                 )
+                addView(TextView(this@MainActivity).apply {
+                    text = brand.appName.ifBlank { "SolarOps" }
+                    setTextColor(0xFFFFFFFF.toInt())
+                    textSize = 18f
+                    gravity = Gravity.CENTER
+                }, FrameLayout.LayoutParams(MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                    gravity = Gravity.CENTER_HORIZONTAL or Gravity.CENTER_VERTICAL
+                    topMargin = nameTopMargin
+                })
             } else {
                 addView(TextView(this@MainActivity).apply {
                     text = (brand.appName.firstOrNull()?.uppercase() ?: "S")
@@ -213,16 +250,7 @@ class MainActivity : Activity() {
                     gravity = Gravity.CENTER
                 })
             }
-            // Nombre de la app debajo del icono.
-            addView(TextView(this@MainActivity).apply {
-                text = brand.appName.ifBlank { "SolarOps" }
-                setTextColor(0xFFFFFFFF.toInt())
-                textSize = 18f
-                gravity = Gravity.CENTER
-            }, FrameLayout.LayoutParams(MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                gravity = Gravity.CENTER_HORIZONTAL or Gravity.CENTER_VERTICAL
-                topMargin = nameTopMargin
-            })
+
             // Progreso indeterminado abajo.
             addView(ProgressBar(this@MainActivity).apply { isIndeterminate = true },
                 FrameLayout.LayoutParams(progressSize, progressSize).apply {
