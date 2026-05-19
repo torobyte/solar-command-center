@@ -241,7 +241,7 @@ class AlertsStreamService : Service() {
         else null
         return NotificationCompat.Builder(this, CHANNEL_FG)
             .setSmallIcon(android.R.drawable.stat_notify_sync)
-            .setContentTitle("SolarOps")
+            .setContentTitle(BrandSync.cached(this).appName)
             .setContentText("Alertas en tiempo real")
             .setPriority(NotificationCompat.PRIORITY_MIN)
             .setOngoing(true)

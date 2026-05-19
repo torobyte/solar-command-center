@@ -11,7 +11,7 @@
         android:id="@+id/flow_site"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="SolarOps · Flow"
+        android:text="Flow"
         android:textColor="#E0F2FE"
         android:textSize="13sp"
         android:textStyle="bold"

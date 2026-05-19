@@ -64,6 +64,8 @@ interface Sample {
   pv_input_power: number | null;
   battery_capacity: number | null;
   battery_voltage: number | null;
+  battery_discharge_current: number | null;
+  battery_charging_current: number | null;
   grid_voltage: number | null;
   inverter_mode: string | null;
 }
@@ -83,7 +85,8 @@ function mergeSample(prev: Sample | null, next: Sample): Sample {
   if (!prev) return next;
   const keys: (keyof Sample)[] = [
     "ac_output_active_power", "pv_input_power", "battery_capacity",
-    "battery_voltage", "grid_voltage", "inverter_mode",
+    "battery_voltage", "battery_discharge_current", "battery_charging_current",
+    "grid_voltage", "inverter_mode",
   ];
   const merged: Sample = { ...next };
   for (const k of keys) {
@@ -276,7 +279,7 @@ function SiteDetail() {
 
     let tq = supabase
       .from("telemetry_samples")
-      .select("recorded_at, ac_output_active_power, pv_input_power, battery_capacity, battery_voltage, grid_voltage, inverter_mode, device_id")
+      .select("recorded_at, ac_output_active_power, pv_input_power, battery_capacity, battery_voltage, battery_discharge_current, battery_charging_current, grid_voltage, inverter_mode, device_id")
       .eq("site_id", siteId);
     tq = applyDeviceFilter(tq as never) as never;
     const { data: t } = await tq.order("recorded_at", { ascending: false }).limit(720);
@@ -333,7 +336,7 @@ function SiteDetail() {
     async function poll() {
       let q = supabase
         .from("telemetry_samples")
-        .select("recorded_at, ac_output_active_power, pv_input_power, battery_capacity, battery_voltage, grid_voltage, inverter_mode, device_id")
+        .select("recorded_at, ac_output_active_power, pv_input_power, battery_capacity, battery_voltage, battery_discharge_current, battery_charging_current, grid_voltage, inverter_mode, device_id")
         .eq("site_id", siteId);
       q = applyDeviceFilter(q as never) as never;
       const { data } = await q.order("recorded_at", { ascending: false }).limit(1);
@@ -361,13 +364,20 @@ function SiteDetail() {
   useEffect(() => { localStorage.setItem("chart.smoothMode", smoothMode); }, [smoothMode]);
   useEffect(() => { localStorage.setItem("chart.smoothWindow", String(smoothWindow)); }, [smoothWindow]);
 
-  const rawChartData = useMemo(() => history.map((r) => ({
-    t: new Date(r.recorded_at).getTime(),
-    pv: r.pv_input_power == null ? null : Number(r.pv_input_power),
-    load: r.ac_output_active_power == null ? null : Number(r.ac_output_active_power),
-    soc: r.battery_capacity == null ? null : Number(r.battery_capacity),
-    grid: r.grid_voltage == null ? null : Number(r.grid_voltage),
-  })), [history]);
+  const rawChartData = useMemo(() => history.map((r) => {
+    const bv = Number(r.battery_voltage ?? 0);
+    const di = Number(r.battery_discharge_current ?? 0);
+    const ci = Number(r.battery_charging_current ?? 0);
+    const batW = bv * (di - ci); // positivo = descarga, negativo = carga
+    return {
+      t: new Date(r.recorded_at).getTime(),
+      pv: r.pv_input_power == null ? null : Number(r.pv_input_power),
+      load: r.ac_output_active_power == null ? null : Number(r.ac_output_active_power),
+      soc: r.battery_capacity == null ? null : Number(r.battery_capacity),
+      grid: r.grid_voltage == null ? null : Number(r.grid_voltage),
+      battery: r.battery_voltage == null ? null : +batW.toFixed(1),
+    };
+  }), [history]);
 
   const chartData = useMemo(
     () => smoothSeries(rawChartData, smoothMode, smoothWindow),
@@ -472,6 +482,10 @@ function SiteDetail() {
                   <stop offset="0%" stopColor="hsl(var(--load, 200 90% 55%))" stopOpacity={0.6} />
                   <stop offset="100%" stopColor="hsl(var(--load, 200 90% 55%))" stopOpacity={0} />
                 </linearGradient>
+                <linearGradient id="gBat" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--battery, 142 70% 45%))" stopOpacity={0.5} />
+                  <stop offset="100%" stopColor="hsl(var(--battery, 142 70% 45%))" stopOpacity={0} />
+                </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
               <XAxis dataKey="t" tickFormatter={(v) => format(new Date(v), "HH:mm")} fontSize={11} />
@@ -480,6 +494,7 @@ function SiteDetail() {
               <Legend />
               <Area type="monotone" dataKey="pv" name="Solar" stroke="var(--solar)" fill="url(#gPv)" />
               <Area type="monotone" dataKey="load" name="Load" stroke="var(--load)" fill="url(#gLoad)" />
+              <Area type="monotone" dataKey="battery" name="Batería (+desc/−carga)" stroke="var(--battery)" fill="url(#gBat)" />
             </AreaChart>
           </ChartCard>
 
@@ -514,6 +529,8 @@ function SiteDetail() {
               <Area type="monotone" dataKey="pv_kwh" name="Solar" stroke="var(--solar)" fill="var(--solar)" fillOpacity={0.2} />
               <Area type="monotone" dataKey="load_kwh" name="Load" stroke="var(--load)" fill="var(--load)" fillOpacity={0.2} />
               <Area type="monotone" dataKey="grid_used_kwh" name="Grid" stroke="var(--grid)" fill="var(--grid)" fillOpacity={0.2} />
+              <Area type="monotone" dataKey="battery_discharged_kwh" name="Batería descargada" stroke="var(--battery)" fill="var(--battery)" fillOpacity={0.2} />
+              <Area type="monotone" dataKey="battery_charged_kwh" name="Batería cargada" stroke="hsl(142 60% 35%)" fill="hsl(142 60% 35%)" fillOpacity={0.15} />
             </AreaChart>
           </ChartCard>
 
@@ -1096,6 +1113,7 @@ function DashboardView({ latest, siteId, spec: _spec, device: _device }: { lates
       <SavingsCard
         siteId={siteId}
         pvW={pv_W}
+        batteryDischargeW={Math.max(0, Number(latest?.battery_discharge_current ?? 0) * batteryV)}
         energyPrice={pv?.energy_price ?? null}
         feedInPrice={pv?.feed_in_price ?? null}
         currency={pv?.currency ?? "CLP"}

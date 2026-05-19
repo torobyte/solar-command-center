@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 interface Props {
   siteId: string;
   pvW: number | null;
+  /** Battery discharge power in W (positive = battery feeding the load). */
+  batteryDischargeW?: number | null;
   /** kWh price (per kWh in display currency units, e.g. 180 CLP, 0.18 USD). */
   energyPrice: number | null;
   /** Feed-in price for exported kWh. Optional. */
@@ -29,12 +31,11 @@ function fmt(n: number, currency: string): string {
 }
 
 /**
- * Estimates energy savings in money. Combines:
- *  - Live "saving now" rate from current PV power × price.
- *  - Today's accumulated savings derived from summing telemetry pv_input_power.
- *  - Monthly / yearly projection from accumulated daily averages.
+ * Estimates energy savings in money. Savings represent the energy you DIDN'T
+ * pull from the grid, which equals PV production + battery discharge to load
+ * (energy produced/stored by your system instead of imported).
  */
-export function SavingsCard({ siteId, pvW, energyPrice, feedInPrice, currency, forecastDailyKwh }: Props) {
+export function SavingsCard({ siteId, pvW, batteryDischargeW, energyPrice, feedInPrice, currency, forecastDailyKwh }: Props) {
   const cur = currency || "CLP";
   const price = energyPrice ?? 0;
   const [todayKwh, setTodayKwh] = useState<number | null>(null);
@@ -51,21 +52,25 @@ export function SavingsCard({ siteId, pvW, energyPrice, feedInPrice, currency, f
       // Fetch samples for today + this month in one query, then split.
       const { data } = await supabase
         .from("telemetry_samples")
-        .select("recorded_at, pv_input_power")
+        .select("recorded_at, pv_input_power, battery_discharge_current, battery_voltage")
         .eq("site_id", siteId)
         .gte("recorded_at", startMonth.toISOString())
         .order("recorded_at", { ascending: true })
         .limit(1000);
       if (cancelled || !data) return;
 
-      // Trapezoidal-ish integration: Σ (pv_W × Δt_h) / 1000 = kWh
+      // Trapezoidal-ish integration: Σ (W × Δt_h) / 1000 = kWh.
+      // Saved energy = PV produced + battery discharged to the house.
       let kwhToday = 0;
       let kwhMonth = 0;
       let prevT: number | null = null;
       let prevW = 0;
       for (const row of data) {
         const t = new Date(row.recorded_at as string).getTime();
-        const w = Math.max(0, Number(row.pv_input_power ?? 0));
+        const pv = Math.max(0, Number(row.pv_input_power ?? 0));
+        const bv = Math.max(0, Number(row.battery_voltage ?? 0));
+        const bi = Math.max(0, Number(row.battery_discharge_current ?? 0));
+        const w = pv + bv * bi;
         if (prevT != null) {
           const dh = Math.min(1, (t - prevT) / 3_600_000); // cap gaps at 1h to avoid spikes
           const kwh = ((prevW + w) / 2) * dh / 1000;
@@ -95,7 +100,7 @@ export function SavingsCard({ siteId, pvW, energyPrice, feedInPrice, currency, f
     );
   }
 
-  const liveW = Math.max(0, Number(pvW ?? 0));
+  const liveW = Math.max(0, Number(pvW ?? 0)) + Math.max(0, Number(batteryDischargeW ?? 0));
   const savingsPerHour = (liveW / 1000) * price;
   const savingsToday = (todayKwh ?? 0) * price;
   const savingsMonth = (monthKwh ?? 0) * price;

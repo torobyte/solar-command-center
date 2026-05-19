@@ -79,7 +79,7 @@ class SolarOpsWidgetNeon : AppWidgetProvider() {
         val load = (s?.optDouble("load_w", 0.0) ?: 0.0).toInt()
         val bat = (s?.optDouble("battery_pct", 0.0) ?: 0.0).toInt().coerceIn(0, 100)
 
-        v.setTextViewText(R.id.neon_site, site?.optString("name") ?: "SolarOps")
+        v.setTextViewText(R.id.neon_site, site?.optString("name") ?: "")
         v.setInt(R.id.neon_status, "setTextColor",
             if (fresh) 0xFF22C55E.toInt() else 0xFFF59E0B.toInt())
         v.setTextViewText(R.id.neon_pv, "$pv")

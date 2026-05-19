@@ -71,7 +71,7 @@ class SolarOpsWidgetSpeedo : AppWidgetProvider() {
         val pv = (s?.optDouble("pv_w", 0.0) ?: 0.0).coerceAtLeast(0.0)
         // Asumimos máximo 5000W para escala visual; ajusta si tu inversor es mayor.
         val pct = ((pv / 5000.0) * 100.0).toInt().coerceIn(0, 100)
-        v.setTextViewText(R.id.speedo_site, site?.optString("name") ?: "SolarOps")
+        v.setTextViewText(R.id.speedo_site, site?.optString("name") ?: "")
         v.setTextViewText(R.id.speedo_value, pv.toInt().toString())
         v.setProgressBar(R.id.speedo_bar, 100, pct, false)
         v.setTextViewText(R.id.speedo_max, "5.0 kW máx")

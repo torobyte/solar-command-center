@@ -122,64 +122,14 @@ class WidgetConfigActivity : Activity() {
         }
     }
 
-    private var chosenMetric: String = "auto"
-    private var chosenInterval: Int = WidgetCommon.DEFAULT_REFRESH_SEC
+    // El widget se agrega directo con métrica automática e intervalo mínimo
+    // (canal en vivo + 15s fallback). Sin preguntas extra al usuario.
+    private val chosenMetric: String = "auto"
+    private val chosenInterval: Int = WidgetCommon.INTERVALS.first()
 
     private fun showMetricStep(token: String) {
-        root.removeAllViews()
-        root.addView(TextView(this).apply {
-            text = "¿Qué métrica mostrar?"
-            textSize = 18f
-            setPadding(0, 0, 0, 16)
-        })
-        val labels = mapOf(
-            "auto" to "Automático (según widget)",
-            "pv" to "Producción PV (W)",
-            "battery" to "Batería (%)",
-            "load" to "Carga / Descarga (W)",
-        )
-        for (m in WidgetCommon.METRICS) {
-            root.addView(Button(this).apply {
-                text = labels[m] ?: m
-                gravity = Gravity.START or Gravity.CENTER_VERTICAL
-                setOnClickListener {
-                    chosenMetric = m
-                    showIntervalStep(token)
-                }
-            }, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ).apply { bottomMargin = 10 })
-        }
-    }
-
-    private fun showIntervalStep(token: String) {
-        root.removeAllViews()
-        root.addView(TextView(this).apply {
-            text = "Intervalo de actualización"
-            textSize = 18f
-            setPadding(0, 0, 0, 8)
-        })
-        root.addView(TextView(this).apply {
-            text = "Los datos también se empujan al instante por canal en vivo; el intervalo cubre cuando el stream se cae."
-            setTextColor(0xFF94A3B8.toInt())
-            textSize = 12f
-            setPadding(0, 0, 0, 16)
-        })
-        val labels = mapOf(15 to "15 segundos", 30 to "30 segundos", 60 to "1 minuto", 300 to "5 minutos", 900 to "15 minutos")
-        for (sec in WidgetCommon.INTERVALS) {
-            root.addView(Button(this).apply {
-                text = labels[sec] ?: "${sec}s"
-                gravity = Gravity.START or Gravity.CENTER_VERTICAL
-                setOnClickListener {
-                    chosenInterval = sec
-                    selectSite(token)
-                }
-            }, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ).apply { bottomMargin = 10 })
-        }
+        // Saltamos pasos de métrica/intervalo y guardamos directamente.
+        selectSite(token)
     }
 
     private fun fetchSitesNative(rawSession: String): JSONArray {
