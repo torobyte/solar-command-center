@@ -37,6 +37,7 @@ import { Route as ApiPublicIngestRouteImport } from './routes/api/public/ingest'
 import { Route as ApiPublicCommandsRouteImport } from './routes/api/public/commands'
 import { Route as ApiPublicApkLoginRouteImport } from './routes/api/public/apk-login'
 import { Route as ApiPublicApkLatestRouteImport } from './routes/api/public/apk-latest'
+import { Route as ApiPublicApkDownloadRouteImport } from './routes/api/public/apk-download'
 import { Route as ApiPublicApkBrandRouteImport } from './routes/api/public/apk-brand'
 import { Route as ApiPublicApkBootstrapRouteImport } from './routes/api/public/apk-bootstrap'
 import { Route as ApiPublicAlertsStreamRouteImport } from './routes/api/public/alerts-stream'
@@ -186,6 +187,11 @@ const ApiPublicApkLatestRoute = ApiPublicApkLatestRouteImport.update({
   path: '/api/public/apk-latest',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicApkDownloadRoute = ApiPublicApkDownloadRouteImport.update({
+  id: '/api/public/apk-download',
+  path: '/api/public/apk-download',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicApkBrandRoute = ApiPublicApkBrandRouteImport.update({
   id: '/api/public/apk-brand',
   path: '/api/public/apk-brand',
@@ -248,6 +254,7 @@ export interface FileRoutesByFullPath {
   '/api/public/alerts-stream': typeof ApiPublicAlertsStreamRoute
   '/api/public/apk-bootstrap': typeof ApiPublicApkBootstrapRoute
   '/api/public/apk-brand': typeof ApiPublicApkBrandRoute
+  '/api/public/apk-download': typeof ApiPublicApkDownloadRoute
   '/api/public/apk-latest': typeof ApiPublicApkLatestRoute
   '/api/public/apk-login': typeof ApiPublicApkLoginRoute
   '/api/public/commands': typeof ApiPublicCommandsRoute
@@ -286,6 +293,7 @@ export interface FileRoutesByTo {
   '/api/public/alerts-stream': typeof ApiPublicAlertsStreamRoute
   '/api/public/apk-bootstrap': typeof ApiPublicApkBootstrapRoute
   '/api/public/apk-brand': typeof ApiPublicApkBrandRoute
+  '/api/public/apk-download': typeof ApiPublicApkDownloadRoute
   '/api/public/apk-latest': typeof ApiPublicApkLatestRoute
   '/api/public/apk-login': typeof ApiPublicApkLoginRoute
   '/api/public/commands': typeof ApiPublicCommandsRoute
@@ -325,6 +333,7 @@ export interface FileRoutesById {
   '/api/public/alerts-stream': typeof ApiPublicAlertsStreamRoute
   '/api/public/apk-bootstrap': typeof ApiPublicApkBootstrapRoute
   '/api/public/apk-brand': typeof ApiPublicApkBrandRoute
+  '/api/public/apk-download': typeof ApiPublicApkDownloadRoute
   '/api/public/apk-latest': typeof ApiPublicApkLatestRoute
   '/api/public/apk-login': typeof ApiPublicApkLoginRoute
   '/api/public/commands': typeof ApiPublicCommandsRoute
@@ -365,6 +374,7 @@ export interface FileRouteTypes {
     | '/api/public/alerts-stream'
     | '/api/public/apk-bootstrap'
     | '/api/public/apk-brand'
+    | '/api/public/apk-download'
     | '/api/public/apk-latest'
     | '/api/public/apk-login'
     | '/api/public/commands'
@@ -403,6 +413,7 @@ export interface FileRouteTypes {
     | '/api/public/alerts-stream'
     | '/api/public/apk-bootstrap'
     | '/api/public/apk-brand'
+    | '/api/public/apk-download'
     | '/api/public/apk-latest'
     | '/api/public/apk-login'
     | '/api/public/commands'
@@ -441,6 +452,7 @@ export interface FileRouteTypes {
     | '/api/public/alerts-stream'
     | '/api/public/apk-bootstrap'
     | '/api/public/apk-brand'
+    | '/api/public/apk-download'
     | '/api/public/apk-latest'
     | '/api/public/apk-login'
     | '/api/public/commands'
@@ -479,6 +491,7 @@ export interface RootRouteChildren {
   ApiPublicAlertsStreamRoute: typeof ApiPublicAlertsStreamRoute
   ApiPublicApkBootstrapRoute: typeof ApiPublicApkBootstrapRoute
   ApiPublicApkBrandRoute: typeof ApiPublicApkBrandRoute
+  ApiPublicApkDownloadRoute: typeof ApiPublicApkDownloadRoute
   ApiPublicApkLatestRoute: typeof ApiPublicApkLatestRoute
   ApiPublicApkLoginRoute: typeof ApiPublicApkLoginRoute
   ApiPublicCommandsRoute: typeof ApiPublicCommandsRoute
@@ -695,6 +708,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicApkLatestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/apk-download': {
+      id: '/api/public/apk-download'
+      path: '/api/public/apk-download'
+      fullPath: '/api/public/apk-download'
+      preLoaderRoute: typeof ApiPublicApkDownloadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/apk-brand': {
       id: '/api/public/apk-brand'
       path: '/api/public/apk-brand'
@@ -784,6 +804,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAlertsStreamRoute: ApiPublicAlertsStreamRoute,
   ApiPublicApkBootstrapRoute: ApiPublicApkBootstrapRoute,
   ApiPublicApkBrandRoute: ApiPublicApkBrandRoute,
+  ApiPublicApkDownloadRoute: ApiPublicApkDownloadRoute,
   ApiPublicApkLatestRoute: ApiPublicApkLatestRoute,
   ApiPublicApkLoginRoute: ApiPublicApkLoginRoute,
   ApiPublicCommandsRoute: ApiPublicCommandsRoute,
