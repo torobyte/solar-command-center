@@ -92,10 +92,12 @@ export function ApkAdmin() {
   const [showSplash, setShowSplash] = useState(true);
   const [apkUrl, setApkUrl] = useState<string>(() => {
     const cached = localStorage.getItem("apk_download_url") ?? "";
-    // Invalida URLs viejas con el patrón /releases/latest/download/ que GitHub
-    // a veces resolvía a un release timestamped antiguo. Ahora usamos el tag
-    // explícito /releases/download/latest/.
-    if (cached.includes("/releases/latest/download/")) {
+    // Invalida cualquier URL cacheada que apunte directamente a github.com.
+    // Ahora siempre queremos servir desde nuestro endpoint propio
+    // /api/public/apk-download, que resuelve el binario más reciente en
+    // tiempo real y evita problemas con punteros "latest" desactualizados
+    // o caches HTTP.
+    if (cached.includes("github.com/")) {
       localStorage.removeItem("apk_download_url");
       return "";
     }
