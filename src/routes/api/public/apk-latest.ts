@@ -38,7 +38,7 @@ export const Route = createFileRoute("/api/public/apk-latest")({
 
         const { data } = await supabaseAdmin
           .from("apk_config")
-          .select("app_id, app_name, version_name, version_code, github_repo_url")
+          .select("app_id, app_name, version_name, version_code, github_repo_url, server_url")
           .eq("id", 1)
           .maybeSingle();
 
