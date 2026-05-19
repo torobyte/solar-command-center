@@ -482,6 +482,10 @@ function SiteDetail() {
                   <stop offset="0%" stopColor="hsl(var(--load, 200 90% 55%))" stopOpacity={0.6} />
                   <stop offset="100%" stopColor="hsl(var(--load, 200 90% 55%))" stopOpacity={0} />
                 </linearGradient>
+                <linearGradient id="gBat" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--battery, 142 70% 45%))" stopOpacity={0.5} />
+                  <stop offset="100%" stopColor="hsl(var(--battery, 142 70% 45%))" stopOpacity={0} />
+                </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
               <XAxis dataKey="t" tickFormatter={(v) => format(new Date(v), "HH:mm")} fontSize={11} />
@@ -490,6 +494,7 @@ function SiteDetail() {
               <Legend />
               <Area type="monotone" dataKey="pv" name="Solar" stroke="var(--solar)" fill="url(#gPv)" />
               <Area type="monotone" dataKey="load" name="Load" stroke="var(--load)" fill="url(#gLoad)" />
+              <Area type="monotone" dataKey="battery" name="Batería (+desc/−carga)" stroke="var(--battery)" fill="url(#gBat)" />
             </AreaChart>
           </ChartCard>
 
