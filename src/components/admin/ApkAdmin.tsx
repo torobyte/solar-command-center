@@ -616,7 +616,27 @@ export function ApkAdmin() {
                 <span>100%</span>
               </div>
 
-              {showSplash ? (
+              {previewKey === 0 ? (
+                <div
+                  className="absolute inset-0 flex flex-col items-center justify-center gap-3"
+                  style={{ background: cfg.splash_color }}
+                >
+                  {cfg.icon_url ? (
+                    <img src={cfg.icon_url} alt="" className="h-20 w-20 rounded-2xl" />
+                  ) : (
+                    <div
+                      className="h-20 w-20 rounded-2xl flex items-center justify-center text-2xl font-bold"
+                      style={{ background: cfg.primary_color, color: "#fff" }}
+                    >
+                      {cfg.app_name.slice(0, 1).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="text-sm" style={{ color: "#fff" }}>{cfg.app_name}</div>
+                  <p className="text-[10px] px-6 text-center" style={{ color: "#ffffff99" }}>
+                    Pulsa "Preview" para cargar la app dentro de este marco.
+                  </p>
+                </div>
+              ) : showSplash ? (
                 <div
                   className="absolute inset-0 flex flex-col items-center justify-center"
                   style={{ background: cfg.splash_color }}
