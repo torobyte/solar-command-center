@@ -100,7 +100,12 @@ export function ApkAdmin() {
     // /api/public/apk-download, que resuelve el binario más reciente en
     // tiempo real y evita problemas con punteros "latest" desactualizados
     // o caches HTTP.
-    if (cached.includes("github.com/")) {
+    if (
+      cached.includes("github.com/") ||
+      cached.includes("lovableproject.com") ||
+      cached.includes("id-preview--7cb3041b-eb20-43aa-ba17-b0848cb53051.lovable.app") ||
+      cached.includes("project--7cb3041b-eb20-43aa-ba17-b0848cb53051")
+    ) {
       localStorage.removeItem("apk_download_url");
       return "";
     }
