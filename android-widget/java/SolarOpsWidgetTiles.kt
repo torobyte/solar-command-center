@@ -72,7 +72,7 @@ class SolarOpsWidgetTiles : AppWidgetProvider() {
         }
         val site = json.optJSONObject("site")
         val s = json.optJSONObject("sample")
-        v.setTextViewText(R.id.tile_site, site?.optString("name") ?: "SolarOps")
+        v.setTextViewText(R.id.tile_site, site?.optString("name") ?: BrandSync.cached(context).appName)
 
         val pv = (s?.optDouble("pv_w", 0.0) ?: 0.0).toInt()
         val load = (s?.optDouble("load_w", 0.0) ?: 0.0).toInt()

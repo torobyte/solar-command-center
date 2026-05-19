@@ -57,7 +57,7 @@ object BrandSync {
             splashColor = parseColor(p.getString(K_SPLASH_COLOR, null), 0xFF0A0A0A.toInt()),
             bgColor = parseColor(p.getString(K_BG_COLOR, null), 0xFF0A0A0A.toInt()),
             primaryColor = parseColor(p.getString(K_PRIMARY_COLOR, null), 0xFFF59E0B.toInt()),
-            appName = p.getString(K_APP_NAME, "SolarOps") ?: "SolarOps",
+            appName = p.getString(K_APP_NAME, "") ?: "",
             statusBarLight = p.getBoolean(K_STATUS_LIGHT, true),
             iconBitmap = icon,
             splashBitmap = splash,

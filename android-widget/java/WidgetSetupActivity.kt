@@ -85,7 +85,7 @@ class WidgetSetupActivity : Activity() {
         val scroll = ScrollView(this).apply { addView(root) }
 
         TextView(this).apply {
-            text = "SolarOps"
+            text = BrandSync.cached(this@WidgetSetupActivity).appName
             textSize = 24f
             setTextColor(0xFFEAB308.toInt())
             root.addView(this)

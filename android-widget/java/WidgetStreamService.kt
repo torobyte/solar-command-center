@@ -162,7 +162,7 @@ class WidgetStreamService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val ch = NotificationChannel(
                 CHANNEL_ID,
-                "SolarOps widgets",
+                BrandSync.cached(this).appName + " widgets",
                 NotificationManager.IMPORTANCE_MIN,
             ).apply {
                 description = "Mantiene los widgets actualizados en tiempo real"
@@ -177,7 +177,7 @@ class WidgetStreamService : Service() {
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_notify_sync)
-            .setContentTitle("SolarOps")
+            .setContentTitle(BrandSync.cached(this).appName)
             .setContentText("Widgets en tiempo real")
             .setPriority(NotificationCompat.PRIORITY_MIN)
             .setOngoing(true)

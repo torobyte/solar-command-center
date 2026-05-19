@@ -58,7 +58,7 @@ class SolarOpsWidget : AppWidgetProvider() {
 
         val token = WidgetCommon.tokenFor(context, widgetId)
         if (token.isNullOrBlank()) {
-            views.setTextViewText(R.id.widget_title, "SolarOps")
+            views.setTextViewText(R.id.widget_title, BrandSync.cached(context).appName)
             views.setTextViewText(R.id.widget_updated, "Configura el token")
             mgr.updateAppWidget(widgetId, views); return
         }
@@ -81,7 +81,7 @@ class SolarOpsWidget : AppWidgetProvider() {
         val fresh = site?.optBoolean("fresh") ?: false
         val ageSec = site?.optInt("age_seconds", -1) ?: -1
 
-        v.setTextViewText(R.id.widget_title, site?.optString("name") ?: "SolarOps")
+        v.setTextViewText(R.id.widget_title, site?.optString("name") ?: BrandSync.cached(context).appName)
         v.setInt(R.id.widget_status, "setTextColor",
             if (fresh) 0xFF22C55E.toInt() else 0xFFF59E0B.toInt())
         v.setTextViewText(R.id.widget_updated,

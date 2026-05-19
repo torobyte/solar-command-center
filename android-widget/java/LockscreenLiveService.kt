@@ -94,8 +94,8 @@ class LockscreenLiveService : Service() {
         ensureChannel()
 
         val siteName = json?.optJSONObject("site")?.optString("name")
-            ?: getSharedPreferences(PREFS, MODE_PRIVATE).getString(KEY_SITE_NAME, "SolarOps")
-            ?: "SolarOps"
+            ?: getSharedPreferences(PREFS, MODE_PRIVATE).getString(KEY_SITE_NAME, BrandSync.cached(this).appName)
+            ?: BrandSync.cached(this).appName
         val s = json?.optJSONObject("sample")
         val pv = (s?.optDouble("pv_w", 0.0) ?: 0.0).toInt()
         val load = (s?.optDouble("load_w", 0.0) ?: 0.0).toInt()

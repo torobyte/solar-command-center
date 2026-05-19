@@ -70,7 +70,7 @@ class SolarOpsWidgetMini : AppWidgetProvider() {
         val site = json.optJSONObject("site")
         val s = json.optJSONObject("sample")
         val bat = (s?.optDouble("battery_pct", 0.0) ?: 0.0).toInt().coerceIn(0, 100)
-        v.setTextViewText(R.id.mini_site, site?.optString("name") ?: "SolarOps")
+        v.setTextViewText(R.id.mini_site, site?.optString("name") ?: BrandSync.cached(context).appName)
         v.setTextViewText(R.id.mini_bat, "$bat")
         v.setProgressBar(R.id.mini_bar, 100, bat, false)
         mgr.updateAppWidget(id, v)
