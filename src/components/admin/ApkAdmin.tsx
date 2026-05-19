@@ -304,6 +304,7 @@ export function ApkAdmin() {
   }, []);
 
   useEffect(() => {
+    if (previewKey === 0) return; // no preview hasta que se pulse el botón
     setShowSplash(true);
     const t = setTimeout(() => setShowSplash(false), 1500);
     return () => clearTimeout(t);
