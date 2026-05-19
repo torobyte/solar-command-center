@@ -364,13 +364,20 @@ function SiteDetail() {
   useEffect(() => { localStorage.setItem("chart.smoothMode", smoothMode); }, [smoothMode]);
   useEffect(() => { localStorage.setItem("chart.smoothWindow", String(smoothWindow)); }, [smoothWindow]);
 
-  const rawChartData = useMemo(() => history.map((r) => ({
-    t: new Date(r.recorded_at).getTime(),
-    pv: r.pv_input_power == null ? null : Number(r.pv_input_power),
-    load: r.ac_output_active_power == null ? null : Number(r.ac_output_active_power),
-    soc: r.battery_capacity == null ? null : Number(r.battery_capacity),
-    grid: r.grid_voltage == null ? null : Number(r.grid_voltage),
-  })), [history]);
+  const rawChartData = useMemo(() => history.map((r) => {
+    const bv = Number(r.battery_voltage ?? 0);
+    const di = Number(r.battery_discharge_current ?? 0);
+    const ci = Number(r.battery_charging_current ?? 0);
+    const batW = bv * (di - ci); // positivo = descarga, negativo = carga
+    return {
+      t: new Date(r.recorded_at).getTime(),
+      pv: r.pv_input_power == null ? null : Number(r.pv_input_power),
+      load: r.ac_output_active_power == null ? null : Number(r.ac_output_active_power),
+      soc: r.battery_capacity == null ? null : Number(r.battery_capacity),
+      grid: r.grid_voltage == null ? null : Number(r.grid_voltage),
+      battery: r.battery_voltage == null ? null : +batW.toFixed(1),
+    };
+  }), [history]);
 
   const chartData = useMemo(
     () => smoothSeries(rawChartData, smoothMode, smoothWindow),
