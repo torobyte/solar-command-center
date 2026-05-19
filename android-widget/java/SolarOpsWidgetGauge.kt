@@ -76,7 +76,7 @@ class SolarOpsWidgetGauge : AppWidgetProvider() {
         val load = (s?.optDouble("load_w", 0.0) ?: 0.0).toInt()
         val bat = (s?.optDouble("battery_pct", 0.0) ?: 0.0).toInt().coerceIn(0, 100)
 
-        v.setTextViewText(R.id.gauge_site, site?.optString("name") ?: BrandSync.cached(context).appName)
+        v.setTextViewText(R.id.gauge_site, site?.optString("name") ?: "")
         v.setTextViewText(R.id.gauge_pct, "$bat%")
         v.setTextViewText(R.id.gauge_pv, "☀ $pv W")
         v.setTextViewText(R.id.gauge_load, "⚡ $load W")

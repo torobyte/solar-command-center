@@ -81,7 +81,7 @@ class SolarOpsWidget : AppWidgetProvider() {
         val fresh = site?.optBoolean("fresh") ?: false
         val ageSec = site?.optInt("age_seconds", -1) ?: -1
 
-        v.setTextViewText(R.id.widget_title, site?.optString("name") ?: BrandSync.cached(context).appName)
+        v.setTextViewText(R.id.widget_title, site?.optString("name") ?: "")
         v.setInt(R.id.widget_status, "setTextColor",
             if (fresh) 0xFF22C55E.toInt() else 0xFFF59E0B.toInt())
         v.setTextViewText(R.id.widget_updated,

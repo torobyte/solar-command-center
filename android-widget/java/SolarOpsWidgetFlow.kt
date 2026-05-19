@@ -72,7 +72,7 @@ class SolarOpsWidgetFlow : AppWidgetProvider() {
         val pv = (s?.optDouble("pv_w", 0.0) ?: 0.0).toInt()
         val load = (s?.optDouble("load_w", 0.0) ?: 0.0).toInt()
         val bat = (s?.optDouble("battery_pct", 0.0) ?: 0.0).toInt().coerceIn(0, 100)
-        v.setTextViewText(R.id.flow_site, site?.optString("name") ?: BrandSync.cached(context).appName)
+        v.setTextViewText(R.id.flow_site, site?.optString("name") ?: "")
         v.setTextViewText(R.id.flow_pv, "${pv}W")
         v.setTextViewText(R.id.flow_bat, "${bat}%")
         v.setTextViewText(R.id.flow_load, "${load}W")
