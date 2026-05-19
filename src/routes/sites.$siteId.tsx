@@ -64,6 +64,8 @@ interface Sample {
   pv_input_power: number | null;
   battery_capacity: number | null;
   battery_voltage: number | null;
+  battery_discharge_current: number | null;
+  battery_charging_current: number | null;
   grid_voltage: number | null;
   inverter_mode: string | null;
 }
@@ -83,7 +85,8 @@ function mergeSample(prev: Sample | null, next: Sample): Sample {
   if (!prev) return next;
   const keys: (keyof Sample)[] = [
     "ac_output_active_power", "pv_input_power", "battery_capacity",
-    "battery_voltage", "grid_voltage", "inverter_mode",
+    "battery_voltage", "battery_discharge_current", "battery_charging_current",
+    "grid_voltage", "inverter_mode",
   ];
   const merged: Sample = { ...next };
   for (const k of keys) {
