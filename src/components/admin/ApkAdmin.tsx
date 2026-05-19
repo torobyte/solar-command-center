@@ -88,8 +88,11 @@ export function ApkAdmin() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  // previewKey=0 → iframe NOT mounted. Solo se monta cuando el usuario
+  // pulsa explícitamente "Preview" (evita que el iframe cargue el propio
+  // origen y se vea como un loop de "página actualizándose").
   const [previewKey, setPreviewKey] = useState(0);
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(false);
   const [apkUrl, setApkUrl] = useState<string>(() => {
     const cached = localStorage.getItem("apk_download_url") ?? "";
     // Invalida cualquier URL cacheada que apunte directamente a github.com.
