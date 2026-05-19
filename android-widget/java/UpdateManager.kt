@@ -22,10 +22,12 @@ import kotlin.concurrent.thread
 class UpdateManager(private val context: Context) {
     private var downloadId: Long = -1L
     private var receiverRegistered = false
+    private val prefs by lazy { context.getSharedPreferences(WidgetCommon.PREFS, Context.MODE_PRIVATE) }
 
     companion object {
         private const val CHANNEL_ID = "apk_updates"
         private const val NOTIFICATION_ID = 12041
+        private const val KEY_LAST_STATUS_VERSION = "apk_update_status_version"
     }
 
     private val completeReceiver = object : BroadcastReceiver() {
@@ -65,6 +67,8 @@ class UpdateManager(private val context: Context) {
 
     private fun notifyAlreadyUpToDate(payload: JSONObject) {
         val latestName = payload.optString("version_name").ifBlank { currentVersionName() }
+        if (prefs.getString(KEY_LAST_STATUS_VERSION, null) == latestName) return
+        prefs.edit().putString(KEY_LAST_STATUS_VERSION, latestName).apply()
         showStatusNotification(
             title = "Tu app ya está actualizada",
             message = "Ya tienes instalada la build $latestName.",
@@ -91,6 +95,7 @@ class UpdateManager(private val context: Context) {
         ensureReceiver()
         val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
         downloadId = dm.enqueue(request)
+        prefs.edit().remove(KEY_LAST_STATUS_VERSION).apply()
         Toast.makeText(context, "Descargando actualización…", Toast.LENGTH_LONG).show()
         showStatusNotification(
             title = "Nueva versión disponible",
