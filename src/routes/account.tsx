@@ -109,11 +109,21 @@ function AccountPage() {
   if (!user) return null;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Mi cuenta</h1>
-        <p className="text-sm text-muted-foreground">Gestiona tus datos personales, seguridad y dispositivos.</p>
+    <div className="mx-auto max-w-5xl space-y-6">
+      <div className="flex items-center gap-4 animate-fade-up">
+        <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 shadow-sm">
+          <UserIcon className="h-7 w-7" strokeWidth={2.2} />
+          <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 ring-2 ring-background">
+            <svg viewBox="0 0 24 24" className="h-3 w-3 text-white" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 12l5 5L20 7" /></svg>
+          </span>
+        </div>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Mi cuenta</h1>
+          <p className="text-sm text-muted-foreground">Gestiona tus datos personales, seguridad y dispositivos.</p>
+        </div>
       </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
 
       <Card>
         <CardHeader>
