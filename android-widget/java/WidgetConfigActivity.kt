@@ -193,22 +193,30 @@ class WidgetConfigActivity : Activity() {
             .putInt("${WidgetCommon.KEY_INTERVAL}.$widgetId", chosenInterval)
             .apply()
 
-        for (cls in listOf(
-            TbWidgetMain::class.java,
-            TbWidgetSummary::class.java,
-            TbWidgetBattery2x2::class.java,
-            TbWidgetBattery1x1::class.java,
-        )) {
-            sendBroadcast(Intent(this, cls).apply {
-                action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-                putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(widgetId))
-            })
-            WidgetCommon.scheduleAlarmFor(this, cls)
-        }
+        val providerClass = providerClassFor(widgetId)
+        sendBroadcast(Intent(this, providerClass).apply {
+            action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(widgetId))
+        })
+        WidgetCommon.scheduleAlarmFor(this, providerClass)
 
         WidgetStreamService.start(this)
 
         setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
         finish()
+    }
+
+    private fun providerClassFor(widgetId: Int): Class<*> {
+        val className = AppWidgetManager.getInstance(this)
+            .getAppWidgetInfo(widgetId)
+            ?.provider
+            ?.className
+
+        return when (className) {
+            TbWidgetSummary::class.java.name -> TbWidgetSummary::class.java
+            TbWidgetBattery2x2::class.java.name -> TbWidgetBattery2x2::class.java
+            TbWidgetBattery1x1::class.java.name -> TbWidgetBattery1x1::class.java
+            else -> TbWidgetMain::class.java
+        }
     }
 }
