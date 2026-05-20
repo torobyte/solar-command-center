@@ -1200,7 +1200,7 @@ function IconCard({ icon, title, subtitle }: { icon: React.ReactNode; title: str
 
 function Section({ title, children, icon: Icon }: { title: string; children: React.ReactNode; icon?: typeof Cpu }) {
   return (
-    <div className="rounded-xl border bg-card p-3 sm:p-4 shadow-sm animate-fade-up">
+    <div className="dashboard-card p-3 sm:p-4 animate-fade-up">
       <div className="mb-2.5 flex items-center gap-2">
         {Icon && (
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-accent/20 to-accent/5 text-accent ring-1 ring-accent/20">
