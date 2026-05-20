@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Decorative mini-spark line under each metric (kW). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="80dp" android:height="14dp"
+    android:viewportWidth="80" android:viewportHeight="14">
+    <path android:strokeColor="@color/tb_accent" android:strokeWidth="1.4" android:fillColor="#00000000"
+        android:pathData="M0,10 L8,7 L16,9 L24,4 L32,8 L40,3 L48,7 L56,2 L64,6 L72,4 L80,7" />
+</vector>

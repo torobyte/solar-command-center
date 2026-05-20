@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TOROBYTE — Widget 4x2 PRINCIPAL: batería gigante + Solar / Consumo / Red / Eficiencia -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="14dp"
+    android:background="@drawable/tb_widget_bg"
+    android:orientation="vertical">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+        <TextView
+            android:id="@+id/tb_main_site"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="TOROBYTE"
+            android:textColor="@color/tb_fg"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.15"
+            android:singleLine="true"
+            android:ellipsize="end" />
+        <TextView
+            android:id="@+id/tb_main_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="●"
+            android:textColor="@color/tb_good"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- Body: battery + metrics column -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:layout_marginTop="6dp"
+        android:gravity="center_vertical">
+
+        <!-- Left: % + label -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1.05"
+            android:orientation="vertical"
+            android:gravity="center_vertical">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="CARGA DE BATERÍA"
+                android:textColor="@color/tb_muted"
+                android:textSize="9sp"
+                android:letterSpacing="0.15" />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="bottom"
+                android:layout_marginTop="-2dp">
+                <TextView
+                    android:id="@+id/tb_main_pct"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="—"
+                    android:textColor="@color/tb_fg"
+                    android:textSize="44sp"
+                    android:textStyle="bold"
+                    android:includeFontPadding="false" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="%"
+                    android:textColor="@color/tb_muted"
+                    android:textSize="16sp"
+                    android:paddingBottom="6dp"
+                    android:paddingStart="2dp" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="-2dp">
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:src="@drawable/ic_tb_bolt" />
+                <TextView
+                    android:id="@+id/tb_main_state"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="CARGANDO"
+                    android:textColor="@color/tb_accent"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1"
+                    android:paddingStart="3dp" />
+            </LinearLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="AUTONOMÍA RESTANTE"
+                android:textColor="@color/tb_muted"
+                android:textSize="8sp"
+                android:letterSpacing="0.15"
+                android:layout_marginTop="8dp" />
+            <TextView
+                android:id="@+id/tb_main_eta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="—"
+                android:textColor="@color/tb_fg"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Center: vertical battery -->
+        <FrameLayout
+            android:layout_width="62dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="10dp">
+            <View
+                android:layout_width="22dp"
+                android:layout_height="5dp"
+                android:layout_gravity="center_horizontal|top"
+                android:background="@drawable/battery_cap" />
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginTop="5dp"
+                android:background="@drawable/battery_shell">
+                <ProgressBar
+                    android:id="@+id/tb_main_bat"
+                    style="@android:style/Widget.ProgressBar.Horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_margin="4dp"
+                    android:max="100"
+                    android:progress="0"
+                    android:indeterminate="false"
+                    android:progressDrawable="@drawable/battery_fill" />
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_tb_bolt" />
+            </FrameLayout>
+        </FrameLayout>
+
+        <!-- Right: 4 metrics -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1.6"
+            android:orientation="vertical">
+
+            <!-- PV -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+                <ImageView android:layout_width="16dp" android:layout_height="16dp" android:src="@drawable/ic_tb_sun" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="6dp">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="PRODUCCIÓN SOLAR" android:textColor="@color/tb_muted" android:textSize="8sp" android:letterSpacing="0.1" />
+                    <TextView android:id="@+id/tb_main_pv" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="—" android:textColor="@color/tb_fg" android:textSize="13sp" android:textStyle="bold" />
+                </LinearLayout>
+                <ImageView android:layout_width="60dp" android:layout_height="12dp" android:src="@drawable/tb_spark" android:scaleType="fitXY" />
+            </LinearLayout>
+
+            <!-- Load -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+                <ImageView android:layout_width="16dp" android:layout_height="16dp" android:src="@drawable/ic_tb_home" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="6dp">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="CONSUMO" android:textColor="@color/tb_muted" android:textSize="8sp" android:letterSpacing="0.1" />
+                    <TextView android:id="@+id/tb_main_load" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="—" android:textColor="@color/tb_fg" android:textSize="13sp" android:textStyle="bold" />
+                </LinearLayout>
+                <ImageView android:layout_width="60dp" android:layout_height="12dp" android:src="@drawable/tb_spark" android:scaleType="fitXY" />
+            </LinearLayout>
+
+            <!-- Grid -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+                <ImageView android:layout_width="16dp" android:layout_height="16dp" android:src="@drawable/ic_tb_grid" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="6dp">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="RED" android:textColor="@color/tb_muted" android:textSize="8sp" android:letterSpacing="0.1" />
+                    <TextView android:id="@+id/tb_main_grid" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="—" android:textColor="@color/tb_fg" android:textSize="13sp" android:textStyle="bold" />
+                </LinearLayout>
+                <ImageView android:layout_width="60dp" android:layout_height="12dp" android:src="@drawable/tb_spark" android:scaleType="fitXY" />
+            </LinearLayout>
+
+            <!-- Efficiency -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+                <ImageView android:layout_width="16dp" android:layout_height="16dp" android:src="@drawable/ic_tb_leaf" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="6dp">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="EFICIENCIA" android:textColor="@color/tb_muted" android:textSize="8sp" android:letterSpacing="0.1" />
+                    <TextView android:id="@+id/tb_main_eff" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="—" android:textColor="@color/tb_fg" android:textSize="13sp" android:textStyle="bold" />
+                </LinearLayout>
+                <ProgressBar
+                    android:id="@+id/tb_main_eff_bar"
+                    style="@android:style/Widget.ProgressBar.Horizontal"
+                    android:layout_width="60dp"
+                    android:layout_height="4dp"
+                    android:max="100"
+                    android:progress="0"
+                    android:progressDrawable="@drawable/tb_progress_track" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>
