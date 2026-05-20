@@ -46,6 +46,7 @@ import { Route as ApiAdminSmtpTestRouteImport } from './routes/api/admin/smtp-te
 import { Route as ApiPublicAgentUpdateRouteImport } from './routes/api/public/agent.update'
 import { Route as ApiPublicAgentInstallRouteImport } from './routes/api/public/agent.install'
 import { Route as ApiPublicAgentAgentRouteImport } from './routes/api/public/agent.agent'
+import { Route as AuthenticatedSitesSiteIdSavingsRouteImport } from './routes/_authenticated.sites.$siteId.savings'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -232,6 +233,12 @@ const ApiPublicAgentAgentRoute = ApiPublicAgentAgentRouteImport.update({
   path: '/api/public/agent/agent',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedSitesSiteIdSavingsRoute =
+  AuthenticatedSitesSiteIdSavingsRouteImport.update({
+    id: '/_authenticated/sites/$siteId/savings',
+    path: '/sites/$siteId/savings',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -268,6 +275,7 @@ export interface FileRoutesByFullPath {
   '/api/public/widget': typeof ApiPublicWidgetRoute
   '/api/public/widget-data': typeof ApiPublicWidgetDataRoute
   '/api/public/widget-stream': typeof ApiPublicWidgetStreamRoute
+  '/sites/$siteId/savings': typeof AuthenticatedSitesSiteIdSavingsRoute
   '/api/public/agent/agent': typeof ApiPublicAgentAgentRoute
   '/api/public/agent/install': typeof ApiPublicAgentInstallRoute
   '/api/public/agent/update': typeof ApiPublicAgentUpdateRoute
@@ -307,6 +315,7 @@ export interface FileRoutesByTo {
   '/api/public/widget': typeof ApiPublicWidgetRoute
   '/api/public/widget-data': typeof ApiPublicWidgetDataRoute
   '/api/public/widget-stream': typeof ApiPublicWidgetStreamRoute
+  '/sites/$siteId/savings': typeof AuthenticatedSitesSiteIdSavingsRoute
   '/api/public/agent/agent': typeof ApiPublicAgentAgentRoute
   '/api/public/agent/install': typeof ApiPublicAgentInstallRoute
   '/api/public/agent/update': typeof ApiPublicAgentUpdateRoute
@@ -347,6 +356,7 @@ export interface FileRoutesById {
   '/api/public/widget': typeof ApiPublicWidgetRoute
   '/api/public/widget-data': typeof ApiPublicWidgetDataRoute
   '/api/public/widget-stream': typeof ApiPublicWidgetStreamRoute
+  '/_authenticated/sites/$siteId/savings': typeof AuthenticatedSitesSiteIdSavingsRoute
   '/api/public/agent/agent': typeof ApiPublicAgentAgentRoute
   '/api/public/agent/install': typeof ApiPublicAgentInstallRoute
   '/api/public/agent/update': typeof ApiPublicAgentUpdateRoute
@@ -388,6 +398,7 @@ export interface FileRouteTypes {
     | '/api/public/widget'
     | '/api/public/widget-data'
     | '/api/public/widget-stream'
+    | '/sites/$siteId/savings'
     | '/api/public/agent/agent'
     | '/api/public/agent/install'
     | '/api/public/agent/update'
@@ -427,6 +438,7 @@ export interface FileRouteTypes {
     | '/api/public/widget'
     | '/api/public/widget-data'
     | '/api/public/widget-stream'
+    | '/sites/$siteId/savings'
     | '/api/public/agent/agent'
     | '/api/public/agent/install'
     | '/api/public/agent/update'
@@ -466,6 +478,7 @@ export interface FileRouteTypes {
     | '/api/public/widget'
     | '/api/public/widget-data'
     | '/api/public/widget-stream'
+    | '/_authenticated/sites/$siteId/savings'
     | '/api/public/agent/agent'
     | '/api/public/agent/install'
     | '/api/public/agent/update'
@@ -505,6 +518,7 @@ export interface RootRouteChildren {
   ApiPublicWidgetRoute: typeof ApiPublicWidgetRoute
   ApiPublicWidgetDataRoute: typeof ApiPublicWidgetDataRoute
   ApiPublicWidgetStreamRoute: typeof ApiPublicWidgetStreamRoute
+  AuthenticatedSitesSiteIdSavingsRoute: typeof AuthenticatedSitesSiteIdSavingsRoute
   ApiPublicAgentAgentRoute: typeof ApiPublicAgentAgentRoute
   ApiPublicAgentInstallRoute: typeof ApiPublicAgentInstallRoute
   ApiPublicAgentUpdateRoute: typeof ApiPublicAgentUpdateRoute
@@ -771,6 +785,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAgentAgentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/sites/$siteId/savings': {
+      id: '/_authenticated/sites/$siteId/savings'
+      path: '/sites/$siteId/savings'
+      fullPath: '/sites/$siteId/savings'
+      preLoaderRoute: typeof AuthenticatedSitesSiteIdSavingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -818,6 +839,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWidgetRoute: ApiPublicWidgetRoute,
   ApiPublicWidgetDataRoute: ApiPublicWidgetDataRoute,
   ApiPublicWidgetStreamRoute: ApiPublicWidgetStreamRoute,
+  AuthenticatedSitesSiteIdSavingsRoute: AuthenticatedSitesSiteIdSavingsRoute,
   ApiPublicAgentAgentRoute: ApiPublicAgentAgentRoute,
   ApiPublicAgentInstallRoute: ApiPublicAgentInstallRoute,
   ApiPublicAgentUpdateRoute: ApiPublicAgentUpdateRoute,
