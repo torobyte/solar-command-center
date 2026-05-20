@@ -15,7 +15,7 @@ import { useI18n } from "@/lib/i18n";
 import { useServerFn } from "@tanstack/react-start";
 import { claimPairingCode } from "@/lib/pairing.functions";
 import { getSiteOwners } from "@/lib/sharing.functions";
-import { Plus, Cpu as CpuIcon, Sparkles, KeyRound, Copy, Share2, Home, Sun as SunIcon, BatteryFull, EyeOff } from "lucide-react";
+import { Plus, Cpu as CpuIcon, Sparkles, KeyRound, Copy, Share2, Home, Sun as SunIcon, BatteryFull, EyeOff, ShieldCheck, Zap, Cloud, Lock as LockIcon } from "lucide-react";
 import { SiteSharing } from "@/components/SiteSharing";
 import { toast } from "sonner";
 import { TableSkeleton, PageHeaderSkeleton } from "@/components/LoadingStates";
