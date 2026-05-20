@@ -96,7 +96,7 @@ export function SiteDashboardView({
 
   const widgets: Record<string, React.ReactNode> = {
     mode: (
-      <div className="flex items-center justify-between rounded-xl border bg-card p-4 sm:p-5 animate-fade-in h-full">
+      <div className="flex items-center justify-between rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md transition-shadow sm:p-6 animate-fade-in h-full">
         <div className="flex items-center gap-3">
           <Cpu className="h-8 w-8 text-foreground/70" />
           <div>
