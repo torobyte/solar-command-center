@@ -414,6 +414,25 @@ function SitesIndex() {
         </>
       )}
 
+      <div className="mt-8 rounded-2xl border bg-primary/[0.04] px-5 py-5 animate-fade-up">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { icon: ShieldCheck, title: "Monitoreo 24/7", body: "Tus sistemas siempre vigilados", tint: "text-primary" },
+            { icon: Zap, title: "Datos en tiempo real", body: "Información precisa al instante", tint: "text-amber-500" },
+            { icon: Cloud, title: "Alta disponibilidad", body: "Plataforma 99.9% operativa", tint: "text-sky-500" },
+            { icon: LockIcon, title: "Seguro y confiable", body: "Tus datos siempre protegidos", tint: "text-emerald-500" },
+          ].map((f) => (
+            <div key={f.title} className="flex items-start gap-3">
+              <f.icon className={`mt-0.5 h-5 w-5 shrink-0 ${f.tint}`} strokeWidth={2.2} />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">{f.title}</p>
+                <p className="text-xs text-muted-foreground">{f.body}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <Dialog open={shareSite != null} onOpenChange={(o) => !o && setShareSite(null)}>
         <DialogContent className="max-w-2xl rounded-2xl">
           <DialogHeader>
