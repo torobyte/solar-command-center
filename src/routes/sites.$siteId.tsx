@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Copy, Battery, Sun, Plug, Cpu, AlertCircle, LayoutDashboard, LineChart, Calculator, Settings2, Info, Wifi, HardDrive, Terminal, SlidersHorizontal, Download, Pencil, Check, X } from "lucide-react";
+import { ArrowLeft, Copy, Battery, Sun, Plug, Cpu, AlertCircle, LayoutDashboard, LineChart, Calculator, Settings2, Info, Wifi, HardDrive, Terminal, SlidersHorizontal, Download, Pencil, Check, X, Coins } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { useI18n } from "@/lib/i18n";
 import { SolarForecastWidget } from "@/components/SolarForecastWidget";
 import { SavingsCard } from "@/components/SavingsCard";
+import { SavingsTabView } from "@/components/SavingsTabView";
 import { EnergyFlowDiagram } from "@/components/EnergyFlowDiagram";
 import { PowerGauges } from "@/components/PowerGauges";
 import { Battery3D, SolarRays, GridSineWave, ConcentricRings, SolarPanelsViz, HouseLoadViz, BackupTimeCard } from "@/components/AdvancedVisuals";
@@ -426,6 +427,7 @@ function SiteDetail() {
           <TabsTrigger value="dashboard" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><LayoutDashboard className="h-3.5 w-3.5" strokeWidth={2.2} />Dashboard</TabsTrigger>
           <TabsTrigger value="charts" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><LineChart className="h-3.5 w-3.5" strokeWidth={2.2} />Charts</TabsTrigger>
           <TabsTrigger value="totals" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Calculator className="h-3.5 w-3.5" strokeWidth={2.2} />Totals</TabsTrigger>
+          <TabsTrigger value="savings" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Coins className="h-3.5 w-3.5" strokeWidth={2.2} />Ahorro</TabsTrigger>
           <TabsTrigger value="notifications" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><BellRing className="h-3.5 w-3.5" strokeWidth={2.2} />Alertas</TabsTrigger>
           {roleInfo.role !== "viewer" && (
             <TabsTrigger value="config" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Settings2 className="h-3.5 w-3.5" strokeWidth={2.2} />Configuration</TabsTrigger>
@@ -561,6 +563,10 @@ function SiteDetail() {
             </table>
             {totals.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">No daily data yet.</p>}
           </div>
+        </TabsContent>
+
+        <TabsContent value="savings" className="mt-6">
+          <SavingsTabView siteId={siteId} canEdit={roleInfo.role === "owner" || roleInfo.role === "admin"} />
         </TabsContent>
 
         <TabsContent value="notifications" className="mt-6">
