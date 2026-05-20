@@ -627,6 +627,8 @@ function SiteDetail() {
           </TabsContent>
         )}
       </Tabs>
+        </div>
+      </div>
       <MobileBottomNav value={tab} onChange={setTab} hideTabs={roleInfo.role === "viewer" ? ["config"] : []} />
     </>
   );
