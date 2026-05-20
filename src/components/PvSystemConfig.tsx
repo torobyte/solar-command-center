@@ -195,34 +195,6 @@ export function PvSystemConfigCard({ siteId, maxAcOutputPower, nominalBatteryV }
         </Field>
 
         <div className="sm:col-span-2 mt-1 rounded-lg border border-dashed bg-muted/20 p-2.5 sm:p-3">
-          <h4 className="mb-2 text-xs font-semibold sm:text-sm">Tarifa eléctrica (para cálculo de ahorro)</h4>
-          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-            <Field label="Moneda" hint="CLP, USD, EUR…">
-              <select
-                className="h-9 w-full rounded-md border bg-background px-3 text-sm"
-                value={form.currency ?? "CLP"}
-                onChange={(e) => set("currency", e.target.value)}
-              >
-                <option value="CLP">CLP — Peso chileno</option>
-                <option value="USD">USD — Dólar</option>
-                <option value="EUR">EUR — Euro</option>
-                <option value="MXN">MXN — Peso mexicano</option>
-                <option value="ARS">ARS — Peso argentino</option>
-                <option value="COP">COP — Peso colombiano</option>
-                <option value="PEN">PEN — Sol peruano</option>
-                <option value="BRL">BRL — Real brasileño</option>
-              </select>
-            </Field>
-            <Field label="Precio kWh consumido" hint="Cuánto cobra la distribuidora por kWh">
-              <Input type="number" step="0.01" value={form.energy_price ?? ""} onChange={(e) => set("energy_price", parseFloat(e.target.value) || null)} placeholder="ej. 180" />
-            </Field>
-            <Field label="Precio kWh inyectado" hint="Opcional — net billing / feed-in">
-              <Input type="number" step="0.01" value={form.feed_in_price ?? ""} onChange={(e) => set("feed_in_price", parseFloat(e.target.value) || null)} placeholder="ej. 60" />
-            </Field>
-          </div>
-        </div>
-
-        <div className="sm:col-span-2 mt-1 rounded-lg border border-dashed bg-muted/20 p-2.5 sm:p-3">
           <h4 className="mb-2 text-xs font-semibold sm:text-sm">Calibración del modelo de producción</h4>
           <p className="mb-2 text-[10px] text-muted-foreground">
             El sistema calibra automáticamente las estimaciones contra la lectura en vivo del inversor.
