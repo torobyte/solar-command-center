@@ -172,16 +172,51 @@ function SitesIndex() {
     );
   }
 
+  // Distinct inverters for filter dropdown
+  const inverterOptions = useMemo(() => {
+    const set = new Set<string>();
+    sites.forEach(s => { const m = s.inverter_spec_model || s.inverter_model || s.inverter_driver; if (m) set.add(m); });
+    return Array.from(set);
+  }, [sites]);
+
+  const planOptions = useMemo(() => {
+    const set = new Set<string>();
+    sites.forEach(s => { if (s.plan) set.add(s.plan); });
+    return Array.from(set);
+  }, [sites]);
+
+  const filteredSites = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return sites.filter(s => {
+      if (q && !(s.name.toLowerCase().includes(q) || (s.description ?? "").toLowerCase().includes(q))) return false;
+      if (fStatus !== "all" && s.status !== fStatus) return false;
+      if (fInverter !== "all") {
+        const m = s.inverter_spec_model || s.inverter_model || s.inverter_driver || "";
+        if (m !== fInverter) return false;
+      }
+      if (fPlan !== "all" && s.plan !== fPlan) return false;
+      return true;
+    });
+  }, [sites, search, fStatus, fInverter, fPlan]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredSites.length / pageSize));
+  const pageItems = filteredSites.slice((page - 1) * pageSize, page * pageSize);
+  useEffect(() => { if (page > totalPages) setPage(1); }, [totalPages, page]);
+  function clearFilters() { setSearch(""); setFStatus("all"); setFInverter("all"); setFPlan("all"); }
+
   return (
     <>
-      <div className="mb-6 flex items-center justify-between animate-fade-up">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t("sites.title")}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t("sites.subtitle")}</p>
+      <div className="mb-6 flex items-start justify-between gap-4 animate-fade-up">
+        <div className="flex items-start gap-3">
+          <div className="mt-1.5 h-9 w-1 rounded-full bg-primary" />
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">{t("sites.title")}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Dispositivos que monitorean tus inversores solares.</p>
+          </div>
         </div>
         <div className="flex gap-2">
           <Link to="/sites/overview">
-            <Button variant="outline" className="rounded-full"><CpuIcon className="mr-1.5 h-4 w-4" strokeWidth={2.4} />Vista global</Button>
+            <Button variant="outline" className="rounded-xl border-border bg-card shadow-sm hover:bg-muted/60"><Globe2 className="mr-1.5 h-4 w-4" strokeWidth={2.2} />Vista global</Button>
           </Link>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
