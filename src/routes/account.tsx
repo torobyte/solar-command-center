@@ -209,6 +209,7 @@ function AccountPage() {
           )}
         </CardContent>
       </Card>
+      </div>
 
       <Card>
         <CardHeader>
