@@ -35,16 +35,16 @@ export function AppHeader() {
   const renderNavLink = (it: NavItem, mobile = false) => (
     <Link key={it.to} to={it.to} onClick={() => mobile && setOpen(false)} className="group">
       <div
-        className={`relative flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium transition-all ${
+        className={`relative flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all ${
           it.active
-            ? "bg-primary/10 text-foreground shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--accent)_30%,transparent)]"
+            ? "bg-primary/10 text-primary"
             : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
         } ${mobile ? "w-full justify-start" : ""}`}
       >
-        <it.icon className={`h-4 w-4 transition-transform ${it.active ? "text-accent" : ""} group-hover:scale-110`} strokeWidth={2.2} />
+        <it.icon className="h-4 w-4" strokeWidth={2.2} />
         <span>{it.label}</span>
-        {it.active && (
-          <span className="absolute -bottom-px left-1/2 h-0.5 w-6 -translate-x-1/2 rounded-full bg-gradient-aurora animate-fade-in" />
+        {it.active && !mobile && (
+          <span className="absolute -bottom-[10px] left-1/2 h-[3px] w-10 -translate-x-1/2 rounded-full bg-primary" />
         )}
       </div>
     </Link>
