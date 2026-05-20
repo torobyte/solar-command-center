@@ -398,8 +398,8 @@ function SiteDetail() {
 
   return (
     <>
-      <Link to="/app" className="group mb-4 inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/60 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-muted/60">
-        <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" strokeWidth={2.4} /> Back to sites
+      <Link to="/app" className="group mb-4 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
+        <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" strokeWidth={2.4} /> Volver a sitios
       </Link>
 
       <div className="lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-8">
@@ -451,20 +451,35 @@ function SiteDetail() {
               </p>
             </div>
             {roleInfo.canManageMembers && (
-              <Button variant="outline" size="sm" className="rounded-full shrink-0" onClick={() => { setTab("config"); setConfigSubTab("sharing"); }}>
+              <Button variant="outline" size="sm" className="rounded-xl shrink-0" onClick={() => { setTab("config"); setConfigSubTab("sharing"); }}>
                 <Share2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={2.4} /> Compartir
               </Button>
             )}
           </div>
 
-          <div className="mb-4 hidden items-center justify-between gap-3 lg:flex">
-            <div />
+          {/* Desktop title bar matching design captures */}
+          <div className="mb-6 hidden items-start justify-between gap-4 lg:flex animate-fade-up">
+            <div className="min-w-0 flex-1">
+              <InlineSiteName site={site} onRenamed={(name) => setSite((s) => s ? { ...s, name } : s)} />
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                <span className="text-muted-foreground">{site.inverter_model ?? selectedDevice?.name ?? "Inversor conectado"}</span>
+                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${site.status === "online" ? "bg-success/15 text-success" : site.status === "offline" ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground"}`}>
+                  <span className="h-1.5 w-1.5 rounded-full bg-current" /> {site.status === "online" ? "En línea" : site.status === "offline" ? "Offline" : site.status}
+                </span>
+                {roleInfo.role && (
+                  <span title={ROLE_DESCRIPTION[roleInfo.role]} className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2.5 py-0.5 text-[11px] font-medium text-accent">
+                    <Lock className="h-3 w-3" strokeWidth={2.4} /> Tu rol: {ROLE_LABEL[roleInfo.role]}
+                  </span>
+                )}
+              </div>
+            </div>
             {roleInfo.canManageMembers && (
-              <Button variant="outline" size="sm" className="rounded-full shrink-0" onClick={() => { setTab("config"); setConfigSubTab("sharing"); }}>
+              <Button variant="outline" size="sm" className="rounded-xl shrink-0" onClick={() => { setTab("config"); setConfigSubTab("sharing"); }}>
                 <Share2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={2.4} /> Compartir
               </Button>
             )}
           </div>
+
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as SiteTab)} className="pb-24 md:pb-0">
         <TabsList className="inline-flex h-11 rounded-full bg-muted/60 p-1 lg:hidden">
