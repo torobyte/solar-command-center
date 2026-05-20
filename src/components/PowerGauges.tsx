@@ -1,4 +1,4 @@
-import { Sun, Plug, Battery, Home } from "lucide-react";
+import { Sun, Plug, Battery, Home, MoreVertical, Gauge } from "lucide-react";
 
 interface Props {
   pv: number;        // W
@@ -19,13 +19,22 @@ export function PowerGauges({ pv, load, gridV, battery, batteryV, pvMax = 5000, 
   const gridConnected = gridV > 50;
   return (
     <div className="@container dashboard-card p-5 sm:p-6 animate-fade-in">
-      <div className="mb-4 flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold @[360px]:text-base">Estado general del sistema</h3>
-        <span className="shrink-0 rounded-full bg-[var(--success)]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--success)]">
-          ● En vivo
-        </span>
+      <div className="mb-5 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Gauge className="h-4 w-4 text-[var(--load)]" />
+          <h3 className="text-sm font-semibold @[360px]:text-base">Estado general del sistema</h3>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="shrink-0 rounded-full bg-[var(--success)]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--success)]">
+            ● En vivo
+          </span>
+          <button type="button" className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground" aria-label="Más opciones">
+            <MoreVertical className="h-4 w-4" />
+          </button>
+        </div>
       </div>
-      <div className="grid items-center gap-4 @[520px]:grid-cols-[0.8fr_0.8fr_1.25fr_0.8fr]">
+
+      <div className="grid items-center gap-3 @[560px]:grid-cols-[0.8fr_0.9fr_1.2fr_0.8fr]">
         <RadialGauge
           label="Solar"
           value={pv}
@@ -66,10 +75,10 @@ export function PowerGauges({ pv, load, gridV, battery, batteryV, pvMax = 5000, 
         />
       </div>
 
-      <div className="mt-5 space-y-3 border-t pt-4">
-        <LoadBar label="Generación solar" value={pv} max={pvMax} unit="W" color="var(--solar)" />
-        <LoadBar label="Consumo de la casa" value={load} max={loadMax} unit="W" color="var(--load)" />
-        <LoadBar label="Estado de carga (SOC)" value={battery} max={100} unit="%" color="var(--battery)" />
+      <div className="mt-5 space-y-3 border-t border-border/70 pt-4">
+        <LoadBar label="Generación solar" value={pv} max={pvMax} unit="W" color="var(--solar)" icon={<Sun className="h-3.5 w-3.5 text-[var(--solar)]" />} />
+        <LoadBar label="Consumo de la casa" value={load} max={loadMax} unit="W" color="var(--load)" icon={<Home className="h-3.5 w-3.5 text-[var(--load)]" />} />
+        <LoadBar label="Estado de carga (SOC)" value={battery} max={100} unit="%" color="var(--battery)" icon={<Battery className="h-3.5 w-3.5 text-[var(--battery)]" />} />
       </div>
 
       <style>{`
@@ -103,7 +112,7 @@ function RadialGauge({
   const id = `g-${label}`;
   return (
     <div className="flex flex-col items-center">
-      <div className={`relative aspect-square w-full ${emphasized ? "max-w-[156px]" : "max-w-[112px] @[520px]:max-w-[124px]"}`} style={{ color }}>
+      <div className={`relative aspect-square w-full ${emphasized ? "max-w-[156px]" : "max-w-[104px] @[520px]:max-w-[118px]"}`} style={{ color }}>
         <svg viewBox={`0 0 ${size} ${size}`} className={`h-full w-full ${emphasized ? "-rotate-[123deg]" : "-rotate-[137deg]"}`}>
           <defs>
             <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
@@ -126,7 +135,7 @@ function RadialGauge({
             }}
           />
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
           <div className={`${emphasized ? "mb-1" : "mb-0.5"} opacity-80`}>{icon}</div>
           <div className={`${emphasized ? "text-3xl @[480px]:text-[2rem]" : "text-base @[480px]:text-lg"} font-bold leading-none tabular-nums`}>
             {Math.round(value).toLocaleString()}
@@ -135,19 +144,19 @@ function RadialGauge({
           {subtitle && <div className={`${emphasized ? "mt-1 text-[11px]" : "mt-0.5 text-[9px] @[480px]:text-[10px]"} text-muted-foreground`}>{subtitle}</div>}
         </div>
       </div>
-      <div className={`${emphasized ? "mt-2 text-xs" : "mt-1 text-[11px] @[480px]:text-xs"} font-medium text-muted-foreground`}>{label}</div>
+      <div className={`${emphasized ? "mt-2 text-xs" : "mt-1 text-[11px] @[480px]:text-xs"} font-medium ${label === "Red" && !subtitle?.includes("Conectada") ? "text-muted-foreground/90" : "text-muted-foreground"}`}>{label}</div>
     </div>
   );
 }
 
 function LoadBar({ label, value, max, unit, color }: {
-  label: string; value: number; max: number; unit: string; color: string;
+  label: string; value: number; max: number; unit: string; color: string; icon?: React.ReactNode;
 }) {
   const pct = Math.min(100, Math.max(0, (value / max) * 100));
   return (
     <div>
       <div className="mb-1 flex items-center justify-between text-xs">
-        <span className="text-muted-foreground">{label}</span>
+        <span className="flex items-center gap-1.5 text-muted-foreground">{arguments[0]}</span>
         <span className="font-semibold tabular-nums">
           {Math.round(value).toLocaleString()} <span className="text-muted-foreground">{unit}</span>
         </span>
