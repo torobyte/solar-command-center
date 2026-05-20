@@ -806,7 +806,7 @@ export function BackupTimeCard({
 
   return (
     <div className="@container dashboard-card p-5 sm:p-6 animate-fade-in h-full">
-      <div className="mb-3 flex items-center justify-between gap-2">
+      <div className="mb-4 flex items-center justify-between gap-2">
         <h3 className="flex items-center gap-2 font-semibold">
           <Clock className="h-4 w-4 text-[var(--battery)]" /> Tiempo de respaldo
         </h3>
@@ -818,7 +818,7 @@ export function BackupTimeCard({
         </span>
       </div>
 
-      <div className="flex flex-col items-stretch gap-4 @[420px]:flex-row @[420px]:items-center">
+      <div className="flex flex-col items-stretch gap-4 @[520px]:grid @[520px]:grid-cols-[0.9fr_1.1fr] @[520px]:items-start">
         {/* Ring + icon */}
         <div className="relative mx-auto shrink-0" style={{ width: 132, height: 132 }}>
           <svg width="132" height="132" className="-rotate-90">
@@ -845,7 +845,7 @@ export function BackupTimeCard({
         </div>
 
         {/* Big readable breakdown + ETA */}
-        <div className="flex-1 space-y-3">
+        <div className="space-y-3">
           {charging ? (
             <div className="rounded-lg border bg-muted/30 p-3 text-center text-sm text-muted-foreground">
               La batería se está cargando — autonomía indefinida con la PV actual.
@@ -885,6 +885,10 @@ export function BackupTimeCard({
           </div>
         </div>
       </div>
+      <button type="button" className="mt-4 inline-flex w-full items-center justify-between rounded-xl border bg-background px-4 py-3 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground">
+        <span>Ver detalles del banco</span>
+        <ArrowRight className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 }
