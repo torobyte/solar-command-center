@@ -149,14 +149,14 @@ function RadialGauge({
   );
 }
 
-function LoadBar({ label, value, max, unit, color }: {
+function LoadBar({ label, value, max, unit, color, icon }: {
   label: string; value: number; max: number; unit: string; color: string; icon?: React.ReactNode;
 }) {
   const pct = Math.min(100, Math.max(0, (value / max) * 100));
   return (
     <div>
       <div className="mb-1 flex items-center justify-between text-xs">
-        <span className="flex items-center gap-1.5 text-muted-foreground">{arguments[0]}</span>
+        <span className="flex items-center gap-1.5 text-muted-foreground">{icon}{label}</span>
         <span className="font-semibold tabular-nums">
           {Math.round(value).toLocaleString()} <span className="text-muted-foreground">{unit}</span>
         </span>
