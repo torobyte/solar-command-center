@@ -189,18 +189,14 @@ class MainActivity : Activity() {
         (v * resources.displayMetrics.density).toInt()
 
     private fun buildBrandedSplash(brand: BrandSync.Brand): FrameLayout {
-        val iconSize = dp(140)
-        val nameTopMargin = dp(220)
-        val progressBottomMargin = dp(64)
-        val progressSize = dp(36)
+        val logoSize = dp(96)
+        val logoBottomMargin = dp(72)
 
         return FrameLayout(this).apply {
             setBackgroundColor(brand.splashColor)
             layoutParams = android.view.ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
 
-            // Splash: si el superadmin subió una imagen de splash, se renderiza
-            // a pantalla completa (CENTER_CROP). Si no, mostramos el icono
-            // centrado o la inicial de la app.
+            // Splash image (clouds / panels) en pantalla completa si existe.
             if (brand.splashBitmap != null) {
                 addView(
                     ImageView(this@MainActivity).apply {
@@ -209,56 +205,49 @@ class MainActivity : Activity() {
                     },
                     FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT),
                 )
-                // Nombre de la app sobre el splash (semi-overlay).
-                addView(TextView(this@MainActivity).apply {
-                    text = brand.appName.ifBlank { "" }
-                    setTextColor(0xFFFFFFFF.toInt())
-                    textSize = 18f
-                    gravity = Gravity.CENTER
-                    setShadowLayer(8f, 0f, 2f, 0xAA000000.toInt())
-                }, FrameLayout.LayoutParams(MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                    gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-                    bottomMargin = dp(140)
-                })
-            } else if (brand.iconBitmap != null) {
+            }
+
+            // Logo de marca centrado (sustituye al cuadro blanco del ProgressBar).
+            // Si no hay icono, mostramos la inicial del nombre sobre un círculo
+            // con el color primario.
+            val logoParams = FrameLayout.LayoutParams(logoSize, logoSize).apply {
+                gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                bottomMargin = logoBottomMargin
+            }
+            if (brand.iconBitmap != null) {
                 addView(
                     ImageView(this@MainActivity).apply {
                         setImageBitmap(brand.iconBitmap)
                         scaleType = ImageView.ScaleType.FIT_CENTER
                     },
-                    FrameLayout.LayoutParams(iconSize, iconSize).apply {
-                        gravity = Gravity.CENTER
-                    },
+                    logoParams,
                 )
-                addView(TextView(this@MainActivity).apply {
-                    text = brand.appName.ifBlank { "SolarOps" }
-                    setTextColor(0xFFFFFFFF.toInt())
-                    textSize = 18f
-                    gravity = Gravity.CENTER
-                }, FrameLayout.LayoutParams(MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                    gravity = Gravity.CENTER_HORIZONTAL or Gravity.CENTER_VERTICAL
-                    topMargin = nameTopMargin
-                })
             } else {
                 addView(TextView(this@MainActivity).apply {
                     text = (brand.appName.firstOrNull()?.uppercase() ?: "S")
                     setTextColor(0xFFFFFFFF.toInt())
-                    textSize = 56f
+                    textSize = 40f
                     gravity = Gravity.CENTER
                     setBackgroundColor(brand.primaryColor)
-                }, FrameLayout.LayoutParams(dp(96), dp(96)).apply {
-                    gravity = Gravity.CENTER
-                })
+                }, logoParams)
             }
 
-            // Progreso indeterminado abajo.
-            addView(ProgressBar(this@MainActivity).apply { isIndeterminate = true },
-                FrameLayout.LayoutParams(progressSize, progressSize).apply {
+            // Nombre de la app sobre el logo solo si tenemos splash y nombre.
+            if (brand.splashBitmap != null && brand.appName.isNotBlank()) {
+                addView(TextView(this@MainActivity).apply {
+                    text = brand.appName
+                    setTextColor(0xFFFFFFFF.toInt())
+                    textSize = 16f
+                    gravity = Gravity.CENTER
+                    setShadowLayer(8f, 0f, 2f, 0xAA000000.toInt())
+                }, FrameLayout.LayoutParams(MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT).apply {
                     gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-                    bottomMargin = progressBottomMargin
+                    bottomMargin = dp(32)
                 })
+            }
         }
     }
+
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
@@ -373,10 +362,27 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         // Re-verifica permisos al volver de Ajustes; relanza el servicio si todo OK.
-        if (areNotificationsEnabled() && appPrefs().getString(WidgetSetupActivity.KEY_AUTH_SESSION, null) != null) {
+        val saved = appPrefs().getString(WidgetSetupActivity.KEY_AUTH_SESSION, null)
+        if (areNotificationsEnabled() && saved != null) {
             runCatching { AlertsStreamService.start(applicationContext) }
         }
+        // Sesión perpetua: en cada onResume intentamos refrescar el token
+        // silenciosamente para que nunca expire mientras el usuario use la app.
+        if (!saved.isNullOrBlank()) {
+            thread {
+                val refreshed = runCatching { ensureFreshSession(saved) }.getOrNull()
+                if (refreshed != null && refreshed != saved) {
+                    appPrefs().edit()
+                        .putString(WidgetSetupActivity.KEY_AUTH_SESSION, refreshed)
+                        .apply()
+                    if (::web.isInitialized) {
+                        runOnUiThread { injectSavedSession() }
+                    }
+                }
+            }
+        }
     }
+
 
     override fun onRequestPermissionsResult(
         requestCode: Int, permissions: Array<out String>, grantResults: IntArray,
