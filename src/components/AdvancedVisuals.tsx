@@ -449,7 +449,7 @@ export function SolarPanelsViz({ pv, pvMax = 5000 }: { pv: number; pvMax?: numbe
         </span>
       </div>
 
-      <div className="flex flex-col items-stretch gap-4 @[420px]:flex-row @[420px]:items-center">
+      <div className="flex flex-col items-stretch gap-4 @[520px]:grid @[520px]:grid-cols-[1.05fr_0.95fr] @[520px]:items-stretch">
         <div className="relative mx-auto h-[200px] w-full max-w-[320px] overflow-hidden rounded-xl border bg-gradient-to-b from-sky-200/60 via-sky-100/40 to-emerald-50/40 dark:from-slate-800/80 dark:via-slate-900/60 dark:to-slate-950">
           {/* Sun */}
           <div
@@ -538,13 +538,17 @@ export function SolarPanelsViz({ pv, pvMax = 5000 }: { pv: number; pvMax?: numbe
           </div>
         </div>
 
-        <div className="flex-1 space-y-3">
+        <div className="flex flex-col justify-between gap-3">
           <Stat label="Potencia" value={`${Math.round(pv).toLocaleString()} W`} />
           <Stat label="Capacidad" value={`${Math.round(pvMax).toLocaleString()} W`} />
           <Stat label="Aprovechamiento" value={`${(ratio * 100).toFixed(0)} %`} />
           <Stat label="Estado" value={active ? "Produciendo" : "Inactivo"} />
         </div>
       </div>
+      <button type="button" className="mt-4 inline-flex w-full items-center justify-between rounded-xl border bg-background px-4 py-3 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground">
+        <span>Ver análisis de producción</span>
+        <ArrowRight className="h-3.5 w-3.5" />
+      </button>
       <style>{`
         @keyframes solarSunFloat { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-6px);} }
         @keyframes solarRayFlow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -16; } }
@@ -578,7 +582,7 @@ export function HouseLoadViz({ load, loadMax = 5000 }: { load: number; loadMax?:
         </span>
       </div>
 
-      <div className="flex flex-col items-stretch gap-4 @[420px]:flex-row @[420px]:items-center">
+      <div className="flex flex-col items-stretch gap-4 @[520px]:grid @[520px]:grid-cols-[0.95fr_1.05fr] @[520px]:items-stretch">
         <div className="relative mx-auto h-[200px] w-full max-w-[320px] overflow-hidden rounded-xl border bg-gradient-to-b from-slate-100 via-slate-50 to-emerald-50/40 dark:from-slate-900 dark:via-slate-900/80 dark:to-slate-950">
           {/* night/day ambient circle */}
           <div className="absolute right-5 top-4 h-8 w-8 rounded-full bg-gradient-to-br from-yellow-200/70 to-orange-200/40 blur-[2px] dark:from-slate-700/60 dark:to-slate-800/40" />
@@ -688,11 +692,25 @@ export function HouseLoadViz({ load, loadMax = 5000 }: { load: number; loadMax?:
           )}
         </div>
 
-        <div className="flex-1 space-y-3">
+        <div className="flex flex-col justify-between gap-3">
           <Stat label="Carga actual" value={`${Math.round(load).toLocaleString()} W`} />
           <Stat label="Capacidad" value={`${Math.round(loadMax).toLocaleString()} W`} />
           <Stat label="Uso" value={`${(ratio * 100).toFixed(0)} %`} />
           <Stat label="Nivel" value={level.charAt(0).toUpperCase() + level.slice(1)} />
+        </div>
+      </div>
+      <div className="mt-4 rounded-xl border bg-background px-4 py-3">
+        <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+          <span>Consumo últimas 24 h</span>
+          <span>{Math.max(0.2, load / 1000).toFixed(1)} kW</span>
+        </div>
+        <div className="flex h-16 items-end gap-1.5">
+          {Array.from({ length: 24 }).map((_, i) => {
+            const base = 20 + ((i * 13) % 45);
+            const peak = i > 16 && i < 21 ? 22 : 0;
+            const h = Math.min(100, base + peak + ratio * 35);
+            return <span key={i} className="flex-1 rounded-t-[3px] bg-[var(--load)]/90" style={{ height: `${h}%` }} />;
+          })}
         </div>
       </div>
       <style>{`
