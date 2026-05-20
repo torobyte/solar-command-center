@@ -163,15 +163,6 @@ function SitesIndex() {
     }
   }
 
-  if (loading) {
-    return (
-      <>
-        <PageHeaderSkeleton />
-        <TableSkeleton rows={4} cols={5} />
-      </>
-    );
-  }
-
   // Distinct inverters for filter dropdown
   const inverterOptions = useMemo(() => {
     const set = new Set<string>();
@@ -203,6 +194,15 @@ function SitesIndex() {
   const pageItems = filteredSites.slice((page - 1) * pageSize, page * pageSize);
   useEffect(() => { if (page > totalPages) setPage(1); }, [totalPages, page]);
   function clearFilters() { setSearch(""); setFStatus("all"); setFInverter("all"); setFPlan("all"); }
+
+  if (loading) {
+    return (
+      <>
+        <PageHeaderSkeleton />
+        <TableSkeleton rows={4} cols={5} />
+      </>
+    );
+  }
 
   return (
     <>
