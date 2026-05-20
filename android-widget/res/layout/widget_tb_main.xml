@@ -127,11 +127,12 @@
             android:layout_height="match_parent"
             android:layout_marginStart="4dp"
             android:layout_marginEnd="10dp">
-            <View
+            <ImageView
                 android:layout_width="22dp"
                 android:layout_height="5dp"
                 android:layout_gravity="center_horizontal|top"
-                android:background="@drawable/battery_cap" />
+                android:src="@drawable/battery_cap"
+                android:scaleType="fitXY" />
             <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
