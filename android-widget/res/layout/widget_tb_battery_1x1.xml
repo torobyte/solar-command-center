@@ -1,40 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- TOROBYTE — Widget 1x1 BATERÍA mínimo: anillo + % -->
+<!-- TOROBYTE — Widget 1x1 BATERÍA mínimo: % grande sobre fondo redondeado.
+     Sin vectores complejos para garantizar que el launcher pueda inflarlo. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/tb_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="6dp"
-    android:background="@drawable/tb_widget_bg">
+    android:padding="4dp">
 
-    <ImageView
-        android:id="@+id/tb_b1_ring"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:src="@drawable/gauge_arc_00"
-        android:scaleType="fitCenter" />
+        android:background="@drawable/tb_widget_bg">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="horizontal"
-        android:gravity="center">
-        <TextView
-            android:id="@+id/tb_b1_pct"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="—"
-            android:textColor="@color/tb_fg"
-            android:textSize="22sp"
-            android:textStyle="bold"
-            android:includeFontPadding="false" />
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="%"
-            android:textColor="@color/tb_muted"
-            android:textSize="11sp"
-            android:paddingTop="6dp"
-            android:paddingStart="1dp" />
-    </LinearLayout>
+        <ProgressBar
+            android:id="@+id/tb_b1_bar"
+            style="@android:style/Widget.ProgressBar.Horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="bottom"
+            android:layout_margin="6dp"
+            android:max="100"
+            android:progress="0"
+            android:progressDrawable="@drawable/battery_fill" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center">
+            <TextView
+                android:id="@+id/tb_b1_pct"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="—"
+                android:textColor="@color/tb_fg"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:includeFontPadding="false" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="%"
+                android:textColor="@color/tb_muted"
+                android:textSize="11sp"
+                android:paddingTop="6dp"
+                android:paddingStart="1dp" />
+        </LinearLayout>
+    </FrameLayout>
 </FrameLayout>
