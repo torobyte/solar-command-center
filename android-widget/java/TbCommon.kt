@@ -94,7 +94,9 @@ internal object TbCommon {
         applySnapshot: (RemoteViews, Snapshot) -> Unit,
     ) {
         val views = RemoteViews(context.packageName, layoutRes)
-        views.setOnClickPendingIntent(android.R.id.background, WidgetCommon.openAppIntent(context, widgetId))
+        // IMPORTANT: must reference an id that actually exists in the layout.
+        // Using android.R.id.background would crash RemoteViews ("No se pudo cargar el widget").
+        views.setOnClickPendingIntent(R.id.tb_root, WidgetCommon.openAppIntent(context, widgetId))
         val token = WidgetCommon.tokenFor(context, widgetId)
         if (token.isNullOrBlank()) {
             applyError(views); mgr.updateAppWidget(widgetId, views); return
