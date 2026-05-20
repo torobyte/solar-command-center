@@ -6,10 +6,39 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { User as UserIcon, KeyRound, Mail, Trash2, Smartphone } from "lucide-react";
+import { User as UserIcon, KeyRound, Mail, Trash2, Smartphone, LayoutGrid } from "lucide-react";
+
+// Reusable settings card matching design captures
+function SettingsCard({
+  icon: Icon,
+  title,
+  description,
+  tint,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  title: string;
+  description: string;
+  tint: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
+      <div className="mb-5 flex items-start gap-3">
+        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${tint}`}>
+          <Icon className="h-5 w-5" strokeWidth={2.2} />
+        </div>
+        <div className="min-w-0">
+          <h3 className="text-base font-semibold tracking-tight">{title}</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/account")({
   component: () => (
