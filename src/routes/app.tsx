@@ -417,70 +417,178 @@ function SitesIndex() {
             })}
           </div>
 
-          {/* Desktop: table */}
-          <div className="hidden md:block overflow-hidden rounded-2xl border bg-card shadow-card animate-fade-up">
+          {/* Desktop: filters + table */}
+          <div className="hidden md:block overflow-hidden rounded-2xl border bg-card shadow-sm animate-fade-up">
+            {/* Filter bar */}
+            <div className="grid grid-cols-12 items-center gap-3 border-b bg-card p-4">
+              <div className="relative col-span-4">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                  placeholder="Buscar sitios…"
+                  className="h-10 rounded-xl pl-9"
+                />
+              </div>
+              <div className="col-span-2">
+                <FilterSelect label="Estado" value={fStatus} onChange={(v) => { setFStatus(v); setPage(1); }}
+                  options={[["all","Todos"],["online","En línea"],["offline","Offline"],["stale","Sin datos"],["never","Sin conectar"]]} />
+              </div>
+              <div className="col-span-2">
+                <FilterSelect label="Inversor" value={fInverter} onChange={(v) => { setFInverter(v); setPage(1); }}
+                  options={[["all","Todos"] as [string,string], ...inverterOptions.map(o => [o, o] as [string,string])]} />
+              </div>
+              <div className="col-span-2">
+                <FilterSelect label="Plan" value={fPlan} onChange={(v) => { setFPlan(v); setPage(1); }}
+                  options={[["all","Todos"] as [string,string], ...planOptions.map(o => [o, o] as [string,string])]} />
+              </div>
+              <div className="col-span-2 flex justify-end">
+                <Button variant="outline" className="h-10 rounded-xl border-border bg-card" onClick={clearFilters}>
+                  <SlidersHorizontal className="mr-1.5 h-4 w-4" /> Limpiar
+                </Button>
+              </div>
+            </div>
+
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px] text-sm">
-                <thead className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+              <table className="w-full min-w-[960px] text-sm">
+                <thead className="border-b text-left text-[11px] uppercase tracking-wider text-muted-foreground">
                   <tr>
-                    <th className="px-4 py-3 font-medium">{t("sites.col.name")}</th>
-                    <th className="px-4 py-3 font-medium">{t("sites.col.inverter")}</th>
-                    <th className="px-4 py-3 font-medium">{t("sites.col.plan")}</th>
-                    <th className="px-4 py-3 font-medium">{t("sites.col.status")}</th>
-                    <th className="px-4 py-3"></th>
+                    <th className="px-5 py-3 font-medium">Sitio</th>
+                    <th className="px-4 py-3 font-medium">Inversor</th>
+                    <th className="px-4 py-3 font-medium">Tipo</th>
+                    <th className="px-4 py-3 font-medium">Plan</th>
+                    <th className="px-4 py-3 font-medium">Estado</th>
+                    <th className="px-4 py-3 font-medium">Potencia actual</th>
+                    <th className="px-4 py-3 font-medium">Energía hoy</th>
+                    <th className="px-4 py-3 font-medium">Última actualización</th>
+                    <th className="px-4 py-3 text-right font-medium">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {sites.map((s) => {
+                  {pageItems.map((s) => {
                     const statusKey = s.status === "online" ? "sync.online" : s.status === "offline" ? "sync.offline" : `sync.${s.status}`;
-                    const statusLabel = s.status === "online" || s.status === "offline" || s.status === "stale" || s.status === "never" ? t(statusKey) : s.status;
+                    const statusLabel = ["online","offline","stale","never"].includes(s.status) ? t(statusKey) : s.status;
                     const isShared = !!user && s.owner_id !== user.id;
+                    const m = metrics[s.id];
+                    const lastSeen = s.last_seen_at ? new Date(s.last_seen_at) : null;
+                    const ageMin = lastSeen ? Math.floor((Date.now() - lastSeen.getTime()) / 60000) : null;
+                    const lastSeenStr = lastSeen
+                      ? (ageMin! < 60 ? `Hace ${ageMin} min` : ageMin! < 1440 ? `Hace ${Math.floor(ageMin!/60)} h` : lastSeen.toLocaleDateString())
+                      : "—";
+                    const lastSeenAbs = lastSeen ? lastSeen.toLocaleString([], { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+                    const inv = s.inverter_spec_model || s.inverter_model || s.inverter_driver || "—";
                     return (
-                      <tr key={s.id} className="border-b last:border-0 transition-colors hover:bg-muted/40">
-                        <td className="px-4 py-3">
-                          <div className="font-medium">{s.name}</div>
-                          {s.description && <div className="text-xs text-muted-foreground">{s.description}</div>}
+                      <tr key={s.id} className="border-b last:border-0 transition-colors hover:bg-muted/30">
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-100 to-blue-50 text-primary ring-1 ring-blue-100">
+                              <Home className="h-5 w-5" strokeWidth={2.2} />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-semibold tracking-tight">{s.name}</div>
+                              <div className="truncate text-xs text-muted-foreground">{s.description || "Instalación residencial"}</div>
+                            </div>
+                          </div>
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground">{s.inverter_spec_model || s.inverter_model || s.inverter_driver || "—"}</td>
-                        <td className="px-4 py-3">
-                          {isShared ? (
-                            <Badge variant="outline" className="rounded-full bg-muted/40 text-muted-foreground border-border">
-                              Compartido por {s.owner_name || s.owner_email || "otro usuario"}
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="rounded-full">{s.plan}</Badge>
+                        <td className="px-4 py-4">
+                          <div className="text-sm font-medium">{inv}</div>
+                          {s.inverter_driver && s.inverter_driver !== inv && (
+                            <div className="text-xs text-muted-foreground">{s.inverter_driver}</div>
                           )}
                         </td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                            s.status === "online" ? "bg-success/15 text-success" :
-                            s.status === "offline" ? "bg-destructive/15 text-destructive" :
-                            "bg-muted text-muted-foreground"
+                        <td className="px-4 py-4">
+                          <div className="flex h-10 w-8 items-center justify-center rounded-md border bg-muted/40 text-muted-foreground">
+                            <CpuIcon className="h-4 w-4" strokeWidth={2.2} />
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          {isShared ? (
+                            <Badge variant="outline" className="rounded-full bg-muted/40 text-muted-foreground border-border">
+                              Compartido
+                            </Badge>
+                          ) : (
+                            <Badge className="rounded-full bg-primary/10 text-primary hover:bg-primary/10 border-0 px-3 py-1 font-medium">{s.plan}</Badge>
+                          )}
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+                            s.status === "online" ? "bg-emerald-50 text-emerald-700" :
+                            s.status === "offline" ? "bg-destructive/10 text-destructive" :
+                            "bg-amber-50 text-amber-700"
                           }`}>
-                            <span className={`relative flex h-1.5 w-1.5`}>
-                              {s.status === "online" && <span className="absolute inset-0 animate-ping rounded-full bg-success opacity-60" />}
-                              <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${s.status === "online" ? "bg-success" : s.status === "offline" ? "bg-destructive" : "bg-muted-foreground"}`} />
+                            <span className="relative flex h-1.5 w-1.5">
+                              {s.status === "online" && <span className="absolute inset-0 animate-ping rounded-full bg-emerald-500 opacity-60" />}
+                              <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${s.status === "online" ? "bg-emerald-500" : s.status === "offline" ? "bg-destructive" : "bg-amber-500"}`} />
                             </span>
                             {statusLabel}
                           </span>
+                          <div className="mt-1 text-[11px] text-muted-foreground">Normal</div>
                         </td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="inline-flex items-center gap-2">
+                        <td className="px-4 py-4">
+                          <div className="font-semibold tracking-tight">
+                            {m ? (m.pv_w >= 1000 ? `${(m.pv_w/1000).toFixed(2)} kW` : `${Math.round(m.pv_w)} W`) : "—"}
+                          </div>
+                          <Sparkline color="#F59E0B" />
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="font-semibold tracking-tight">
+                            {m ? `${m.kwh_today.toFixed(2)} kWh` : "—"}
+                          </div>
+                          <Sparkline color="#22C55E" bars />
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="text-sm font-medium">{lastSeenStr}</div>
+                          <div className="text-[11px] text-muted-foreground">{lastSeenAbs}</div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center justify-end gap-1.5">
                             {!isShared && (
-                              <Button variant="ghost" size="sm" className="rounded-full" onClick={() => setShareSite(s)}>
-                                <Share2 className="mr-1 h-3.5 w-3.5" /> Compartir
+                              <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg border-border" title="Compartir" onClick={() => setShareSite(s)}>
+                                <Share2 className="h-3.5 w-3.5" />
                               </Button>
                             )}
                             <Link to="/sites/$siteId" params={{ siteId: s.id }}>
-                              <Button variant="outline" size="sm" className="rounded-full">{t("sites.view")}</Button>
+                              <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg border-border" title="Ver">
+                                <Eye className="h-3.5 w-3.5" />
+                              </Button>
                             </Link>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" title="Más opciones">
+                              <MoreVertical className="h-3.5 w-3.5" />
+                            </Button>
                           </div>
                         </td>
                       </tr>
                     );
                   })}
+                  {pageItems.length === 0 && (
+                    <tr><td colSpan={9} className="px-5 py-10 text-center text-sm text-muted-foreground">No hay sitios que coincidan con los filtros.</td></tr>
+                  )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Pagination footer */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t bg-card px-5 py-3">
+              <p className="text-xs text-muted-foreground">
+                Mostrando {filteredSites.length === 0 ? 0 : (page - 1) * pageSize + 1}–{Math.min(page * pageSize, filteredSites.length)} de {filteredSites.length} sitio{filteredSites.length === 1 ? "" : "s"}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <div className="flex h-8 min-w-8 items-center justify-center rounded-lg border border-primary/40 bg-primary/5 px-2 text-xs font-semibold text-primary">{page}</div>
+                <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg" disabled={page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(1); }}>
+                  <SelectTrigger className="h-8 w-[130px] rounded-lg text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10 por página</SelectItem>
+                    <SelectItem value="25">25 por página</SelectItem>
+                    <SelectItem value="50">50 por página</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </>
