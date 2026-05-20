@@ -206,9 +206,9 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG, readO
   const noneEnabled = !config.amps && !config.outputPriority && !config.chargerPriority && !config.buzzer;
 
   return (
-    <div className="rounded-xl border bg-card p-4 sm:p-5 animate-fade-in h-full">
-      <div className="mb-3 flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent ring-1 ring-accent/20">
+    <div className="dashboard-card h-full p-5 sm:p-6 animate-fade-in">
+      <div className="relative mb-4 flex items-center gap-3">
+        <div className="dashboard-icon-chip flex h-10 w-10 items-center justify-center text-accent">
           <Zap className="h-4 w-4" strokeWidth={2.4} />
         </div>
         <div className="min-w-0 flex-1">
@@ -223,7 +223,7 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG, readO
       </div>
 
       {noneEnabled ? (
-        <p className="rounded-lg border border-dashed bg-muted/30 p-4 text-center text-xs text-muted-foreground">
+        <p className="dashboard-panel border-dashed p-4 text-center text-xs text-muted-foreground">
           No hay acciones habilitadas. Actívalas en Configuración → Inversor → Acciones rápidas.
         </p>
       ) : (
@@ -374,7 +374,7 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG, readO
 
 function ActionGroup({ icon, title, hint, children }: { icon: React.ReactNode; title: string; hint?: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border bg-background/60 p-3">
+    <div className="dashboard-panel p-3">
       <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
         {icon}{title}
       </div>
@@ -416,9 +416,11 @@ export function QuickActionsConfigCard({ siteId }: { siteId: string }) {
     { key: "buzzer", label: "Buzzer / alarma", hint: "Encender o silenciar el buzzer" },
   ];
   return (
-    <div className="rounded-xl border bg-card p-4 sm:p-5">
-      <div className="mb-3 flex items-center gap-2">
-        <Zap className="h-4 w-4 text-accent" />
+    <div className="dashboard-card p-5 sm:p-6">
+      <div className="relative mb-4 flex items-center gap-3">
+        <div className="dashboard-icon-chip flex h-10 w-10 items-center justify-center text-accent">
+          <Zap className="h-4 w-4" />
+        </div>
         <h3 className="text-sm font-semibold sm:text-base">Acciones rápidas del dashboard</h3>
       </div>
       <p className="mb-4 text-xs text-muted-foreground">
@@ -426,7 +428,7 @@ export function QuickActionsConfigCard({ siteId }: { siteId: string }) {
       </p>
       <div className="space-y-2">
         {items.map((it) => (
-          <label key={it.key} className="flex cursor-pointer items-start justify-between gap-3 rounded-lg border bg-background/60 p-3 transition-colors hover:bg-muted/40">
+          <label key={it.key} className="dashboard-panel flex cursor-pointer items-start justify-between gap-3 p-3 transition-colors hover:bg-muted/40">
             <div className="min-w-0">
               <div className="text-sm font-medium">{it.label}</div>
               <div className="text-[11px] text-muted-foreground">{it.hint}</div>

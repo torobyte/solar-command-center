@@ -1148,7 +1148,7 @@ function DashboardView({ latest, siteId, spec: _spec, device: _device }: { lates
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
         <QuickActions siteId={siteId} config={qaConfig} readOnly={!canControl} />
-        <div className="rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
+        <div className="dashboard-card p-5 sm:p-6">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Resumen del sistema</div>
@@ -1186,8 +1186,8 @@ function DashboardView({ latest, siteId, spec: _spec, device: _device }: { lates
 
 function IconCard({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg border bg-background p-3 sm:gap-4 sm:p-4">
-      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md bg-muted/50 sm:h-16 sm:w-16">
+    <div className="dashboard-panel flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
+      <div className="dashboard-icon-chip flex h-14 w-14 shrink-0 items-center justify-center sm:h-16 sm:w-16">
         {icon}
       </div>
       <div className="min-w-0">

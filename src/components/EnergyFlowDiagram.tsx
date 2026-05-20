@@ -33,20 +33,20 @@ export function EnergyFlowDiagram({ pv, load, gridV, battery, batteryV }: Props)
   const BAT = { x: 410, y: 290 };
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-card via-card to-muted/30 p-4 shadow-lg sm:p-6 animate-fade-in">
-      {/* Decorative background blobs */}
-      <div className="pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-[var(--solar)]/10 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-[var(--battery)]/10 blur-3xl" />
-
-      <div className="relative mb-4 flex items-center justify-between">
-        <div>
-          <h3 className="flex items-center gap-2 font-semibold tracking-tight">
-            <Zap className="h-4 w-4 text-[var(--solar)]" />
+    <div className="dashboard-card p-5 sm:p-6 animate-fade-in">
+      <div className="relative mb-5 flex items-center justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <div className="dashboard-icon-chip mt-0.5 h-10 w-10 text-[var(--solar)]">
+            <Zap className="h-4 w-4" />
+          </div>
+          <div>
+            <h3 className="flex items-center gap-2 font-semibold tracking-tight">
             Flujo de energía
-          </h3>
-          <p className="text-[11px] text-muted-foreground">Distribución en tiempo real</p>
+            </h3>
+            <p className="text-[11px] text-muted-foreground">Distribución en tiempo real</p>
+          </div>
         </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--success)]/30 bg-[var(--success)]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--success)]">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[color:color-mix(in_oklab,var(--success)_30%,transparent)] bg-[color:color-mix(in_oklab,var(--success)_12%,transparent)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--success)]">
           <span className="relative flex h-1.5 w-1.5">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--success)] opacity-75" />
             <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
@@ -230,8 +230,8 @@ function Node({
 
 function Stat({ color, label, value, icon }: { color: string; label: string; value: string; icon: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2 rounded-lg border bg-background/60 px-2.5 py-2 backdrop-blur-sm">
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white" style={{ background: color }}>
+    <div className="dashboard-panel flex items-center gap-2 px-3 py-2.5">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: color }}>
         {icon}
       </div>
       <div className="min-w-0">
