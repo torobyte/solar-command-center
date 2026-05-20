@@ -44,12 +44,13 @@ class TbWidgetBattery1x1 : AppWidgetProvider() {
     private fun refreshOne(context: Context, mgr: AppWidgetManager, widgetId: Int) {
         TbCommon.refresh(
             context, mgr, widgetId, R.layout.widget_tb_battery_1x1,
-            applyError = { v -> v.setTextViewText(R.id.tb_b1_pct, "—") },
+            applyError = { v ->
+                v.setTextViewText(R.id.tb_b1_pct, "—")
+                v.setProgressBar(R.id.tb_b1_bar, 100, 0, false)
+            },
             applySnapshot = { v, s ->
                 v.setTextViewText(R.id.tb_b1_pct, s.batteryPct.toString())
-                val ringIdx = (s.batteryPct / 10).coerceIn(0, 10)
-                val res = context.resources.getIdentifier("gauge_arc_%02d".format(ringIdx), "drawable", context.packageName)
-                if (res != 0) v.setImageViewResource(R.id.tb_b1_ring, res)
+                v.setProgressBar(R.id.tb_b1_bar, 100, s.batteryPct, false)
             },
         )
     }

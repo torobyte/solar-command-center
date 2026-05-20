@@ -1,65 +1,103 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- TOROBYTE — Widget 2x2 BATERÍA: anillo grande con % + estado + autonomía -->
+<!-- TOROBYTE — Widget 2x2 BATERÍA: pila vertical + % + estado + autonomía. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/tb_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="12dp"
+    android:padding="10dp"
     android:background="@drawable/tb_widget_bg"
-    android:orientation="vertical"
-    android:gravity="center_horizontal">
+    android:orientation="horizontal"
+    android:gravity="center_vertical">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="BATERÍA"
-        android:textColor="@color/tb_muted"
-        android:textSize="9sp"
-        android:letterSpacing="0.2"
-        android:textStyle="bold" />
-
+    <!-- Battery shell -->
     <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:layout_marginTop="2dp">
-
+        android:layout_width="46dp"
+        android:layout_height="match_parent"
+        android:layout_marginEnd="10dp">
         <ImageView
-            android:id="@+id/tb_b2_ring"
+            android:layout_width="20dp"
+            android:layout_height="5dp"
+            android:layout_gravity="center_horizontal|top"
+            android:src="@drawable/battery_cap"
+            android:scaleType="fitXY" />
+        <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:src="@drawable/gauge_arc_00"
-            android:scaleType="fitCenter" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:gravity="center">
-            <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="bottom">
-                <TextView android:id="@+id/tb_b2_pct" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="—" android:textColor="@color/tb_fg" android:textSize="32sp" android:textStyle="bold" android:includeFontPadding="false" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="%" android:textColor="@color/tb_muted" android:textSize="13sp" android:paddingBottom="5dp" android:paddingStart="2dp" />
-            </LinearLayout>
-            <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
-                <ImageView android:layout_width="11dp" android:layout_height="11dp" android:src="@drawable/ic_tb_bolt" />
-                <TextView android:id="@+id/tb_b2_state" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="CARGANDO" android:textColor="@color/tb_accent" android:textSize="9sp" android:textStyle="bold" android:letterSpacing="0.1" android:paddingStart="2dp" />
-            </LinearLayout>
-        </LinearLayout>
+            android:layout_marginTop="5dp"
+            android:background="@drawable/battery_shell">
+            <ProgressBar
+                android:id="@+id/tb_b2_bar"
+                style="@android:style/Widget.ProgressBar.Horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_margin="3dp"
+                android:max="100"
+                android:progress="0"
+                android:progressDrawable="@drawable/battery_fill" />
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_tb_bolt" />
+        </FrameLayout>
     </FrameLayout>
 
-    <TextView
-        android:id="@+id/tb_b2_eta"
-        android:layout_width="wrap_content"
+    <!-- Right column -->
+    <LinearLayout
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="—"
-        android:textColor="@color/tb_fg"
-        android:textSize="12sp"
-        android:textStyle="bold" />
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="AUTONOMÍA"
-        android:textColor="@color/tb_muted"
-        android:textSize="8sp"
-        android:letterSpacing="0.2" />
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="BATERÍA"
+            android:textColor="@color/tb_muted"
+            android:textSize="9sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="bottom">
+            <TextView
+                android:id="@+id/tb_b2_pct"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="—"
+                android:textColor="@color/tb_fg"
+                android:textSize="30sp"
+                android:textStyle="bold"
+                android:includeFontPadding="false" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="%"
+                android:textColor="@color/tb_muted"
+                android:textSize="13sp"
+                android:paddingBottom="5dp"
+                android:paddingStart="2dp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tb_b2_state"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="—"
+            android:textColor="@color/tb_accent"
+            android:textSize="9sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tb_b2_eta"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="—"
+            android:textColor="@color/tb_fg"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:layout_marginTop="4dp" />
+    </LinearLayout>
 </LinearLayout>

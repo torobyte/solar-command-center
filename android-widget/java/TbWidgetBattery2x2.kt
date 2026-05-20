@@ -5,7 +5,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
 
-/** TOROBYTE — Widget 2x2 BATERÍA (anillo grande). */
+/** TOROBYTE — Widget 2x2 BATERÍA (pila vertical + datos). */
 class TbWidgetBattery2x2 : AppWidgetProvider() {
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -46,14 +46,13 @@ class TbWidgetBattery2x2 : AppWidgetProvider() {
             context, mgr, widgetId, R.layout.widget_tb_battery_2x2,
             applyError = { v ->
                 v.setTextViewText(R.id.tb_b2_state, "SIN DATOS")
+                v.setProgressBar(R.id.tb_b2_bar, 100, 0, false)
             },
             applySnapshot = { v, s ->
                 v.setTextViewText(R.id.tb_b2_pct, s.batteryPct.toString())
                 v.setTextViewText(R.id.tb_b2_state, TbCommon.stateLabel(s))
                 v.setTextViewText(R.id.tb_b2_eta, if (s.etaMinutes > 0) TbCommon.formatEta(s.etaMinutes) else "—")
-                val ringIdx = (s.batteryPct / 10).coerceIn(0, 10)
-                val res = context.resources.getIdentifier("gauge_arc_%02d".format(ringIdx), "drawable", context.packageName)
-                if (res != 0) v.setImageViewResource(R.id.tb_b2_ring, res)
+                v.setProgressBar(R.id.tb_b2_bar, 100, s.batteryPct, false)
             },
         )
     }
