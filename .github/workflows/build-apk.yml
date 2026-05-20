@@ -285,6 +285,10 @@ jobs:
           RES="android/app/src/main/res"
           # 1) Solid-color splash drawable used by Capacitor's pre-Activity splash.
           mkdir -p "$RES/drawable" "$RES/drawable-land" "$RES/drawable-port" "$RES/values-v31"
+          # Remove any pre-existing splash bitmaps that would clash with our xml.
+          for D in drawable drawable-land drawable-port drawable-mdpi drawable-hdpi drawable-xhdpi drawable-xxhdpi drawable-xxxhdpi drawable-land-mdpi drawable-land-hdpi drawable-land-xhdpi drawable-land-xxhdpi drawable-land-xxxhdpi drawable-port-mdpi drawable-port-hdpi drawable-port-xhdpi drawable-port-xxhdpi drawable-port-xxxhdpi; do
+            rm -f "$RES/$D/splash.png" "$RES/$D/splash.jpg" "$RES/$D/splash.webp" 2>/dev/null || true
+          done
           for D in drawable drawable-land drawable-port; do
             cat > "$RES/$D/splash.xml" <<EOF
           <?xml version="1.0" encoding="utf-8"?>
@@ -293,6 +297,8 @@ jobs:
           </layer-list>
           EOF
           done
+          # Remove standalone ic_launcher_background.xml — we define the color in colors.xml.
+          rm -f "$RES/values/ic_launcher_background.xml" 2>/dev/null || true
           # 2) Ensure brand color exists in colors.xml (create file if missing).
           mkdir -p "$RES/values"
           COLORS="$RES/values/colors.xml"
