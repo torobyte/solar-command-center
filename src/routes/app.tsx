@@ -15,7 +15,7 @@ import { useI18n } from "@/lib/i18n";
 import { useServerFn } from "@tanstack/react-start";
 import { claimPairingCode } from "@/lib/pairing.functions";
 import { getSiteOwners } from "@/lib/sharing.functions";
-import { Plus, Cpu as CpuIcon, Sparkles, KeyRound, Copy, Share2 } from "lucide-react";
+import { Plus, Cpu as CpuIcon, Sparkles, KeyRound, Copy, Share2, Home, Sun as SunIcon, BatteryFull, EyeOff } from "lucide-react";
 import { SiteSharing } from "@/components/SiteSharing";
 import { toast } from "sonner";
 import { TableSkeleton, PageHeaderSkeleton } from "@/components/LoadingStates";
@@ -201,6 +201,38 @@ function SitesIndex() {
           </Dialog>
         </div>
       </div>
+
+      {(() => {
+        const activos = sites.filter(s => s.status === "online" || s.status === "stale").length;
+        const offline = sites.filter(s => s.status === "offline" || s.status === "never").length;
+        const total = sites.length || 1;
+        const pctActivos = Math.round((activos / total) * 100);
+        const pctOffline = Math.round((offline / total) * 100);
+        const stats = [
+          { label: "Sitios activos", value: activos.toString(), hint: `${pctActivos}% del total`, icon: Home, tint: "bg-blue-50 text-blue-600", hintTint: "text-blue-600" },
+          { label: "Potencia actual", value: "—", unit: "", hint: "Total generando", icon: SunIcon, tint: "bg-amber-50 text-amber-600", hintTint: "text-amber-600" },
+          { label: "Energía hoy", value: "—", unit: "", hint: "Energía producida", icon: BatteryFull, tint: "bg-emerald-50 text-emerald-600", hintTint: "text-emerald-600" },
+          { label: "Sitios offline", value: offline.toString(), hint: `${pctOffline}% del total`, icon: EyeOff, tint: "bg-rose-50 text-rose-600", hintTint: "text-rose-600" },
+        ];
+        return (
+          <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4 animate-fade-up">
+            {stats.map((s) => (
+              <div key={s.label} className="rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm text-muted-foreground">{s.label}</p>
+                    <p className="mt-2 text-3xl font-bold tracking-tight">{s.value}</p>
+                    <p className={`mt-1 text-xs font-medium ${s.hintTint}`}>{s.hint}</p>
+                  </div>
+                  <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${s.tint}`}>
+                    <s.icon className="h-6 w-6" strokeWidth={2.2} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {(() => {
         const pending = licenses.filter((l) => !l.redeemed_at && !l.revoked_at);
