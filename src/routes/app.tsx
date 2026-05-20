@@ -44,10 +44,16 @@ interface MyLicense {
   redeemed_at: string | null; revoked_at: string | null;
 }
 
+interface SiteMetrics {
+  pv_w: number;
+  kwh_today: number;
+}
+
 function SitesIndex() {
   const { user } = useAuth();
   const { t } = useI18n();
   const [sites, setSites] = useState<Site[]>([]);
+  const [metrics, setMetrics] = useState<Record<string, SiteMetrics>>({});
   const [licenses, setLicenses] = useState<MyLicense[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -57,6 +63,14 @@ function SitesIndex() {
   const [shareSite, setShareSite] = useState<Site | null>(null);
   const claim = useServerFn(claimPairingCode);
   const fetchOwners = useServerFn(getSiteOwners);
+
+  // Filters
+  const [search, setSearch] = useState("");
+  const [fStatus, setFStatus] = useState<string>("all");
+  const [fInverter, setFInverter] = useState<string>("all");
+  const [fPlan, setFPlan] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   async function load() {
     setLoading(true);
