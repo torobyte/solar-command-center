@@ -19,7 +19,6 @@ import { SavingsTabView } from "@/components/SavingsTabView";
 import { EnergyFlowDiagram } from "@/components/EnergyFlowDiagram";
 import { PowerGauges } from "@/components/PowerGauges";
 import { Battery3D, SolarRays, GridSineWave, ConcentricRings, SolarPanelsViz, HouseLoadViz, BackupTimeCard } from "@/components/AdvancedVisuals";
-import { DashboardGrid, useDashboardLayout, type WidgetDef } from "@/components/DashboardCustomizer";
 import { PvSystemConfigCard, usePvConfig } from "@/components/PvSystemConfig";
 import { ProductionHistoryCompare } from "@/components/ProductionHistoryCompare";
 import { DeviceSelector, useDevices, type Device } from "@/components/DeviceManager";
@@ -1095,27 +1094,7 @@ function formatInverterMode(raw: string | null | undefined): { label: string; co
   return { label: INVERTER_MODE_LABELS[code] ?? `Modo ${code} (desconocido)`, code };
 }
 
-const WIDGET_DEFS: WidgetDef[] = [
-  { id: "quickactions", label: "Acciones rápidas" },
-  { id: "cmdstatus", label: "Estado de comandos" },
-  { id: "mode", label: "Modo del inversor" },
-  { id: "icons", label: "Tarjetas resumen" },
-  { id: "savings", label: "Ahorro económico" },
-  { id: "backup", label: "Tiempo de respaldo" },
-  { id: "rings", label: "Anillos concéntricos" },
-  { id: "gauges", label: "Medidores radiales" },
-  { id: "battery3d", label: "Batería 3D animada" },
-  { id: "solarcell", label: "Paneles solares animados" },
-  { id: "loadcell", label: "Casa — consumo animado" },
-  { id: "solarrays", label: "Sol radiante" },
-  { id: "gridwave", label: "Onda sinusoidal de red" },
-  { id: "flow", label: "Diagrama de flujo de energía" },
-  { id: "forecast", label: "Previsión solar y producción" },
-];
-
 function DashboardView({ latest, siteId, spec: _spec, device: _device }: { latest: Sample | null; siteId: string; spec: InverterSpec | null; device: Device | null }) {
-  const { t } = useI18n();
-  const { state, persist } = useDashboardLayout(siteId, WIDGET_DEFS);
   const { config: pv } = usePvConfig(siteId);
   const { config: qaConfig } = useQuickActionsConfig(siteId);
   const { canControl } = useSiteRole(siteId);
@@ -1128,79 +1107,80 @@ function DashboardView({ latest, siteId, spec: _spec, device: _device }: { lates
   const mode = formatInverterMode(latest?.inverter_mode);
   const charging = pv_W > load;
   const pvMax = (pv?.array_kwp ?? 5) * 1000;
-
-  const widgets: Record<string, React.ReactNode> = {
-    quickactions: <QuickActions siteId={siteId} config={qaConfig} readOnly={!canControl} />,
-    cmdstatus: <CommandStatusFeed siteId={siteId} limit={10} />,
-    mode: (
-      <div className="flex items-center justify-between rounded-xl border bg-card p-4 sm:p-5 animate-fade-in h-full">
-        <div className="flex items-center gap-3">
-          <Cpu className="h-8 w-8 text-foreground/70" />
-          <div>
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">Modo de uso del inversor</div>
-            <div className="text-lg font-semibold sm:text-xl">{mode.label}</div>
-          </div>
-        </div>
-        {mode.code && <span className="rounded-md bg-muted px-2 py-1 font-mono text-xs text-muted-foreground">QMOD: {mode.code}</span>}
-      </div>
-    ),
-    icons: (
-      <div className="@container rounded-xl border bg-card p-4 sm:p-6 animate-fade-in h-full">
-        <div className="grid grid-cols-1 gap-3 @[280px]:grid-cols-2 @[520px]:grid-cols-3 @[760px]:grid-cols-5 sm:gap-4">
-          <IconCard icon={<Cpu className="h-10 w-10 text-foreground/70" />} title={t("site.dash.inverter")} subtitle={mode.label} />
-          <IconCard icon={<Sun className="h-10 w-10 text-[var(--solar)]" />} title={t("site.dash.solar")} subtitle={`${Math.round(pv_W).toLocaleString()} W`} />
-          <IconCard icon={<Plug className="h-10 w-10 text-[var(--load)]" />} title="Consumo" subtitle={`${Math.round(load).toLocaleString()} W`} />
-          <IconCard
-            icon={<div className="relative"><Plug className="h-10 w-10 text-foreground/70" />{!gridConnected && <AlertCircle className="absolute -bottom-1 -right-1 h-4 w-4 fill-[var(--warning)] text-background" />}</div>}
-            title={t("site.dash.grid")} subtitle={`${gridV.toFixed(0)} V`} />
-          <IconCard icon={<Battery className="h-10 w-10 text-[var(--battery)]" />} title={t("site.dash.battery")} subtitle={`${battery.toFixed(0)} %`} />
-        </div>
-      </div>
-    ),
-    backup: (
-      <BackupTimeCard
-        soc={battery}
-        batteryKwh={pv?.battery_kwh ?? null}
-        usableDodPct={pv?.battery_usable_dod_pct ?? null}
-        load={load}
-        pv={pv_W}
-        batteryCount={pv?.battery_count ?? null}
-        batteryType={pv?.battery_type ?? null}
-      />
-    ),
-    rings: <ConcentricRings pv={pv_W} load={load} soc={battery} pvMax={pvMax} loadMax={5000} />,
-    gauges: <PowerGauges pv={pv_W} load={load} gridV={gridV} battery={battery} batteryV={batteryV} pvMax={pvMax} />,
-    battery3d: <Battery3D soc={battery} voltage={batteryV} charging={charging} />,
-    solarcell: <SolarPanelsViz pv={pv_W} pvMax={pvMax} />,
-    loadcell: <HouseLoadViz load={load} loadMax={pvMax} />,
-    solarrays: <SolarRays pv={pv_W} pvMax={pvMax} />,
-    gridwave: <GridSineWave voltage={gridV} frequency={50} />,
-    flow: <EnergyFlowDiagram pv={pv_W} load={load} gridV={gridV} battery={battery} batteryV={batteryV} />,
-    savings: (
-      <SavingsCard
-        siteId={siteId}
-        pvW={pv_W}
-        batteryDischargeW={Math.max(0, Number(latest?.battery_discharge_current ?? 0) * batteryV)}
-        energyPrice={pv?.energy_price ?? null}
-        feedInPrice={pv?.feed_in_price ?? null}
-        currency={pv?.currency ?? "CLP"}
-      />
-    ),
-    forecast: (
-      <SolarForecastWidget
-        pvConfig={{ kwp: pv?.array_kwp, lossesPct: pv?.system_losses_pct, batteryKwh: pv?.battery_kwh, lat: pv?.latitude, lon: pv?.longitude, locationLabel: pv?.location_label, manualCalibration: pv?.manual_calibration ?? null, smoothingAlpha: pv?.calibration_smoothing_alpha ?? null, siteKey: siteId }}
-        live={{ pv_w: pv_W, load_w: load, battery_pct: battery, recorded_at: latest?.recorded_at }}
-      />
-    ),
-  };
+  const batteryDischargeW = Math.max(0, Number(latest?.battery_discharge_current ?? 0) * batteryV);
 
   return (
-    <DashboardGrid
-      defs={WIDGET_DEFS}
-      state={state}
-      onChange={persist}
-      render={(id) => widgets[id] ?? null}
-    />
+    <div className="space-y-5">
+      <div className="grid gap-5 xl:grid-cols-3">
+        <PowerGauges pv={pv_W} load={load} gridV={gridV} battery={battery} batteryV={batteryV} pvMax={pvMax} />
+        <BackupTimeCard
+          soc={battery}
+          batteryKwh={pv?.battery_kwh ?? null}
+          usableDodPct={pv?.battery_usable_dod_pct ?? null}
+          load={load}
+          pv={pv_W}
+          batteryCount={pv?.battery_count ?? null}
+          batteryType={pv?.battery_type ?? null}
+        />
+        <Battery3D soc={battery} voltage={batteryV} charging={charging} />
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-3">
+        <EnergyFlowDiagram pv={pv_W} load={load} gridV={gridV} battery={battery} batteryV={batteryV} />
+        <SolarPanelsViz pv={pv_W} pvMax={pvMax} />
+        <HouseLoadViz load={load} loadMax={pvMax} />
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(340px,1fr)]">
+        <SolarForecastWidget
+          pvConfig={{ kwp: pv?.array_kwp, lossesPct: pv?.system_losses_pct, batteryKwh: pv?.battery_kwh, lat: pv?.latitude, lon: pv?.longitude, locationLabel: pv?.location_label, manualCalibration: pv?.manual_calibration ?? null, smoothingAlpha: pv?.calibration_smoothing_alpha ?? null, siteKey: siteId }}
+          live={{ pv_w: pv_W, load_w: load, battery_pct: battery, recorded_at: latest?.recorded_at }}
+        />
+        <SavingsCard
+          siteId={siteId}
+          pvW={pv_W}
+          batteryDischargeW={batteryDischargeW}
+          energyPrice={pv?.energy_price ?? null}
+          feedInPrice={pv?.feed_in_price ?? null}
+          currency={pv?.currency ?? "CLP"}
+        />
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+        <QuickActions siteId={siteId} config={qaConfig} readOnly={!canControl} />
+        <div className="rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Resumen del sistema</div>
+              <div className="mt-1 flex items-center gap-2 text-lg font-semibold">
+                <Cpu className="h-5 w-5 text-muted-foreground" />
+                {mode.label}
+              </div>
+            </div>
+            {mode.code && <span className="rounded-full border px-3 py-1 font-mono text-[11px] text-muted-foreground">QMOD {mode.code}</span>}
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <IconCard icon={<Sun className="h-5 w-5 text-[var(--solar)]" />} title="Solar" subtitle={`${Math.round(pv_W).toLocaleString()} W`} />
+            <IconCard icon={<Plug className="h-5 w-5 text-[var(--load)]" />} title="Consumo" subtitle={`${Math.round(load).toLocaleString()} W`} />
+            <IconCard icon={<Battery className="h-5 w-5 text-[var(--battery)]" />} title="Batería" subtitle={`${battery.toFixed(0)} % · ${batteryV.toFixed(1)} V`} />
+            <IconCard
+              icon={<div className="relative"><Plug className="h-5 w-5 text-[var(--grid)]" />{!gridConnected && <AlertCircle className="absolute -bottom-1 -right-1 h-3.5 w-3.5 fill-[var(--warning)] text-background" />}</div>}
+              title="Red"
+              subtitle={gridConnected ? `${gridV.toFixed(0)} V` : "Desconectada"}
+            />
+          </div>
+        </div>
+      </div>
+
+      <CommandStatusFeed siteId={siteId} limit={10} />
+
+      <div className="grid gap-5 xl:grid-cols-3">
+        <ConcentricRings pv={pv_W} load={load} soc={battery} pvMax={pvMax} loadMax={5000} />
+        <SolarRays pv={pv_W} pvMax={pvMax} />
+        <GridSineWave voltage={gridV} frequency={50} />
+      </div>
+    </div>
   );
 }
 
