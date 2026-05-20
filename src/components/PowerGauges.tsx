@@ -34,7 +34,7 @@ export function PowerGauges({ pv, load, gridV, battery, batteryV, pvMax = 5000, 
         </div>
       </div>
 
-      <div className="grid items-center gap-3 @[560px]:grid-cols-[0.8fr_0.9fr_1.2fr_0.8fr]">
+      <div className="grid grid-cols-4 items-start gap-2 @[420px]:gap-3">
         <RadialGauge
           label="Solar"
           value={pv}
@@ -112,7 +112,7 @@ function RadialGauge({
   const id = `g-${label}`;
   return (
     <div className="flex flex-col items-center">
-      <div className={`relative aspect-square w-full ${emphasized ? "max-w-[156px]" : "max-w-[104px] @[520px]:max-w-[118px]"}`} style={{ color }}>
+      <div className={`relative mx-auto aspect-square w-full ${emphasized ? "max-w-[138px] @[420px]:max-w-[150px]" : "max-w-[76px] @[420px]:max-w-[90px]"}`} style={{ color }}>
         <svg viewBox={`0 0 ${size} ${size}`} className={`h-full w-full ${emphasized ? "-rotate-[123deg]" : "-rotate-[137deg]"}`}>
           <defs>
             <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
