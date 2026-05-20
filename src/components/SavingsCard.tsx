@@ -79,7 +79,7 @@ export function SavingsCard({ siteId, pvW, batteryDischargeW, energyPrice, feedI
 
   if (!price) {
     return (
-      <div className="rounded-xl border bg-card p-4 sm:p-5 animate-fade-in h-full">
+      <div className="rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md transition-shadow sm:p-6 animate-fade-in h-full">
         <div className="flex items-center gap-2 mb-2">
           <Coins className="h-5 w-5 text-[var(--solar)]" />
           <div className="text-sm font-semibold">Ahorro económico</div>
@@ -103,7 +103,7 @@ export function SavingsCard({ siteId, pvW, batteryDischargeW, energyPrice, feedI
   const savingsYear = projectedYearKwh * price;
 
   return (
-    <div className="@container relative overflow-hidden rounded-xl border bg-card p-4 sm:p-5 animate-fade-in h-full">
+    <div className="@container relative overflow-hidden rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md transition-shadow sm:p-6 animate-fade-in h-full">
       <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-emerald-500/10 blur-3xl" />
       <div className="relative">
         <div className="flex items-center justify-between gap-2 mb-3">

@@ -18,7 +18,7 @@ interface Props {
 export function PowerGauges({ pv, load, gridV, battery, batteryV, pvMax = 5000, loadMax = 5000 }: Props) {
   const gridConnected = gridV > 50;
   return (
-    <div className="@container rounded-xl border bg-card p-3 shadow-sm sm:p-6 animate-fade-in">
+    <div className="@container rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md transition-shadow sm:p-6 animate-fade-in">
       <div className="mb-3 flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold @[360px]:text-base">Medidores en tiempo real</h3>
         <span className="shrink-0 rounded-full bg-[var(--success)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--success)]">
