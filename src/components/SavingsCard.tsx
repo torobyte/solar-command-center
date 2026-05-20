@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Coins, TrendingUp, Calendar, Sparkles } from "lucide-react";
+import { Coins, TrendingUp, Calendar, Sparkles, ArrowRight } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
@@ -31,57 +32,47 @@ function fmt(n: number, currency: string): string {
 }
 
 /**
- * Estimates energy savings in money. Savings represent the energy you DIDN'T
- * pull from the grid, which equals PV production + battery discharge to load
- * (energy produced/stored by your system instead of imported).
+ * Estimates energy savings in money. Savings = PV produced + battery
+ * discharged to the house (kWh not pulled from the grid).
+ *
+ * Reads from the `daily_totals` aggregation table so today, this month
+ * and this year are always available regardless of telemetry density.
  */
 export function SavingsCard({ siteId, pvW, batteryDischargeW, energyPrice, feedInPrice, currency, forecastDailyKwh }: Props) {
   const cur = currency || "CLP";
   const price = energyPrice ?? 0;
   const [todayKwh, setTodayKwh] = useState<number | null>(null);
   const [monthKwh, setMonthKwh] = useState<number | null>(null);
+  const [yearKwh, setYearKwh] = useState<number | null>(null);
 
   useEffect(() => {
     if (!siteId || siteId === "local") return;
     let cancelled = false;
     (async () => {
-      const startToday = new Date();
-      startToday.setHours(0, 0, 0, 0);
-      const startMonth = new Date(startToday.getFullYear(), startToday.getMonth(), 1);
+      const now = new Date();
+      const todayStr = now.toISOString().slice(0, 10);
+      const yearStart = new Date(now.getFullYear(), 0, 1).toISOString().slice(0, 10);
 
-      // Fetch samples for today + this month in one query, then split.
       const { data } = await supabase
-        .from("telemetry_samples")
-        .select("recorded_at, pv_input_power, battery_discharge_current, battery_voltage")
+        .from("daily_totals")
+        .select("day, pv_kwh, battery_discharged_kwh")
         .eq("site_id", siteId)
-        .gte("recorded_at", startMonth.toISOString())
-        .order("recorded_at", { ascending: true })
-        .limit(1000);
+        .gte("day", yearStart)
+        .order("day", { ascending: true });
       if (cancelled || !data) return;
 
-      // Trapezoidal-ish integration: Σ (W × Δt_h) / 1000 = kWh.
-      // Saved energy = PV produced + battery discharged to the house.
-      let kwhToday = 0;
-      let kwhMonth = 0;
-      let prevT: number | null = null;
-      let prevW = 0;
+      const month = now.getMonth();
+      let y = 0, m = 0, t = 0;
       for (const row of data) {
-        const t = new Date(row.recorded_at as string).getTime();
-        const pv = Math.max(0, Number(row.pv_input_power ?? 0));
-        const bv = Math.max(0, Number(row.battery_voltage ?? 0));
-        const bi = Math.max(0, Number(row.battery_discharge_current ?? 0));
-        const w = pv + bv * bi;
-        if (prevT != null) {
-          const dh = Math.min(1, (t - prevT) / 3_600_000); // cap gaps at 1h to avoid spikes
-          const kwh = ((prevW + w) / 2) * dh / 1000;
-          kwhMonth += kwh;
-          if (t >= startToday.getTime()) kwhToday += kwh;
-        }
-        prevT = t;
-        prevW = w;
+        const saved = Number(row.pv_kwh || 0) + Number(row.battery_discharged_kwh || 0);
+        y += saved;
+        const d = new Date(`${row.day}T00:00:00`);
+        if (d.getMonth() === month) m += saved;
+        if (row.day === todayStr) t += saved;
       }
-      setTodayKwh(kwhToday);
-      setMonthKwh(kwhMonth);
+      setTodayKwh(t);
+      setMonthKwh(m);
+      setYearKwh(y);
     })();
     return () => { cancelled = true; };
   }, [siteId]);
@@ -104,10 +95,12 @@ export function SavingsCard({ siteId, pvW, batteryDischargeW, energyPrice, feedI
   const savingsPerHour = (liveW / 1000) * price;
   const savingsToday = (todayKwh ?? 0) * price;
   const savingsMonth = (monthKwh ?? 0) * price;
-  const avgDailyKwh = todayKwh && todayKwh > 0
-    ? todayKwh
-    : (forecastDailyKwh ?? (monthKwh ? monthKwh / Math.max(1, new Date().getDate()) : 0));
-  const savingsYear = avgDailyKwh * 365 * price;
+  // Year projection: prefer real year-to-date extrapolated, fall back to forecast.
+  const dayOfYear = Math.max(1, Math.ceil((Date.now() - new Date(new Date().getFullYear(), 0, 1).getTime()) / 86400000));
+  const projectedYearKwh = yearKwh && yearKwh > 0
+    ? (yearKwh / dayOfYear) * 365
+    : (forecastDailyKwh ?? 0) * 365;
+  const savingsYear = projectedYearKwh * price;
 
   return (
     <div className="@container relative overflow-hidden rounded-xl border bg-card p-4 sm:p-5 animate-fade-in h-full">
@@ -161,9 +154,19 @@ export function SavingsCard({ siteId, pvW, batteryDischargeW, energyPrice, feedI
             icon={<TrendingUp className="h-3.5 w-3.5" />}
             label="Año proyectado"
             value={fmt(savingsYear, cur)}
-            sub="estimado"
+            sub={yearKwh != null ? `${yearKwh.toFixed(0)} kWh real` : "estimado"}
           />
         </div>
+
+        {siteId && siteId !== "local" && (
+          <Link
+            to="/sites/$siteId/savings"
+            params={{ siteId }}
+            className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-600 transition-colors"
+          >
+            Ver historial completo <ArrowRight className="h-3 w-3" />
+          </Link>
+        )}
       </div>
     </div>
   );
