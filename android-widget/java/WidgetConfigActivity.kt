@@ -194,17 +194,10 @@ class WidgetConfigActivity : Activity() {
             .apply()
 
         for (cls in listOf(
-            SolarOpsWidget::class.java,
-            SolarOpsWidgetTiles::class.java,
-            SolarOpsWidgetGauge::class.java,
-            SolarOpsWidgetNeon::class.java,
-            SolarOpsWidgetFlow::class.java,
-            SolarOpsWidgetMini::class.java,
-            SolarOpsWidgetSpeedo::class.java,
-            SolarOpsWidgetWave::class.java,
-            SolarOpsWidgetStats::class.java,
-            SolarOpsWidgetRadial::class.java,
-            SolarOpsWidgetBattery::class.java,
+            TbWidgetMain::class.java,
+            TbWidgetSummary::class.java,
+            TbWidgetBattery2x2::class.java,
+            TbWidgetBattery1x1::class.java,
         )) {
             sendBroadcast(Intent(this, cls).apply {
                 action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
