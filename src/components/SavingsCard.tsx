@@ -103,10 +103,10 @@ export function SavingsCard({ siteId, pvW, batteryDischargeW, energyPrice, feedI
   const savingsYear = projectedYearKwh * price;
 
   return (
-    <div className="@container relative overflow-hidden rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md transition-shadow sm:p-6 animate-fade-in h-full">
-      <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-emerald-500/10 blur-3xl" />
+    <div className="@container relative overflow-hidden rounded-2xl border border-[color:color-mix(in_oklab,var(--success)_28%,var(--border))] bg-card p-5 shadow-sm transition-shadow sm:p-6 animate-fade-in h-full">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[linear-gradient(180deg,color-mix(in_oklab,var(--success)_12%,white),transparent)]" />
       <div className="relative">
-        <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center justify-between gap-2 mb-4">
           <div className="flex items-center gap-2">
             <div className="rounded-md bg-emerald-500/15 p-1.5">
               <Coins className="h-4 w-4 text-emerald-600" />
@@ -125,19 +125,19 @@ export function SavingsCard({ siteId, pvW, batteryDischargeW, energyPrice, feedI
           )}
         </div>
 
-        <div className="mb-3 rounded-lg border bg-gradient-to-br from-emerald-500/10 to-transparent p-3">
-          <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        <div className="mb-4 rounded-xl border bg-[linear-gradient(180deg,color-mix(in_oklab,var(--success)_12%,white),transparent)] p-4">
+          <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
             Ahorrando ahora
           </div>
           <div className="flex items-baseline gap-1">
-            <div className="text-3xl font-extrabold text-emerald-600 tabular-nums">
+            <div className="text-4xl font-extrabold text-emerald-600 tabular-nums">
               {fmt(savingsPerHour, cur)}
             </div>
             <div className="text-xs text-muted-foreground">/hora</div>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 gap-2 @[520px]:grid-cols-3">
           <Stat
             icon={<Sparkles className="h-3.5 w-3.5" />}
             label="Hoy"
@@ -162,9 +162,10 @@ export function SavingsCard({ siteId, pvW, batteryDischargeW, energyPrice, feedI
           <Link
             to="/sites/$siteId/savings"
             params={{ siteId }}
-            className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-600 transition-colors"
+            className="mt-4 inline-flex w-full items-center justify-between rounded-xl border bg-background px-4 py-3 text-xs font-semibold text-emerald-700 transition-colors hover:text-emerald-600"
           >
-            Ver historial completo <ArrowRight className="h-3 w-3" />
+            <span>Ver historial completo</span>
+            <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         )}
       </div>
@@ -174,13 +175,13 @@ export function SavingsCard({ siteId, pvW, batteryDischargeW, energyPrice, feedI
 
 function Stat({ icon, label, value, sub }: { icon: React.ReactNode; label: string; value: string; sub: string }) {
   return (
-    <div className="rounded-lg border bg-background p-2.5">
+    <div className="rounded-xl border bg-background p-3">
       <div className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-muted-foreground">
         {icon}
         <span>{label}</span>
       </div>
-      <div className="mt-1 text-sm font-bold tabular-nums">{value}</div>
-      <div className="text-[10px] text-muted-foreground">{sub}</div>
+      <div className="mt-2 text-lg font-bold tabular-nums">{value}</div>
+      <div className="mt-0.5 text-[11px] text-muted-foreground">{sub}</div>
     </div>
   );
 }

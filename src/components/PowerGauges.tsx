@@ -18,14 +18,14 @@ interface Props {
 export function PowerGauges({ pv, load, gridV, battery, batteryV, pvMax = 5000, loadMax = 5000 }: Props) {
   const gridConnected = gridV > 50;
   return (
-    <div className="@container rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md transition-shadow sm:p-6 animate-fade-in">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold @[360px]:text-base">Medidores en tiempo real</h3>
-        <span className="shrink-0 rounded-full bg-[var(--success)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--success)]">
-          ● EN VIVO
+    <div className="@container rounded-2xl border bg-card p-5 shadow-sm transition-shadow sm:p-6 animate-fade-in">
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold @[360px]:text-base">Estado general del sistema</h3>
+        <span className="shrink-0 rounded-full bg-[var(--success)]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--success)]">
+          ● En vivo
         </span>
       </div>
-      <div className="grid grid-cols-2 gap-3 @[480px]:grid-cols-4 @[480px]:gap-4">
+      <div className="grid items-center gap-4 @[520px]:grid-cols-[0.8fr_0.8fr_1.25fr_0.8fr]">
         <RadialGauge
           label="Solar"
           value={pv}
@@ -66,8 +66,7 @@ export function PowerGauges({ pv, load, gridV, battery, batteryV, pvMax = 5000, 
         />
       </div>
 
-      {/* Linear "load bars" — hidden on very narrow containers to keep mobile clean */}
-      <div className="mt-4 hidden space-y-3 border-t pt-4 @[360px]:block">
+      <div className="mt-5 space-y-3 border-t pt-4">
         <LoadBar label="Generación solar" value={pv} max={pvMax} unit="W" color="var(--solar)" />
         <LoadBar label="Consumo de la casa" value={load} max={loadMax} unit="W" color="var(--load)" />
         <LoadBar label="Estado de carga (SOC)" value={battery} max={100} unit="%" color="var(--battery)" />
@@ -92,19 +91,20 @@ function RadialGauge({
   label: string; value: number; unit: string; ratio: number;
   color: string; glow: string; subtitle?: string; icon: React.ReactNode;
 }) {
-  const size = 120;
-  const stroke = 10;
+  const emphasized = label === "Batería";
+  const size = emphasized ? 156 : 112;
+  const stroke = emphasized ? 12 : 10;
   const r = (size - stroke) / 2;
   const cx = size / 2;
   const cy = size / 2;
   const circ = 2 * Math.PI * r;
-  const arc = circ * 0.75;
+  const arc = circ * (emphasized ? 0.82 : 0.74);
   const offset = arc * (1 - ratio);
   const id = `g-${label}`;
   return (
     <div className="flex flex-col items-center">
-      <div className="relative aspect-square w-full max-w-[140px]" style={{ color }}>
-        <svg viewBox={`0 0 ${size} ${size}`} className="h-full w-full -rotate-[135deg]">
+      <div className={`relative aspect-square w-full ${emphasized ? "max-w-[156px]" : "max-w-[112px] @[520px]:max-w-[124px]"}`} style={{ color }}>
+        <svg viewBox={`0 0 ${size} ${size}`} className={`h-full w-full ${emphasized ? "-rotate-[123deg]" : "-rotate-[137deg]"}`}>
           <defs>
             <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
               <stop offset="0%" stopColor={color} stopOpacity="0.6" />
@@ -127,15 +127,15 @@ function RadialGauge({
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <div className="mb-0.5 opacity-80">{icon}</div>
-          <div className="text-base font-bold leading-none tabular-nums @[480px]:text-lg">
+          <div className={`${emphasized ? "mb-1" : "mb-0.5"} opacity-80`}>{icon}</div>
+          <div className={`${emphasized ? "text-3xl @[480px]:text-[2rem]" : "text-base @[480px]:text-lg"} font-bold leading-none tabular-nums`}>
             {Math.round(value).toLocaleString()}
             <span className="ml-0.5 text-[10px] font-normal text-muted-foreground @[480px]:text-xs">{unit}</span>
           </div>
-          {subtitle && <div className="mt-0.5 text-[9px] text-muted-foreground @[480px]:text-[10px]">{subtitle}</div>}
+          {subtitle && <div className={`${emphasized ? "mt-1 text-[11px]" : "mt-0.5 text-[9px] @[480px]:text-[10px]"} text-muted-foreground`}>{subtitle}</div>}
         </div>
       </div>
-      <div className="mt-1 text-[11px] font-medium text-muted-foreground @[480px]:text-xs">{label}</div>
+      <div className={`${emphasized ? "mt-2 text-xs" : "mt-1 text-[11px] @[480px]:text-xs"} font-medium text-muted-foreground`}>{label}</div>
     </div>
   );
 }
@@ -152,7 +152,7 @@ function LoadBar({ label, value, max, unit, color }: {
           {Math.round(value).toLocaleString()} <span className="text-muted-foreground">{unit}</span>
         </span>
       </div>
-      <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
+      <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted/80">
         <div
           className="relative h-full rounded-full"
           style={{
