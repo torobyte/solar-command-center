@@ -205,25 +205,23 @@ jobs:
           -keep class app.solarops.client.MainActivity { *; }
           -keep class app.solarops.client.WidgetSetupActivity { *; }
           -keep class app.solarops.client.WidgetConfigActivity { *; }
-          -keep class app.solarops.client.SolarOpsWidget { *; }
-          -keep class app.solarops.client.SolarOpsWidgetTiles { *; }
-          -keep class app.solarops.client.SolarOpsWidgetGauge { *; }
-          -keep class app.solarops.client.SolarOpsWidgetNeon { *; }
-          -keep class app.solarops.client.SolarOpsWidgetFlow { *; }
-          -keep class app.solarops.client.SolarOpsWidgetMini { *; }
-          -keep class app.solarops.client.SolarOpsWidgetSpeedo { *; }
-          -keep class app.solarops.client.SolarOpsWidgetWave { *; }
-          -keep class app.solarops.client.SolarOpsWidgetStats { *; }
-          -keep class app.solarops.client.SolarOpsWidgetRadial { *; }
-          -keep class app.solarops.client.SolarOpsWidgetBattery { *; }
+          -keep class app.solarops.client.TbWidgetMain { *; }
+          -keep class app.solarops.client.TbWidgetSummary { *; }
+          -keep class app.solarops.client.TbWidgetBattery2x2 { *; }
+          -keep class app.solarops.client.TbWidgetBattery1x1 { *; }
+          -keep class app.solarops.client.TbCommon { *; }
+          -keep class app.solarops.client.WidgetCommon { *; }
           -keep class app.solarops.client.WidgetStreamService { *; }
           -keep class app.solarops.client.LockscreenLiveService { *; }
           -keep class app.solarops.client.AlertsStreamService { *; }
-          -keep class app.solarops.client.WaveAnimator { *; }
           -keep class app.solarops.client.UpdateManager { *; }
           -keep class app.solarops.client.BrandSync { *; }
           -keep class app.solarops.client.BrandSync$Brand { *; }
           """.strip()
+          # Wipe any prior SolarOps* rules from previous workflow versions.
+          import re as _re
+          existing = _re.sub(r"-keep class app\.solarops\.client\.SolarOpsWidget[A-Za-z0-9]*\s*\{\s*\*;\s*\}\n?", "", existing)
+          existing = _re.sub(r"-keep class app\.solarops\.client\.WaveAnimator\s*\{\s*\*;\s*\}\n?", "", existing)
           if rules not in existing:
               proguard.write_text((existing.rstrip() + "\n\n" + rules + "\n").lstrip())
           PY
@@ -392,11 +390,13 @@ jobs:
           import re
           p = "android/app/src/main/AndroidManifest.xml"
           s = open(p).read()
-          # Remove any <activity>/<receiver> referencing SolarOpsWidget*, WidgetSetupActivity or WidgetConfigActivity (short or fully-qualified)
+          # Remove ANY previous SolarOps or Torobyte widget receivers/activities/services so
+          # we never end up with a stale receiver pointing at a deleted class.
           patterns = [
               r'<activity[^>]*android:name="(?:\.|app\.solarops\.client\.)WidgetSetupActivity"[^>]*(?:/>|>[\s\S]*?</activity>)',
               r'<activity[^>]*android:name="(?:\.|app\.solarops\.client\.)WidgetConfigActivity"[^>]*(?:/>|>[\s\S]*?</activity>)',
-              r'<receiver[^>]*android:name="(?:\.|app\.solarops\.client\.)SolarOpsWidget(?:Tiles|Gauge|Neon|Flow|Mini|Speedo|Wave|Stats|Radial|Battery)?"[^>]*(?:/>|>[\s\S]*?</receiver>)',
+              r'<receiver[^>]*android:name="(?:\.|app\.solarops\.client\.)SolarOpsWidget[A-Za-z0-9]*"[^>]*(?:/>|>[\s\S]*?</receiver>)',
+              r'<receiver[^>]*android:name="(?:\.|app\.solarops\.client\.)TbWidget[A-Za-z0-9]*"[^>]*(?:/>|>[\s\S]*?</receiver>)',
               r'<service[^>]*android:name="(?:\.|app\.solarops\.client\.)WidgetStreamService"[^>]*(?:/>|>[\s\S]*?</service>)',
               r'<service[^>]*android:name="(?:\.|app\.solarops\.client\.)LockscreenLiveService"[^>]*(?:/>|>[\s\S]*?</service>)',
               r'<service[^>]*android:name="(?:\.|app\.solarops\.client\.)AlertsStreamService"[^>]*(?:/>|>[\s\S]*?</service>)',
@@ -460,17 +460,12 @@ jobs:
             'Lapp/solarops/client/MainActivity;' \
             'Lapp/solarops/client/WidgetSetupActivity;' \
             'Lapp/solarops/client/WidgetConfigActivity;' \
-            'Lapp/solarops/client/SolarOpsWidget;' \
-            'Lapp/solarops/client/SolarOpsWidgetTiles;' \
-            'Lapp/solarops/client/SolarOpsWidgetGauge;' \
-            'Lapp/solarops/client/SolarOpsWidgetNeon;' \
-            'Lapp/solarops/client/SolarOpsWidgetFlow;' \
-            'Lapp/solarops/client/SolarOpsWidgetMini;' \
-            'Lapp/solarops/client/SolarOpsWidgetSpeedo;' \
-            'Lapp/solarops/client/SolarOpsWidgetWave;' \
-            'Lapp/solarops/client/SolarOpsWidgetStats;' \
-            'Lapp/solarops/client/SolarOpsWidgetRadial;' \
-            'Lapp/solarops/client/SolarOpsWidgetBattery;' \
+            'Lapp/solarops/client/TbWidgetMain;' \
+            'Lapp/solarops/client/TbWidgetSummary;' \
+            'Lapp/solarops/client/TbWidgetBattery2x2;' \
+            'Lapp/solarops/client/TbWidgetBattery1x1;' \
+            'Lapp/solarops/client/TbCommon;' \
+            'Lapp/solarops/client/WidgetCommon;' \
             'Lapp/solarops/client/UpdateManager;' \
             'Lapp/solarops/client/BrandSync;' \
             'Lapp/solarops/client/WidgetStreamService;' \
@@ -482,6 +477,11 @@ jobs:
               exit 1
             fi
           done
+          # Sanity check: no legacy SolarOpsWidget* should remain in the dex.
+          if unzip -p "$APK" classes.dex | strings | grep -E 'Lapp/solarops/client/SolarOpsWidget[A-Za-z0-9]*;' >/dev/null; then
+            echo "::error::Legacy SolarOpsWidget* class found in APK — wipe android/app/build before rebuilding"
+            exit 1
+          fi
           echo "Widget classes verified inside APK"
 
       - name: Sign APK (always — uses release keystore if provided, else auto-generated)
