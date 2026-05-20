@@ -35,38 +35,38 @@ export function AppHeader() {
   const renderNavLink = (it: NavItem, mobile = false) => (
     <Link key={it.to} to={it.to} onClick={() => mobile && setOpen(false)} className="group">
       <div
-        className={`relative flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium transition-all ${
+        className={`relative flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all ${
           it.active
-            ? "bg-primary/10 text-foreground shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--accent)_30%,transparent)]"
+            ? "bg-primary/10 text-primary"
             : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
         } ${mobile ? "w-full justify-start" : ""}`}
       >
-        <it.icon className={`h-4 w-4 transition-transform ${it.active ? "text-accent" : ""} group-hover:scale-110`} strokeWidth={2.2} />
+        <it.icon className="h-4 w-4" strokeWidth={2.2} />
         <span>{it.label}</span>
-        {it.active && (
-          <span className="absolute -bottom-px left-1/2 h-0.5 w-6 -translate-x-1/2 rounded-full bg-gradient-aurora animate-fade-in" />
+        {it.active && !mobile && (
+          <span className="absolute -bottom-[10px] left-1/2 h-[3px] w-10 -translate-x-1/2 rounded-full bg-primary" />
         )}
       </div>
     </Link>
   );
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 glass-strong">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-        <Link to={user ? "/app" : "/"} className="group flex items-center gap-2.5">
+    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/90 backdrop-blur-md">
+      <div className="flex h-16 w-full items-center justify-between px-4 sm:px-8 lg:px-12">
+        <Link to={user ? "/app" : "/"} className="group flex items-center gap-3">
           {logoUrl ? (
             <img src={logoUrl} alt={siteName} className="h-10 max-w-[180px] object-contain" />
           ) : (
-            <>
-              <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 shadow-glow">
-                <Sun className="h-5 w-5 text-accent icon-spring" strokeWidth={2.4} />
-                <Sparkles className="absolute -right-1 -top-1 h-3 w-3 text-accent opacity-0 transition-opacity group-hover:opacity-100" strokeWidth={2.4} />
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-lg font-bold tracking-tight text-gradient">{siteName.toLowerCase().replace(/ops$/i, "")}</span>
-                <span className="text-lg font-light text-muted-foreground">{/ops$/i.test(siteName) ? "ops" : ""}</span>
-              </div>
-            </>
+            <div className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 shadow-sm">
+              <Sun className="h-5 w-5 text-white" strokeWidth={2.4} />
+              <Sparkles className="absolute -right-1 -top-1 h-3 w-3 text-accent opacity-0 transition-opacity group-hover:opacity-100" strokeWidth={2.4} />
+            </div>
+          )}
+          {!logoUrl && (
+            <div className="flex flex-col leading-none">
+              <span className="text-lg font-extrabold tracking-tight text-foreground">{siteName}</span>
+              <span className="text-[10px] font-semibold tracking-[0.18em] text-primary">SOLAR MONITOR</span>
+            </div>
           )}
         </Link>
 
