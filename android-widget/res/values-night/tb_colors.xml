@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Torobyte widget palette — DARK mode. -->
+<resources>
+    <color name="tb_bg">#0A0F1F</color>
+    <color name="tb_surface">#0F172A</color>
+    <color name="tb_stroke">#1E293B</color>
+    <color name="tb_fg">#F8FAFC</color>
+    <color name="tb_fg_dim">#CBD5E1</color>
+    <color name="tb_muted">#94A3B8</color>
+    <color name="tb_accent">#38BDF8</color>
+    <color name="tb_accent_glow">#7DD3FC</color>
+    <color name="tb_track">#1E293B</color>
+    <color name="tb_warn">#FBBF24</color>
+    <color name="tb_good">#4ADE80</color>
+    <color name="tb_danger">#F87171</color>
+</resources>
