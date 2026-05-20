@@ -138,9 +138,9 @@ function AccountPage() {
   if (!user) return null;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex items-center gap-4 animate-fade-up">
-        <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 shadow-sm">
+        <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100">
           <UserIcon className="h-7 w-7" strokeWidth={2.2} />
           <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 ring-2 ring-background">
             <svg viewBox="0 0 24 24" className="h-3 w-3 text-white" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 12l5 5L20 7" /></svg>
@@ -152,120 +152,110 @@ function AccountPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 animate-fade-up">
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base"><UserIcon className="h-4 w-4" /> Datos personales</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={saveProfile} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Nombre completo</Label>
-              <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Tu nombre" />
+      <SettingsCard icon={UserIcon} title="Datos personales" description="Actualiza tu información personal." tint="bg-blue-50 text-blue-600">
+        <form onSubmit={saveProfile} className="space-y-4">
+          <div className="space-y-2">
+            <Label>Nombre completo</Label>
+            <div className="relative">
+              <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Tu nombre" className="pr-9" />
+              <UserIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             </div>
-            <div className="space-y-2">
-              <Label>Email actual</Label>
-              <Input value={user.email ?? ""} disabled />
+          </div>
+          <div className="space-y-2">
+            <Label>Email actual</Label>
+            <div className="relative">
+              <Input value={user.email ?? ""} disabled className="pr-9" />
+              <Mail className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             </div>
-            <Button type="submit" disabled={savingProfile} className="w-full sm:w-auto">
-              {savingProfile ? "Guardando…" : "Guardar perfil"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+          </div>
+          <Button type="submit" disabled={savingProfile} className="rounded-xl">
+            {savingProfile ? "Guardando…" : "Guardar perfil"}
+          </Button>
+        </form>
+      </SettingsCard>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base"><Mail className="h-4 w-4" /> Cambiar email</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={saveEmail} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Nuevo email</Label>
-              <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} required />
-              <p className="text-xs text-muted-foreground">Te enviaremos un enlace de confirmación al nuevo correo.</p>
+      <SettingsCard icon={Mail} title="Cambiar email" description="Actualiza tu dirección de correo electrónico." tint="bg-emerald-50 text-emerald-600">
+        <form onSubmit={saveEmail} className="space-y-4">
+          <div className="space-y-2">
+            <Label>Nuevo email</Label>
+            <div className="relative">
+              <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} required className="pr-9" />
+              <Mail className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             </div>
-            <Button type="submit" disabled={savingEmail} className="w-full sm:w-auto">
-              {savingEmail ? "Enviando…" : "Solicitar cambio"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+            <p className="text-xs text-muted-foreground">Te enviaremos un enlace de confirmación al nuevo correo.</p>
+          </div>
+          <Button type="submit" disabled={savingEmail} variant="outline" className="rounded-xl border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+            {savingEmail ? "Enviando…" : "Solicitar cambio"}
+          </Button>
+        </form>
+      </SettingsCard>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base"><KeyRound className="h-4 w-4" /> Cambiar contraseña</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={savePassword} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Nueva contraseña</Label>
-              <Input type="password" value={pwd} onChange={(e) => setPwd(e.target.value)} required minLength={8} />
-            </div>
-            <div className="space-y-2">
-              <Label>Repetir contraseña</Label>
-              <Input type="password" value={pwd2} onChange={(e) => setPwd2(e.target.value)} required minLength={8} />
-            </div>
-            <Button type="submit" disabled={savingPwd} className="w-full sm:w-auto">
-              {savingPwd ? "Guardando…" : "Actualizar contraseña"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+      <SettingsCard icon={KeyRound} title="Cambiar contraseña" description="Asegura tu cuenta actualizando tu contraseña." tint="bg-amber-50 text-amber-600">
+        <form onSubmit={savePassword} className="space-y-4">
+          <div className="space-y-2">
+            <Label>Nueva contraseña</Label>
+            <Input type="password" value={pwd} onChange={(e) => setPwd(e.target.value)} required minLength={8} />
+          </div>
+          <div className="space-y-2">
+            <Label>Repetir contraseña</Label>
+            <Input type="password" value={pwd2} onChange={(e) => setPwd2(e.target.value)} required minLength={8} />
+            <p className="text-xs text-muted-foreground">Usa al menos 8 caracteres con letras, números y símbolos.</p>
+          </div>
+          <Button type="submit" disabled={savingPwd} className="rounded-xl bg-amber-500 text-white hover:bg-amber-600">
+            {savingPwd ? "Guardando…" : "Actualizar contraseña"}
+          </Button>
+        </form>
+      </SettingsCard>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base"><Smartphone className="h-4 w-4" /> Dispositivos con notificaciones push</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {subs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No tienes dispositivos suscritos. Actívalos desde la pestaña Alertas de un sitio.</p>
-          ) : (
-            <ul className="divide-y">
-              {subs.map((s) => (
-                <li key={s.id} className="flex items-start justify-between gap-3 py-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium">{shortUA(s.user_agent)}</div>
-                    <div className="text-xs text-muted-foreground">Activo desde {new Date(s.created_at).toLocaleDateString()}</div>
-                  </div>
-                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => removeSub(s.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+      <SettingsCard icon={Smartphone} title="Dispositivos con notificaciones push" description="Administra los dispositivos autorizados para recibir notificaciones." tint="bg-violet-50 text-violet-600">
+        {subs.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No tienes dispositivos suscritos. Actívalos desde la pestaña Alertas de un sitio.</p>
+        ) : (
+          <ul className="space-y-2">
+            {subs.map((s) => (
+              <li key={s.id} className="flex items-center justify-between gap-3 rounded-xl border bg-background p-3">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-medium">{shortUA(s.user_agent)}</div>
+                  <div className="text-xs text-muted-foreground">Activo desde {new Date(s.created_at).toLocaleDateString()}</div>
+                </div>
+                <Button size="sm" variant="outline" className="h-8 rounded-xl border-destructive/40 text-destructive hover:bg-destructive/10" onClick={() => removeSub(s.id)}>
+                  <Trash2 className="mr-1 h-3.5 w-3.5" /> Eliminar
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </SettingsCard>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Mis licencias</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {lics.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No tienes licencias asignadas.</p>
-          ) : (
-            <ul className="space-y-2">
-              {lics.map((l) => (
-                <li key={l.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-background p-3">
-                  <div>
-                    <div className="font-mono text-sm">{l.code}</div>
+      <SettingsCard icon={LayoutGrid} title="Mis licencias" description="Revisa y administra las licencias de tus productos." tint="bg-sky-50 text-sky-600">
+        {lics.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No tienes licencias asignadas.</p>
+        ) : (
+          <ul className="space-y-2">
+            {lics.map((l) => (
+              <li key={l.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-background p-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-sky-600">
+                    <LayoutGrid className="h-4 w-4" strokeWidth={2.2} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-mono text-sm truncate">{l.code}</div>
                     <div className="text-xs text-muted-foreground">
                       {l.plan} · {l.is_lifetime ? "De por vida" : `${l.duration_days} días`}
                     </div>
                   </div>
-                  {l.revoked_at ? <Badge variant="destructive">Revocada</Badge>
-                    : l.redeemed_at ? <Badge variant="secondary">Activada</Badge>
-                    : <Badge>Lista para activar</Badge>}
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+                </div>
+                {l.revoked_at ? <Badge variant="destructive" className="rounded-full">Revocada</Badge>
+                  : l.redeemed_at ? <Badge className="rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Activada</Badge>
+                  : <Badge className="rounded-full">Lista para activar</Badge>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </SettingsCard>
     </div>
   );
 }
