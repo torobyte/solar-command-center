@@ -630,3 +630,45 @@ function SitesIndex() {
     </>
   );
 }
+
+function FilterSelect({ label, value, onChange, options }: {
+  label: string; value: string; onChange: (v: string) => void; options: [string, string][];
+}) {
+  return (
+    <div className="relative">
+      <span className="pointer-events-none absolute left-3 top-1.5 z-10 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{label}</span>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="h-14 rounded-xl pt-5 text-sm font-medium">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function Sparkline({ color, bars = false }: { color: string; bars?: boolean }) {
+  // Deterministic decorative mini-viz (no data needed in list view).
+  const points = [3, 5, 4, 7, 6, 9, 7, 8, 11, 9, 12, 10];
+  const w = 80, h = 18, max = Math.max(...points);
+  if (bars) {
+    const bw = (w - (points.length - 1) * 1) / points.length;
+    return (
+      <svg width={w} height={h} className="mt-1 block">
+        {points.map((p, i) => {
+          const bh = (p / max) * h;
+          return <rect key={i} x={i * (bw + 1)} y={h - bh} width={bw} height={bh} rx={1} fill={color} opacity={0.85} />;
+        })}
+      </svg>
+    );
+  }
+  const step = w / (points.length - 1);
+  const d = points.map((p, i) => `${i === 0 ? "M" : "L"}${(i * step).toFixed(1)},${(h - (p / max) * h).toFixed(1)}`).join(" ");
+  return (
+    <svg width={w} height={h} className="mt-1 block">
+      <path d={d} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
