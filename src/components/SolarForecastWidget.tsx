@@ -254,7 +254,7 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
 
   if (loading && !data) {
     return (
-      <div className="flex items-center gap-3 rounded-xl border bg-card p-5 text-sm text-muted-foreground animate-pulse">
+      <div className="dashboard-card flex items-center gap-3 p-5 text-sm text-muted-foreground animate-pulse">
         <Loader2 className="h-5 w-5 animate-spin" /> Cargando previsión solar…
       </div>
     );
@@ -262,7 +262,7 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
 
   if (error && !data) {
     return (
-      <div className="rounded-xl border bg-card p-5 text-sm text-muted-foreground">
+      <div className="dashboard-card p-5 text-sm text-muted-foreground">
         No se pudo obtener la previsión solar.{" "}
         <button onClick={() => void detectAndLoad()} className="text-primary underline">Reintentar</button>
       </div>
@@ -300,7 +300,7 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
     : "from-sky-500 via-blue-600 to-indigo-700";
 
   return (
-    <div className="@container relative overflow-hidden rounded-2xl border bg-card shadow-lg animate-fade-in">
+    <div className="@container dashboard-card animate-fade-in">
       {/* Hero header with weather-themed gradient */}
       <div className={`relative overflow-hidden bg-gradient-to-br ${heroGradient} p-4 sm:p-5 text-white`}>
         {/* Animated decorative elements */}
@@ -368,8 +368,8 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
       <div className="p-3 sm:p-5">
 
       {pickerOpen && (
-        <div className="mb-4 rounded-lg border bg-background p-3 animate-fade-in">
-          <div className="flex items-center gap-2 rounded-md border bg-card px-2">
+        <div className="dashboard-panel mb-4 p-3 animate-fade-in">
+          <div className="dashboard-panel flex items-center gap-2 rounded-md px-2">
             <Search className="h-4 w-4 text-muted-foreground" />
             <input
               autoFocus
@@ -381,7 +381,7 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
             {searching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
           </div>
           {results.length > 0 && (
-            <ul className="mt-2 max-h-48 overflow-auto rounded-md border bg-card text-sm">
+              <ul className="dashboard-panel mt-2 max-h-48 overflow-auto rounded-md text-sm">
               {results.map((r, i) => (
                 <li key={`${r.latitude}-${r.longitude}-${i}`}>
                   <button
@@ -431,7 +431,7 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
         return (
           <div className="mb-4 grid gap-2 sm:grid-cols-2">
             {liveW != null && (
-              <div className="rounded-lg border bg-gradient-to-br from-emerald-500/10 to-transparent p-3">
+              <div className="dashboard-panel p-3">
                 <div className="mb-1 flex flex-wrap items-center justify-between gap-1">
                   <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                     Producción ahora <span className="text-emerald-600">(inversor)</span>
@@ -462,7 +462,7 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
               </div>
             )}
             {kwp && (
-              <div className="rounded-lg border bg-gradient-to-br from-[var(--solar)]/10 to-transparent p-3">
+              <div className="dashboard-panel p-3">
                 <div className="mb-1 flex flex-wrap items-center justify-between gap-1">
                   <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                     Producción estimada 12 h
