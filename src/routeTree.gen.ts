@@ -24,6 +24,7 @@ import { Route as SitesSiteIdRouteImport } from './routes/sites.$siteId'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as AuthConfirmRouteImport } from './routes/auth.confirm'
 import { Route as AppWidgetsRouteImport } from './routes/app.widgets'
+import { Route as SitesSiteIdSavingsRouteImport } from './routes/sites.$siteId.savings'
 import { Route as ApiPublicWidgetStreamRouteImport } from './routes/api/public/widget-stream'
 import { Route as ApiPublicWidgetDataRouteImport } from './routes/api/public/widget-data'
 import { Route as ApiPublicWidgetRouteImport } from './routes/api/public/widget'
@@ -46,7 +47,6 @@ import { Route as ApiAdminSmtpTestRouteImport } from './routes/api/admin/smtp-te
 import { Route as ApiPublicAgentUpdateRouteImport } from './routes/api/public/agent.update'
 import { Route as ApiPublicAgentInstallRouteImport } from './routes/api/public/agent.install'
 import { Route as ApiPublicAgentAgentRouteImport } from './routes/api/public/agent.agent'
-import { Route as AuthenticatedSitesSiteIdSavingsRouteImport } from './routes/_authenticated.sites.$siteId.savings'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -122,6 +122,11 @@ const AppWidgetsRoute = AppWidgetsRouteImport.update({
   id: '/widgets',
   path: '/widgets',
   getParentRoute: () => AppRoute,
+} as any)
+const SitesSiteIdSavingsRoute = SitesSiteIdSavingsRouteImport.update({
+  id: '/savings',
+  path: '/savings',
+  getParentRoute: () => SitesSiteIdRoute,
 } as any)
 const ApiPublicWidgetStreamRoute = ApiPublicWidgetStreamRouteImport.update({
   id: '/api/public/widget-stream',
@@ -233,12 +238,6 @@ const ApiPublicAgentAgentRoute = ApiPublicAgentAgentRouteImport.update({
   path: '/api/public/agent/agent',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedSitesSiteIdSavingsRoute =
-  AuthenticatedSitesSiteIdSavingsRouteImport.update({
-    id: '/_authenticated/sites/$siteId/savings',
-    path: '/sites/$siteId/savings',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -254,7 +253,7 @@ export interface FileRoutesByFullPath {
   '/app/widgets': typeof AppWidgetsRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/invite/$token': typeof InviteTokenRoute
-  '/sites/$siteId': typeof SitesSiteIdRoute
+  '/sites/$siteId': typeof SitesSiteIdRouteWithChildren
   '/sites/overview': typeof SitesOverviewRoute
   '/api/admin/smtp-test': typeof ApiAdminSmtpTestRoute
   '/api/public/activate': typeof ApiPublicActivateRoute
@@ -275,7 +274,7 @@ export interface FileRoutesByFullPath {
   '/api/public/widget': typeof ApiPublicWidgetRoute
   '/api/public/widget-data': typeof ApiPublicWidgetDataRoute
   '/api/public/widget-stream': typeof ApiPublicWidgetStreamRoute
-  '/sites/$siteId/savings': typeof AuthenticatedSitesSiteIdSavingsRoute
+  '/sites/$siteId/savings': typeof SitesSiteIdSavingsRoute
   '/api/public/agent/agent': typeof ApiPublicAgentAgentRoute
   '/api/public/agent/install': typeof ApiPublicAgentInstallRoute
   '/api/public/agent/update': typeof ApiPublicAgentUpdateRoute
@@ -294,7 +293,7 @@ export interface FileRoutesByTo {
   '/app/widgets': typeof AppWidgetsRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/invite/$token': typeof InviteTokenRoute
-  '/sites/$siteId': typeof SitesSiteIdRoute
+  '/sites/$siteId': typeof SitesSiteIdRouteWithChildren
   '/sites/overview': typeof SitesOverviewRoute
   '/api/admin/smtp-test': typeof ApiAdminSmtpTestRoute
   '/api/public/activate': typeof ApiPublicActivateRoute
@@ -315,7 +314,7 @@ export interface FileRoutesByTo {
   '/api/public/widget': typeof ApiPublicWidgetRoute
   '/api/public/widget-data': typeof ApiPublicWidgetDataRoute
   '/api/public/widget-stream': typeof ApiPublicWidgetStreamRoute
-  '/sites/$siteId/savings': typeof AuthenticatedSitesSiteIdSavingsRoute
+  '/sites/$siteId/savings': typeof SitesSiteIdSavingsRoute
   '/api/public/agent/agent': typeof ApiPublicAgentAgentRoute
   '/api/public/agent/install': typeof ApiPublicAgentInstallRoute
   '/api/public/agent/update': typeof ApiPublicAgentUpdateRoute
@@ -335,7 +334,7 @@ export interface FileRoutesById {
   '/app/widgets': typeof AppWidgetsRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/invite/$token': typeof InviteTokenRoute
-  '/sites/$siteId': typeof SitesSiteIdRoute
+  '/sites/$siteId': typeof SitesSiteIdRouteWithChildren
   '/sites/overview': typeof SitesOverviewRoute
   '/api/admin/smtp-test': typeof ApiAdminSmtpTestRoute
   '/api/public/activate': typeof ApiPublicActivateRoute
@@ -356,7 +355,7 @@ export interface FileRoutesById {
   '/api/public/widget': typeof ApiPublicWidgetRoute
   '/api/public/widget-data': typeof ApiPublicWidgetDataRoute
   '/api/public/widget-stream': typeof ApiPublicWidgetStreamRoute
-  '/_authenticated/sites/$siteId/savings': typeof AuthenticatedSitesSiteIdSavingsRoute
+  '/sites/$siteId/savings': typeof SitesSiteIdSavingsRoute
   '/api/public/agent/agent': typeof ApiPublicAgentAgentRoute
   '/api/public/agent/install': typeof ApiPublicAgentInstallRoute
   '/api/public/agent/update': typeof ApiPublicAgentUpdateRoute
@@ -478,7 +477,7 @@ export interface FileRouteTypes {
     | '/api/public/widget'
     | '/api/public/widget-data'
     | '/api/public/widget-stream'
-    | '/_authenticated/sites/$siteId/savings'
+    | '/sites/$siteId/savings'
     | '/api/public/agent/agent'
     | '/api/public/agent/install'
     | '/api/public/agent/update'
@@ -497,7 +496,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   AuthConfirmRoute: typeof AuthConfirmRoute
   InviteTokenRoute: typeof InviteTokenRoute
-  SitesSiteIdRoute: typeof SitesSiteIdRoute
+  SitesSiteIdRoute: typeof SitesSiteIdRouteWithChildren
   SitesOverviewRoute: typeof SitesOverviewRoute
   ApiAdminSmtpTestRoute: typeof ApiAdminSmtpTestRoute
   ApiPublicActivateRoute: typeof ApiPublicActivateRoute
@@ -518,7 +517,6 @@ export interface RootRouteChildren {
   ApiPublicWidgetRoute: typeof ApiPublicWidgetRoute
   ApiPublicWidgetDataRoute: typeof ApiPublicWidgetDataRoute
   ApiPublicWidgetStreamRoute: typeof ApiPublicWidgetStreamRoute
-  AuthenticatedSitesSiteIdSavingsRoute: typeof AuthenticatedSitesSiteIdSavingsRoute
   ApiPublicAgentAgentRoute: typeof ApiPublicAgentAgentRoute
   ApiPublicAgentInstallRoute: typeof ApiPublicAgentInstallRoute
   ApiPublicAgentUpdateRoute: typeof ApiPublicAgentUpdateRoute
@@ -630,6 +628,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/widgets'
       preLoaderRoute: typeof AppWidgetsRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/sites/$siteId/savings': {
+      id: '/sites/$siteId/savings'
+      path: '/savings'
+      fullPath: '/sites/$siteId/savings'
+      preLoaderRoute: typeof SitesSiteIdSavingsRouteImport
+      parentRoute: typeof SitesSiteIdRoute
     }
     '/api/public/widget-stream': {
       id: '/api/public/widget-stream'
@@ -785,13 +790,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAgentAgentRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/sites/$siteId/savings': {
-      id: '/_authenticated/sites/$siteId/savings'
-      path: '/sites/$siteId/savings'
-      fullPath: '/sites/$siteId/savings'
-      preLoaderRoute: typeof AuthenticatedSitesSiteIdSavingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -804,6 +802,18 @@ const AppRouteChildren: AppRouteChildren = {
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
+interface SitesSiteIdRouteChildren {
+  SitesSiteIdSavingsRoute: typeof SitesSiteIdSavingsRoute
+}
+
+const SitesSiteIdRouteChildren: SitesSiteIdRouteChildren = {
+  SitesSiteIdSavingsRoute: SitesSiteIdSavingsRoute,
+}
+
+const SitesSiteIdRouteWithChildren = SitesSiteIdRoute._addFileChildren(
+  SitesSiteIdRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -818,7 +828,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   AuthConfirmRoute: AuthConfirmRoute,
   InviteTokenRoute: InviteTokenRoute,
-  SitesSiteIdRoute: SitesSiteIdRoute,
+  SitesSiteIdRoute: SitesSiteIdRouteWithChildren,
   SitesOverviewRoute: SitesOverviewRoute,
   ApiAdminSmtpTestRoute: ApiAdminSmtpTestRoute,
   ApiPublicActivateRoute: ApiPublicActivateRoute,
@@ -839,7 +849,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWidgetRoute: ApiPublicWidgetRoute,
   ApiPublicWidgetDataRoute: ApiPublicWidgetDataRoute,
   ApiPublicWidgetStreamRoute: ApiPublicWidgetStreamRoute,
-  AuthenticatedSitesSiteIdSavingsRoute: AuthenticatedSitesSiteIdSavingsRoute,
   ApiPublicAgentAgentRoute: ApiPublicAgentAgentRoute,
   ApiPublicAgentInstallRoute: ApiPublicAgentInstallRoute,
   ApiPublicAgentUpdateRoute: ApiPublicAgentUpdateRoute,
@@ -847,3 +856,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

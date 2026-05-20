@@ -5,7 +5,7 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGri
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
-export const Route = createFileRoute("/_authenticated/sites/$siteId/savings")({
+export const Route = createFileRoute("/sites/$siteId/savings")({
   component: SavingsHistoryPage,
 });
 
@@ -191,7 +191,7 @@ function SavingsHistoryPage() {
                 <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" unit=" kWh" />
                 <Tooltip
                   contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                  formatter={(val: number, name: string) => [`${val.toFixed(2)} kWh`, name === "pv" ? "Solar" : "Batería"]}
+                  formatter={(val, name) => [`${Number(val).toFixed(2)} kWh`, name === "pv" ? "Solar" : "Batería"]}
                 />
                 <Legend wrapperStyle={{ fontSize: 12 }} formatter={(v) => v === "pv" ? "Solar" : "Batería"} />
                 <Bar dataKey="pv" stackId="a" fill="hsl(45 95% 55%)" radius={[0, 0, 0, 0]} />
@@ -224,7 +224,7 @@ function SavingsHistoryPage() {
                 <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
                 <Tooltip
                   contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                  formatter={(val: number) => [fmtMoney(val, currency), "Ahorrado"]}
+                  formatter={(val) => [fmtMoney(Number(val), currency), "Ahorrado"]}
                 />
                 <Area type="monotone" dataKey="money" stroke="hsl(160 70% 45%)" strokeWidth={2} fill="url(#moneyFill)" />
               </AreaChart>
