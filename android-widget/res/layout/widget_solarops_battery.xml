@@ -67,12 +67,13 @@
 
                 <ProgressBar
                     android:id="@+id/bat_level"
-                    style="?android:attr/progressBarStyleHorizontal"
+                    style="@android:style/Widget.ProgressBar.Horizontal"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_margin="3dp"
                     android:max="100"
                     android:progress="0"
+                    android:indeterminate="false"
                     android:progressDrawable="@drawable/battery_fill" />
 
                 <LinearLayout

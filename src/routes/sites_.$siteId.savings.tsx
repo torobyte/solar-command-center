@@ -5,7 +5,7 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGri
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
-export const Route = createFileRoute("/sites/$siteId/savings")({
+export const Route = createFileRoute("/sites_/$siteId/savings")({
   component: SavingsHistoryPage,
 });
 
