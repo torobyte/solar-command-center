@@ -293,9 +293,21 @@ jobs:
           </layer-list>
           EOF
           done
-          # 2) Ensure brand color exists in colors.xml.
+          # 2) Ensure brand color exists in colors.xml (create file if missing).
+          mkdir -p "$RES/values"
           COLORS="$RES/values/colors.xml"
-          if [ -f "$COLORS" ]; then
+          if [ ! -f "$COLORS" ]; then
+            cat > "$COLORS" <<EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <color name="brand_splash_bg">${BG}</color>
+              <color name="colorPrimary">${BG}</color>
+              <color name="colorPrimaryDark">${BG}</color>
+              <color name="colorAccent">${BG}</color>
+              <color name="ic_launcher_background">${BG}</color>
+          </resources>
+          EOF
+          else
             if grep -q "brand_splash_bg" "$COLORS"; then
               BG="$BG" COLORS_PATH="$COLORS" python3 -c 'import os,re;p=os.environ["COLORS_PATH"];bg=os.environ["BG"];s=open(p).read();s=re.sub(r"(<color name=\"brand_splash_bg\">)[^<]*(</color>)",r"\g<1>"+bg+r"\g<2>",s);open(p,"w").write(s)'
             else
@@ -310,15 +322,12 @@ jobs:
           import re
           p="android/app/src/main/res/values/styles.xml"
           s=open(p).read()
-          # AppTheme.NoActionBarLaunch — make windowBackground use brand color
           s=re.sub(r'(<style name="AppTheme\.NoActionBarLaunch"[^>]*>)([\s\S]*?)(</style>)',
                    r'\1\n        <item name="android:background">@color/brand_splash_bg</item>\n        <item name="android:windowBackground">@color/brand_splash_bg</item>\n    \3', s, count=1)
           open(p,"w").write(s)
           PY
           fi
-          # 4) Android 12+ SplashScreen API: dedicate a v31 style that uses the
-          #    brand background and hides the icon (we draw our own splash from
-          #    MainActivity, no white circle behind it).
+          # 4) Android 12+ SplashScreen API.
           cat > "$RES/values-v31/styles.xml" <<EOF
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
@@ -331,13 +340,13 @@ jobs:
           </resources>
           EOF
           echo "===== splash drawable ====="
-          cat "$RES/drawable/splash.xml"
+          cat "$RES/drawable/splash.xml" || true
           echo "===== colors.xml ====="
-          cat "$COLORS"
+          cat "$COLORS" || true
           echo "===== styles.xml ====="
-          cat "$STYLES"
+          [ -f "$STYLES" ] && cat "$STYLES" || echo "(styles.xml not present)"
           echo "===== values-v31/styles.xml ====="
-          cat "$RES/values-v31/styles.xml"
+          cat "$RES/values-v31/styles.xml" || true
 
 
       - name: Merge widget overrides
