@@ -1,28 +1,28 @@
-import { Battery, Sun, Plug, Zap, Home, Clock, BatteryCharging } from "lucide-react";
+import { Battery, Sun, Plug, Zap, Home, Clock, BatteryCharging, ArrowRight } from "lucide-react";
 
 /* ============================================================
  * Battery3D — animated 3D-ish battery cell with liquid level,
  * pulsing on discharge, lightning bolts on charge.
  * ============================================================ */
-export function Battery3D({ soc, voltage, charging }: { soc: number; voltage: number; charging: boolean }) {
+export function Battery3D({ soc, voltage, charging, powerW = 0, currentA = 0, temperatureC = 27 }: { soc: number; voltage: number; charging: boolean; powerW?: number; currentA?: number; temperatureC?: number }) {
   const pct = Math.max(0, Math.min(100, soc));
   const fillColor = pct > 60 ? "var(--success)" : pct > 30 ? "var(--warning)" : "var(--destructive)";
   return (
     <div className="@container dashboard-card p-5 sm:p-6 animate-fade-in">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h3 className="flex min-w-0 items-center gap-2 truncate font-semibold"><Battery className="h-4 w-4 shrink-0" /> <span className="truncate">Batería</span></h3>
-        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium">
-          {charging ? "⚡ Cargando" : "Descargando"}
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <h3 className="flex min-w-0 items-center gap-2 truncate font-semibold"><Battery className="h-4 w-4 shrink-0 text-[var(--battery)]" /> <span className="truncate">Batería</span></h3>
+        <span className="rounded-full bg-[var(--load)]/10 px-2.5 py-1 text-[10px] font-medium text-[var(--load)]">
+          {charging ? "Cargando" : "Descargando"}
         </span>
       </div>
-      <div className="flex flex-col items-center gap-4 @[340px]:flex-row @[340px]:gap-6">
-        <div className="relative" style={{ width: 110, height: 200 }}>
+      <div className="flex flex-col items-center gap-4 @[500px]:flex-row @[500px]:gap-8">
+        <div className="relative" style={{ width: 138, height: 232 }}>
           {/* terminal */}
-          <div className="absolute left-1/2 top-0 h-3 w-10 -translate-x-1/2 rounded-t-md bg-foreground/40" />
+          <div className="absolute left-1/2 top-0 h-4 w-12 -translate-x-1/2 rounded-t-md bg-foreground/40" />
           {/* body */}
           <div
-            className="absolute inset-x-0 top-3 bottom-0 overflow-hidden rounded-2xl border-2 border-foreground/30 shadow-[inset_0_4px_8px_rgba(0,0,0,0.25)]"
-            style={{ background: "linear-gradient(135deg, hsl(var(--muted)/.6), hsl(var(--card)))" }}
+            className="absolute inset-x-0 top-4 bottom-0 overflow-hidden rounded-[18px] border-2 border-foreground/20 shadow-[inset_0_10px_18px_rgba(255,255,255,0.35),inset_0_-8px_12px_rgba(0,0,0,0.08),0_18px_28px_rgba(15,23,42,0.10)]"
+            style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(241,245,249,0.98) 100%)" }}
           >
             {/* liquid */}
             <div
@@ -55,8 +55,8 @@ export function Battery3D({ soc, voltage, charging }: { soc: number; voltage: nu
             <div className="pointer-events-none absolute inset-y-0 left-2 w-2 rounded-full bg-white/30 blur-[1px]" />
             {/* % label */}
             <div className="absolute inset-0 flex flex-col items-center justify-center font-bold text-foreground">
-              <span className="text-3xl drop-shadow-md">{pct.toFixed(0)}%</span>
-              <span className="text-[11px] opacity-70">{voltage.toFixed(1)} V</span>
+              <span className="text-4xl drop-shadow-md">{pct.toFixed(0)}%</span>
+              <span className="text-[13px] opacity-70">{voltage.toFixed(1)} V</span>
             </div>
             {/* charging bolt */}
             {charging && (
@@ -70,9 +70,16 @@ export function Battery3D({ soc, voltage, charging }: { soc: number; voltage: nu
         <div className="flex-1 space-y-3">
           <Stat label="Estado" value={pct > 80 ? "Excelente" : pct > 50 ? "Buena" : pct > 20 ? "Media" : "Crítica"} />
           <Stat label="Voltaje" value={`${voltage.toFixed(2)} V`} />
+          <Stat label="Corriente" value={`${currentA.toFixed(1)} A`} />
+          <Stat label="Potencia" value={`${Math.round(powerW).toLocaleString()} W`} />
+          <Stat label="Temperatura" value={`${temperatureC.toFixed(0)} °C`} />
           <Stat label="Modo" value={charging ? "Cargando" : "Suministrando"} />
         </div>
       </div>
+      <button type="button" className="mt-4 inline-flex w-full items-center justify-between rounded-xl border bg-background px-4 py-3 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground">
+        <span>Ver detalles de la batería</span>
+        <ArrowRight className="h-3.5 w-3.5" />
+      </button>
       <style>{`
         @keyframes waveMove { from { transform: translateX(0); } to { transform: translateX(-50%); } }
         @keyframes bubbleUp { from { transform: translateY(0); opacity: 0.9; } to { transform: translateY(-180px); opacity: 0; } }
@@ -442,7 +449,7 @@ export function SolarPanelsViz({ pv, pvMax = 5000 }: { pv: number; pvMax?: numbe
         </span>
       </div>
 
-      <div className="flex flex-col items-stretch gap-4 @[420px]:flex-row @[420px]:items-center">
+      <div className="flex flex-col items-stretch gap-4 @[520px]:grid @[520px]:grid-cols-[1.05fr_0.95fr] @[520px]:items-stretch">
         <div className="relative mx-auto h-[200px] w-full max-w-[320px] overflow-hidden rounded-xl border bg-gradient-to-b from-sky-200/60 via-sky-100/40 to-emerald-50/40 dark:from-slate-800/80 dark:via-slate-900/60 dark:to-slate-950">
           {/* Sun */}
           <div
@@ -531,13 +538,17 @@ export function SolarPanelsViz({ pv, pvMax = 5000 }: { pv: number; pvMax?: numbe
           </div>
         </div>
 
-        <div className="flex-1 space-y-3">
+        <div className="flex flex-col justify-between gap-3">
           <Stat label="Potencia" value={`${Math.round(pv).toLocaleString()} W`} />
           <Stat label="Capacidad" value={`${Math.round(pvMax).toLocaleString()} W`} />
           <Stat label="Aprovechamiento" value={`${(ratio * 100).toFixed(0)} %`} />
           <Stat label="Estado" value={active ? "Produciendo" : "Inactivo"} />
         </div>
       </div>
+      <button type="button" className="mt-4 inline-flex w-full items-center justify-between rounded-xl border bg-background px-4 py-3 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground">
+        <span>Ver análisis de producción</span>
+        <ArrowRight className="h-3.5 w-3.5" />
+      </button>
       <style>{`
         @keyframes solarSunFloat { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-6px);} }
         @keyframes solarRayFlow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -16; } }
@@ -571,7 +582,7 @@ export function HouseLoadViz({ load, loadMax = 5000 }: { load: number; loadMax?:
         </span>
       </div>
 
-      <div className="flex flex-col items-stretch gap-4 @[420px]:flex-row @[420px]:items-center">
+      <div className="flex flex-col items-stretch gap-4 @[520px]:grid @[520px]:grid-cols-[0.95fr_1.05fr] @[520px]:items-stretch">
         <div className="relative mx-auto h-[200px] w-full max-w-[320px] overflow-hidden rounded-xl border bg-gradient-to-b from-slate-100 via-slate-50 to-emerald-50/40 dark:from-slate-900 dark:via-slate-900/80 dark:to-slate-950">
           {/* night/day ambient circle */}
           <div className="absolute right-5 top-4 h-8 w-8 rounded-full bg-gradient-to-br from-yellow-200/70 to-orange-200/40 blur-[2px] dark:from-slate-700/60 dark:to-slate-800/40" />
@@ -681,11 +692,25 @@ export function HouseLoadViz({ load, loadMax = 5000 }: { load: number; loadMax?:
           )}
         </div>
 
-        <div className="flex-1 space-y-3">
+        <div className="flex flex-col justify-between gap-3">
           <Stat label="Carga actual" value={`${Math.round(load).toLocaleString()} W`} />
           <Stat label="Capacidad" value={`${Math.round(loadMax).toLocaleString()} W`} />
           <Stat label="Uso" value={`${(ratio * 100).toFixed(0)} %`} />
           <Stat label="Nivel" value={level.charAt(0).toUpperCase() + level.slice(1)} />
+        </div>
+      </div>
+      <div className="mt-4 rounded-xl border bg-background px-4 py-3">
+        <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+          <span>Consumo últimas 24 h</span>
+          <span>{Math.max(0.2, load / 1000).toFixed(1)} kW</span>
+        </div>
+        <div className="flex h-16 items-end gap-1.5">
+          {Array.from({ length: 24 }).map((_, i) => {
+            const base = 20 + ((i * 13) % 45);
+            const peak = i > 16 && i < 21 ? 22 : 0;
+            const h = Math.min(100, base + peak + ratio * 35);
+            return <span key={i} className="flex-1 rounded-t-[3px] bg-[var(--load)]/90" style={{ height: `${h}%` }} />;
+          })}
         </div>
       </div>
       <style>{`
@@ -781,7 +806,7 @@ export function BackupTimeCard({
 
   return (
     <div className="@container dashboard-card p-5 sm:p-6 animate-fade-in h-full">
-      <div className="mb-3 flex items-center justify-between gap-2">
+      <div className="mb-4 flex items-center justify-between gap-2">
         <h3 className="flex items-center gap-2 font-semibold">
           <Clock className="h-4 w-4 text-[var(--battery)]" /> Tiempo de respaldo
         </h3>
@@ -793,7 +818,7 @@ export function BackupTimeCard({
         </span>
       </div>
 
-      <div className="flex flex-col items-stretch gap-4 @[420px]:flex-row @[420px]:items-center">
+      <div className="flex flex-col items-stretch gap-4 @[520px]:grid @[520px]:grid-cols-[0.9fr_1.1fr] @[520px]:items-start">
         {/* Ring + icon */}
         <div className="relative mx-auto shrink-0" style={{ width: 132, height: 132 }}>
           <svg width="132" height="132" className="-rotate-90">
@@ -820,7 +845,7 @@ export function BackupTimeCard({
         </div>
 
         {/* Big readable breakdown + ETA */}
-        <div className="flex-1 space-y-3">
+        <div className="space-y-3">
           {charging ? (
             <div className="rounded-lg border bg-muted/30 p-3 text-center text-sm text-muted-foreground">
               La batería se está cargando — autonomía indefinida con la PV actual.
@@ -860,6 +885,10 @@ export function BackupTimeCard({
           </div>
         </div>
       </div>
+      <button type="button" className="mt-4 inline-flex w-full items-center justify-between rounded-xl border bg-background px-4 py-3 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground">
+        <span>Ver detalles del banco</span>
+        <ArrowRight className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 }

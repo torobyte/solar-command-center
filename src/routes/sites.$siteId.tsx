@@ -1122,7 +1122,14 @@ function DashboardView({ latest, siteId, spec: _spec, device: _device }: { lates
           batteryCount={pv?.battery_count ?? null}
           batteryType={pv?.battery_type ?? null}
         />
-        <Battery3D soc={battery} voltage={batteryV} charging={charging} />
+        <Battery3D
+          soc={battery}
+          voltage={batteryV}
+          charging={charging}
+          powerW={batteryDischargeW}
+          currentA={Number(latest?.battery_discharge_current ?? latest?.battery_charging_current ?? 0)}
+          temperatureC={27}
+        />
       </div>
 
       <div className="grid gap-5 xl:grid-cols-3">
