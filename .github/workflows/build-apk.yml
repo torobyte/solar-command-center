@@ -277,6 +277,69 @@ jobs:
             BG="$BG" THEME="$THEME" COLORS_PATH="$COLORS" python3 -c 'import os, re; p=os.environ["COLORS_PATH"]; bg=os.environ["BG"]; theme=os.environ["THEME"]; s=open(p).read(); s=re.sub(r"(<color name=\"colorPrimary\">)[^<]*(</color>)", r"\g<1>"+theme+r"\g<2>", s); s=re.sub(r"(<color name=\"colorPrimaryDark\">)[^<]*(</color>)", r"\g<1>"+theme+r"\g<2>", s); s=re.sub(r"(<color name=\"colorAccent\">)[^<]*(</color>)", r"\g<1>"+theme+r"\g<2>", s); s=re.sub(r"(<color name=\"ic_launcher_background\">)[^<]*(</color>)", r"\g<1>"+bg+r"\g<2>", s); open(p,"w").write(s); print(s)'
           fi
 
+      - name: Override Capacitor splash with brand background (kills white square)
+        env:
+          BG: ${{ steps.brand.outputs.bg }}
+        run: |
+          set -e
+          RES="android/app/src/main/res"
+          # 1) Solid-color splash drawable used by Capacitor's pre-Activity splash.
+          mkdir -p "$RES/drawable" "$RES/drawable-land" "$RES/drawable-port" "$RES/values-v31"
+          for D in drawable drawable-land drawable-port; do
+            cat > "$RES/$D/splash.xml" <<EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+              <item android:drawable="@color/brand_splash_bg" />
+          </layer-list>
+          EOF
+          done
+          # 2) Ensure brand color exists in colors.xml.
+          COLORS="$RES/values/colors.xml"
+          if [ -f "$COLORS" ]; then
+            if grep -q "brand_splash_bg" "$COLORS"; then
+              BG="$BG" COLORS_PATH="$COLORS" python3 -c 'import os,re;p=os.environ["COLORS_PATH"];bg=os.environ["BG"];s=open(p).read();s=re.sub(r"(<color name=\"brand_splash_bg\">)[^<]*(</color>)",r"\g<1>"+bg+r"\g<2>",s);open(p,"w").write(s)'
+            else
+              BG="$BG" COLORS_PATH="$COLORS" python3 -c 'import os;p=os.environ["COLORS_PATH"];bg=os.environ["BG"];s=open(p).read();s=s.replace("</resources>",f"    <color name=\"brand_splash_bg\">{bg}</color>\n</resources>");open(p,"w").write(s)'
+            fi
+          fi
+          # 3) Patch styles.xml so the window background matches brand color even
+          #    before Activity attaches (eliminates the white flash / white square).
+          STYLES="$RES/values/styles.xml"
+          if [ -f "$STYLES" ]; then
+            python3 - <<'PY'
+          import re
+          p="android/app/src/main/res/values/styles.xml"
+          s=open(p).read()
+          # AppTheme.NoActionBarLaunch — make windowBackground use brand color
+          s=re.sub(r'(<style name="AppTheme\.NoActionBarLaunch"[^>]*>)([\s\S]*?)(</style>)',
+                   r'\1\n        <item name="android:background">@color/brand_splash_bg</item>\n        <item name="android:windowBackground">@color/brand_splash_bg</item>\n    \3', s, count=1)
+          open(p,"w").write(s)
+          PY
+          fi
+          # 4) Android 12+ SplashScreen API: dedicate a v31 style that uses the
+          #    brand background and hides the icon (we draw our own splash from
+          #    MainActivity, no white circle behind it).
+          cat > "$RES/values-v31/styles.xml" <<EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+                  <item name="windowSplashScreenBackground">@color/brand_splash_bg</item>
+                  <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>
+                  <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+                  <item name="android:windowBackground">@color/brand_splash_bg</item>
+              </style>
+          </resources>
+          EOF
+          echo "===== splash drawable ====="
+          cat "$RES/drawable/splash.xml"
+          echo "===== colors.xml ====="
+          cat "$COLORS"
+          echo "===== styles.xml ====="
+          cat "$STYLES"
+          echo "===== values-v31/styles.xml ====="
+          cat "$RES/values-v31/styles.xml"
+
+
       - name: Merge widget overrides
         run: |
           PKG_DIR="android/app/src/main/kotlin/app/solarops/client"

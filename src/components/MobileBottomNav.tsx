@@ -1,11 +1,12 @@
-import { LayoutDashboard, LineChart, Calculator, BellRing, Settings2 } from "lucide-react";
+import { LayoutDashboard, LineChart, Calculator, BellRing, Settings2, Coins } from "lucide-react";
 
-export type SiteTab = "dashboard" | "charts" | "totals" | "notifications" | "config";
+export type SiteTab = "dashboard" | "charts" | "totals" | "savings" | "notifications" | "config";
 
 const items: { id: SiteTab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "charts", label: "Charts", icon: LineChart },
   { id: "totals", label: "Totales", icon: Calculator },
+  { id: "savings", label: "Ahorro", icon: Coins },
   { id: "notifications", label: "Alertas", icon: BellRing },
   { id: "config", label: "Config", icon: Settings2 },
 ];
