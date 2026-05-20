@@ -220,7 +220,7 @@ function SitesIndex() {
           </Link>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button className="rounded-full shadow-glow"><Plus className="mr-1.5 h-4 w-4" strokeWidth={2.4} />{t("sites.new")}</Button>
+              <Button className="rounded-xl bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"><Plus className="mr-1.5 h-4 w-4" strokeWidth={2.4} />{t("sites.new")}</Button>
             </DialogTrigger>
           <DialogContent className="rounded-2xl">
             <DialogHeader>
