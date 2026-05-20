@@ -1,8 +1,6 @@
 <!--
   Snippet para fusionar en android/app/src/main/AndroidManifest.xml dentro de <application>.
-  Requiere:
-    <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+  TOROBYTE — solo 4 widgets oficiales (4x2 principal, 4x1 resumen, 2x2 batería, 1x1 batería).
 -->
 
 <activity
@@ -10,70 +8,28 @@
     android:exported="false"
     android:label="Configurar widget" />
 
-<!-- Variante 1 — Compacto -->
-<receiver android:name="app.solarops.client.SolarOpsWidget" android:exported="true" android:label="Compacto">
+<!-- TOROBYTE — 4x2 Principal -->
+<receiver android:name="app.solarops.client.TbWidgetMain" android:exported="true" android:label="TOROBYTE · 4x2 Principal">
     <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
-    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_info" />
+    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_tb_main_info" />
 </receiver>
 
-<!-- Variante 2 — Tiles -->
-<receiver android:name="app.solarops.client.SolarOpsWidgetTiles" android:exported="true" android:label="Tiles">
+<!-- TOROBYTE — 4x1 Resumen -->
+<receiver android:name="app.solarops.client.TbWidgetSummary" android:exported="true" android:label="TOROBYTE · 4x1 Resumen">
     <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
-    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_tiles_info" />
+    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_tb_summary_info" />
 </receiver>
 
-<!-- Variante 3 — Gauge -->
-<receiver android:name="app.solarops.client.SolarOpsWidgetGauge" android:exported="true" android:label="Gauge">
+<!-- TOROBYTE — 2x2 Batería -->
+<receiver android:name="app.solarops.client.TbWidgetBattery2x2" android:exported="true" android:label="TOROBYTE · 2x2 Batería">
     <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
-    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_gauge_info" />
+    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_tb_battery_2x2_info" />
 </receiver>
 
-<!-- Variante 4 — Neon -->
-<receiver android:name="app.solarops.client.SolarOpsWidgetNeon" android:exported="true" android:label="Neon">
+<!-- TOROBYTE — 1x1 Batería -->
+<receiver android:name="app.solarops.client.TbWidgetBattery1x1" android:exported="true" android:label="TOROBYTE · 1x1 Batería">
     <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
-    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_neon_info" />
-</receiver>
-
-<!-- Variante 5 — Flow -->
-<receiver android:name="app.solarops.client.SolarOpsWidgetFlow" android:exported="true" android:label="Flow">
-    <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
-    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_flow_info" />
-</receiver>
-
-<!-- Variante 6 — Mini -->
-<receiver android:name="app.solarops.client.SolarOpsWidgetMini" android:exported="true" android:label="Mini">
-    <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
-    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_mini_info" />
-</receiver>
-
-<!-- Variante 7 — Speedo -->
-<receiver android:name="app.solarops.client.SolarOpsWidgetSpeedo" android:exported="true" android:label="Speedo">
-    <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
-    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_speedo_info" />
-</receiver>
-
-<!-- Variante 8 — Wave -->
-<receiver android:name="app.solarops.client.SolarOpsWidgetWave" android:exported="true" android:label="Wave">
-    <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
-    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_wave_info" />
-</receiver>
-
-<!-- Variante 9 — Stats -->
-<receiver android:name="app.solarops.client.SolarOpsWidgetStats" android:exported="true" android:label="Stats">
-    <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
-    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_stats_info" />
-</receiver>
-
-<!-- Variante 10 — Radial -->
-<receiver android:name="app.solarops.client.SolarOpsWidgetRadial" android:exported="true" android:label="Radial">
-    <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
-    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_radial_info" />
-</receiver>
-
-<!-- Variante 11 — Battery -->
-<receiver android:name="app.solarops.client.SolarOpsWidgetBattery" android:exported="true" android:label="Batería">
-    <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
-    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_solarops_battery_info" />
+    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_tb_battery_1x1_info" />
 </receiver>
 
 <activity

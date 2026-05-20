@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TOROBYTE — Widget 1x1 BATERÍA mínimo: anillo + % -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="6dp"
+    android:background="@drawable/tb_widget_bg">
+
+    <ImageView
+        android:id="@+id/tb_b1_ring"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/gauge_arc_00"
+        android:scaleType="fitCenter" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:gravity="center">
+        <TextView
+            android:id="@+id/tb_b1_pct"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="—"
+            android:textColor="@color/tb_fg"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:includeFontPadding="false" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="%"
+            android:textColor="@color/tb_muted"
+            android:textSize="11sp"
+            android:paddingTop="6dp"
+            android:paddingStart="1dp" />
+    </LinearLayout>
+</FrameLayout>
