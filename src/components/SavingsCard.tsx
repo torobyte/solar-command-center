@@ -103,8 +103,8 @@ export function SavingsCard({ siteId, pvW, batteryDischargeW, energyPrice, feedI
   const savingsYear = projectedYearKwh * price;
 
   return (
-    <div className="@container relative overflow-hidden rounded-2xl border border-[color:color-mix(in_oklab,var(--success)_28%,var(--border))] bg-card p-5 shadow-sm transition-shadow sm:p-6 animate-fade-in h-full">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[linear-gradient(180deg,color-mix(in_oklab,var(--success)_12%,white),transparent)]" />
+    <div className="@container dashboard-card dashboard-card--success p-5 sm:p-6 animate-fade-in h-full">
+
       <div className="relative">
         <div className="flex items-center justify-between gap-2 mb-4">
           <div className="flex items-center gap-2">
