@@ -96,7 +96,7 @@ export function SiteDashboardView({
 
   const widgets: Record<string, React.ReactNode> = {
     mode: (
-      <div className="flex items-center justify-between rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md transition-shadow sm:p-6 animate-fade-in h-full">
+      <div className="flex items-center justify-between dashboard-card p-5 sm:p-6 animate-fade-in h-full">
         <div className="flex items-center gap-3">
           <Cpu className="h-8 w-8 text-foreground/70" />
           <div>
@@ -108,7 +108,7 @@ export function SiteDashboardView({
       </div>
     ),
     icons: (
-      <div className="@container rounded-xl border bg-card p-4 sm:p-6 animate-fade-in h-full">
+      <div className="@container dashboard-card p-4 sm:p-6 animate-fade-in h-full">
         <div className="grid grid-cols-1 gap-3 @[280px]:grid-cols-2 @[520px]:grid-cols-3 @[760px]:grid-cols-5 sm:gap-4">
           <IconCard icon={<Cpu className="h-10 w-10 text-foreground/70" />} title={t("site.dash.inverter")} subtitle={mode.label} />
           <IconCard icon={<Sun className="h-10 w-10 text-[var(--solar)]" />} title={t("site.dash.solar")} subtitle={`${Math.round(pv_W).toLocaleString()} W`} />

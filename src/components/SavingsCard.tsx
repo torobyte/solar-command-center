@@ -79,7 +79,7 @@ export function SavingsCard({ siteId, pvW, batteryDischargeW, energyPrice, feedI
 
   if (!price) {
     return (
-      <div className="rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md transition-shadow sm:p-6 animate-fade-in h-full">
+      <div className="dashboard-card p-5 sm:p-6 animate-fade-in h-full">
         <div className="flex items-center gap-2 mb-2">
           <Coins className="h-5 w-5 text-[var(--solar)]" />
           <div className="text-sm font-semibold">Ahorro económico</div>

@@ -87,7 +87,7 @@ export function ProductionHistoryCompare({ siteId, kwp, lossesPct, lat, lon, man
 
   if (!kwp || lat == null || lon == null) {
     return (
-      <div className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">
+      <div className="dashboard-card p-4 text-sm text-muted-foreground">
         Configura potencia del array (kWp) y ubicación para ver la comparación histórica.
       </div>
     );
@@ -98,7 +98,7 @@ export function ProductionHistoryCompare({ siteId, kwp, lossesPct, lat, lon, man
   const ratio = totalEst > 0 ? totalReal / totalEst : null;
 
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm space-y-4">
+    <div className="dashboard-card p-4 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="flex items-center gap-2 text-sm font-semibold sm:text-base">
           <TrendingUp className="h-4 w-4 text-[var(--solar)]" /> Producción real vs estimada

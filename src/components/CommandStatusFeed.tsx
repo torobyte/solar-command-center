@@ -115,7 +115,7 @@ export function CommandStatusFeed({ siteId, limit = 8, compact = false }: { site
   const inFlight = rows.filter((r) => r.status === "pending" || r.status === "sent").length;
 
   return (
-    <div className={`rounded-xl border bg-card animate-fade-in ${compact ? "p-3" : "p-4 sm:p-5"} h-full flex flex-col`}>
+    <div className={`dashboard-card animate-fade-in ${compact ? "p-3" : "p-4 sm:p-5"} h-full flex flex-col`}>
       <div className="mb-3 flex items-center gap-2">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20">
           <Activity className="h-4 w-4" strokeWidth={2.4} />
