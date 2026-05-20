@@ -118,6 +118,26 @@ function SitesIndex() {
     setSites(list);
     setLicenses((lic ?? []) as MyLicense[]);
     setLoading(false);
+
+    // Fetch latest power + today's energy for each site (best-effort)
+    if (siteIds.length > 0) {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const dayStr = today.toISOString().slice(0, 10);
+      const entries = await Promise.all(siteIds.map(async (id) => {
+        const [{ data: latest }, { data: total }] = await Promise.all([
+          supabase.from("telemetry_samples")
+            .select("ac_output_active_power,pv_input_power")
+            .eq("site_id", id).order("recorded_at", { ascending: false }).limit(1),
+          supabase.from("daily_totals")
+            .select("pv_kwh,load_kwh").eq("site_id", id).eq("day", dayStr).maybeSingle(),
+        ]);
+        const row = latest?.[0];
+        const pv_w = Number(row?.pv_input_power ?? row?.ac_output_active_power ?? 0);
+        const kwh_today = Number(total?.pv_kwh ?? total?.load_kwh ?? 0);
+        return [id, { pv_w, kwh_today }] as const;
+      }));
+      setMetrics(Object.fromEntries(entries));
+    }
   }
 
   useEffect(() => { load(); }, []);
