@@ -178,6 +178,46 @@
 }
 
 @layer utilities {
+  .tb-login-theme {
+    --tb-login-bg: oklch(0.12 0 0);
+    --tb-login-surface: oklch(0.18 0 0);
+    --tb-login-surface-strong: oklch(0.15 0 0);
+    --tb-login-text: oklch(0.98 0 0);
+    --tb-login-muted: oklch(0.73 0 0);
+    --tb-login-accent: oklch(0.79 0.17 72);
+    --tb-login-accent-foreground: oklch(0.99 0 0);
+    --tb-login-outline: color-mix(in oklab, var(--tb-login-accent) 80%, transparent);
+  }
+  .tb-login-surface {
+    background-color: var(--tb-login-surface);
+    color: var(--tb-login-text);
+  }
+  .tb-login-field {
+    background-color: var(--tb-login-surface);
+    color: var(--tb-login-text);
+    border: 1px solid transparent;
+  }
+  .tb-login-field::placeholder {
+    color: var(--tb-login-muted);
+  }
+  .tb-login-field-accent {
+    border-color: var(--tb-login-outline);
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--tb-login-accent) 28%, transparent);
+  }
+  .tb-login-button {
+    background-color: var(--tb-login-accent);
+    color: var(--tb-login-accent-foreground);
+    box-shadow: 0 14px 30px -14px color-mix(in oklab, var(--tb-login-accent) 70%, transparent);
+  }
+  .tb-login-button:hover {
+    background-color: color-mix(in oklab, var(--tb-login-accent) 92%, white);
+  }
+  .tb-login-link {
+    color: var(--tb-login-muted);
+  }
+  .tb-login-link:hover {
+    color: var(--tb-login-text);
+  }
   .glass {
     background: var(--gradient-glass);
     backdrop-filter: blur(14px) saturate(140%);
