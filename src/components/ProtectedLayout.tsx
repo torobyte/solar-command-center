@@ -32,7 +32,7 @@ export function ProtectedLayout({
   return (
     <div className="ambient-bg min-h-screen bg-background">
       <AppHeader />
-      <main className="mx-auto max-w-7xl animate-fade-up px-4 py-6 sm:px-6 sm:py-8">{children}</main>
+      <main className="w-full animate-fade-up px-4 py-6 sm:px-8 sm:py-8 lg:px-12">{children}</main>
       <RealtimeStatusMonitor />
     </div>
   );
