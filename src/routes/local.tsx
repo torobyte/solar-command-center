@@ -293,7 +293,7 @@ function LocalDashboardPage() {
           </TabsList>
 
           <TabsContent value="dashboard" className="mt-6">
-            <SiteDashboardView latest={latest} siteId="local" pvConfig={pvCfg} />
+            <SiteDashboardView latest={latest} siteId="local" pvConfig={pvCfg} agentBase={agentBase} />
             {!latest && (
               <div className="mt-8 rounded-lg border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">
                 <div className="font-medium text-foreground/90">Esperando datos del inversor…</div>

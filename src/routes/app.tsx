@@ -217,15 +217,15 @@ function SitesIndex() {
 
   return (
     <>
-      <div className="mb-6 flex items-start justify-between gap-4 animate-fade-up">
-        <div className="flex items-start gap-3">
-          <div className="mt-1.5 h-9 w-1 rounded-full bg-primary" />
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">{t("sites.title")}</h1>
+      <div className="mb-6 flex flex-col gap-3 animate-fade-up sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+        <div className="flex items-start gap-3 min-w-0">
+          <div className="mt-1.5 h-9 w-1 shrink-0 rounded-full bg-primary" />
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t("sites.title")}</h1>
             <p className="mt-1 text-sm text-muted-foreground">Dispositivos que monitorean tus inversores solares.</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link to="/sites/overview">
             <Button variant="outline" className="rounded-xl border-border bg-card shadow-sm hover:bg-muted/60"><Globe2 className="mr-1.5 h-4 w-4" strokeWidth={2.2} />Vista global</Button>
           </Link>
@@ -323,60 +323,7 @@ function SitesIndex() {
         );
       })()}
 
-      {(() => {
-        const pending = licenses.filter((l) => !l.redeemed_at && !l.revoked_at);
-        const redeemed = licenses.filter((l) => l.redeemed_at && !l.revoked_at && l.redeemed_by_site);
-        if (pending.length === 0 && redeemed.length === 0) return null;
-        return (
-          <div className="mb-6 overflow-hidden rounded-2xl border border-success/30 bg-gradient-to-br from-success/10 via-success/5 to-transparent p-5 animate-fade-up">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-success/15 text-success">
-                <Sparkles className="h-4 w-4" strokeWidth={2.4} />
-              </div>
-              <h3 className="font-semibold">Mis licencias</h3>
-            </div>
-            <div className="space-y-2">
-              {pending.map((l) => (
-                <div key={l.id} className="flex items-center justify-between gap-2 rounded-xl border bg-background/80 p-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <KeyRound className="h-4 w-4 shrink-0 text-accent" strokeWidth={2.2} />
-                    <div className="min-w-0">
-                      <div className="font-mono text-sm truncate">{l.code}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {l.plan} · {l.duration_days} días · <span className="text-amber-600">Pendiente</span>
-                      </div>
-                    </div>
-                  </div>
-                  <Button size="sm" variant="outline" className="rounded-full shrink-0"
-                    onClick={() => { navigator.clipboard.writeText(l.code); toast.success("Código copiado"); }}>
-                    <Copy className="mr-1 h-3.5 w-3.5" strokeWidth={2.2} /> Copiar
-                  </Button>
-                </div>
-              ))}
-              {redeemed.map((l) => {
-                const currentSite = sites.find(s => s.id === l.redeemed_by_site);
-                return (
-                  <div key={l.id} className="flex items-center justify-between gap-2 rounded-xl border bg-background/80 p-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <KeyRound className="h-4 w-4 shrink-0 text-success" strokeWidth={2.2} />
-                      <div className="min-w-0">
-                        <div className="font-mono text-sm truncate">{l.code}</div>
-                        <div className="text-xs text-muted-foreground truncate">
-                          {l.plan} · Activa en <strong>{currentSite?.name ?? "—"}</strong>
-                        </div>
-                      </div>
-                    </div>
-                    <Button size="sm" variant="outline" className="rounded-full shrink-0"
-                      onClick={() => { setTransferLic(l); setTransferTarget(""); }}>
-                      <ArrowRightLeft className="mr-1 h-3.5 w-3.5" strokeWidth={2.2} /> Transferir
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })()}
+      {/* Mis licencias movido a /account → "Mi cuenta". */}
 
 
       {sites.length === 0 ? (
@@ -684,48 +631,7 @@ function SitesIndex() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={transferLic != null} onOpenChange={(o) => { if (!o) { setTransferLic(null); setTransferTarget(""); } }}>
-        <DialogContent className="rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ArrowRightLeft className="h-5 w-5 text-accent" /> Transferir licencia
-            </DialogTitle>
-            <DialogDescription>
-              Mueve la licencia <code className="font-mono">{transferLic?.code}</code> a otro sitio de tu cuenta.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <Label>Sitio destino</Label>
-            <Select value={transferTarget} onValueChange={setTransferTarget}>
-              <SelectTrigger><SelectValue placeholder="Selecciona un sitio…" /></SelectTrigger>
-              <SelectContent>
-                {sites
-                  .filter(s => s.owner_id === user?.id && s.id !== transferLic?.redeemed_by_site)
-                  .map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <DialogFooter>
-            <Button
-              disabled={!transferTarget || transferBusy}
-              onClick={async () => {
-                if (!transferLic || !transferTarget) return;
-                setTransferBusy(true);
-                try {
-                  await transferLicense({ data: { license_id: transferLic.id, new_site_id: transferTarget } });
-                  toast.success("Licencia transferida");
-                  setTransferLic(null); setTransferTarget("");
-                  load();
-                } catch (e) {
-                  toast.error((e as Error).message);
-                } finally { setTransferBusy(false); }
-              }}
-            >
-              {transferBusy ? "Transfiriendo…" : "Transferir"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Diálogo de transferencia de licencias movido a /account. */}
     </>
   );
 }

@@ -6,6 +6,9 @@ import {
 } from "@/components/AdvancedVisuals";
 import { DashboardGrid, useDashboardLayout, type WidgetDef } from "@/components/DashboardCustomizer";
 import { usePvConfig, type PvConfig } from "@/components/PvSystemConfig";
+import { QuickActions } from "@/components/QuickActions";
+import { CommandStatusFeed } from "@/components/CommandStatusFeed";
+import { useSiteRole } from "@/lib/useSiteRole";
 import {
   EnergyFlowReferenceCard,
   HouseConsumptionReferenceCard,
@@ -61,6 +64,8 @@ export const WIDGET_DEFS: WidgetDef[] = [
   { id: "houseConsumption", label: "Consumo de la casa" },
   { id: "weather", label: "Clima y radiación solar" },
   { id: "savings", label: "Ahorro económico" },
+  { id: "quickActions", label: "Acciones rápidas" },
+  { id: "commands", label: "Estado de comandos" },
 ];
 
 /**
@@ -72,16 +77,21 @@ export function SiteDashboardView({
   latest,
   siteId,
   pvConfig: pvConfigProp,
+  agentBase,
 }: {
   latest: DashboardSample | null;
   siteId: string;
   pvConfig?: PvConfig | null;
+  agentBase?: string | null;
 }) {
   const { t } = useI18n();
   const { state, persist } = useDashboardLayout(siteId, WIDGET_DEFS);
-  // When a pvConfig prop is provided, skip the Supabase subscription entirely.
   const liveCfg = usePvConfig(pvConfigProp === undefined ? siteId : "__skipped__");
   const pv: PvConfig | null = pvConfigProp ?? liveCfg.config;
+  const roleInfo = useSiteRole(pvConfigProp === undefined ? siteId : null);
+  const canCommand = pvConfigProp !== undefined
+    ? true // local agent
+    : roleInfo.role === "owner" || roleInfo.role === "admin" || roleInfo.role === "operator";
 
   const pv_W = Number(latest?.pv_input_power ?? 0);
   const load = Number(latest?.ac_output_active_power ?? 0);
@@ -125,6 +135,13 @@ export function SiteDashboardView({
         energyPrice={pv?.energy_price ?? null}
         currency={pv?.currency ?? "CLP"}
       />
+    ),
+    quickActions: <QuickActions siteId={siteId} agentBase={agentBase ?? null} readOnly={!canCommand} />,
+    commands: (
+      <div className="dashboard-card p-5 sm:p-6 animate-fade-in h-full">
+        <h3 className="mb-3 text-sm font-semibold sm:text-base">Estado de comandos</h3>
+        <CommandStatusFeed siteId={siteId} limit={8} />
+      </div>
     ),
   };
 
