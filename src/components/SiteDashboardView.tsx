@@ -137,7 +137,7 @@ export function SiteDashboardView({
         currency={pv?.currency ?? "CLP"}
       />
     ),
-    quickActions: <QuickActions siteId={siteId} agentBase={agentBase ?? null} readOnly={!canCommand} />,
+    quickActions: <QuickActions siteId={siteId} agentBase={agentBase ?? null} config={quickActionsConfig} readOnly={!canCommand} />,
     commands: (
       <div className="dashboard-card p-5 sm:p-6 animate-fade-in h-full">
         <h3 className="mb-3 text-sm font-semibold sm:text-base">Estado de comandos</h3>
