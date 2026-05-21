@@ -42,6 +42,7 @@ interface MyLicense {
   id: string; code: string; plan: string; duration_days: number;
   assigned_email: string | null; site_name: string | null;
   redeemed_at: string | null; revoked_at: string | null;
+  redeemed_by_site?: string | null;
 }
 
 interface SiteMetrics {
