@@ -391,8 +391,8 @@ export function SystemStatusCard({
   loadMax?: number;
 }) {
   const gridConnected = gridV > 50;
-  const ringSize = 108;
-  const stroke = 9;
+  const ringSize = 132;
+  const stroke = 11;
   const radius = (ringSize - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const ringProgress = circumference * (1 - clamp(battery, 0, 100) / 100);
@@ -407,42 +407,44 @@ export function SystemStatusCard({
         trailing={<MoreVertical className="h-4 w-4 text-muted-foreground" />}
       />
 
-      <div className="grid grid-cols-[1fr_auto_1fr_auto_1.2fr_auto_1fr] items-center gap-2 pb-5 max-[520px]:grid-cols-2 max-[520px]:gap-y-4">
+      <div className="grid grid-cols-[1fr_auto_1fr_auto_auto_auto_1fr] items-center gap-3 pb-5 max-[520px]:grid-cols-2 max-[520px]:gap-y-5">
         <StatusMetric label="Solar" value={formatWatts(pv)} accent="var(--solar)" icon={<Sun className="h-5 w-5" />} />
-        <div className="h-px w-12 border-t border-dashed max-[520px]:hidden" style={{ borderColor: "color-mix(in oklab, var(--solar) 60%, white)" }} />
+        <div className="h-px w-10 border-t border-dashed max-[520px]:hidden" style={{ borderColor: "color-mix(in oklab, var(--solar) 60%, white)" }} />
         <StatusMetric label="Consumo" value={formatWatts(load)} accent="var(--load)" icon={<Home className="h-5 w-5" />} />
-        <div className="h-px w-12 border-t border-dashed max-[520px]:hidden" style={{ borderColor: "color-mix(in oklab, var(--load) 60%, white)" }} />
+        <div className="h-px w-10 border-t border-dashed max-[520px]:hidden" style={{ borderColor: "color-mix(in oklab, var(--load) 60%, white)" }} />
 
-        <div className="relative mx-auto h-[108px] w-[108px] max-[520px]:col-span-2">
-          <svg viewBox={`0 0 ${ringSize} ${ringSize}`} className="-rotate-[130deg]">
-            <circle
-              cx={ringSize / 2}
-              cy={ringSize / 2}
-              r={radius}
-              fill="none"
-              stroke="color-mix(in oklab, var(--battery) 18%, white)"
-              strokeWidth={stroke}
-            />
-            <circle
-              cx={ringSize / 2}
-              cy={ringSize / 2}
-              r={radius}
-              fill="none"
-              stroke="var(--battery)"
-              strokeWidth={stroke}
-              strokeLinecap="round"
-              strokeDasharray={circumference}
-              strokeDashoffset={ringProgress}
-            />
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-            <div className="text-[34px] font-bold leading-none" style={{ color: "var(--battery)" }}>{Math.round(battery)}%</div>
-            <div className="mt-1 text-[12px] text-muted-foreground">{batteryV.toFixed(1)} v</div>
-            <div className="mt-1 text-[12px] text-muted-foreground">Batería</div>
+        <div className="flex flex-col items-center max-[520px]:col-span-2">
+          <div className="relative" style={{ width: ringSize, height: ringSize }}>
+            <svg viewBox={`0 0 ${ringSize} ${ringSize}`} className="-rotate-[130deg]">
+              <circle
+                cx={ringSize / 2}
+                cy={ringSize / 2}
+                r={radius}
+                fill="none"
+                stroke="color-mix(in oklab, var(--battery) 16%, white)"
+                strokeWidth={stroke}
+              />
+              <circle
+                cx={ringSize / 2}
+                cy={ringSize / 2}
+                r={radius}
+                fill="none"
+                stroke="var(--battery)"
+                strokeWidth={stroke}
+                strokeLinecap="round"
+                strokeDasharray={circumference}
+                strokeDashoffset={ringProgress}
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-[34px] font-bold leading-none tabular-nums" style={{ color: "var(--battery)" }}>{Math.round(battery)}%</div>
+            </div>
           </div>
+          <div className="mt-2 text-[12px] font-semibold tabular-nums text-foreground">{batteryV.toFixed(1)} V</div>
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Batería</div>
         </div>
 
-        <div className="h-px w-12 border-t border-dashed max-[520px]:hidden" style={{ borderColor: "color-mix(in oklab, var(--battery) 60%, white)" }} />
+        <div className="h-px w-10 border-t border-dashed max-[520px]:hidden" style={{ borderColor: "color-mix(in oklab, var(--battery) 60%, white)" }} />
         <StatusMetric
           label="Red"
           value={gridConnected ? `${Math.round(gridV)} v` : "0 w"}
