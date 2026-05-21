@@ -209,6 +209,9 @@ jobs:
           -keep class app.solarops.client.TbWidgetSummary { *; }
           -keep class app.solarops.client.TbWidgetBattery2x2 { *; }
           -keep class app.solarops.client.TbWidgetBattery1x1 { *; }
+          -keep class app.solarops.client.TbWidgetFlow { *; }
+          -keep class app.solarops.client.TbWidgetRing { *; }
+          -keep class app.solarops.client.TbWidgetStatus { *; }
           -keep class app.solarops.client.TbCommon { *; }
           -keep class app.solarops.client.WidgetCommon { *; }
           -keep class app.solarops.client.WidgetStreamService { *; }
@@ -464,6 +467,9 @@ jobs:
             'Lapp/solarops/client/TbWidgetSummary;' \
             'Lapp/solarops/client/TbWidgetBattery2x2;' \
             'Lapp/solarops/client/TbWidgetBattery1x1;' \
+            'Lapp/solarops/client/TbWidgetFlow;' \
+            'Lapp/solarops/client/TbWidgetRing;' \
+            'Lapp/solarops/client/TbWidgetStatus;' \
             'Lapp/solarops/client/TbCommon;' \
             'Lapp/solarops/client/WidgetCommon;' \
             'Lapp/solarops/client/UpdateManager;' \

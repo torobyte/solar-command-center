@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TOROBYTE — Widget 4x1 ESTADO: estado grande + chips PV/Carga/Red. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/tb_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="10dp"
+    android:background="@drawable/tb_widget_bg"
+    android:orientation="horizontal"
+    android:gravity="center_vertical">
+
+    <!-- Estado + batería -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1.1"
+        android:orientation="vertical">
+        <TextView
+            android:id="@+id/tb_st_state"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="—"
+            android:textColor="@color/tb_accent"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.12" />
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="2dp">
+            <ImageView
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:src="@drawable/ic_tb_bolt" />
+            <TextView
+                android:id="@+id/tb_st_pct"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="—"
+                android:textColor="@color/tb_fg"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:paddingStart="3dp"
+                android:includeFontPadding="false" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Chip PV -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/tb_chip_bg"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="4dp"
+        android:layout_marginEnd="4dp">
+        <ImageView android:layout_width="12dp" android:layout_height="12dp" android:src="@drawable/ic_tb_sun" />
+        <TextView
+            android:id="@+id/tb_st_pv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="—"
+            android:textColor="@color/tb_fg"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:paddingStart="4dp" />
+    </LinearLayout>
+
+    <!-- Chip carga -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/tb_chip_bg"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="4dp"
+        android:layout_marginEnd="4dp">
+        <ImageView android:layout_width="12dp" android:layout_height="12dp" android:src="@drawable/ic_tb_home" />
+        <TextView
+            android:id="@+id/tb_st_load"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="—"
+            android:textColor="@color/tb_fg"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:paddingStart="4dp" />
+    </LinearLayout>
+
+    <!-- Chip red -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/tb_chip_bg"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="4dp">
+        <ImageView android:layout_width="12dp" android:layout_height="12dp" android:src="@drawable/ic_tb_grid" />
+        <TextView
+            android:id="@+id/tb_st_grid"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="—"
+            android:textColor="@color/tb_fg"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:paddingStart="4dp" />
+    </LinearLayout>
+</LinearLayout>

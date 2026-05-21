@@ -32,6 +32,24 @@
     <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_tb_battery_1x1_info" />
 </receiver>
 
+<!-- TOROBYTE — 4x2 Flujo de energía -->
+<receiver android:name="app.solarops.client.TbWidgetFlow" android:exported="true" android:label="TOROBYTE · 4x2 Flujo">
+    <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_tb_flow_info" />
+</receiver>
+
+<!-- TOROBYTE — 2x2 Anillo de batería -->
+<receiver android:name="app.solarops.client.TbWidgetRing" android:exported="true" android:label="TOROBYTE · 2x2 Anillo">
+    <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_tb_ring_info" />
+</receiver>
+
+<!-- TOROBYTE — 4x1 Estado -->
+<receiver android:name="app.solarops.client.TbWidgetStatus" android:exported="true" android:label="TOROBYTE · 4x1 Estado">
+    <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_tb_status_info" />
+</receiver>
+
 <activity
     android:name="app.solarops.client.WidgetConfigActivity"
     android:exported="true"

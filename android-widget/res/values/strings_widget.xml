@@ -4,6 +4,9 @@
     <string name="widget_description_tb_summary">TOROBYTE 4x1 · Resumen batería + 3 métricas</string>
     <string name="widget_description_tb_battery_2x2">TOROBYTE 2x2 · Anillo de batería + autonomía</string>
     <string name="widget_description_tb_battery_1x1">TOROBYTE 1x1 · Batería mínima</string>
+    <string name="widget_description_tb_flow">TOROBYTE 4x2 · Flujo de energía Solar↔Casa↔Red</string>
+    <string name="widget_description_tb_ring">TOROBYTE 2x2 · Anillo circular grande de batería</string>
+    <string name="widget_description_tb_status">TOROBYTE 4x1 · Estado + chips PV/Carga/Red</string>
     <string name="widget_config_title">Configurar widget</string>
     <string name="widget_config_hint">Pega el device_token del sitio (Configuración → API)</string>
     <string name="widget_config_save">Guardar</string>
