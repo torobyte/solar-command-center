@@ -849,7 +849,7 @@ function LocationPicker({ currentLabel, siteId }: { currentLabel: string; siteId
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1.5 rounded-full border bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-foreground transition-colors hover:bg-white"
+        className="inline-flex items-center gap-1.5 rounded-full border bg-card/80 dark:bg-card/40 px-2.5 py-1 text-[11px] font-semibold text-foreground transition-colors hover:bg-white"
         title="Cambiar ubicación"
       >
         <MapPin className="h-3 w-3" />
@@ -1002,7 +1002,7 @@ export function WeatherAndRadiationCard({
         <div className="p-3 sm:p-4">
           {/* Producción ahora + estimada 12h + carga batería (compacto) */}
           <div className="mb-3 grid gap-2 sm:grid-cols-3">
-            <div className="rounded-lg border bg-white/80 p-2.5">
+            <div className="rounded-lg border bg-card/80 dark:bg-card/40 p-2.5">
               <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Producción ahora</div>
               <div className="mt-1 flex items-baseline gap-1.5">
                 <div className="text-[22px] font-bold tabular-nums text-emerald-600">
@@ -1016,7 +1016,7 @@ export function WeatherAndRadiationCard({
               </div>
             </div>
 
-            <div className="rounded-lg border bg-white/80 p-2.5">
+            <div className="rounded-lg border bg-card/80 dark:bg-card/40 p-2.5">
               <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Estimada 12 h{calibrated && <span className="ml-1 text-emerald-600">·cal</span>}
               </div>
@@ -1027,7 +1027,7 @@ export function WeatherAndRadiationCard({
               <div className="mt-1 text-[9px] text-muted-foreground">{kwp} kWp · {losses}%{calibrated ? ` · ×${calibration.toFixed(2)}` : ""}</div>
             </div>
 
-            <div className="rounded-lg border bg-white/80 p-2.5">
+            <div className="rounded-lg border bg-card/80 dark:bg-card/40 p-2.5">
               <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Carga batería</div>
               {chargeTimeLabel ? (
                 <>
@@ -1049,7 +1049,7 @@ export function WeatherAndRadiationCard({
 
 
           {/* Gráfico 12h con barras + kWh */}
-          <div className="rounded-xl border bg-white/80 p-3">
+          <div className="rounded-xl border bg-card/80 dark:bg-card/40 p-3">
             <div className="mb-2 flex items-center justify-between">
               <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Próximas 12 h — radiación solar y producción estimada
@@ -1089,7 +1089,7 @@ export function WeatherAndRadiationCard({
           </div>
 
           {/* Pronóstico 5 días con horas de sol y kWh */}
-          <div className="mt-4 grid grid-cols-5 gap-2 rounded-xl border bg-white/80 p-3 max-[520px]:grid-cols-3">
+          <div className="mt-4 grid grid-cols-5 gap-2 rounded-xl border bg-card/80 dark:bg-card/40 p-3 max-[520px]:grid-cols-3">
             {data.daily.slice(0, 5).map((day, index) => {
               const dailyKwh = kwp * day.sunshineHours * 0.65 * (1 - losses / 100) * calibration;
               return (
