@@ -481,6 +481,11 @@ export function EnergyFlowReferenceCard({
 }) {
   const gridConnected = gridV > 50;
   const dischargeW = Math.max(0, batteryNetW);
+  const chargeW = Math.max(0, -batteryNetW);
+  const batteryFlowW = Math.max(dischargeW, chargeW);
+  const solarToHouse = Math.min(pv, load);
+  const batteryToHouse = dischargeW > 5;
+  const solarToBattery = chargeW > 5;
 
   return (
     <div className="dashboard-card p-5 sm:p-6">
@@ -491,72 +496,112 @@ export function EnergyFlowReferenceCard({
         trailing={<Info className="h-4 w-4 text-muted-foreground" />}
       />
 
-      <svg viewBox="0 0 520 280" className="w-full">
+      <svg viewBox="0 0 640 360" className="w-full" preserveAspectRatio="xMidYMid meet">
         <defs>
-          <marker id="ref-arrow-solar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M0 0 L10 5 L0 10z" fill="var(--solar)" />
+          <marker id="ef-arr-solar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0 0 L10 5 L0 10 z" fill="var(--solar)" />
           </marker>
-          <marker id="ref-arrow-load" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M0 0 L10 5 L0 10z" fill="var(--load)" />
+          <marker id="ef-arr-battery" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0 0 L10 5 L0 10 z" fill="var(--success)" />
           </marker>
-          <marker id="ref-arrow-battery" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M0 0 L10 5 L0 10z" fill="var(--battery)" />
+          <marker id="ef-arr-load" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0 0 L10 5 L0 10 z" fill="#3b82f6" />
           </marker>
         </defs>
 
-        <path d="M140 165 C160 120 200 120 240 118" fill="none" stroke="var(--battery)" strokeWidth="2.5" markerEnd="url(#ref-arrow-battery)" strokeDasharray="6 4" className="flow-line flow-battery" />
-        <path d="M260 95 L260 136" fill="none" stroke="var(--solar)" strokeWidth="2.5" markerEnd="url(#ref-arrow-solar)" strokeDasharray="6 4" className="flow-line flow-solar" />
-        <path d="M278 118 C318 118 340 146 340 176" fill="none" stroke="var(--load)" strokeWidth="2.5" markerEnd="url(#ref-arrow-load)" strokeDasharray="6 4" className="flow-line flow-load" />
-        <path d="M315 188 L394 188" fill="none" stroke="color-mix(in oklab, var(--muted-foreground) 70%, white)" strokeWidth="2" strokeDasharray="5 6" className="flow-line flow-grid" />
-        <path d="M320 184 L330 188 L320 192" fill="none" stroke="color-mix(in oklab, var(--muted-foreground) 70%, white)" strokeWidth="1.8" />
-        <path d="M390 184 L380 188 L390 192" fill="none" stroke="color-mix(in oklab, var(--muted-foreground) 70%, white)" strokeWidth="1.8" />
-
-        <g transform="translate(240 42)">
-          <circle cx="0" cy="0" r="32" fill="color-mix(in oklab, var(--solar) 10%, white)" stroke="color-mix(in oklab, var(--solar) 35%, var(--border))" />
-          <circle cx="0" cy="-6" r="9" fill="var(--solar)" />
-          <g stroke="var(--solar)" strokeWidth="2" strokeLinecap="round">
-            <line x1="0" y1="-24" x2="0" y2="-18" />
-            <line x1="0" y1="6" x2="0" y2="12" />
-            <line x1="-18" y1="-6" x2="-12" y2="-6" />
-            <line x1="12" y1="-6" x2="18" y2="-6" />
+        {/* SOLAR top center: icon + label, no overlap */}
+        <g transform="translate(280 90)">
+          <circle cx="0" cy="0" r="40" fill="color-mix(in oklab, var(--solar) 14%, white)" stroke="color-mix(in oklab, var(--solar) 35%, var(--border))" />
+          <circle cx="-2" cy="-10" r="10" fill="#fbbf24" />
+          <g stroke="#f59e0b" strokeWidth="2" strokeLinecap="round">
+            <line x1="-2" y1="-26" x2="-2" y2="-21" />
+            <line x1="-16" y1="-10" x2="-11" y2="-10" />
+            <line x1="7" y1="-10" x2="12" y2="-10" />
+            <line x1="-13" y1="-20" x2="-10" y2="-17" />
+            <line x1="6" y1="-20" x2="3" y2="-17" />
           </g>
-          <g transform="translate(-18 8) skewX(-18)">
-            <rect x="0" y="0" width="36" height="16" rx="2" fill="color-mix(in oklab, var(--load) 40%, black)" />
-            <path d="M0 5 H36 M0 10 H36 M9 0 V16 M18 0 V16 M27 0 V16" stroke="color-mix(in oklab, white 35%, var(--load))" strokeWidth="0.8" />
+          <g transform="translate(-24 6) skewX(-22)">
+            <rect x="0" y="0" width="48" height="22" rx="2" fill="#1e3a5f" />
+            <line x1="12" y1="0" x2="12" y2="22" stroke="#3b5a8a" strokeWidth="1" />
+            <line x1="24" y1="0" x2="24" y2="22" stroke="#3b5a8a" strokeWidth="1" />
+            <line x1="36" y1="0" x2="36" y2="22" stroke="#3b5a8a" strokeWidth="1" />
+            <line x1="0" y1="11" x2="48" y2="11" stroke="#3b5a8a" strokeWidth="1" />
           </g>
         </g>
-        <text x="286" y="58" className="fill-[var(--solar)] text-[18px] font-bold">{Math.round(pv)} w</text>
-        <text x="286" y="78" className="fill-muted-foreground text-[12px]">Generación solar</text>
+        <text x="350" y="80" className="fill-[var(--solar)] text-[22px] font-bold">{Math.round(pv)} w</text>
+        <text x="350" y="102" className="fill-muted-foreground text-[12px]">Generación solar</text>
 
-        <g transform="translate(98 198)">
-          <circle cx="0" cy="0" r="30" fill="color-mix(in oklab, var(--battery) 10%, white)" stroke="color-mix(in oklab, var(--battery) 35%, var(--border))" />
-          <rect x="-10" y="-10" width="20" height="18" rx="2" fill="none" stroke="var(--battery)" strokeWidth="2" />
-          <rect x="-4" y="-14" width="8" height="4" rx="1" fill="var(--battery)" />
-          <path d="M-1 -3 L4 -3 L0 6 L5 6" fill="none" stroke="var(--battery)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        </g>
-        <text x="66" y="256" className="fill-[var(--battery)] text-[18px] font-bold">{Math.round(dischargeW)} w</text>
-        <text x="62" y="274" className="fill-muted-foreground text-[12px]">Batería</text>
-        <text x="44" y="292" className="fill-muted-foreground text-[11px]">{Math.round(battery)}% · {batteryV.toFixed(1)} v</text>
+        {/* FLOWS: battery -> junction above house -> house, solar -> house, house -> grid */}
+        <path
+          d="M 110 230 C 170 175, 235 170, 290 215"
+          fill="none" stroke="var(--success)" strokeWidth="2.4" strokeDasharray="6 5"
+          markerEnd="url(#ef-arr-battery)"
+          className={batteryToHouse ? "flow-line flow-battery" : ""}
+          opacity={batteryToHouse ? 1 : 0.25}
+        />
+        <path
+          d="M 305 145 L 305 215"
+          fill="none" stroke="var(--solar)" strokeWidth="2.4" strokeDasharray="6 5"
+          markerEnd="url(#ef-arr-solar)"
+          className={pv > 5 ? "flow-line flow-solar" : ""}
+          opacity={pv > 5 ? 1 : 0.25}
+        />
+        <path
+          d="M 330 215 C 395 170, 465 175, 530 230"
+          fill="none" stroke="#3b82f6" strokeWidth="2.4" strokeDasharray="6 5"
+          markerEnd="url(#ef-arr-load)"
+          className={solarToHouse > 5 ? "flow-line flow-load" : ""}
+          opacity={solarToHouse > 5 ? 1 : 0.25}
+        />
+        <path d="M 350 270 L 530 270" fill="none" stroke="#94a3b8" strokeWidth="1.8" strokeDasharray="5 6" />
+        <path d="M 355 266 L 345 270 L 355 274" fill="none" stroke="#94a3b8" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M 525 266 L 535 270 L 525 274" fill="none" stroke="#94a3b8" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
 
-        <g transform="translate(248 198)">
-          <circle cx="0" cy="0" r="30" fill="color-mix(in oklab, var(--load) 8%, white)" stroke="color-mix(in oklab, var(--load) 35%, var(--border))" />
-          <path d="M-12 4 V-5 L0 -15 L12 -5 V4 M-6 4 V-5 H6 V4" fill="none" stroke="var(--load)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        {/* BATTERY left */}
+        <g transform="translate(80 250)">
+          <circle cx="0" cy="0" r="34" fill="color-mix(in oklab, var(--success) 12%, white)" stroke="color-mix(in oklab, var(--success) 35%, var(--border))" />
+          <rect x="-13" y="-16" width="26" height="32" rx="4" fill="none" stroke="var(--success)" strokeWidth="2.4" />
+          <rect x="-5" y="-20" width="10" height="4" rx="1" fill="var(--success)" />
+          <path d="M 3 -8 L -5 3 L 1 3 L -3 13 L 6 -1 L 0 -1 L 4 -8 Z" fill="var(--success)" />
         </g>
-        <text x="278" y="202" className="fill-[var(--load)] text-[22px] font-bold">{Math.round(load)} w</text>
-        <text x="278" y="222" className="fill-muted-foreground text-[12px]">Consumo de la casa</text>
+        <text x="80" y="312" textAnchor="middle" className="fill-[var(--success)] text-[18px] font-bold">{Math.round(batteryFlowW)} w</text>
+        <text x="80" y="332" textAnchor="middle" className="fill-muted-foreground text-[12px]">Batería</text>
+        <text x="80" y="348" textAnchor="middle" className="fill-muted-foreground text-[10px]">{Math.round(battery)}% · {batteryV.toFixed(1)} v{solarToBattery ? " · cargando" : ""}</text>
 
-        <g transform="translate(430 198)">
-          <circle cx="0" cy="0" r="30" fill="color-mix(in oklab, var(--muted) 55%, white)" stroke="color-mix(in oklab, var(--muted-foreground) 28%, var(--border))" />
-          <path d="M0 -18 L-6 16 M0 -18 L6 16 M-10 -8 H10 M-8 0 H8 M-6 8 H6" fill="none" stroke="var(--muted-foreground)" strokeWidth="1.8" strokeLinecap="round" />
+        {/* HOUSE center */}
+        <g transform="translate(310 250)">
+          <circle cx="0" cy="0" r="34" fill="color-mix(in oklab, var(--load) 10%, white)" stroke="color-mix(in oklab, var(--load) 35%, var(--border))" />
+          <path d="M -16 4 L 0 -14 L 16 4 L 16 16 L -16 16 Z" fill="none" stroke="var(--load)" strokeWidth="2.4" strokeLinejoin="round" />
+          <path d="M -5 16 L -5 6 L 5 6 L 5 16" fill="none" stroke="var(--load)" strokeWidth="2" strokeLinejoin="round" />
         </g>
-        <text x="412" y="256" className="fill-foreground text-[18px] font-bold">0 w</text>
-        <text x="410" y="274" className="fill-muted-foreground text-[12px]">Red</text>
-        <text x="390" y="292" className="fill-muted-foreground text-[11px]">{gridConnected ? `${Math.round(gridV)} v` : "Desconectada"}</text>
+        <text x="360" y="248" className="fill-[var(--load)] text-[22px] font-bold">{Math.round(load)} w</text>
+        <text x="360" y="270" className="fill-muted-foreground text-[12px]">Consumo de la casa</text>
+
+        {/* GRID right */}
+        <g transform="translate(560 250)">
+          <circle cx="0" cy="0" r="34" fill="color-mix(in oklab, var(--muted) 40%, white)" stroke="color-mix(in oklab, var(--muted-foreground) 25%, var(--border))" />
+          <g fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round">
+            <line x1="-7" y1="-18" x2="-12" y2="18" />
+            <line x1="7" y1="-18" x2="12" y2="18" />
+            <line x1="-11" y1="-10" x2="11" y2="-10" />
+            <line x1="-9" y1="-2" x2="9" y2="-2" />
+            <line x1="-13" y1="14" x2="13" y2="14" />
+            <line x1="-9" y1="-10" x2="-2" y2="-2" />
+            <line x1="-2" y1="-10" x2="-9" y2="-2" />
+            <line x1="9" y1="-10" x2="2" y2="-2" />
+            <line x1="2" y1="-10" x2="9" y2="-2" />
+          </g>
+        </g>
+        <text x="560" y="312" textAnchor="middle" className="fill-foreground text-[18px] font-bold">0 w</text>
+        <text x="560" y="332" textAnchor="middle" className="fill-muted-foreground text-[12px]">Red</text>
+        <text x="560" y="348" textAnchor="middle" className="fill-muted-foreground text-[10px]">{gridConnected ? `${Math.round(gridV)} v` : "Desconectada"}</text>
       </svg>
+
       <style>{`
         @keyframes flow-dash { to { stroke-dashoffset: -40; } }
         .flow-line { animation: flow-dash 1.4s linear infinite; }
-        .flow-grid { animation-duration: 2.2s; }
+        .flow-load { animation-duration: 1.6s; }
+        .flow-battery { animation-duration: 1.8s; }
       `}</style>
     </div>
   );
