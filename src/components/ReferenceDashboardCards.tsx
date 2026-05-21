@@ -273,6 +273,24 @@ export function useSolarReferenceWeather(pvConfig?: PvConfig | null) {
       return parsed?.data ?? null;
     } catch { return null; }
   });
+  // Bump para forzar recarga cuando cambia la ubicación sin recargar la página.
+  const [reloadTick, setReloadTick] = useState(0);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onChange = () => setReloadTick((t) => t + 1);
+    window.addEventListener("solarops:location-changed", onChange);
+    // También escuchar cambios de localStorage desde otras pestañas.
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === WEATHER_STORAGE_KEY) onChange();
+    };
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener("solarops:location-changed", onChange);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
+
 
   useEffect(() => {
     let cancelled = false;
