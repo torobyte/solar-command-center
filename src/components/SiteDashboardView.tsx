@@ -107,9 +107,11 @@ export function SiteDashboardView({
   const batteryDischargeW = Math.max(0, Number(latest?.battery_discharge_current ?? 0) * batteryV);
   const batteryChargeW = Math.max(0, Number(latest?.battery_charging_current ?? 0) * batteryV);
   const batteryNetW = batteryDischargeW - batteryChargeW;
+  // Aporte de la red = (consumo casa + carga batería) - (PV + descarga batería)
+  const gridW = gridConnected ? Math.max(0, load + batteryChargeW - pv_W - batteryDischargeW) : 0;
 
   const widgets: Record<string, React.ReactNode> = {
-    system: <SystemStatusCard pv={pv_W} load={load} battery={battery} batteryV={batteryV} gridV={gridV} pvMax={pvMax} />,
+    system: <SystemStatusCard pv={pv_W} load={load} battery={battery} batteryV={batteryV} gridV={gridV} gridW={gridW} pvMax={pvMax} />,
     backup: (
       <BackupTimeCard
         soc={battery}
