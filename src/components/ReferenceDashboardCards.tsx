@@ -927,12 +927,16 @@ export function SavingsReferenceCard({
   siteId,
   pvW,
   batteryDischargeW,
+  loadW,
+  gridV,
   energyPrice,
   currency,
 }: {
   siteId: string;
   pvW: number;
   batteryDischargeW: number;
+  loadW: number;
+  gridV: number;
   energyPrice: number | null;
   currency?: string | null;
 }) {
@@ -952,7 +956,7 @@ export function SavingsReferenceCard({
 
       const { data } = await supabase
         .from("daily_totals")
-        .select("day, pv_kwh, battery_discharged_kwh")
+        .select("day, load_kwh, grid_used_kwh, pv_kwh, battery_discharged_kwh")
         .eq("site_id", siteId)
         .gte("day", yearStart)
         .order("day", { ascending: true });
@@ -965,7 +969,17 @@ export function SavingsReferenceCard({
       const currentMonth = now.getMonth();
 
       for (const row of data) {
-        const saved = Number(row.pv_kwh ?? 0) + Number(row.battery_discharged_kwh ?? 0);
+        // Ahorro real = energía consumida que NO se compró a la red.
+        // Si load_kwh está disponible, usamos load - grid_used (sin doble conteo).
+        // Fallback: pv_kwh + battery_discharged_kwh limitado por load_kwh.
+        const loadKwh = Number(row.load_kwh ?? 0);
+        const gridKwh = Number(row.grid_used_kwh ?? 0);
+        let saved = loadKwh - gridKwh;
+        if (saved <= 0) {
+          const pvOnly = Number(row.pv_kwh ?? 0);
+          saved = loadKwh > 0 ? Math.min(pvOnly, loadKwh) : pvOnly;
+        }
+        saved = Math.max(0, saved);
         year += saved;
         const rowDate = new Date(`${row.day}T00:00:00`);
         if (rowDate.getMonth() === currentMonth) month += saved;
@@ -992,12 +1006,18 @@ export function SavingsReferenceCard({
     );
   }
 
-  const liveW = Math.max(0, pvW) + Math.max(0, batteryDischargeW);
-  const perHour = (liveW / 1000) * energyPrice;
+  // "Ahorrando ahora" = consumo cubierto por solar + batería (no por la red).
+  // Limitado por la carga: si pv+batería > carga, sólo se ahorra hasta la carga.
+  const nonGridW = Math.max(0, pvW) + Math.max(0, batteryDischargeW);
+  const coveredW = loadW > 0 ? Math.min(loadW, nonGridW) : nonGridW;
+  const perHour = (coveredW / 1000) * energyPrice;
   const todayValue = (todayKwh ?? 0) * energyPrice;
   const monthValue = (monthKwh ?? 0) * energyPrice;
+  // Proyección anual razonable: requiere al menos 7 días de datos para extrapolar.
   const dayOfYear = Math.max(1, Math.ceil((Date.now() - new Date(new Date().getFullYear(), 0, 1).getTime()) / 86_400_000));
-  const projectedYear = ((yearKwh ?? 0) / dayOfYear) * 365 * energyPrice;
+  const projectedYear = dayOfYear >= 7 && (yearKwh ?? 0) > 0
+    ? ((yearKwh ?? 0) / dayOfYear) * 365 * energyPrice
+    : (yearKwh ?? 0) * energyPrice;
 
   return (
     <div
