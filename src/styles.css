@@ -105,6 +105,7 @@
 }
 
 .dark {
+  --tint-base: oklch(0.28 0.04 260);
   --background: oklch(0.16 0.03 260);
   --foreground: oklch(0.98 0.01 95);
   --card: oklch(0.21 0.04 260);
