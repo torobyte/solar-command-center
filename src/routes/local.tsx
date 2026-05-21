@@ -1,15 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
-import { LayoutDashboard, LineChart as LineChartIcon, Calculator, Settings2, Wrench, Unlink, ExternalLink, Wifi } from "lucide-react";
+import { LayoutDashboard, LineChart as LineChartIcon, Calculator, Settings2, Wrench, Unlink, Activity, Wifi } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { SiteDashboardView, type DashboardSample, formatInverterMode } from "@/components/SiteDashboardView";
 import { InverterConfigWizard } from "@/components/InverterConfigWizard";
 import { PvSystemConfigCard, type PvConfig } from "@/components/PvSystemConfig";
+import { WifiConfigDialog } from "@/components/WifiConfigDialog";
+import { AgentDiagnosticDialog } from "@/components/AgentDiagnosticDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LangSwitcher } from "@/components/LangSwitcher";
 import { useBranding } from "@/lib/branding";
@@ -378,7 +379,7 @@ function LocalDashboardPage() {
                     <Wifi className="mr-1.5 h-3.5 w-3.5" /> Configurar WiFi
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => setDiagOpen(true)}>
-                    <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Diagnóstico del agente
+                    <Activity className="mr-1.5 h-3.5 w-3.5" /> Diagnóstico del agente
                   </Button>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
@@ -390,49 +391,8 @@ function LocalDashboardPage() {
         </Tabs>
       </div>
 
-      {/* WiFi config popup */}
-      <Dialog open={wifiOpen} onOpenChange={setWifiOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base"><Wifi className="h-4 w-4" /> Configurar WiFi</DialogTitle>
-            <DialogDescription>Disponible aunque el equipo esté por Ethernet.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 text-sm text-muted-foreground">
-            <p>Por seguridad, el navegador no permite incrustar la página local del agente dentro de un sitio público. Ábrela en una pestaña nueva — se carga directo desde el equipo en tu red local.</p>
-            <div className="rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs break-all">{agentBase}/wifi</div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setWifiOpen(false)}>Cancelar</Button>
-            <Button size="sm" asChild>
-              <a href={`${agentBase}/wifi`} target="_blank" rel="noreferrer" onClick={() => setWifiOpen(false)}>
-                <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Abrir configuración WiFi
-              </a>
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Diagnostic popup */}
-      <Dialog open={diagOpen} onOpenChange={setDiagOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base"><ExternalLink className="h-4 w-4" /> Diagnóstico del agente</DialogTitle>
-            <DialogDescription>Estado en tiempo real del agente local.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 text-sm text-muted-foreground">
-            <p>El navegador bloquea cargar la página del agente local dentro de esta vista pública. Ábrela en una pestaña nueva — se sirve desde el equipo en tu red local.</p>
-            <div className="rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs break-all">{agentBase}/status</div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setDiagOpen(false)}>Cancelar</Button>
-            <Button size="sm" asChild>
-              <a href={`${agentBase}/status`} target="_blank" rel="noreferrer" onClick={() => setDiagOpen(false)}>
-                <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Abrir diagnóstico
-              </a>
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <WifiConfigDialog open={wifiOpen} onOpenChange={setWifiOpen} agentFetch={agentFetch} />
+      <AgentDiagnosticDialog open={diagOpen} onOpenChange={setDiagOpen} agentFetch={agentFetch} />
 
     </div>
   );
