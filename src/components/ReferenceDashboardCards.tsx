@@ -175,11 +175,13 @@ function StatusMetric({
   value,
   accent,
   icon,
+  sub,
 }: {
   label: string;
   value: string;
   accent: string;
   icon: ReactNode;
+  sub?: string;
 }) {
   return (
     <div className="flex min-w-0 flex-col items-center text-center">
@@ -194,10 +196,12 @@ function StatusMetric({
         {icon}
       </div>
       <div className="text-[11px] font-semibold leading-none" style={{ color: accent }}>{value}</div>
+      {sub && <div className="mt-0.5 text-[10px] text-muted-foreground tabular-nums">{sub}</div>}
       <div className="mt-1 text-[11px] text-muted-foreground">{label}</div>
     </div>
   );
 }
+
 
 function ProgressRow({ label, value, progress, accent, icon }: {
   label: string;
@@ -269,6 +273,24 @@ export function useSolarReferenceWeather(pvConfig?: PvConfig | null) {
       return parsed?.data ?? null;
     } catch { return null; }
   });
+  // Bump para forzar recarga cuando cambia la ubicación sin recargar la página.
+  const [reloadTick, setReloadTick] = useState(0);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onChange = () => setReloadTick((t) => t + 1);
+    window.addEventListener("solarops:location-changed", onChange);
+    // También escuchar cambios de localStorage desde otras pestañas.
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === WEATHER_STORAGE_KEY) onChange();
+    };
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener("solarops:location-changed", onChange);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
+
 
   useEffect(() => {
     let cancelled = false;
@@ -399,7 +421,7 @@ export function useSolarReferenceWeather(pvConfig?: PvConfig | null) {
     return () => {
       cancelled = true;
     };
-  }, [pvConfig?.latitude, pvConfig?.location_label, pvConfig?.longitude]);
+  }, [pvConfig?.latitude, pvConfig?.location_label, pvConfig?.longitude, reloadTick]);
 
   return data;
 }
@@ -410,6 +432,7 @@ export function SystemStatusCard({
   battery,
   batteryV,
   gridV,
+  gridW = 0,
   pvMax,
   loadMax = 5200,
 }: {
@@ -418,6 +441,8 @@ export function SystemStatusCard({
   battery: number;
   batteryV: number;
   gridV: number;
+  /** Potencia tomada de la red (W) — incluye consumo casa + carga batería. */
+  gridW?: number;
   pvMax: number;
   loadMax?: number;
 }) {
@@ -478,7 +503,8 @@ export function SystemStatusCard({
         <div className="h-px w-10 border-t border-dashed max-[520px]:hidden" style={{ borderColor: "color-mix(in oklab, var(--battery) 60%, var(--tint-base))" }} />
         <StatusMetric
           label="Red"
-          value={gridConnected ? `${Math.round(gridV)} v` : "0 w"}
+          value={gridConnected ? formatWatts(gridW) : "0 w"}
+          sub={gridConnected ? `${Math.round(gridV)} V` : "desconectada"}
           accent={gridConnected ? "var(--foreground)" : "var(--muted-foreground)"}
           icon={<Zap className="h-5 w-5" />}
         />
@@ -487,11 +513,13 @@ export function SystemStatusCard({
       <div className="space-y-3 border-t pt-4" style={{ borderColor: "color-mix(in oklab, var(--border) 80%, var(--tint-base))" }}>
         <ProgressRow label="Generación solar" value={formatWatts(pv)} progress={(pv / Math.max(pvMax, 1)) * 100} accent="var(--solar)" icon={<Sun className="h-3.5 w-3.5" style={{ color: "var(--solar)" }} />} />
         <ProgressRow label="Consumo de la casa" value={formatWatts(load)} progress={(load / Math.max(loadMax, 1)) * 100} accent="var(--load)" icon={<Home className="h-3.5 w-3.5" style={{ color: "var(--load)" }} />} />
+        <ProgressRow label="Consumo desde la red" value={gridConnected ? formatWatts(gridW) : "0 w"} progress={gridConnected ? (gridW / Math.max(loadMax, 1)) * 100 : 0} accent="var(--muted-foreground)" icon={<Zap className="h-3.5 w-3.5 text-muted-foreground" />} />
         <ProgressRow label="Estado de carga (SOC)" value={`${Math.round(battery)} %`} progress={battery} accent="var(--battery)" icon={<Zap className="h-3.5 w-3.5" style={{ color: "var(--battery)" }} />} />
       </div>
     </div>
   );
 }
+
 
 export function EnergyFlowReferenceCard({
   pv,
@@ -808,6 +836,11 @@ function LocationPicker({ currentLabel, siteId }: { currentLabel: string; siteId
   async function persist(lat: number, lon: number, label: string) {
     if (typeof window !== "undefined") {
       try { localStorage.setItem(WEATHER_STORAGE_KEY, JSON.stringify({ lat, lon, city: label })); } catch { /* ignore */ }
+      // Notifica a `useSolarReferenceWeather` (y a cualquier otro listener)
+      // para que recarguen la previsión sin necesidad de refrescar la página.
+      try {
+        window.dispatchEvent(new CustomEvent("solarops:location-changed", { detail: { lat, lon, city: label } }));
+      } catch { /* ignore */ }
     }
     const isUuid = /^[0-9a-f-]{36}$/i.test(siteId);
     if (isUuid) {
@@ -818,10 +851,9 @@ function LocationPicker({ currentLabel, siteId }: { currentLabel: string; siteId
       else toast.success(`Ubicación: ${label}`);
     } else {
       toast.success(`Ubicación: ${label}`);
-      // Local agent: fuerza recarga para que el hook re-lea localStorage.
-      setTimeout(() => { if (typeof window !== "undefined") window.location.reload(); }, 600);
     }
   }
+
 
   async function useMyLocation() {
     if (typeof navigator === "undefined" || !navigator.geolocation) { toast.error("Geolocalización no disponible"); return; }
