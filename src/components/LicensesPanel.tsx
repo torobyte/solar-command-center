@@ -157,11 +157,24 @@ export function LicensesPanel() {
                   await transferLicense({ data: { license_id: transferLic.id, new_site_id: target } });
                   toast.success("Licencia transferida");
                   setTransferLic(null); setTarget("");
+                  setLicenses([]); // force visual reset
                   await load();
+                  // Retry once after a brief delay in case of read-after-write lag
+                  setTimeout(() => { void load(); }, 600);
                 } catch (e) {
                   toast.error((e as Error).message);
                 } finally { setBusy(false); }
               }}
+            >
+              {busy ? "Transfiriendo…" : "Transferir"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
             >
               {busy ? "Transfiriendo…" : "Transferir"}
             </Button>
