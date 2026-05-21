@@ -76,10 +76,6 @@ export function Battery3D({ soc, voltage, charging, powerW = 0, currentA = 0, te
           <Stat label="Modo" value={charging ? "Cargando" : "Suministrando"} />
         </div>
       </div>
-      <button type="button" className="mt-4 inline-flex w-full items-center justify-between rounded-xl border bg-background px-4 py-3 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground">
-        <span>Ver detalles de la batería</span>
-        <ArrowRight className="h-3.5 w-3.5" />
-      </button>
       <style>{`
         @keyframes waveMove { from { transform: translateX(0); } to { transform: translateX(-50%); } }
         @keyframes bubbleUp { from { transform: translateY(0); opacity: 0.9; } to { transform: translateY(-180px); opacity: 0; } }
@@ -885,10 +881,6 @@ export function BackupTimeCard({
           </div>
         </div>
       </div>
-      <button type="button" className="mt-4 inline-flex w-full items-center justify-between rounded-xl border bg-background px-4 py-3 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground">
-        <span>Ver detalles del banco</span>
-        <ArrowRight className="h-3.5 w-3.5" />
-      </button>
     </div>
   );
 }
