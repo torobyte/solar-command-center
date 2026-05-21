@@ -924,9 +924,9 @@ export function WeatherAndRadiationCard({
       className="dashboard-card overflow-hidden p-0"
       style={{ background: "linear-gradient(180deg, color-mix(in oklab, var(--load) 8%, white) 0%, color-mix(in oklab, var(--card) 96%, white) 100%)" }}
     >
-      {/* Hero: clima actual con selector de ubicación CENTRADO */}
+      {/* Hero compacto */}
       <div
-        className="relative px-5 pb-5 pt-5 text-white sm:px-6"
+        className="relative px-4 pb-3 pt-3 text-white sm:px-5"
         style={{
           background: data && data.current.weatherCode <= 1
             ? "linear-gradient(135deg,#f59e0b,#ef4444)"
@@ -935,41 +935,39 @@ export function WeatherAndRadiationCard({
               : "linear-gradient(135deg,#475569,#1e293b)",
         }}
       >
-        <div className="mb-3 flex justify-center">
+        <div className="mb-2 flex justify-center">
           <LocationPicker currentLabel={city} siteId={siteId} />
         </div>
 
         {!data ? (
-          <div className="py-8 text-center text-sm text-white/80">Cargando condiciones meteorológicas…</div>
+          <div className="py-4 text-center text-sm text-white/80">Cargando…</div>
         ) : (
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-end gap-3">
-              <div className="text-[56px] font-bold leading-none">
-                {Math.round(data.current.temperature)}°
-              </div>
-              <div className="pb-2">
-                <div className="flex items-center gap-1.5 text-[13px] font-medium">
-                  <WeatherGlyph code={data.current.weatherCode} className="h-5 w-5 text-white" />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-end gap-2">
+              <div className="text-[44px] font-bold leading-none">{Math.round(data.current.temperature)}°</div>
+              <div className="pb-1">
+                <div className="flex items-center gap-1 text-[12px] font-medium">
+                  <WeatherGlyph code={data.current.weatherCode} className="h-4 w-4 text-white" />
                   <span>{weatherLabel(data.current.weatherCode)}</span>
                 </div>
-                <div className="mt-1 text-[11px] text-white/80">
-                  Sensación {Math.round(data.current.apparentTemperature)}° · Hum {Math.round(data.current.humidity)}% · Viento {Math.round(data.current.windSpeed)} km/h
+                <div className="mt-0.5 text-[10px] text-white/80">
+                  Sens {Math.round(data.current.apparentTemperature)}° · Hum {Math.round(data.current.humidity)}% · {Math.round(data.current.windSpeed)} km/h
                 </div>
               </div>
             </div>
-            <div className="rounded-xl bg-white/15 px-3 py-2 text-right backdrop-blur-sm">
-              <div className="text-[10px] uppercase tracking-wider text-white/80">Radiación</div>
-              <div className="text-[26px] font-bold tabular-nums leading-none">
-                {currentRadiation}
-                <span className="ml-1 text-xs font-normal text-white/80">W/m²</span>
+            <div className="rounded-lg bg-white/15 px-2.5 py-1.5 text-right backdrop-blur-sm">
+              <div className="text-[9px] uppercase tracking-wider text-white/80">Radiación</div>
+              <div className="text-[20px] font-bold tabular-nums leading-none">
+                {currentRadiation}<span className="ml-1 text-[10px] font-normal text-white/80">W/m²</span>
               </div>
-              <div className="mt-0.5 text-[10px] text-white/80">
+              <div className="mt-0.5 text-[9px] text-white/80">
                 {currentRadiation > 650 ? "Muy alta" : currentRadiation > 250 ? "Alta" : currentRadiation > 80 ? "Media" : "Baja"}
               </div>
             </div>
           </div>
         )}
       </div>
+
 
       {data && (
         <div className="p-5 sm:p-6">
