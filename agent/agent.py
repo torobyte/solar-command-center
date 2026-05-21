@@ -1007,7 +1007,7 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
 <div id="pair" style="position:fixed;inset:0;display:none;flex-direction:column;
   align-items:center;justify-content:center;text-align:center;padding:24px;gap:18px;
   background:radial-gradient(circle at 50% 30%,#1a1d2c 0%,#0b0d14 100%)">
-  <div style="font-size:22px;font-weight:800;letter-spacing:-.02em;color:#f5b945">SolarOps</div>
+  <div id="pairBrand" style="font-size:22px;font-weight:800;letter-spacing:-.02em;color:#f5b945">Cargando…</div>
   <div style="font-size:14px;color:#9aa0ad;max-width:520px;line-height:1.5">
     Vincula este equipo a tu cuenta. Abre el portal en tu computador o teléfono,
     inicia sesión, pulsa <b>Agregar sitio</b> y escribe este código:
