@@ -390,11 +390,15 @@ class MainActivity : Activity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQ_NOTIF) {
             val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
-            if (!granted) {
-                // El usuario rechazó: ofrecemos abrir Ajustes para activarlas manualmente.
-                showOpenNotifSettingsToast()
-            } else {
+            if (granted) {
                 runCatching { AlertsStreamService.start(applicationContext) }
+            } else {
+                // No abrimos Ajustes automáticamente: solo informamos.
+                Toast.makeText(
+                    this,
+                    "Sin permiso de notificaciones no podremos avisarte de alertas",
+                    Toast.LENGTH_LONG,
+                ).show()
             }
         }
     }
@@ -404,11 +408,8 @@ class MainActivity : Activity() {
 
     /**
      * Flujo de permisos para que las alertas lleguen al teléfono:
-     *  1. POST_NOTIFICATIONS (Android 13+).
-     *  2. Si el sistema dice que las notifs están deshabilitadas, abrir
-     *     Ajustes de la app (cubre el caso de Xiaomi/MIUI/HyperOS que las
-     *     desactiva por defecto incluso aunque exista el permiso).
-     *  3. Pedir exención de optimización de batería (una sola vez), para
+     *  1. POST_NOTIFICATIONS (Android 13+) — solo se pide el permiso, NO se redirige a Ajustes.
+     *  2. Pedir exención de optimización de batería (una sola vez), para
      *     que el servicio SSE no muera en segundo plano.
      */
     private fun ensureNotificationPermissions() {
@@ -420,28 +421,10 @@ class MainActivity : Activity() {
                 requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQ_NOTIF)
             }
         }
-        // Paso 2 — si están bloqueadas a nivel de app, sugerir Ajustes.
-        if (!areNotificationsEnabled()) {
-            showOpenNotifSettingsToast()
-        }
-        // Paso 3 — battery optimization (solo se pide una vez).
+        // Paso 2 — battery optimization (solo se pide una vez).
         maybeRequestBatteryOptimizationExemption()
     }
 
-    private fun showOpenNotifSettingsToast() {
-        Toast.makeText(
-            this,
-            "Activa las notificaciones para recibir alertas",
-            Toast.LENGTH_LONG,
-        ).show()
-        runCatching {
-            val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
-                putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            startActivity(intent)
-        }
-    }
 
     @SuppressLint("BatteryLife")
     private fun maybeRequestBatteryOptimizationExemption() {
