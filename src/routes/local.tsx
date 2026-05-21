@@ -392,45 +392,48 @@ function LocalDashboardPage() {
 
       {/* WiFi config popup */}
       <Dialog open={wifiOpen} onOpenChange={setWifiOpen}>
-        <DialogContent className="max-w-3xl p-0 overflow-hidden">
-          <DialogHeader className="px-5 pt-5 pb-3 border-b">
+        <DialogContent className="max-w-md">
+          <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base"><Wifi className="h-4 w-4" /> Configurar WiFi</DialogTitle>
             <DialogDescription>Disponible aunque el equipo esté por Ethernet.</DialogDescription>
           </DialogHeader>
-          <iframe
-            src={`${agentBase}/wifi`}
-            title="Configurar WiFi"
-            className="w-full h-[70vh] bg-background"
-          />
-          <DialogFooter className="px-5 py-3 border-t">
-            <Button variant="outline" size="sm" asChild>
-              <a href={`${agentBase}/wifi`} target="_blank" rel="noreferrer">Abrir en nueva pestaña</a>
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <p>Por seguridad, el navegador no permite incrustar la página local del agente dentro de un sitio público. Ábrela en una pestaña nueva — se carga directo desde el equipo en tu red local.</p>
+            <div className="rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs break-all">{agentBase}/wifi</div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setWifiOpen(false)}>Cancelar</Button>
+            <Button size="sm" asChild>
+              <a href={`${agentBase}/wifi`} target="_blank" rel="noreferrer" onClick={() => setWifiOpen(false)}>
+                <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Abrir configuración WiFi
+              </a>
             </Button>
-            <Button size="sm" onClick={() => setWifiOpen(false)}>Cerrar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Diagnostic popup */}
       <Dialog open={diagOpen} onOpenChange={setDiagOpen}>
-        <DialogContent className="max-w-4xl p-0 overflow-hidden">
-          <DialogHeader className="px-5 pt-5 pb-3 border-b">
+        <DialogContent className="max-w-md">
+          <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base"><ExternalLink className="h-4 w-4" /> Diagnóstico del agente</DialogTitle>
             <DialogDescription>Estado en tiempo real del agente local.</DialogDescription>
           </DialogHeader>
-          <iframe
-            src={`${agentBase}/status`}
-            title="Diagnóstico del agente"
-            className="w-full h-[75vh] bg-background"
-          />
-          <DialogFooter className="px-5 py-3 border-t">
-            <Button variant="outline" size="sm" asChild>
-              <a href={`${agentBase}/status`} target="_blank" rel="noreferrer">Abrir en nueva pestaña</a>
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <p>El navegador bloquea cargar la página del agente local dentro de esta vista pública. Ábrela en una pestaña nueva — se sirve desde el equipo en tu red local.</p>
+            <div className="rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs break-all">{agentBase}/status</div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setDiagOpen(false)}>Cancelar</Button>
+            <Button size="sm" asChild>
+              <a href={`${agentBase}/status`} target="_blank" rel="noreferrer" onClick={() => setDiagOpen(false)}>
+                <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Abrir diagnóstico
+              </a>
             </Button>
-            <Button size="sm" onClick={() => setDiagOpen(false)}>Cerrar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </div>
   );
 }
