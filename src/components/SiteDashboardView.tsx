@@ -114,8 +114,7 @@ export function SiteDashboardView({
     flow: <EnergyFlowReferenceCard pv={pv_W} load={load} gridV={gridV} battery={battery} batteryV={batteryV} batteryNetW={batteryNetW} />,
     solarProduction: <SolarProductionReferenceCard pv={pv_W} pvMax={pvMax} />,
     houseConsumption: <HouseConsumptionReferenceCard load={load} contractedPower={5200} />,
-    weather: <WeatherOverviewCard data={weatherData} />,
-    radiation: <SolarRadiationCard data={weatherData} pvConfig={pv} livePv={pv_W} />,
+    weather: <WeatherAndRadiationCard data={weatherData} pvConfig={pv} livePv={pv_W} siteId={siteId} />,
     savings: (
       <SavingsReferenceCard
         siteId={siteId}
