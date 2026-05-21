@@ -256,8 +256,19 @@ function SmallStat({ label, value, subtitle }: { label: string; value: string; s
   );
 }
 
+const WEATHER_PAYLOAD_KEY = "dashboard.reference.weather.payload.v1";
+const WEATHER_TTL_MS = 15 * 60 * 1000;
+
 export function useSolarReferenceWeather(pvConfig?: PvConfig | null) {
-  const [data, setData] = useState<DashboardWeatherData | null>(null);
+  const [data, setData] = useState<DashboardWeatherData | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = localStorage.getItem(WEATHER_PAYLOAD_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { data: DashboardWeatherData };
+      return parsed?.data ?? null;
+    } catch { return null; }
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -307,6 +318,21 @@ export function useSolarReferenceWeather(pvConfig?: PvConfig | null) {
           localStorage.setItem(WEATHER_STORAGE_KEY, JSON.stringify(coords));
         }
 
+        // Hydrate instantly from payload cache if fresh enough for same coords
+        if (typeof window !== "undefined") {
+          try {
+            const raw = localStorage.getItem(WEATHER_PAYLOAD_KEY);
+            if (raw) {
+              const parsed = JSON.parse(raw) as { data: DashboardWeatherData; ts: number; lat: number; lon: number };
+              const sameCoords = Math.abs((parsed.lat ?? 0) - coords.lat) < 0.05 && Math.abs((parsed.lon ?? 0) - coords.lon) < 0.05;
+              if (sameCoords && !cancelled) {
+                setData(parsed.data);
+                if (Date.now() - (parsed.ts ?? 0) < WEATHER_TTL_MS) return;
+              }
+            }
+          } catch { /* ignore */ }
+        }
+
         const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,uv_index,weather_code,shortwave_radiation&hourly=temperature_2m,weather_code,shortwave_radiation&daily=weather_code,temperature_2m_max,temperature_2m_min,sunshine_duration&forecast_days=6&timezone=auto`;
         const weatherRes = await fetch(weatherUrl);
         const weatherJson = await weatherRes.json();
@@ -345,24 +371,27 @@ export function useSolarReferenceWeather(pvConfig?: PvConfig | null) {
           sunshineHours: Number(weatherJson.daily.sunshine_duration?.[index] ?? 0) / 3600,
         }));
 
-        if (!cancelled) {
-          setData({
-            city,
-            current: {
-              temperature: Number(weatherJson.current?.temperature_2m ?? 0),
-              apparentTemperature: Number(weatherJson.current?.apparent_temperature ?? 0),
-              humidity: Number(weatherJson.current?.relative_humidity_2m ?? 0),
-              windSpeed: Number(weatherJson.current?.wind_speed_10m ?? 0),
-              uvIndex: Number(weatherJson.current?.uv_index ?? 0),
-              weatherCode: Number(weatherJson.current?.weather_code ?? 0),
-              radiation: Number(weatherJson.current?.shortwave_radiation ?? 0),
-            },
-            hourly,
-            daily,
-          });
-        }
+        const next: DashboardWeatherData = {
+          city,
+          current: {
+            temperature: Number(weatherJson.current?.temperature_2m ?? 0),
+            apparentTemperature: Number(weatherJson.current?.apparent_temperature ?? 0),
+            humidity: Number(weatherJson.current?.relative_humidity_2m ?? 0),
+            windSpeed: Number(weatherJson.current?.wind_speed_10m ?? 0),
+            uvIndex: Number(weatherJson.current?.uv_index ?? 0),
+            weatherCode: Number(weatherJson.current?.weather_code ?? 0),
+            radiation: Number(weatherJson.current?.shortwave_radiation ?? 0),
+          },
+          hourly,
+          daily,
+        };
+
+        if (!cancelled) setData(next);
+        try {
+          localStorage.setItem(WEATHER_PAYLOAD_KEY, JSON.stringify({ data: next, ts: Date.now(), lat: coords.lat, lon: coords.lon }));
+        } catch { /* ignore */ }
       } catch {
-        if (!cancelled) setData(null);
+        if (!cancelled) setData((prev) => prev);
       }
     }
 
@@ -1165,19 +1194,8 @@ export function SavingsReferenceCard({
     };
   }, [siteId]);
 
-  function handleReset() {
-    if (!confirm("¿Reiniciar el ahorro económico? Los contadores partirán desde 0 desde ahora.")) return;
-    const b = { today: todayKwh ?? 0, month: monthKwh ?? 0, year: yearKwh ?? 0 };
-    try { localStorage.setItem(baselineKey, JSON.stringify(b)); } catch { /* ignore */ }
-    setBaseline(b);
-    toast.success("Ahorro reiniciado");
-  }
+  // Reset/restore is controlled from the Savings tab; this card just reflects baseline if set.
 
-  function handleClearReset() {
-    try { localStorage.removeItem(baselineKey); } catch { /* ignore */ }
-    setBaseline(null);
-    toast.success("Histórico restaurado");
-  }
 
   if (!energyPrice) {
     return (
@@ -1212,24 +1230,8 @@ export function SavingsReferenceCard({
     >
       <div className="flex items-start justify-between gap-2">
         <DashboardCardHeader icon={<Leaf className="h-4 w-4" />} title="Ahorro económico" badge="● En vivo" badgeColor="var(--success)" />
-        {baseline ? (
-          <button
-            onClick={handleClearReset}
-            className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/50"
-            title="Mostrar histórico completo"
-          >
-            Restaurar
-          </button>
-        ) : (
-          <button
-            onClick={handleReset}
-            className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/50"
-            title="Reiniciar contadores a 0"
-          >
-            ↻ Reiniciar
-          </button>
-        )}
       </div>
+
 
       <div className="rounded-2xl border p-4" style={{ background: "color-mix(in oklab, var(--success) 8%, white)" }}>
         <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Ahorrando ahora</div>

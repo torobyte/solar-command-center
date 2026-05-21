@@ -138,14 +138,49 @@ export function SavingsTabView({ siteId, canEdit }: Props) {
   const monthRow = monthly[monthly.length - 1];
   const yearRow = yearly[yearly.length - 1];
 
+  const baselineKey = `savings_baseline_${siteId}`;
+  const [hasBaseline, setHasBaseline] = useState<boolean>(() => {
+    try { return typeof window !== "undefined" && !!localStorage.getItem(baselineKey); } catch { return false; }
+  });
+
+  function resetSavings() {
+    if (!confirm("¿Reiniciar el ahorro económico? Los contadores en el dashboard partirán desde 0.")) return;
+    const todaySaved = (todayRow?.saved ?? 0);
+    const monthSaved = (monthRow?.saved ?? 0);
+    const yearSaved = (yearRow?.saved ?? 0);
+    try {
+      localStorage.setItem(baselineKey, JSON.stringify({ today: todaySaved, month: monthSaved, year: yearSaved }));
+      setHasBaseline(true);
+      toast.success("Ahorro reiniciado. Refresca el dashboard para ver el cambio.");
+    } catch { toast.error("No se pudo reiniciar"); }
+  }
+
+  function restoreSavings() {
+    try { localStorage.removeItem(baselineKey); setHasBaseline(false); toast.success("Histórico restaurado"); } catch { /* ignore */ }
+  }
+
   return (
     <div className="space-y-6">
       {/* Tariff configuration */}
       <div className="rounded-xl border bg-card p-4 sm:p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <Coins className="h-5 w-5 text-emerald-600" />
-          <h3 className="text-sm font-semibold">Tarifa eléctrica</h3>
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2">
+            <Coins className="h-5 w-5 text-emerald-600" />
+            <h3 className="text-sm font-semibold">Tarifa eléctrica</h3>
+          </div>
+          {canEdit && (
+            hasBaseline ? (
+              <Button onClick={restoreSavings} size="sm" variant="outline" className="rounded-full text-xs">
+                Restaurar histórico
+              </Button>
+            ) : (
+              <Button onClick={resetSavings} size="sm" variant="outline" className="rounded-full text-xs">
+                ↻ Reiniciar ahorro
+              </Button>
+            )
+          )}
         </div>
+
         <p className="mb-3 text-xs text-muted-foreground">
           Configura el precio del kWh aquí para que el cálculo de ahorro funcione.
         </p>
