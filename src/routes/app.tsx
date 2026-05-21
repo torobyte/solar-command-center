@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { ProtectedLayout } from "@/components/ProtectedLayout";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,10 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter,
   DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -18,7 +22,8 @@ import { useI18n } from "@/lib/i18n";
 import { useServerFn } from "@tanstack/react-start";
 import { claimPairingCode } from "@/lib/pairing.functions";
 import { getSiteOwners } from "@/lib/sharing.functions";
-import { Plus, Cpu as CpuIcon, Sparkles, KeyRound, Copy, Share2, Home, Sun as SunIcon, BatteryFull, EyeOff, ShieldCheck, Zap, Cloud, Lock as LockIcon, Search, SlidersHorizontal, Eye, MoreVertical, ChevronLeft, ChevronRight, Globe2 } from "lucide-react";
+import { transferLicenseToSite } from "@/lib/licenses.functions";
+import { Plus, Cpu as CpuIcon, Sparkles, KeyRound, Copy, Share2, Home, Sun as SunIcon, BatteryFull, EyeOff, Zap, Search, SlidersHorizontal, Eye, MoreVertical, ChevronLeft, ChevronRight, Globe2, ArrowRightLeft, Trash2 } from "lucide-react";
 import { SiteSharing } from "@/components/SiteSharing";
 import { toast } from "sonner";
 import { TableSkeleton, PageHeaderSkeleton } from "@/components/LoadingStates";
@@ -42,6 +47,7 @@ interface MyLicense {
   id: string; code: string; plan: string; duration_days: number;
   assigned_email: string | null; site_name: string | null;
   redeemed_at: string | null; revoked_at: string | null;
+  redeemed_by_site?: string | null;
 }
 
 interface SiteMetrics {
@@ -61,8 +67,13 @@ function SitesIndex() {
   const [siteName, setSiteName] = useState("");
   const [busy, setBusy] = useState(false);
   const [shareSite, setShareSite] = useState<Site | null>(null);
+  const [transferLic, setTransferLic] = useState<MyLicense | null>(null);
+  const [transferTarget, setTransferTarget] = useState<string>("");
+  const [transferBusy, setTransferBusy] = useState(false);
   const claim = useServerFn(claimPairingCode);
   const fetchOwners = useServerFn(getSiteOwners);
+  const transferLicense = useServerFn(transferLicenseToSite);
+  const navigate = useNavigate();
 
   // Filters
   const [search, setSearch] = useState("");
@@ -77,7 +88,7 @@ function SitesIndex() {
     const [{ data: s, error }, { data: lic }] = await Promise.all([
       supabase.from("sites").select("*").order("created_at", { ascending: false }),
       supabase.from("license_codes")
-        .select("id,code,plan,duration_days,assigned_email,site_name,redeemed_at,revoked_at")
+        .select("id,code,plan,duration_days,assigned_email,site_name,redeemed_at,revoked_at,redeemed_by_site")
         .order("created_at", { ascending: false }),
     ]);
     if (error) toast.error(error.message);
@@ -280,24 +291,30 @@ function SitesIndex() {
         const total = sites.length || 1;
         const pctActivos = Math.round((activos / total) * 100);
         const pctOffline = Math.round((offline / total) * 100);
+        const totalPowerW = Object.values(metrics).reduce((acc, m) => acc + (m?.pv_w ?? 0), 0);
+        const totalKwh = Object.values(metrics).reduce((acc, m) => acc + (m?.kwh_today ?? 0), 0);
+        const powerStr = totalPowerW >= 1000 ? `${(totalPowerW / 1000).toFixed(2)} kW` : `${Math.round(totalPowerW)} W`;
         const stats = [
           { label: "Sitios activos", value: activos.toString(), hint: `${pctActivos}% del total`, icon: Home, tint: "bg-blue-50 text-blue-600", hintTint: "text-blue-600" },
-          { label: "Potencia actual", value: "—", unit: "", hint: "Total generando", icon: SunIcon, tint: "bg-amber-50 text-amber-600", hintTint: "text-amber-600" },
-          { label: "Energía hoy", value: "—", unit: "", hint: "Energía producida", icon: BatteryFull, tint: "bg-emerald-50 text-emerald-600", hintTint: "text-emerald-600" },
+          { label: "Potencia actual", value: powerStr, hint: "Total generando", icon: SunIcon, tint: "bg-amber-50 text-amber-600", hintTint: "text-amber-600" },
+          { label: "Energía hoy", value: `${totalKwh.toFixed(1)} kWh`, hint: "Energía producida", icon: BatteryFull, tint: "bg-emerald-50 text-emerald-600", hintTint: "text-emerald-600" },
           { label: "Sitios offline", value: offline.toString(), hint: `${pctOffline}% del total`, icon: EyeOff, tint: "bg-rose-50 text-rose-600", hintTint: "text-rose-600" },
         ];
         return (
-          <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4 animate-fade-up">
+          <div className="mb-4 grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4 animate-fade-up">
             {stats.map((s) => (
-              <div key={s.label} className="rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between gap-3">
+              <div key={s.label} className="rounded-xl sm:rounded-2xl border bg-card p-2.5 sm:p-5 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between gap-2 sm:gap-3">
                   <div className="min-w-0">
-                    <p className="text-sm text-muted-foreground">{s.label}</p>
-                    <p className="mt-2 text-3xl font-bold tracking-tight">{s.value}</p>
-                    <p className={`mt-1 text-xs font-medium ${s.hintTint}`}>{s.hint}</p>
+                    <p className="text-[11px] sm:text-sm text-muted-foreground leading-tight">{s.label}</p>
+                    <p className="mt-1 sm:mt-2 text-lg sm:text-3xl font-bold tracking-tight truncate">{s.value}</p>
+                    <p className={`mt-0.5 sm:mt-1 text-[10px] sm:text-xs font-medium ${s.hintTint} truncate`}>{s.hint}</p>
                   </div>
-                  <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${s.tint}`}>
+                  <div className={`hidden sm:flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${s.tint}`}>
                     <s.icon className="h-6 w-6" strokeWidth={2.2} />
+                  </div>
+                  <div className={`flex sm:hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg ${s.tint}`}>
+                    <s.icon className="h-4 w-4" strokeWidth={2.2} />
                   </div>
                 </div>
               </div>
@@ -308,40 +325,59 @@ function SitesIndex() {
 
       {(() => {
         const pending = licenses.filter((l) => !l.redeemed_at && !l.revoked_at);
-        if (pending.length === 0) return null;
+        const redeemed = licenses.filter((l) => l.redeemed_at && !l.revoked_at && l.redeemed_by_site);
+        if (pending.length === 0 && redeemed.length === 0) return null;
         return (
           <div className="mb-6 overflow-hidden rounded-2xl border border-success/30 bg-gradient-to-br from-success/10 via-success/5 to-transparent p-5 animate-fade-up">
             <div className="flex items-center gap-2 mb-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-success/15 text-success">
                 <Sparkles className="h-4 w-4" strokeWidth={2.4} />
               </div>
-              <h3 className="font-semibold">Tienes {pending.length} licencia{pending.length > 1 ? "s" : ""} pendiente{pending.length > 1 ? "s" : ""}</h3>
+              <h3 className="font-semibold">Mis licencias</h3>
             </div>
-            <p className="mb-3 text-sm text-muted-foreground">
-              Estos códigos de licencia se aplican automáticamente cuando vinculas un dispositivo a tu cuenta.
-            </p>
             <div className="space-y-2">
               {pending.map((l) => (
-                <div key={l.id} className="flex items-center justify-between rounded-xl border bg-background/80 p-3">
+                <div key={l.id} className="flex items-center justify-between gap-2 rounded-xl border bg-background/80 p-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <KeyRound className="h-4 w-4 shrink-0 text-accent" strokeWidth={2.2} />
                     <div className="min-w-0">
                       <div className="font-mono text-sm truncate">{l.code}</div>
                       <div className="text-xs text-muted-foreground">
-                        {l.plan} · {l.duration_days} días{l.site_name ? ` · ${l.site_name}` : ""}
+                        {l.plan} · {l.duration_days} días · <span className="text-amber-600">Pendiente</span>
                       </div>
                     </div>
                   </div>
-                  <Button size="sm" variant="outline" className="rounded-full"
+                  <Button size="sm" variant="outline" className="rounded-full shrink-0"
                     onClick={() => { navigator.clipboard.writeText(l.code); toast.success("Código copiado"); }}>
                     <Copy className="mr-1 h-3.5 w-3.5" strokeWidth={2.2} /> Copiar
                   </Button>
                 </div>
               ))}
+              {redeemed.map((l) => {
+                const currentSite = sites.find(s => s.id === l.redeemed_by_site);
+                return (
+                  <div key={l.id} className="flex items-center justify-between gap-2 rounded-xl border bg-background/80 p-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <KeyRound className="h-4 w-4 shrink-0 text-success" strokeWidth={2.2} />
+                      <div className="min-w-0">
+                        <div className="font-mono text-sm truncate">{l.code}</div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {l.plan} · Activa en <strong>{currentSite?.name ?? "—"}</strong>
+                        </div>
+                      </div>
+                    </div>
+                    <Button size="sm" variant="outline" className="rounded-full shrink-0"
+                      onClick={() => { setTransferLic(l); setTransferTarget(""); }}>
+                      <ArrowRightLeft className="mr-1 h-3.5 w-3.5" strokeWidth={2.2} /> Transferir
+                    </Button>
+                  </div>
+                );
+              })}
             </div>
           </div>
         );
       })()}
+
 
       {sites.length === 0 ? (
         <div className="rounded-2xl border border-dashed bg-card p-12 text-center animate-fade-up">
@@ -478,7 +514,11 @@ function SitesIndex() {
                     const lastSeenAbs = lastSeen ? lastSeen.toLocaleString([], { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
                     const inv = s.inverter_spec_model || s.inverter_model || s.inverter_driver || "—";
                     return (
-                      <tr key={s.id} className="border-b last:border-0 transition-colors hover:bg-muted/30">
+                      <tr
+                        key={s.id}
+                        className="border-b last:border-0 transition-colors hover:bg-muted/30 cursor-pointer"
+                        onClick={() => navigate({ to: "/sites/$siteId", params: { siteId: s.id } })}
+                      >
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
                             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-100 to-blue-50 text-primary ring-1 ring-blue-100">
@@ -540,7 +580,7 @@ function SitesIndex() {
                           <div className="text-sm font-medium">{lastSeenStr}</div>
                           <div className="text-[11px] text-muted-foreground">{lastSeenAbs}</div>
                         </td>
-                        <td className="px-4 py-4">
+                        <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1.5">
                             {!isShared && (
                               <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg border-border" title="Compartir" onClick={() => setShareSite(s)}>
@@ -552,9 +592,44 @@ function SitesIndex() {
                                 <Eye className="h-3.5 w-3.5" />
                               </Button>
                             </Link>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" title="Más opciones">
-                              <MoreVertical className="h-3.5 w-3.5" />
-                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" title="Más opciones">
+                                  <MoreVertical className="h-3.5 w-3.5" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuLabel>{s.name}</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => navigate({ to: "/sites/$siteId", params: { siteId: s.id } })}>
+                                  <Eye className="mr-2 h-4 w-4" /> Ver detalle
+                                </DropdownMenuItem>
+                                {!isShared && (
+                                  <DropdownMenuItem onClick={() => setShareSite(s)}>
+                                    <Share2 className="mr-2 h-4 w-4" /> Compartir
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(s.id); toast.success("ID copiado"); }}>
+                                  <Copy className="mr-2 h-4 w-4" /> Copiar ID
+                                </DropdownMenuItem>
+                                {!isShared && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className="text-destructive focus:text-destructive"
+                                      onClick={async () => {
+                                        if (!confirm(`¿Eliminar el sitio "${s.name}"? Esta acción no se puede deshacer.`)) return;
+                                        const { error } = await supabase.from("sites").delete().eq("id", s.id);
+                                        if (error) toast.error(error.message);
+                                        else { toast.success("Sitio eliminado"); load(); }
+                                      }}
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </td>
                       </tr>
@@ -594,30 +669,11 @@ function SitesIndex() {
         </>
       )}
 
-      <div className="mt-8 rounded-2xl border bg-primary/[0.04] px-5 py-5 animate-fade-up">
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            { icon: ShieldCheck, title: "Monitoreo 24/7", body: "Tus sistemas siempre vigilados", tint: "text-primary" },
-            { icon: Zap, title: "Datos en tiempo real", body: "Información precisa al instante", tint: "text-amber-500" },
-            { icon: Cloud, title: "Alta disponibilidad", body: "Plataforma 99.9% operativa", tint: "text-sky-500" },
-            { icon: LockIcon, title: "Seguro y confiable", body: "Tus datos siempre protegidos", tint: "text-emerald-500" },
-          ].map((f) => (
-            <div key={f.title} className="flex items-start gap-3">
-              <f.icon className={`mt-0.5 h-5 w-5 shrink-0 ${f.tint}`} strokeWidth={2.2} />
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-foreground">{f.title}</p>
-                <p className="text-xs text-muted-foreground">{f.body}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
       <Dialog open={shareSite != null} onOpenChange={(o) => !o && setShareSite(null)}>
         <DialogContent className="max-w-2xl rounded-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Share2 className="h-5 w-5 text-accent" /> Compartir “{shareSite?.name}”
+              <Share2 className="h-5 w-5 text-accent" /> Compartir "{shareSite?.name}"
             </DialogTitle>
             <DialogDescription>
               Invita a otras personas a ver o gestionar este sitio. Puedes asignar roles
@@ -625,6 +681,49 @@ function SitesIndex() {
             </DialogDescription>
           </DialogHeader>
           {shareSite && <SiteSharing siteId={shareSite.id} isOwnerOrAdmin={true} />}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={transferLic != null} onOpenChange={(o) => { if (!o) { setTransferLic(null); setTransferTarget(""); } }}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowRightLeft className="h-5 w-5 text-accent" /> Transferir licencia
+            </DialogTitle>
+            <DialogDescription>
+              Mueve la licencia <code className="font-mono">{transferLic?.code}</code> a otro sitio de tu cuenta.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Label>Sitio destino</Label>
+            <Select value={transferTarget} onValueChange={setTransferTarget}>
+              <SelectTrigger><SelectValue placeholder="Selecciona un sitio…" /></SelectTrigger>
+              <SelectContent>
+                {sites
+                  .filter(s => s.owner_id === user?.id && s.id !== transferLic?.redeemed_by_site)
+                  .map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button
+              disabled={!transferTarget || transferBusy}
+              onClick={async () => {
+                if (!transferLic || !transferTarget) return;
+                setTransferBusy(true);
+                try {
+                  await transferLicense({ data: { license_id: transferLic.id, new_site_id: transferTarget } });
+                  toast.success("Licencia transferida");
+                  setTransferLic(null); setTransferTarget("");
+                  load();
+                } catch (e) {
+                  toast.error((e as Error).message);
+                } finally { setTransferBusy(false); }
+              }}
+            >
+              {transferBusy ? "Transfiriendo…" : "Transferir"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
