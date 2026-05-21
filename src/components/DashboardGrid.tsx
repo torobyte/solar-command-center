@@ -55,15 +55,15 @@ const WIDTH_OPTIONS: { value: WidgetWidth; label: string }[] = [
 ];
 
 export function defaultWidth(id: string): WidgetWidth {
-  if (["system", "backup", "batteryStatus", "flow", "solarProduction", "houseConsumption", "weather", "radiation", "savings"].includes(id)) return 33;
-  if (["icons", "mode", "flow", "forecast"].includes(id)) return 100;
+  if (id === "weather") return 66;
+  if (["system", "backup", "batteryStatus", "flow", "solarProduction", "houseConsumption", "savings"].includes(id)) return 33;
+  if (["icons", "mode", "forecast"].includes(id)) return 100;
   return 50;
 }
 
 function defaultMobile(id: string): WidgetWidth {
-  if (["system", "backup", "batteryStatus", "flow", "solarProduction", "houseConsumption", "weather", "radiation", "savings"].includes(id)) return 100;
-  // Heavy widgets full width on mobile; numeric summaries in 2 columns of 4 (=50%).
-  if (["icons", "mode", "flow", "forecast", "history", "gauges", "advanced", "quickactions"].includes(id)) return 100;
+  if (["system", "backup", "batteryStatus", "flow", "solarProduction", "houseConsumption", "weather", "savings"].includes(id)) return 100;
+  if (["icons", "mode", "forecast", "history", "gauges", "advanced", "quickactions"].includes(id)) return 100;
   return 50;
 }
 
