@@ -1431,6 +1431,10 @@ export type Database = {
         Returns: boolean
       }
       refresh_all_today_totals: { Args: never; Returns: undefined }
+      transfer_license_to_site: {
+        Args: { _license: string; _new_site: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "superadmin" | "user"
