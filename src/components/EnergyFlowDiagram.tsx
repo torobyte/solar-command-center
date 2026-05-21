@@ -1,4 +1,4 @@
-import { Sun, Plug, Battery, Home, Zap } from "lucide-react";
+import { Zap, Info } from "lucide-react";
 import { useMemo } from "react";
 
 interface Props {
@@ -7,237 +7,213 @@ interface Props {
   gridV: number;     // V
   battery: number;   // %
   batteryV: number;  // V
+  gridW?: number;    // W (optional grid power)
+  batteryW?: number; // W (battery in/out)
 }
 
 /**
- * Premium energy-flow visualization with animated particles, gradient nodes,
- * pulsing rings and a dynamic glass-card aesthetic. Inspired by Tesla / Enphase.
+ * Clean energy-flow visualization matching the user's reference design.
+ * Horizontal layout: Battery (left) · Solar (top) · House (center) · Grid (right)
+ * with curved arrows showing flow direction.
  */
-export function EnergyFlowDiagram({ pv, load, gridV, battery, batteryV }: Props) {
+export function EnergyFlowDiagram({ pv, load, gridV, battery, batteryV, gridW = 0, batteryW }: Props) {
   const gridConnected = gridV > 50;
 
   const flows = useMemo(() => {
-    const pvToLoad = Math.min(pv, load);
     const surplus = Math.max(0, pv - load);
     const deficit = Math.max(0, load - pv);
-    const pvToBattery = battery < 100 ? surplus : 0;
-    const gridToLoad = gridConnected ? deficit : 0;
-    const batteryToLoad = !gridConnected ? deficit : 0;
-    return { pvToLoad, pvToBattery, gridToLoad, batteryToLoad };
-  }, [pv, load, battery, gridConnected]);
+    // Battery: positive = discharging to house, negative = charging from solar
+    const batW = batteryW ?? 0;
+    const batteryToHouse = batW > 5 ? batW : 0;
+    const solarToBattery = batW < -5 ? Math.abs(batW) : (surplus > 0 && battery < 100 ? surplus : 0);
+    const solarToHouse = Math.min(pv, load);
+    const gridToHouse = gridConnected ? Math.max(0, deficit - batteryToHouse) : 0;
+    return { batteryToHouse, solarToBattery, solarToHouse, gridToHouse };
+  }, [pv, load, battery, batteryW, gridConnected]);
 
-  // Path coordinates
-  const PV = { x: 90, y: 80 };
-  const HOUSE = { x: 250, y: 180 };
-  const GRID = { x: 90, y: 290 };
-  const BAT = { x: 410, y: 290 };
+  // Layout coordinates (viewBox 1000x520)
+  const SOLAR = { x: 500, y: 110 };
+  const HOUSE = { x: 500, y: 360 };
+  const BATTERY = { x: 160, y: 360 };
+  const GRID = { x: 840, y: 360 };
 
   return (
     <div className="dashboard-card p-5 sm:p-6 animate-fade-in">
-      <div className="relative mb-5 flex items-center justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <div className="dashboard-icon-chip mt-0.5 h-10 w-10 text-[var(--solar)]">
-            <Zap className="h-4 w-4" />
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[color:color-mix(in_oklab,var(--accent)_15%,transparent)] text-[var(--accent)]">
+            <Zap className="h-5 w-5" strokeWidth={2.5} />
           </div>
-          <div>
-            <h3 className="flex items-center gap-2 font-semibold tracking-tight">
-            Flujo de energía
-            </h3>
-            <p className="text-[11px] text-muted-foreground">Distribución en tiempo real</p>
-          </div>
+          <h3 className="text-lg font-semibold tracking-tight text-foreground">Flujo de energía</h3>
         </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-[color:color-mix(in_oklab,var(--success)_30%,transparent)] bg-[color:color-mix(in_oklab,var(--success)_12%,transparent)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--success)]">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--success)] opacity-75" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
-          </span>
-          En vivo
-        </span>
+        <button className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground/60 hover:bg-muted hover:text-foreground transition-colors">
+          <Info className="h-4 w-4" />
+        </button>
       </div>
 
-      <svg viewBox="0 0 500 380" className="relative w-full max-w-[600px] mx-auto">
+      <svg viewBox="0 0 1000 560" className="w-full" preserveAspectRatio="xMidYMid meet">
         <defs>
-          {/* Gradients for nodes */}
-          <radialGradient id="solarGrad" cx="30%" cy="30%">
-            <stop offset="0%" stopColor="#fde68a" />
-            <stop offset="60%" stopColor="var(--solar)" />
-            <stop offset="100%" stopColor="#b45309" />
-          </radialGradient>
-          <radialGradient id="houseGrad" cx="30%" cy="30%">
-            <stop offset="0%" stopColor="#67e8f9" />
-            <stop offset="60%" stopColor="var(--accent)" />
-            <stop offset="100%" stopColor="#0e7490" />
-          </radialGradient>
-          <radialGradient id="batGrad" cx="30%" cy="30%">
-            <stop offset="0%" stopColor="#86efac" />
-            <stop offset="60%" stopColor="var(--battery)" />
-            <stop offset="100%" stopColor="#15803d" />
-          </radialGradient>
-          <radialGradient id="gridGrad" cx="30%" cy="30%">
-            <stop offset="0%" stopColor={gridConnected ? "#fca5a5" : "#cbd5e1"} />
-            <stop offset="60%" stopColor={gridConnected ? "var(--grid)" : "#94a3b8"} />
-            <stop offset="100%" stopColor={gridConnected ? "#991b1b" : "#475569"} />
-          </radialGradient>
-
-          {/* Glow filter */}
-          <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="3" result="b" />
-            <feMerge>
-              <feMergeNode in="b" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-          <filter id="strongGlow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="6" result="b" />
-            <feMerge>
-              <feMergeNode in="b" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
+          <marker id="arr-solar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#f59e0b" />
+          </marker>
+          <marker id="arr-house" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6" />
+          </marker>
+          <marker id="arr-battery" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#22c55e" />
+          </marker>
+          <marker id="arr-grid" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8" />
+          </marker>
         </defs>
 
-        {/* Connection paths */}
-        <FlowPath id="pv-house" from={PV} to={HOUSE} active={flows.pvToLoad > 0} color="var(--solar)" watts={flows.pvToLoad} />
-        <FlowPath id="pv-bat" from={PV} to={BAT} active={flows.pvToBattery > 0} color="var(--solar)" watts={flows.pvToBattery} curved />
-        <FlowPath id="grid-house" from={GRID} to={HOUSE} active={flows.gridToLoad > 0} color="var(--grid)" watts={flows.gridToLoad} />
-        <FlowPath id="bat-house" from={BAT} to={HOUSE} active={flows.batteryToLoad > 0} color="var(--battery)" watts={flows.batteryToLoad} reverse />
+        {/* === FLOW ARROWS === */}
+        {/* Battery → House (green curve from battery up and to center-house) */}
+        {flows.batteryToHouse > 0 && (
+          <path
+            d={`M ${BATTERY.x + 60} ${BATTERY.y - 10} Q ${BATTERY.x + 180} ${BATTERY.y - 80} ${HOUSE.x - 80} ${HOUSE.y - 30}`}
+            fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round"
+            markerEnd="url(#arr-battery)"
+            style={{ strokeDasharray: "300", strokeDashoffset: "0", animation: "dashFlow 2s linear infinite" }}
+          />
+        )}
 
-        {/* Nodes */}
-        <Node {...PV} gradient="url(#solarGrad)" label="Solar" value={`${Math.round(pv).toLocaleString()} W`} active={pv > 0}>
-          <Sun className="h-7 w-7 text-white" strokeWidth={2.5} />
-        </Node>
-        <Node {...HOUSE} gradient="url(#houseGrad)" label="Casa" value={`${Math.round(load).toLocaleString()} W`} big active>
-          <Home className="h-9 w-9 text-white" strokeWidth={2.5} />
-        </Node>
-        <Node {...GRID} gradient="url(#gridGrad)" label="Red" value={gridConnected ? `${gridV.toFixed(0)} V` : "Desconectada"} active={gridConnected}>
-          <Plug className="h-7 w-7 text-white" strokeWidth={2.5} />
-        </Node>
-        <Node {...BAT} gradient="url(#batGrad)" label="Batería" value={`${battery.toFixed(0)}% · ${batteryV.toFixed(1)} V`} active={battery > 0}>
-          <Battery className="h-7 w-7 text-white" strokeWidth={2.5} />
-        </Node>
+        {/* Solar → House (blue arrow down from solar to house) */}
+        {flows.solarToHouse > 0 && (
+          <path
+            d={`M ${SOLAR.x + 30} ${SOLAR.y + 70} Q ${SOLAR.x + 50} ${(SOLAR.y + HOUSE.y) / 2} ${HOUSE.x + 10} ${HOUSE.y - 50}`}
+            fill="none" stroke="#3b82f6" strokeWidth="3" strokeLinecap="round"
+            markerEnd="url(#arr-house)"
+          />
+        )}
+
+        {/* Solar generation arrow (orange up arrow into solar) */}
+        <path
+          d={`M ${SOLAR.x - 30} ${SOLAR.y + 180} L ${SOLAR.x - 30} ${SOLAR.y + 80}`}
+          fill="none" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round"
+          markerEnd="url(#arr-solar)"
+        />
+
+        {/* House ↔ Grid (dashed line between house and grid) */}
+        <path
+          d={`M ${HOUSE.x + 90} ${HOUSE.y} L ${GRID.x - 70} ${GRID.y}`}
+          fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round"
+          strokeDasharray="6 6"
+        />
+        {/* Small bidirectional arrow heads on grid line */}
+        <path d={`M ${HOUSE.x + 95} ${HOUSE.y - 5} L ${HOUSE.x + 105} ${HOUSE.y} L ${HOUSE.x + 95} ${HOUSE.y + 5}`}
+          fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={`M ${GRID.x - 75} ${GRID.y - 5} L ${GRID.x - 85} ${GRID.y} L ${GRID.x - 75} ${GRID.y + 5}`}
+          fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+
+        {/* === NODES === */}
+        {/* SOLAR (top center) */}
+        <NodeIcon x={SOLAR.x} y={SOLAR.y} color="#f59e0b" bgOpacity={0.12}>
+          <g transform={`translate(${SOLAR.x - 28}, ${SOLAR.y - 28})`}>
+            {/* Sun */}
+            <circle cx="20" cy="18" r="7" fill="#f59e0b" />
+            {[0, 45, 90, 135, 180, 225, 270, 315].map(a => {
+              const rad = (a * Math.PI) / 180;
+              const x1 = 20 + Math.cos(rad) * 11;
+              const y1 = 18 + Math.sin(rad) * 11;
+              const x2 = 20 + Math.cos(rad) * 15;
+              const y2 = 18 + Math.sin(rad) * 15;
+              return <line key={a} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" />;
+            })}
+            {/* Panel grid */}
+            <g transform="translate(8, 32)">
+              <rect x="0" y="0" width="40" height="18" rx="1.5" fill="#1e3a5f" />
+              {[1, 2, 3].map(i => <line key={`v${i}`} x1={i * 10} y1="0" x2={i * 10} y2="18" stroke="#3b5a8a" strokeWidth="0.8" />)}
+              <line x1="0" y1="9" x2="40" y2="9" stroke="#3b5a8a" strokeWidth="0.8" />
+            </g>
+          </g>
+        </NodeIcon>
+        <text x={SOLAR.x + 95} y={SOLAR.y - 8} fontSize="28" fontWeight="700" fill="#f59e0b" className="tabular-nums">
+          {Math.round(pv)}
+          <tspan fontSize="15" fontWeight="600" dx="3" fill="#f59e0b" opacity="0.85">W</tspan>
+        </text>
+        <text x={SOLAR.x + 95} y={SOLAR.y + 16} fontSize="14" fill="hsl(var(--muted-foreground))" fontWeight="500">
+          Generación solar
+        </text>
+
+        {/* BATTERY (left) */}
+        <NodeIcon x={BATTERY.x} y={BATTERY.y} color="#22c55e" bgOpacity={0.12}>
+          <g transform={`translate(${BATTERY.x - 14}, ${BATTERY.y - 22})`}>
+            <rect x="3" y="2" width="22" height="4" rx="1" fill="none" stroke="#22c55e" strokeWidth="2" />
+            <rect x="0" y="6" width="28" height="38" rx="4" fill="none" stroke="#22c55e" strokeWidth="2.5" />
+            <path d="M 16 14 L 10 28 L 14 28 L 12 38 L 20 22 L 16 22 L 18 14 Z" fill="#22c55e" />
+          </g>
+        </NodeIcon>
+        <text x={BATTERY.x} y={BATTERY.y + 75} textAnchor="middle" fontSize="26" fontWeight="700" fill="#22c55e" className="tabular-nums">
+          {Math.round(Math.abs(flows.batteryToHouse || flows.solarToBattery || 0))}
+          <tspan fontSize="14" fontWeight="600" dx="3" opacity="0.85">W</tspan>
+        </text>
+        <text x={BATTERY.x} y={BATTERY.y + 96} textAnchor="middle" fontSize="13" fill="hsl(var(--muted-foreground))" fontWeight="500">Batería</text>
+        <text x={BATTERY.x} y={BATTERY.y + 115} textAnchor="middle" fontSize="12" fill="hsl(var(--muted-foreground))" opacity="0.75">
+          {battery.toFixed(0)}% · {batteryV.toFixed(1)} V
+        </text>
+
+        {/* HOUSE (center) */}
+        <NodeIcon x={HOUSE.x} y={HOUSE.y} color="#3b82f6" bgOpacity={0.08}>
+          <g transform={`translate(${HOUSE.x - 18}, ${HOUSE.y - 18})`}>
+            <path d="M 4 16 L 18 4 L 32 16 L 32 32 L 22 32 L 22 22 L 14 22 L 14 32 L 4 32 Z"
+              fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+          </g>
+        </NodeIcon>
+        <text x={HOUSE.x + 75} y={HOUSE.y - 4} fontSize="26" fontWeight="700" fill="#3b82f6" className="tabular-nums">
+          {Math.round(load)}
+          <tspan fontSize="14" fontWeight="600" dx="3" opacity="0.85">W</tspan>
+        </text>
+        <text x={HOUSE.x + 75} y={HOUSE.y + 18} fontSize="13" fill="hsl(var(--muted-foreground))" fontWeight="500">
+          Consumo de la casa
+        </text>
+
+        {/* GRID (right) */}
+        <NodeIcon x={GRID.x} y={GRID.y} color="#94a3b8" bgOpacity={0.1}>
+          <g transform={`translate(${GRID.x - 18}, ${GRID.y - 20})`} stroke="#64748b" strokeWidth="2" fill="none" strokeLinecap="round">
+            {/* Tower poles */}
+            <line x1="10" y1="2" x2="6" y2="38" />
+            <line x1="26" y1="2" x2="30" y2="38" />
+            {/* Crossbars */}
+            <line x1="4" y1="10" x2="32" y2="10" />
+            <line x1="5" y1="18" x2="31" y2="18" />
+            <line x1="7" y1="28" x2="29" y2="28" />
+            {/* X braces */}
+            <line x1="8" y1="10" x2="14" y2="18" />
+            <line x1="14" y1="10" x2="8" y2="18" />
+            <line x1="22" y1="10" x2="28" y2="18" />
+            <line x1="28" y1="10" x2="22" y2="18" />
+          </g>
+        </NodeIcon>
+        <text x={GRID.x} y={GRID.y + 75} textAnchor="middle" fontSize="24" fontWeight="700" fill="hsl(var(--foreground))" className="tabular-nums">
+          {Math.round(gridConnected ? gridW : 0)}
+          <tspan fontSize="13" fontWeight="600" dx="3" opacity="0.7">W</tspan>
+        </text>
+        <text x={GRID.x} y={GRID.y + 96} textAnchor="middle" fontSize="13" fill="hsl(var(--muted-foreground))" fontWeight="500">Red</text>
+        <text x={GRID.x} y={GRID.y + 114} textAnchor="middle" fontSize="12" fill="hsl(var(--muted-foreground))" opacity="0.75">
+          {gridConnected ? `${gridV.toFixed(0)} V` : "Desconectada"}
+        </text>
       </svg>
 
-      {/* Stats row */}
-      <div className="relative mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <Stat color="var(--solar)" label="Solar" value={`${Math.round(pv)} W`} icon={<Sun className="h-3.5 w-3.5" />} />
-        <Stat color="var(--accent)" label="Consumo" value={`${Math.round(load)} W`} icon={<Home className="h-3.5 w-3.5" />} />
-        <Stat color="var(--battery)" label="Batería" value={`${battery.toFixed(0)}%`} icon={<Battery className="h-3.5 w-3.5" />} />
-        <Stat color={gridConnected ? "var(--grid)" : "hsl(var(--muted-foreground))"} label="Red" value={gridConnected ? `${gridV.toFixed(0)} V` : "Off"} icon={<Plug className="h-3.5 w-3.5" />} />
-      </div>
-
       <style>{`
-        @keyframes flowDash { to { stroke-dashoffset: -32; } }
-        @keyframes flowDashRev { to { stroke-dashoffset: 32; } }
-        @keyframes nodePulse {
-          0%, 100% { opacity: 0.35; transform: scale(1); }
-          50% { opacity: 0.15; transform: scale(1.15); }
-        }
-        @keyframes particleMove {
-          from { offset-distance: 0%; opacity: 0; }
-          10% { opacity: 1; }
-          90% { opacity: 1; }
-          to { offset-distance: 100%; opacity: 0; }
+        @keyframes dashFlow {
+          to { stroke-dashoffset: -24; }
         }
       `}</style>
     </div>
   );
 }
 
-function FlowPath({
-  id, from, to, active, color, reverse, curved, watts,
+function NodeIcon({
+  x, y, color, bgOpacity = 0.12, children,
 }: {
-  id: string;
-  from: { x: number; y: number };
-  to: { x: number; y: number };
-  active: boolean;
-  color: string;
-  reverse?: boolean;
-  curved?: boolean;
-  watts?: number;
+  x: number; y: number; color: string; bgOpacity?: number; children: React.ReactNode;
 }) {
-  // Build a smooth curve through a control point near the house
-  const cx = curved ? (from.x + to.x) / 2 : to.x;
-  const cy = curved ? from.y : from.y + (to.y - from.y) * 0.6;
-  const d = `M ${from.x} ${from.y} Q ${cx} ${cy} ${to.x} ${to.y}`;
-  const midX = (from.x + to.x) / 2;
-  const midY = (from.y + to.y) / 2;
-
   return (
     <g>
-      <path d={d} fill="none" stroke="hsl(var(--muted))" strokeWidth="2.5" opacity="0.25" strokeDasharray="2 4" />
-      {active && (
-        <>
-          <path
-            id={id}
-            d={d}
-            fill="none"
-            stroke={color}
-            strokeWidth="3"
-            strokeDasharray="10 6"
-            strokeLinecap="round"
-            opacity="0.9"
-            style={{ animation: `${reverse ? "flowDashRev" : "flowDash"} 1.2s linear infinite` }}
-            filter="url(#softGlow)"
-          />
-          {/* Traveling particle */}
-          <circle r="3.5" fill={color} filter="url(#strongGlow)">
-            <animateMotion dur="2.2s" repeatCount="indefinite" path={d} rotate="auto" keyPoints={reverse ? "1;0" : "0;1"} keyTimes="0;1" />
-          </circle>
-          {watts != null && watts > 5 && (
-            <g transform={`translate(${midX},${midY})`}>
-              <rect x="-22" y="-9" width="44" height="18" rx="9" fill="hsl(var(--background))" stroke={color} strokeWidth="1" opacity="0.95" />
-              <text textAnchor="middle" y="4" fontSize="10" fontWeight="700" fill={color}>
-                {Math.round(watts)}W
-              </text>
-            </g>
-          )}
-        </>
-      )}
+      <circle cx={x} cy={y} r="44" fill={color} opacity={bgOpacity} />
+      <circle cx={x} cy={y} r="44" fill="none" stroke={color} strokeWidth="2" opacity="0.55" />
+      {children}
     </g>
-  );
-}
-
-function Node({
-  x, y, gradient, label, value, children, big, active,
-}: {
-  x: number; y: number; gradient: string; label: string; value: string;
-  children: React.ReactNode; big?: boolean; active?: boolean;
-}) {
-  const r = big ? 38 : 30;
-  return (
-    <g>
-      {/* Outer pulse ring */}
-      {active && (
-        <circle cx={x} cy={y} r={r + 8} fill={gradient} opacity="0.25"
-          style={{ animation: "nodePulse 2.5s ease-in-out infinite", transformOrigin: `${x}px ${y}px` }} />
-      )}
-      {/* Glow halo */}
-      <circle cx={x} cy={y} r={r + 4} fill={gradient} opacity="0.3" filter="url(#strongGlow)" />
-      {/* Main circle */}
-      <circle cx={x} cy={y} r={r} fill={gradient} stroke="hsl(var(--background))" strokeWidth="2" />
-      {/* Inner highlight */}
-      <circle cx={x - r * 0.3} cy={y - r * 0.3} r={r * 0.35} fill="white" opacity="0.25" />
-      {/* Icon */}
-      <foreignObject x={x - r * 0.55} y={y - r * 0.55} width={r * 1.1} height={r * 1.1} style={{ pointerEvents: "none" }}>
-        <div className="flex h-full w-full items-center justify-center">{children}</div>
-      </foreignObject>
-      {/* Labels */}
-      <text x={x} y={y + r + 18} textAnchor="middle" className="fill-foreground" fontSize="13" fontWeight="700">{label}</text>
-      <text x={x} y={y + r + 33} textAnchor="middle" className="fill-muted-foreground" fontSize="11" fontWeight="500">{value}</text>
-    </g>
-  );
-}
-
-function Stat({ color, label, value, icon }: { color: string; label: string; value: string; icon: React.ReactNode }) {
-  return (
-    <div className="dashboard-panel flex items-center gap-2 px-3 py-2.5">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: color }}>
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <div className="truncate text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
-        <div className="truncate text-sm font-bold tabular-nums">{value}</div>
-      </div>
-    </div>
   );
 }
