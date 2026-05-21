@@ -8,8 +8,33 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Zap, BatteryCharging, Settings, Volume2, Activity,
-  Sun, Plug, ChevronLeft, ChevronRight, Check, AlertTriangle,
+  Sun, Plug, ChevronLeft, ChevronRight, Check, AlertTriangle, Cpu,
 } from "lucide-react";
+
+/**
+ * Catálogo de marcas soportadas. Voltronic/Axpert/MPP-Solar comparten
+ * protocolo PI30 (QPIGS/QPIRI…) y están totalmente implementados en el
+ * agente. Las demás marcas exponen Modbus RTU/TCP o protocolos propietarios
+ * — el driver dedicado se va añadiendo gradualmente (ver agent/agent.py).
+ * Marcar el inversor aquí permite al agente seleccionar el driver correcto
+ * y a la UI ocultar comandos que no aplican a esa marca.
+ */
+export const INVERTER_BRANDS: { id: string; label: string; status: "stable" | "beta" | "experimental" }[] = [
+  { id: "voltronic", label: "Voltronic / Axpert / MPP-Solar", status: "stable" },
+  { id: "deye",      label: "Deye / Sunsynk",                status: "beta" },
+  { id: "growatt",   label: "Growatt",                        status: "beta" },
+  { id: "victron",   label: "Victron (VE.Direct / GX)",       status: "beta" },
+  { id: "solis",     label: "Solis (Ginlong)",                status: "experimental" },
+  { id: "goodwe",    label: "GoodWe",                         status: "experimental" },
+  { id: "sungrow",   label: "Sungrow",                        status: "experimental" },
+  { id: "huawei",    label: "Huawei SUN2000",                 status: "experimental" },
+  { id: "must",      label: "MUST Power",                     status: "experimental" },
+  { id: "felicity",  label: "Felicity Solar",                 status: "experimental" },
+  { id: "srne",      label: "SRNE",                           status: "experimental" },
+  { id: "invt",      label: "INVT",                           status: "experimental" },
+  { id: "livoltek",  label: "Livoltek",                       status: "experimental" },
+  { id: "powmr",     label: "PowMr",                          status: "experimental" },
+];
 
 type SelectOpt = { v: string; l: string; desc?: string };
 
