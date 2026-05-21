@@ -368,7 +368,7 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
       <div className="p-3 sm:p-5">
 
       {pickerOpen && (
-        <div className="dashboard-panel mb-4 p-3 animate-fade-in">
+        <div className="dashboard-panel mb-4 p-3 text-foreground animate-fade-in">
           <div className="dashboard-panel flex items-center gap-2 rounded-md px-2">
             <Search className="h-4 w-4 text-muted-foreground" />
             <input
@@ -376,7 +376,7 @@ export function SolarForecastWidget({ pvConfig, live }: { pvConfig?: ForecastPvC
               value={search}
               onChange={(e) => { setSearch(e.target.value); searchCity(e.target.value); }}
               placeholder="Buscar ciudad…"
-              className="w-full bg-transparent py-2 text-sm outline-none"
+              className="w-full bg-transparent py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none"
             />
             {searching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
           </div>
