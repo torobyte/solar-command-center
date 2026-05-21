@@ -174,13 +174,3 @@ export function LicensesPanel() {
     </>
   );
 }
-
-            >
-              {busy ? "Transfiriendo…" : "Transferir"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
-}
