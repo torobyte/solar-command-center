@@ -1104,7 +1104,17 @@ export function SavingsReferenceCard({
   const [todayKwh, setTodayKwh] = useState<number | null>(null);
   const [monthKwh, setMonthKwh] = useState<number | null>(null);
   const [yearKwh, setYearKwh] = useState<number | null>(null);
+  const [baseline, setBaseline] = useState<{ today: number; month: number; year: number } | null>(null);
   const currentCurrency = currency ?? "CLP";
+  const baselineKey = `savings_baseline_${siteId}`;
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(baselineKey);
+      if (raw) setBaseline(JSON.parse(raw));
+      else setBaseline(null);
+    } catch { setBaseline(null); }
+  }, [baselineKey]);
 
   useEffect(() => {
     if (!siteId || siteId === "local") return;
@@ -1130,9 +1140,6 @@ export function SavingsReferenceCard({
       const currentMonth = now.getMonth();
 
       for (const row of data) {
-        // Ahorro real = energía consumida que NO se compró a la red.
-        // Si load_kwh está disponible, usamos load - grid_used (sin doble conteo).
-        // Fallback: pv_kwh + battery_discharged_kwh limitado por load_kwh.
         const loadKwh = Number(row.load_kwh ?? 0);
         const gridKwh = Number(row.grid_used_kwh ?? 0);
         let saved = loadKwh - gridKwh;
@@ -1158,6 +1165,20 @@ export function SavingsReferenceCard({
     };
   }, [siteId]);
 
+  function handleReset() {
+    if (!confirm("¿Reiniciar el ahorro económico? Los contadores partirán desde 0 desde ahora.")) return;
+    const b = { today: todayKwh ?? 0, month: monthKwh ?? 0, year: yearKwh ?? 0 };
+    try { localStorage.setItem(baselineKey, JSON.stringify(b)); } catch { /* ignore */ }
+    setBaseline(b);
+    toast.success("Ahorro reiniciado");
+  }
+
+  function handleClearReset() {
+    try { localStorage.removeItem(baselineKey); } catch { /* ignore */ }
+    setBaseline(null);
+    toast.success("Histórico restaurado");
+  }
+
   if (!energyPrice) {
     return (
       <div className="dashboard-card p-5 sm:p-6">
@@ -1167,18 +1188,19 @@ export function SavingsReferenceCard({
     );
   }
 
-  // "Ahorrando ahora" = consumo cubierto por solar + batería (no por la red).
-  // Limitado por la carga: si pv+batería > carga, sólo se ahorra hasta la carga.
+  const adjToday = Math.max(0, (todayKwh ?? 0) - (baseline?.today ?? 0));
+  const adjMonth = Math.max(0, (monthKwh ?? 0) - (baseline?.month ?? 0));
+  const adjYear = Math.max(0, (yearKwh ?? 0) - (baseline?.year ?? 0));
+
   const nonGridW = Math.max(0, pvW) + Math.max(0, batteryDischargeW);
   const coveredW = loadW > 0 ? Math.min(loadW, nonGridW) : nonGridW;
   const perHour = (coveredW / 1000) * energyPrice;
-  const todayValue = (todayKwh ?? 0) * energyPrice;
-  const monthValue = (monthKwh ?? 0) * energyPrice;
-  // Proyección anual razonable: requiere al menos 7 días de datos para extrapolar.
+  const todayValue = adjToday * energyPrice;
+  const monthValue = adjMonth * energyPrice;
   const dayOfYear = Math.max(1, Math.ceil((Date.now() - new Date(new Date().getFullYear(), 0, 1).getTime()) / 86_400_000));
-  const projectedYear = dayOfYear >= 7 && (yearKwh ?? 0) > 0
-    ? ((yearKwh ?? 0) / dayOfYear) * 365 * energyPrice
-    : (yearKwh ?? 0) * energyPrice;
+  const projectedYear = dayOfYear >= 7 && adjYear > 0
+    ? (adjYear / dayOfYear) * 365 * energyPrice
+    : adjYear * energyPrice;
 
   return (
     <div
@@ -1188,7 +1210,26 @@ export function SavingsReferenceCard({
         background: "linear-gradient(180deg, color-mix(in oklab, var(--success) 7%, white) 0%, color-mix(in oklab, var(--card) 96%, white) 100%)",
       }}
     >
-      <DashboardCardHeader icon={<Leaf className="h-4 w-4" />} title="Ahorro económico" badge="● En vivo" badgeColor="var(--success)" />
+      <div className="flex items-start justify-between gap-2">
+        <DashboardCardHeader icon={<Leaf className="h-4 w-4" />} title="Ahorro económico" badge="● En vivo" badgeColor="var(--success)" />
+        {baseline ? (
+          <button
+            onClick={handleClearReset}
+            className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/50"
+            title="Mostrar histórico completo"
+          >
+            Restaurar
+          </button>
+        ) : (
+          <button
+            onClick={handleReset}
+            className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/50"
+            title="Reiniciar contadores a 0"
+          >
+            ↻ Reiniciar
+          </button>
+        )}
+      </div>
 
       <div className="rounded-2xl border p-4" style={{ background: "color-mix(in oklab, var(--success) 8%, white)" }}>
         <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Ahorrando ahora</div>
@@ -1204,10 +1245,16 @@ export function SavingsReferenceCard({
       </div>
 
       <div className="mt-4 grid grid-cols-3 gap-3 max-[520px]:grid-cols-1">
-        <SmallStat label="Hoy" value={formatCurrency(todayValue, currentCurrency)} subtitle={`${(todayKwh ?? 0).toFixed(1)} kWh`} />
-        <SmallStat label="Este mes" value={formatCurrency(monthValue, currentCurrency)} subtitle={`${(monthKwh ?? 0).toFixed(0)} kWh`} />
-        <SmallStat label="Año proyectado" value={formatCurrency(projectedYear, currentCurrency)} subtitle={`${(yearKwh ?? 0).toFixed(0)} kWh real`} />
+        <SmallStat label="Hoy" value={formatCurrency(todayValue, currentCurrency)} subtitle={`${adjToday.toFixed(1)} kWh`} />
+        <SmallStat label="Este mes" value={formatCurrency(monthValue, currentCurrency)} subtitle={`${adjMonth.toFixed(0)} kWh`} />
+        <SmallStat label="Año proyectado" value={formatCurrency(projectedYear, currentCurrency)} subtitle={`${adjYear.toFixed(0)} kWh real`} />
       </div>
+
+      {baseline && (
+        <div className="mt-3 rounded-lg border border-dashed bg-muted/30 px-3 py-2 text-[11px] text-muted-foreground">
+          Contadores reiniciados. Pulsa <strong>Restaurar</strong> para ver el histórico completo.
+        </div>
+      )}
 
       <FooterLink label="Ver historial completo" to="/sites/$siteId/savings" params={{ siteId }} />
     </div>
