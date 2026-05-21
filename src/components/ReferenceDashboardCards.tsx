@@ -1,24 +1,18 @@
 import { Link } from "@tanstack/react-router";
 import {
   ArrowRight,
-  Calendar,
   Cloud,
   CloudLightning,
   CloudRain,
   CloudSnow,
-  Droplets,
   Home,
   Info,
   Leaf,
   MoreVertical,
-  Sparkles,
   Sun,
-  Thermometer,
-  TrendingUp,
-  Wind,
   Zap,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { PvConfig } from "@/components/PvSystemConfig";
 
@@ -112,7 +106,7 @@ function DashboardCardHeader({
   title: string;
   badge?: string;
   badgeColor?: string;
-  trailing?: React.ReactNode;
+  trailing?: ReactNode;
 }) {
   return (
     <div className="mb-4 flex items-center justify-between gap-3">
@@ -180,7 +174,7 @@ function StatusMetric({
   label: string;
   value: string;
   accent: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
 }) {
   return (
     <div className="flex min-w-0 flex-col items-center text-center">
@@ -205,7 +199,7 @@ function ProgressRow({ label, value, progress, accent, icon }: {
   value: string;
   progress: number;
   accent: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
 }) {
   return (
     <div>
