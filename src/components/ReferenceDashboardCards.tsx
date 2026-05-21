@@ -1194,19 +1194,8 @@ export function SavingsReferenceCard({
     };
   }, [siteId]);
 
-  function handleReset() {
-    if (!confirm("¿Reiniciar el ahorro económico? Los contadores partirán desde 0 desde ahora.")) return;
-    const b = { today: todayKwh ?? 0, month: monthKwh ?? 0, year: yearKwh ?? 0 };
-    try { localStorage.setItem(baselineKey, JSON.stringify(b)); } catch { /* ignore */ }
-    setBaseline(b);
-    toast.success("Ahorro reiniciado");
-  }
+  // Reset/restore is controlled from the Savings tab; this card just reflects baseline if set.
 
-  function handleClearReset() {
-    try { localStorage.removeItem(baselineKey); } catch { /* ignore */ }
-    setBaseline(null);
-    toast.success("Histórico restaurado");
-  }
 
   if (!energyPrice) {
     return (
