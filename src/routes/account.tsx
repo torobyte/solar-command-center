@@ -230,31 +230,8 @@ function AccountPage() {
       </SettingsCard>
       </div>
 
-      <SettingsCard icon={LayoutGrid} title="Mis licencias" description="Revisa y administra las licencias de tus productos." tint="bg-sky-50 text-sky-600">
-        {lics.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No tienes licencias asignadas.</p>
-        ) : (
-          <ul className="space-y-2">
-            {lics.map((l) => (
-              <li key={l.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-background p-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-sky-600">
-                    <LayoutGrid className="h-4 w-4" strokeWidth={2.2} />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="font-mono text-sm truncate">{l.code}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {l.plan} · {l.is_lifetime ? "De por vida" : `${l.duration_days} días`}
-                    </div>
-                  </div>
-                </div>
-                {l.revoked_at ? <Badge variant="destructive" className="rounded-full">Revocada</Badge>
-                  : l.redeemed_at ? <Badge className="rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Activada</Badge>
-                  : <Badge className="rounded-full">Lista para activar</Badge>}
-              </li>
-            ))}
-          </ul>
-        )}
+      <SettingsCard icon={LayoutGrid} title="Mis licencias" description="Revisa, copia y transfiere tus licencias entre sitios." tint="bg-sky-50 text-sky-600">
+        <LicensesPanel />
       </SettingsCard>
     </div>
   );
