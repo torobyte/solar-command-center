@@ -410,6 +410,7 @@ export function SystemStatusCard({
   battery,
   batteryV,
   gridV,
+  gridW = 0,
   pvMax,
   loadMax = 5200,
 }: {
@@ -418,6 +419,8 @@ export function SystemStatusCard({
   battery: number;
   batteryV: number;
   gridV: number;
+  /** Potencia tomada de la red (W) — incluye consumo casa + carga batería. */
+  gridW?: number;
   pvMax: number;
   loadMax?: number;
 }) {
