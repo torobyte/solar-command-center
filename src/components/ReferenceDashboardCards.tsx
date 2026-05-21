@@ -662,58 +662,136 @@ export function HouseConsumptionReferenceCard({ load, contractedPower = 5200 }: 
   );
 }
 
-export function WeatherOverviewCard({ data }: { data: DashboardWeatherData | null }) {
-  if (!data) {
-    return (
-      <div className="dashboard-card p-5 sm:p-6">
-        <DashboardCardHeader icon={<Sun className="h-4 w-4" />} title="Clima" badgeColor="var(--solar)" />
-        <div className="text-sm text-muted-foreground">Cargando condiciones meteorológicas…</div>
-      </div>
-    );
+interface GeoResult { name: string; country?: string; admin1?: string; latitude: number; longitude: number }
+
+function LocationPicker({ currentLabel, siteId }: { currentLabel: string; siteId: string }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<GeoResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const debRef = useRef<number | null>(null);
+
+  function search(q: string) {
+    setQuery(q);
+    if (debRef.current) window.clearTimeout(debRef.current);
+    if (q.trim().length < 2) { setResults([]); return; }
+    debRef.current = window.setTimeout(async () => {
+      setSearching(true);
+      try {
+        const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=es&format=json`);
+        const j = await r.json();
+        setResults(j.results ?? []);
+      } catch { setResults([]); }
+      finally { setSearching(false); }
+    }, 300);
+  }
+
+  async function persist(lat: number, lon: number, label: string) {
+    if (typeof window !== "undefined") {
+      try { localStorage.setItem(WEATHER_STORAGE_KEY, JSON.stringify({ lat, lon, city: label })); } catch { /* ignore */ }
+    }
+    const isUuid = /^[0-9a-f-]{36}$/i.test(siteId);
+    if (isUuid) {
+      const { error } = await supabase
+        .from("pv_system_config")
+        .upsert({ site_id: siteId, latitude: lat, longitude: lon, location_label: label }, { onConflict: "site_id" });
+      if (error) toast.error(error.message);
+      else toast.success(`Ubicación: ${label}`);
+    } else {
+      toast.success(`Ubicación: ${label}`);
+      // Local agent: fuerza recarga para que el hook re-lea localStorage.
+      setTimeout(() => { if (typeof window !== "undefined") window.location.reload(); }, 600);
+    }
+  }
+
+  async function useMyLocation() {
+    if (typeof navigator === "undefined" || !navigator.geolocation) { toast.error("Geolocalización no disponible"); return; }
+    setSearching(true);
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      try {
+        const r = await fetch(`https://geocoding-api.open-meteo.com/v1/reverse?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&language=es`);
+        const j = await r.json();
+        const top = j.results?.[0];
+        const label = top ? [top.name, top.admin1, top.country].filter(Boolean).join(", ") : "Mi ubicación";
+        await persist(pos.coords.latitude, pos.coords.longitude, label);
+        setOpen(false);
+      } finally { setSearching(false); }
+    }, () => { setSearching(false); toast.error("No se pudo obtener tu ubicación"); }, { timeout: 6000 });
+  }
+
+  async function pick(r: GeoResult) {
+    const fullLabel = [r.name, r.admin1, r.country].filter(Boolean).join(", ");
+    await persist(r.latitude, r.longitude, fullLabel);
+    setOpen(false);
+    setQuery("");
+    setResults([]);
   }
 
   return (
-    <div
-      className="dashboard-card p-5 sm:p-6"
-      style={{ background: "linear-gradient(180deg, color-mix(in oklab, var(--load) 8%, white) 0%, color-mix(in oklab, var(--card) 96%, white) 100%)" }}
-    >
-      <DashboardCardHeader icon={<Sun className="h-4 w-4" />} title={`Clima en ${data.city}`} badgeColor="var(--solar)" />
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex items-center gap-1.5 rounded-full border bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-foreground transition-colors hover:bg-white"
+        title="Cambiar ubicación"
+      >
+        <MapPin className="h-3 w-3" />
+        <span className="max-w-[140px] truncate">{currentLabel}</span>
+      </button>
 
-      <div className="grid grid-cols-[1.2fr_1fr] gap-4 max-[520px]:grid-cols-1">
-        <div>
-          <div className="text-[58px] font-bold leading-none text-foreground">{Math.round(data.current.temperature)}°C</div>
-          <div className="mt-2 flex items-center gap-2 text-[14px] text-muted-foreground">
-            <WeatherGlyph code={data.current.weatherCode} className="h-5 w-5" />
-            <span>{weatherLabel(data.current.weatherCode)}</span>
+      {open && (
+        <div className="absolute right-0 top-9 z-30 w-72 rounded-xl border bg-card p-3 shadow-elevated animate-fade-in">
+          <div className="flex items-center gap-2 rounded-md border bg-background px-2">
+            <Search className="h-3.5 w-3.5 text-muted-foreground" />
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => search(e.target.value)}
+              placeholder="Buscar ciudad…"
+              className="w-full bg-transparent py-1.5 text-[12px] outline-none"
+            />
+            {searching && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
           </div>
+          {results.length > 0 && (
+            <ul className="mt-2 max-h-44 overflow-auto rounded-md border bg-card text-[12px]">
+              {results.map((r, i) => (
+                <li key={`${r.latitude}-${r.longitude}-${i}`}>
+                  <button
+                    type="button"
+                    onClick={() => pick(r)}
+                    className="flex w-full items-center justify-between px-2.5 py-1.5 text-left hover:bg-muted"
+                  >
+                    <span className="font-medium">{r.name}</span>
+                    <span className="text-[10px] text-muted-foreground">{[r.admin1, r.country].filter(Boolean).join(", ")}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <button
+            type="button"
+            onClick={useMyLocation}
+            className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-md border bg-background px-2.5 py-1.5 text-[11px] font-semibold hover:bg-muted"
+          >
+            <MapPin className="h-3 w-3" /> Usar mi ubicación actual
+          </button>
         </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          <SmallStat label="Sensación" value={`${Math.round(data.current.apparentTemperature)}°C`} />
-          <SmallStat label="Humedad" value={`${Math.round(data.current.humidity)}%`} />
-          <SmallStat label="Viento" value={`${Math.round(data.current.windSpeed)} km/h`} />
-          <SmallStat label="UV" value={`${Math.round(data.current.uvIndex)} Bajo`} />
-        </div>
-      </div>
-
-      <div className="mt-4 grid grid-cols-6 gap-2 rounded-xl border p-3 max-[520px]:grid-cols-3" style={{ background: "color-mix(in oklab, var(--card) 94%, white)" }}>
-        {data.daily.slice(0, 6).map((day, index) => (
-          <div key={day.date} className="text-center">
-            <div className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: index === 0 ? "var(--load)" : "var(--muted-foreground)" }}>
-              {index === 0 ? "Ahora" : new Date(day.date).toLocaleDateString("es-CL", { weekday: "short" })}
-            </div>
-            <div className="my-2 flex justify-center"><WeatherGlyph code={day.weatherCode} className="h-5 w-5" /></div>
-            <div className="text-[12px] text-foreground">{Math.round(day.max)}° / {Math.round(day.min)}°</div>
-          </div>
-        ))}
-      </div>
-
-      <FooterLink label="Ver pronóstico completo" />
+      )}
     </div>
   );
 }
 
-export function SolarRadiationCard({ data, pvConfig, livePv }: { data: DashboardWeatherData | null; pvConfig?: PvConfig | null; livePv: number }) {
+export function WeatherAndRadiationCard({
+  data,
+  pvConfig,
+  livePv,
+  siteId,
+}: {
+  data: DashboardWeatherData | null;
+  pvConfig?: PvConfig | null;
+  livePv: number;
+  siteId: string;
+}) {
   const kwp = pvConfig?.array_kwp ?? 5.2;
   const losses = pvConfig?.system_losses_pct ?? 14;
   const hours = data?.hourly ?? [];
@@ -733,56 +811,112 @@ export function SolarRadiationCard({ data, pvConfig, livePv }: { data: Dashboard
     return `${index === 0 ? "M" : "L"}${x},${y}`;
   }).join(" ");
 
+  const city = data?.city ?? "Mi ubicación";
+
   return (
     <div
       className="dashboard-card p-5 sm:p-6"
-      style={{
-        background: `linear-gradient(180deg, color-mix(in oklab, var(--solar) 92%, white) 0%, color-mix(in oklab, var(--solar) 24%, white) 54%, color-mix(in oklab, var(--card) 97%, white) 54%)`,
-      }}
+      style={{ background: "linear-gradient(180deg, color-mix(in oklab, var(--load) 8%, white) 0%, color-mix(in oklab, var(--card) 96%, white) 100%)" }}
     >
-      <DashboardCardHeader icon={<Sun className="h-4 w-4" />} title="Radiación solar" badgeColor="white" />
+      <DashboardCardHeader
+        icon={<Sun className="h-4 w-4" />}
+        title="Clima y radiación solar"
+        badgeColor="var(--solar)"
+        trailing={<LocationPicker currentLabel={city} siteId={siteId} />}
+      />
 
-      <div className="grid grid-cols-[0.95fr_1.45fr] gap-3 max-[640px]:grid-cols-1">
-        <div className="text-white">
-          <div className="text-[58px] font-bold leading-none">{currentRadiation}</div>
-          <div className="mt-1 text-[16px] font-medium">W/m²</div>
-          <div className="mt-4 text-[14px]">Actual</div>
-          <div className="text-[22px] font-semibold">{currentRadiation > 650 ? "Muy alta" : currentRadiation > 250 ? "Alta" : currentRadiation > 80 ? "Media" : "Baja"}</div>
-        </div>
+      {!data ? (
+        <div className="text-sm text-muted-foreground">Cargando condiciones meteorológicas…</div>
+      ) : (
+        <>
+          <div className="grid grid-cols-[1fr_1fr] gap-4 max-[640px]:grid-cols-1">
+            {/* CLIMA */}
+            <div className="rounded-2xl border bg-white/70 p-4">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Clima en {city}</div>
+              <div className="mt-2 flex items-end justify-between">
+                <div>
+                  <div className="text-[48px] font-bold leading-none text-foreground">{Math.round(data.current.temperature)}°C</div>
+                  <div className="mt-1 flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                    <WeatherGlyph code={data.current.weatherCode} className="h-4 w-4" />
+                    <span>{weatherLabel(data.current.weatherCode)}</span>
+                  </div>
+                </div>
+                <WeatherGlyph code={data.current.weatherCode} className="h-12 w-12" />
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+                <MetricLine label="Sensación" value={`${Math.round(data.current.apparentTemperature)}°C`} />
+                <MetricLine label="Humedad" value={`${Math.round(data.current.humidity)}%`} />
+                <MetricLine label="Viento" value={`${Math.round(data.current.windSpeed)} km/h`} />
+                <MetricLine label="UV" value={`${Math.round(data.current.uvIndex)}`} />
+              </div>
+            </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl border border-white/50 bg-white p-3">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Producción ahora</div>
-            <div className="mt-2 text-[30px] font-bold" style={{ color: "var(--solar)" }}>{Math.round(livePv)} w</div>
-            <div className="mt-1 text-[12px] text-muted-foreground">Inversor</div>
+            {/* RADIACIÓN */}
+            <div
+              className="rounded-2xl border p-4 text-white"
+              style={{ background: `linear-gradient(180deg, color-mix(in oklab, var(--solar) 90%, white) 0%, color-mix(in oklab, var(--solar) 55%, white) 100%)` }}
+            >
+              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/80">Radiación solar</div>
+              <div className="mt-2 flex items-end justify-between">
+                <div>
+                  <div className="text-[48px] font-bold leading-none">{currentRadiation}</div>
+                  <div className="text-[13px] font-medium">W/m²</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[11px] uppercase tracking-wide text-white/80">Actual</div>
+                  <div className="text-[18px] font-semibold">{currentRadiation > 650 ? "Muy alta" : currentRadiation > 250 ? "Alta" : currentRadiation > 80 ? "Media" : "Baja"}</div>
+                </div>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+                <div className="rounded-lg bg-white/15 px-2 py-1.5">
+                  <div className="text-[10px] uppercase tracking-wide text-white/70">Producción ahora</div>
+                  <div className="text-[16px] font-bold">{Math.round(livePv)} w</div>
+                </div>
+                <div className="rounded-lg bg-white/15 px-2 py-1.5">
+                  <div className="text-[10px] uppercase tracking-wide text-white/70">Est. 12 h</div>
+                  <div className="text-[16px] font-bold">{next12kwh.toFixed(2)} kWh</div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="rounded-2xl border border-white/50 bg-white p-3">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Producción estimada 12 h</div>
-            <div className="mt-2 text-[30px] font-bold" style={{ color: "var(--solar)" }}>{next12kwh.toFixed(2)} kWh</div>
-            <div className="mt-1 text-[12px] text-muted-foreground">{kwp.toFixed(1)} kWp · 14% · ×1.00</div>
-          </div>
-        </div>
-      </div>
 
-      <div className="mt-6 rounded-2xl border border-white/50 bg-white/96 p-3">
-        <div className="mb-3 text-[12px] font-semibold uppercase tracking-wide text-foreground">Próximas 12 h — radiación solar y producción estimada</div>
-        <div className="mb-2 flex gap-4 text-[11px] text-muted-foreground">
-          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ background: "var(--solar)" }} />Radiación (W/m²)</span>
-          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ background: "var(--load)" }} />Producción (kWh)</span>
-        </div>
-        <svg viewBox="0 0 100 34" className="h-28 w-full overflow-visible">
-          <path d="M0 30 H100" stroke="color-mix(in oklab, var(--border) 80%, white)" strokeWidth="0.5" />
-          <path d="M0 20 H100" stroke="color-mix(in oklab, var(--border) 70%, white)" strokeWidth="0.5" strokeDasharray="1.5 1.5" />
-          <path d="M0 10 H100" stroke="color-mix(in oklab, var(--border) 70%, white)" strokeWidth="0.5" strokeDasharray="1.5 1.5" />
-          <path d={radiationPoints} fill="none" stroke="var(--solar)" strokeWidth="1.7" strokeDasharray="3 2" />
-          <path d={productionPoints} fill="none" stroke="var(--load)" strokeWidth="1.5" />
-        </svg>
-        <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
-          {hours.slice(0, 6).map((hour) => (
-            <span key={hour.time}>{new Date(hour.time).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}</span>
-          ))}
-        </div>
-      </div>
+          {/* PRONÓSTICO 6 DÍAS */}
+          <div className="mt-4 grid grid-cols-6 gap-2 rounded-xl border bg-white/80 p-3 max-[520px]:grid-cols-3">
+            {data.daily.slice(0, 6).map((day, index) => (
+              <div key={day.date} className="text-center">
+                <div className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: index === 0 ? "var(--load)" : "var(--muted-foreground)" }}>
+                  {index === 0 ? "Ahora" : new Date(day.date).toLocaleDateString("es-CL", { weekday: "short" })}
+                </div>
+                <div className="my-2 flex justify-center"><WeatherGlyph code={day.weatherCode} className="h-5 w-5" /></div>
+                <div className="text-[12px] text-foreground">{Math.round(day.max)}° / {Math.round(day.min)}°</div>
+              </div>
+            ))}
+          </div>
+
+          {/* GRÁFICO 12 H */}
+          <div className="mt-4 rounded-2xl border bg-white/90 p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-foreground">Próximas 12 h</div>
+              <div className="flex gap-3 text-[10px] text-muted-foreground">
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ background: "var(--solar)" }} />Radiación</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ background: "var(--load)" }} />Producción</span>
+              </div>
+            </div>
+            <svg viewBox="0 0 100 34" className="h-24 w-full overflow-visible">
+              <path d="M0 30 H100" stroke="color-mix(in oklab, var(--border) 80%, white)" strokeWidth="0.5" />
+              <path d="M0 20 H100" stroke="color-mix(in oklab, var(--border) 70%, white)" strokeWidth="0.5" strokeDasharray="1.5 1.5" />
+              <path d="M0 10 H100" stroke="color-mix(in oklab, var(--border) 70%, white)" strokeWidth="0.5" strokeDasharray="1.5 1.5" />
+              <path d={radiationPoints} fill="none" stroke="var(--solar)" strokeWidth="1.7" strokeDasharray="3 2" />
+              <path d={productionPoints} fill="none" stroke="var(--load)" strokeWidth="1.5" />
+            </svg>
+            <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
+              {hours.slice(0, 6).map((hour) => (
+                <span key={hour.time}>{new Date(hour.time).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}</span>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
