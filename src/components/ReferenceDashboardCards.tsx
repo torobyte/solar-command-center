@@ -549,6 +549,11 @@ export function EnergyFlowReferenceCard({
         <text x="410" y="274" className="fill-muted-foreground text-[12px]">Red</text>
         <text x="390" y="292" className="fill-muted-foreground text-[11px]">{gridConnected ? `${Math.round(gridV)} v` : "Desconectada"}</text>
       </svg>
+      <style>{`
+        @keyframes flow-dash { to { stroke-dashoffset: -40; } }
+        .flow-line { animation: flow-dash 1.4s linear infinite; }
+        .flow-grid { animation-duration: 2.2s; }
+      `}</style>
     </div>
   );
 }
