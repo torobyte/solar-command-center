@@ -11,6 +11,7 @@ import { InverterConfigWizard } from "@/components/InverterConfigWizard";
 import { PvSystemConfigCard, type PvConfig } from "@/components/PvSystemConfig";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LangSwitcher } from "@/components/LangSwitcher";
+import { useBranding } from "@/lib/branding";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
 } from "recharts";
