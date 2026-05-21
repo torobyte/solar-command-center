@@ -2451,6 +2451,21 @@ def make_app(agent: Agent) -> Flask:
         save_pvcfg(cfg)
         return jsonify({"ok": True, "config": cfg})
 
+    @app.post("/api/brand")
+    def set_brand():
+        """Guarda la marca de inversor seleccionada por el usuario en la UI.
+        El driver real se selecciona al iniciar la captura; por ahora solo
+        Voltronic/Axpert/MPP-Solar (PI30) está totalmente implementado. Las
+        demás marcas quedan registradas para futura selección de driver."""
+        body = request.get_json(force=True) or {}
+        brand = str(body.get("brand") or "").strip().lower()
+        if not brand:
+            return jsonify({"ok": False, "error": "missing brand"}), 400
+        agent.config["inverter_brand"] = brand
+        save_config(agent.config)
+        return jsonify({"ok": True, "brand": brand})
+
+
     @app.post("/api/unlink")
     def unlink():
         """Borra el device_token local, limpia el estado en memoria y genera
