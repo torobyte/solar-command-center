@@ -32,6 +32,7 @@ type WeatherDay = {
   max: number;
   min: number;
   weatherCode: number;
+  sunshineHours: number;
 };
 
 export type DashboardWeatherData = {
