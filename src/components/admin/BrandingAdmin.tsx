@@ -267,6 +267,8 @@ export function BrandingAdmin() {
             </Field>
           </div>
         </TabsContent>
+
+        <TabsContent value="colors" className="mt-6 space-y-6">
           <div className="rounded-lg border bg-muted/30 p-4">
             <h3 className="mb-1 text-sm font-semibold">🎨 Paletas predefinidas</h3>
             <p className="mb-4 text-xs text-muted-foreground">
