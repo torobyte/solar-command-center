@@ -323,60 +323,7 @@ function SitesIndex() {
         );
       })()}
 
-      {(() => {
-        const pending = licenses.filter((l) => !l.redeemed_at && !l.revoked_at);
-        const redeemed = licenses.filter((l) => l.redeemed_at && !l.revoked_at && l.redeemed_by_site);
-        if (pending.length === 0 && redeemed.length === 0) return null;
-        return (
-          <div className="mb-6 overflow-hidden rounded-2xl border border-success/30 bg-gradient-to-br from-success/10 via-success/5 to-transparent p-5 animate-fade-up">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-success/15 text-success">
-                <Sparkles className="h-4 w-4" strokeWidth={2.4} />
-              </div>
-              <h3 className="font-semibold">Mis licencias</h3>
-            </div>
-            <div className="space-y-2">
-              {pending.map((l) => (
-                <div key={l.id} className="flex items-center justify-between gap-2 rounded-xl border bg-background/80 p-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <KeyRound className="h-4 w-4 shrink-0 text-accent" strokeWidth={2.2} />
-                    <div className="min-w-0">
-                      <div className="font-mono text-sm truncate">{l.code}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {l.plan} · {l.duration_days} días · <span className="text-amber-600">Pendiente</span>
-                      </div>
-                    </div>
-                  </div>
-                  <Button size="sm" variant="outline" className="rounded-full shrink-0"
-                    onClick={() => { navigator.clipboard.writeText(l.code); toast.success("Código copiado"); }}>
-                    <Copy className="mr-1 h-3.5 w-3.5" strokeWidth={2.2} /> Copiar
-                  </Button>
-                </div>
-              ))}
-              {redeemed.map((l) => {
-                const currentSite = sites.find(s => s.id === l.redeemed_by_site);
-                return (
-                  <div key={l.id} className="flex items-center justify-between gap-2 rounded-xl border bg-background/80 p-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <KeyRound className="h-4 w-4 shrink-0 text-success" strokeWidth={2.2} />
-                      <div className="min-w-0">
-                        <div className="font-mono text-sm truncate">{l.code}</div>
-                        <div className="text-xs text-muted-foreground truncate">
-                          {l.plan} · Activa en <strong>{currentSite?.name ?? "—"}</strong>
-                        </div>
-                      </div>
-                    </div>
-                    <Button size="sm" variant="outline" className="rounded-full shrink-0"
-                      onClick={() => { setTransferLic(l); setTransferTarget(""); }}>
-                      <ArrowRightLeft className="mr-1 h-3.5 w-3.5" strokeWidth={2.2} /> Transferir
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })()}
+      {/* Mis licencias movido a /account → "Mi cuenta". */}
 
 
       {sites.length === 0 ? (
