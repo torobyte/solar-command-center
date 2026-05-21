@@ -669,30 +669,11 @@ function SitesIndex() {
         </>
       )}
 
-      <div className="mt-8 rounded-2xl border bg-primary/[0.04] px-5 py-5 animate-fade-up">
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            { icon: ShieldCheck, title: "Monitoreo 24/7", body: "Tus sistemas siempre vigilados", tint: "text-primary" },
-            { icon: Zap, title: "Datos en tiempo real", body: "Información precisa al instante", tint: "text-amber-500" },
-            { icon: Cloud, title: "Alta disponibilidad", body: "Plataforma 99.9% operativa", tint: "text-sky-500" },
-            { icon: LockIcon, title: "Seguro y confiable", body: "Tus datos siempre protegidos", tint: "text-emerald-500" },
-          ].map((f) => (
-            <div key={f.title} className="flex items-start gap-3">
-              <f.icon className={`mt-0.5 h-5 w-5 shrink-0 ${f.tint}`} strokeWidth={2.2} />
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-foreground">{f.title}</p>
-                <p className="text-xs text-muted-foreground">{f.body}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
       <Dialog open={shareSite != null} onOpenChange={(o) => !o && setShareSite(null)}>
         <DialogContent className="max-w-2xl rounded-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Share2 className="h-5 w-5 text-accent" /> Compartir “{shareSite?.name}”
+              <Share2 className="h-5 w-5 text-accent" /> Compartir "{shareSite?.name}"
             </DialogTitle>
             <DialogDescription>
               Invita a otras personas a ver o gestionar este sitio. Puedes asignar roles
@@ -700,6 +681,49 @@ function SitesIndex() {
             </DialogDescription>
           </DialogHeader>
           {shareSite && <SiteSharing siteId={shareSite.id} isOwnerOrAdmin={true} />}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={transferLic != null} onOpenChange={(o) => { if (!o) { setTransferLic(null); setTransferTarget(""); } }}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowRightLeft className="h-5 w-5 text-accent" /> Transferir licencia
+            </DialogTitle>
+            <DialogDescription>
+              Mueve la licencia <code className="font-mono">{transferLic?.code}</code> a otro sitio de tu cuenta.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Label>Sitio destino</Label>
+            <Select value={transferTarget} onValueChange={setTransferTarget}>
+              <SelectTrigger><SelectValue placeholder="Selecciona un sitio…" /></SelectTrigger>
+              <SelectContent>
+                {sites
+                  .filter(s => s.owner_id === user?.id && s.id !== transferLic?.redeemed_by_site)
+                  .map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button
+              disabled={!transferTarget || transferBusy}
+              onClick={async () => {
+                if (!transferLic || !transferTarget) return;
+                setTransferBusy(true);
+                try {
+                  await transferLicense({ data: { license_id: transferLic.id, new_site_id: transferTarget } });
+                  toast.success("Licencia transferida");
+                  setTransferLic(null); setTransferTarget("");
+                  load();
+                } catch (e) {
+                  toast.error((e as Error).message);
+                } finally { setTransferBusy(false); }
+              }}
+            >
+              {transferBusy ? "Transfiriendo…" : "Transferir"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
