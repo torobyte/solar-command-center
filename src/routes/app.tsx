@@ -67,8 +67,13 @@ function SitesIndex() {
   const [siteName, setSiteName] = useState("");
   const [busy, setBusy] = useState(false);
   const [shareSite, setShareSite] = useState<Site | null>(null);
+  const [transferLic, setTransferLic] = useState<MyLicense | null>(null);
+  const [transferTarget, setTransferTarget] = useState<string>("");
+  const [transferBusy, setTransferBusy] = useState(false);
   const claim = useServerFn(claimPairingCode);
   const fetchOwners = useServerFn(getSiteOwners);
+  const transferLicense = useServerFn(transferLicenseToSite);
+  const navigate = useNavigate();
 
   // Filters
   const [search, setSearch] = useState("");
