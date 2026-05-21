@@ -6,7 +6,7 @@ import {
 } from "@/components/AdvancedVisuals";
 import { DashboardGrid, useDashboardLayout, type WidgetDef } from "@/components/DashboardCustomizer";
 import { usePvConfig, type PvConfig } from "@/components/PvSystemConfig";
-import { QuickActions } from "@/components/QuickActions";
+import { QuickActions, useQuickActionsConfig } from "@/components/QuickActions";
 import { CommandStatusFeed } from "@/components/CommandStatusFeed";
 import { useSiteRole } from "@/lib/useSiteRole";
 import {
