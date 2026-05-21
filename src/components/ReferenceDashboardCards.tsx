@@ -481,7 +481,8 @@ export function SystemStatusCard({
         <div className="h-px w-10 border-t border-dashed max-[520px]:hidden" style={{ borderColor: "color-mix(in oklab, var(--battery) 60%, var(--tint-base))" }} />
         <StatusMetric
           label="Red"
-          value={gridConnected ? `${Math.round(gridV)} v` : "0 w"}
+          value={gridConnected ? formatWatts(gridW) : "0 w"}
+          sub={gridConnected ? `${Math.round(gridV)} V` : "desconectada"}
           accent={gridConnected ? "var(--foreground)" : "var(--muted-foreground)"}
           icon={<Zap className="h-5 w-5" />}
         />
@@ -490,11 +491,13 @@ export function SystemStatusCard({
       <div className="space-y-3 border-t pt-4" style={{ borderColor: "color-mix(in oklab, var(--border) 80%, var(--tint-base))" }}>
         <ProgressRow label="Generación solar" value={formatWatts(pv)} progress={(pv / Math.max(pvMax, 1)) * 100} accent="var(--solar)" icon={<Sun className="h-3.5 w-3.5" style={{ color: "var(--solar)" }} />} />
         <ProgressRow label="Consumo de la casa" value={formatWatts(load)} progress={(load / Math.max(loadMax, 1)) * 100} accent="var(--load)" icon={<Home className="h-3.5 w-3.5" style={{ color: "var(--load)" }} />} />
+        <ProgressRow label="Consumo desde la red" value={gridConnected ? formatWatts(gridW) : "0 w"} progress={gridConnected ? (gridW / Math.max(loadMax, 1)) * 100 : 0} accent="var(--muted-foreground)" icon={<Zap className="h-3.5 w-3.5 text-muted-foreground" />} />
         <ProgressRow label="Estado de carga (SOC)" value={`${Math.round(battery)} %`} progress={battery} accent="var(--battery)" icon={<Zap className="h-3.5 w-3.5" style={{ color: "var(--battery)" }} />} />
       </div>
     </div>
   );
 }
+
 
 export function EnergyFlowReferenceCard({
   pv,
