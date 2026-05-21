@@ -217,15 +217,15 @@ function SitesIndex() {
 
   return (
     <>
-      <div className="mb-6 flex items-start justify-between gap-4 animate-fade-up">
-        <div className="flex items-start gap-3">
-          <div className="mt-1.5 h-9 w-1 rounded-full bg-primary" />
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">{t("sites.title")}</h1>
+      <div className="mb-6 flex flex-col gap-3 animate-fade-up sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+        <div className="flex items-start gap-3 min-w-0">
+          <div className="mt-1.5 h-9 w-1 shrink-0 rounded-full bg-primary" />
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t("sites.title")}</h1>
             <p className="mt-1 text-sm text-muted-foreground">Dispositivos que monitorean tus inversores solares.</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link to="/sites/overview">
             <Button variant="outline" className="rounded-xl border-border bg-card shadow-sm hover:bg-muted/60"><Globe2 className="mr-1.5 h-4 w-4" strokeWidth={2.2} />Vista global</Button>
           </Link>
