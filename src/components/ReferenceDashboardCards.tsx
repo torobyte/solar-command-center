@@ -874,11 +874,15 @@ export function WeatherAndRadiationCard({
   pvConfig,
   livePv,
   siteId,
+  batterySoc,
+  batteryChargingW,
 }: {
   data: DashboardWeatherData | null;
   pvConfig?: PvConfig | null;
   livePv: number;
   siteId: string;
+  batterySoc?: number;
+  batteryChargingW?: number;
 }) {
   const kwp = pvConfig?.array_kwp ?? 5.2;
   const losses = pvConfig?.system_losses_pct ?? 14;
