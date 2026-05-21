@@ -94,6 +94,8 @@ function LocalDashboardPage() {
   }, [search.agent]);
 
   const [tab, setTab] = useState<LocalTab>("dashboard");
+  const [wifiOpen, setWifiOpen] = useState(false);
+  const [diagOpen, setDiagOpen] = useState(false);
   const [latest, setLatest] = useState<DashboardSample | null>(null);
   const [history, setHistory] = useState<HistPoint[]>([]);
   const [totals, setTotals] = useState<TotalsToday | null>(null);
