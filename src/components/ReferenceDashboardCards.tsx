@@ -818,6 +818,11 @@ function LocationPicker({ currentLabel, siteId }: { currentLabel: string; siteId
   async function persist(lat: number, lon: number, label: string) {
     if (typeof window !== "undefined") {
       try { localStorage.setItem(WEATHER_STORAGE_KEY, JSON.stringify({ lat, lon, city: label })); } catch { /* ignore */ }
+      // Notifica a `useSolarReferenceWeather` (y a cualquier otro listener)
+      // para que recarguen la previsión sin necesidad de refrescar la página.
+      try {
+        window.dispatchEvent(new CustomEvent("solarops:location-changed", { detail: { lat, lon, city: label } }));
+      } catch { /* ignore */ }
     }
     const isUuid = /^[0-9a-f-]{36}$/i.test(siteId);
     if (isUuid) {
@@ -828,10 +833,9 @@ function LocationPicker({ currentLabel, siteId }: { currentLabel: string; siteId
       else toast.success(`Ubicación: ${label}`);
     } else {
       toast.success(`Ubicación: ${label}`);
-      // Local agent: fuerza recarga para que el hook re-lea localStorage.
-      setTimeout(() => { if (typeof window !== "undefined") window.location.reload(); }, 600);
     }
   }
+
 
   async function useMyLocation() {
     if (typeof navigator === "undefined" || !navigator.geolocation) { toast.error("Geolocalización no disponible"); return; }
