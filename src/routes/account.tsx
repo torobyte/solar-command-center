@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { User as UserIcon, KeyRound, Mail, Trash2, Smartphone, LayoutGrid } from "lucide-react";
+import { LicensesPanel } from "@/components/LicensesPanel";
 
 // Reusable settings card matching design captures
 function SettingsCard({
