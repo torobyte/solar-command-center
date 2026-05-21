@@ -120,6 +120,8 @@ export function SiteDashboardView({
         siteId={siteId}
         pvW={pv_W}
         batteryDischargeW={batteryDischargeW}
+        loadW={load}
+        gridV={gridV}
         energyPrice={pv?.energy_price ?? null}
         currency={pv?.currency ?? "CLP"}
       />
