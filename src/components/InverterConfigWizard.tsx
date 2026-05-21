@@ -435,8 +435,72 @@ export function InverterConfigWizard({ siteId, agentBase, spec, agentFetch }: { 
 
 
 
+  // Marca de inversor seleccionada (persistida por sitio).
+  const brandKey = `inverter.brand.${siteId}`;
+  const [brand, setBrand] = useState<string>(() => {
+    if (typeof window === "undefined") return "voltronic";
+    return localStorage.getItem(brandKey) || "voltronic";
+  });
+  async function changeBrand(next: string) {
+    setBrand(next);
+    try { localStorage.setItem(brandKey, next); } catch { /* noop */ }
+    try {
+      if (agentFetch) {
+        await agentFetch("/api/brand", { method: "POST", body: { brand: next } });
+      } else if (agentBase) {
+        await fetch(`${agentBase}/api/brand`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ brand: next }),
+        });
+      }
+      toast.success(`Marca: ${INVERTER_BRANDS.find(b => b.id === next)?.label ?? next}`);
+    } catch { /* el agente puede no soportarlo aún */ }
+  }
+  const brandMeta = INVERTER_BRANDS.find(b => b.id === brand);
+  const brandIsStable = brandMeta?.status === "stable";
+
   return (
     <div className="space-y-4">
+      {/* Selector de marca */}
+      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Cpu className="h-4 w-4" strokeWidth={2.2} />
+              </div>
+              <div className="min-w-0">
+                <div className="text-sm font-semibold leading-tight">Marca del inversor</div>
+                <div className="text-[11px] text-muted-foreground leading-tight">Selecciona el driver correcto.</div>
+              </div>
+            </div>
+            <select
+              value={brand}
+              onChange={(e) => changeBrand(e.target.value)}
+              className="flex-1 rounded-md border bg-background px-3 py-2 text-sm"
+            >
+              {INVERTER_BRANDS.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.label}{b.status === "stable" ? "" : b.status === "beta" ? "  · beta" : "  · experimental"}
+                </option>
+              ))}
+            </select>
+            <Badge variant={brandIsStable ? "default" : "outline"} className="shrink-0">
+              {brandMeta?.status ?? "stable"}
+            </Badge>
+          </div>
+          {!brandIsStable && (
+            <div className="mt-2 flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-2 text-[11px] text-muted-foreground">
+              <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0 mt-0.5" />
+              <span>
+                Driver en desarrollo. La lectura de datos puede ser parcial y algunos comandos del wizard de abajo
+                (pensados para Voltronic/Axpert) podrían no aplicar tal cual a esta marca.
+              </span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Stepper */}
       <div className="flex flex-wrap gap-2">
         {STEPS.map((s, i) => {
