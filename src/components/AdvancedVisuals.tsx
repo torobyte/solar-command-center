@@ -851,8 +851,9 @@ export function BackupTimeCard({
         <div className="space-y-3">
           {charging ? (
             <div className="rounded-lg border bg-muted/30 p-3 text-center text-sm text-muted-foreground">
-              La batería se está cargando — autonomía indefinida con la PV actual.
+              La batería se está cargando{batteryChargeW > 25 && gridConnected && pv < load ? " desde la red" : pv > load ? " con la energía solar" : ""} — autonomía indefinida mientras se mantenga.
             </div>
+
           ) : runtimeHours == null ? (
             <div className="rounded-lg border bg-muted/30 p-3 text-center text-sm text-muted-foreground">
               Configura el banco de baterías para ver el tiempo restante.
