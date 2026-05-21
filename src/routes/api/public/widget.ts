@@ -53,7 +53,7 @@ export const Route = createFileRoute("/api/public/widget")({
           const { data: rows } = await supabaseAdmin
             .from("telemetry_samples")
             .select(
-              "recorded_at, ac_output_active_power, pv_input_power, battery_capacity, battery_voltage, grid_voltage, inverter_mode",
+              "recorded_at, ac_output_active_power, pv_input_power, battery_capacity, battery_voltage, battery_charging_current, battery_discharge_current, grid_voltage, inverter_mode",
             )
             .eq("site_id", site.id)
             .order("recorded_at", { ascending: false })
@@ -61,6 +61,27 @@ export const Route = createFileRoute("/api/public/widget")({
           const s = rows?.[0] ?? null;
 
           const ageSec = s ? Math.max(0, Math.round((Date.now() - new Date(s.recorded_at).getTime()) / 1000)) : null;
+
+          let derived: { battery_w: number; grid_w: number; charging: boolean; discharging: boolean } | null = null;
+          if (s) {
+            const pv = Number(s.pv_input_power ?? 0);
+            const load = Number(s.ac_output_active_power ?? 0);
+            const bV = Number(s.battery_voltage ?? 0);
+            const chgA = Number(s.battery_charging_current ?? 0);
+            const disA = Number(s.battery_discharge_current ?? 0);
+            const chargeW = Math.max(0, chgA * bV);
+            const dischargeW = Math.max(0, disA * bV);
+            const batteryW = dischargeW - chargeW; // + descarga, - carga
+            const gridConnected = Number(s.grid_voltage ?? 0) > 50;
+            // Red = (consumo casa + carga batería) - (PV + descarga batería)
+            const gridW = gridConnected ? Math.max(0, load + chargeW - pv - dischargeW) : 0;
+            derived = {
+              battery_w: Math.round(batteryW),
+              grid_w: Math.round(gridW),
+              charging: chargeW > 25,
+              discharging: dischargeW > 25,
+            };
+          }
 
           return json({
             site: {
@@ -71,6 +92,7 @@ export const Route = createFileRoute("/api/public/widget")({
               fresh: ageSec != null && ageSec < 30,
               age_seconds: ageSec,
             },
+            online: ageSec != null && ageSec < 120,
             sample: s
               ? {
                   recorded_at: s.recorded_at,
@@ -78,7 +100,11 @@ export const Route = createFileRoute("/api/public/widget")({
                   load_w: numOrNull(s.ac_output_active_power),
                   battery_pct: numOrNull(s.battery_capacity),
                   battery_v: numOrNull(s.battery_voltage),
+                  battery_w: derived?.battery_w ?? 0,
                   grid_v: numOrNull(s.grid_voltage),
+                  grid_w: derived?.grid_w ?? 0,
+                  charging: derived?.charging ?? false,
+                  discharging: derived?.discharging ?? false,
                   inverter_mode: s.inverter_mode ?? null,
                 }
               : null,
