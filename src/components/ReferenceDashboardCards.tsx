@@ -970,51 +970,54 @@ export function WeatherAndRadiationCard({
 
 
       {data && (
-        <div className="p-5 sm:p-6">
-          {/* Producción ahora + estimada 12h */}
-          <div className="mb-4 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border bg-white/80 p-3">
-              <div className="mb-1 flex items-center justify-between">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Producción ahora <span className="text-emerald-600">(inversor)</span>
-                </div>
-                <div className="text-[10px] font-medium text-emerald-600">en vivo</div>
-              </div>
-              <div className="flex items-baseline gap-2">
-                <div className="text-[28px] font-bold tabular-nums text-emerald-600">
+        <div className="p-3 sm:p-4">
+          {/* Producción ahora + estimada 12h + carga batería (compacto) */}
+          <div className="mb-3 grid gap-2 sm:grid-cols-3">
+            <div className="rounded-lg border bg-white/80 p-2.5">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Producción ahora</div>
+              <div className="mt-1 flex items-baseline gap-1.5">
+                <div className="text-[22px] font-bold tabular-nums text-emerald-600">
                   {liveKw < 1 ? Math.round(livePv) : liveKw.toFixed(2)}
                 </div>
-                <div className="text-sm text-muted-foreground">{liveKw < 1 ? "W" : "kW"}</div>
-                <div className="ml-auto text-[10px] text-muted-foreground">{pctOfPeak.toFixed(0)}% del pico</div>
+                <div className="text-xs text-muted-foreground">{liveKw < 1 ? "W" : "kW"}</div>
+                <div className="ml-auto text-[9px] text-muted-foreground">{pctOfPeak.toFixed(0)}%</div>
               </div>
-              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full"
-                  style={{ width: `${pctOfPeak}%`, background: "linear-gradient(90deg,var(--success),var(--solar))" }}
-                />
+              <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-muted">
+                <div className="h-full rounded-full" style={{ width: `${pctOfPeak}%`, background: "linear-gradient(90deg,var(--success),var(--solar))" }} />
               </div>
             </div>
 
-            <div className="rounded-xl border bg-white/80 p-3">
-              <div className="mb-1 flex items-center justify-between gap-2">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Producción estimada 12 h{calibrated && <span className="ml-1 text-emerald-600">· calibrado</span>}
-                </div>
-                <div className="text-[10px] text-muted-foreground">
-                  {kwp} kWp · {losses}%{calibrated ? ` · ×${calibration.toFixed(2)}` : ""}
-                </div>
+            <div className="rounded-lg border bg-white/80 p-2.5">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Estimada 12 h{calibrated && <span className="ml-1 text-emerald-600">·cal</span>}
               </div>
-              <div className="flex items-baseline gap-2">
-                <div className="text-[28px] font-bold tabular-nums" style={{ color: "var(--solar)" }}>{next12kwh.toFixed(2)}</div>
-                <div className="text-sm text-muted-foreground">kWh</div>
+              <div className="mt-1 flex items-baseline gap-1.5">
+                <div className="text-[22px] font-bold tabular-nums" style={{ color: "var(--solar)" }}>{next12kwh.toFixed(2)}</div>
+                <div className="text-xs text-muted-foreground">kWh</div>
               </div>
-              <div className="mt-1 text-[11px] text-muted-foreground">
-                {next12kwh <= 0.1
-                  ? "Sin radiación significativa en las próximas 12 h"
-                  : "Estimación según radiación pronosticada"}
-              </div>
+              <div className="mt-1 text-[9px] text-muted-foreground">{kwp} kWp · {losses}%{calibrated ? ` · ×${calibration.toFixed(2)}` : ""}</div>
+            </div>
+
+            <div className="rounded-lg border bg-white/80 p-2.5">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Carga batería</div>
+              {chargeTimeLabel ? (
+                <>
+                  <div className="mt-1 text-[18px] font-bold tabular-nums text-foreground">{chargeTimeLabel}</div>
+                  <div className="mt-1 text-[9px] text-muted-foreground">
+                    {soc * 100 >= 99 ? "Completa" : `${Math.round(soc * 100)}% → 100%`}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="mt-1 text-[14px] font-semibold text-muted-foreground">
+                    {!batteryKwh ? "Sin datos" : soc * 100 >= 99 ? "Completa" : "Sin carga"}
+                  </div>
+                  <div className="mt-1 text-[9px] text-muted-foreground">{batteryKwh ? `${batteryKwh} kWh` : "Configura batería"}</div>
+                </>
+              )}
             </div>
           </div>
+
 
           {/* Gráfico 12h con barras + kWh */}
           <div className="rounded-xl border bg-white/80 p-3">
