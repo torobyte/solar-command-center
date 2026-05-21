@@ -93,6 +93,9 @@ export type Database = {
           foreground_color: string | null
           foreground_color_dark: string | null
           key: string
+          login_bg_overlay: number
+          login_bg_url: string | null
+          login_bg_url_dark: string | null
           logo_url: string | null
           logo_url_dark: string | null
           muted_color: string | null
@@ -140,6 +143,9 @@ export type Database = {
           foreground_color?: string | null
           foreground_color_dark?: string | null
           key?: string
+          login_bg_overlay?: number
+          login_bg_url?: string | null
+          login_bg_url_dark?: string | null
           logo_url?: string | null
           logo_url_dark?: string | null
           muted_color?: string | null
@@ -187,6 +193,9 @@ export type Database = {
           foreground_color?: string | null
           foreground_color_dark?: string | null
           key?: string
+          login_bg_overlay?: number
+          login_bg_url?: string | null
+          login_bg_url_dark?: string | null
           logo_url?: string | null
           logo_url_dark?: string | null
           muted_color?: string | null
