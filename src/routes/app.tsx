@@ -514,7 +514,11 @@ function SitesIndex() {
                     const lastSeenAbs = lastSeen ? lastSeen.toLocaleString([], { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
                     const inv = s.inverter_spec_model || s.inverter_model || s.inverter_driver || "—";
                     return (
-                      <tr key={s.id} className="border-b last:border-0 transition-colors hover:bg-muted/30">
+                      <tr
+                        key={s.id}
+                        className="border-b last:border-0 transition-colors hover:bg-muted/30 cursor-pointer"
+                        onClick={() => navigate({ to: "/sites/$siteId", params: { siteId: s.id } })}
+                      >
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
                             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-100 to-blue-50 text-primary ring-1 ring-blue-100">
