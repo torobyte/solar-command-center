@@ -3,7 +3,7 @@ import { GripVertical, Eye, EyeOff, Maximize2, Settings2, RotateCcw, Square, Rec
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-export type WidgetWidth = 25 | 50 | 75 | 100;
+export type WidgetWidth = 25 | 33 | 50 | 66 | 75 | 100;
 export type Breakpoint = "mobile" | "tablet" | "desktop";
 
 export interface WidgetDef { id: string; label: string }
@@ -20,17 +20,17 @@ export interface WidgetState {
 // Mobile uses a 4-col grid, tablet 8-col, desktop 12-col
 // 25/50/75/100 → 1/2/3/4  | 2/4/6/8 | 3/6/9/12
 const COL_MAP: Record<Breakpoint, Record<WidgetWidth, string>> = {
-  mobile: { 25: "col-span-1", 50: "col-span-2", 75: "col-span-3", 100: "col-span-4" },
-  tablet: { 25: "md:col-span-2", 50: "md:col-span-4", 75: "md:col-span-6", 100: "md:col-span-8" },
-  desktop: { 25: "lg:col-span-3", 50: "lg:col-span-6", 75: "lg:col-span-9", 100: "lg:col-span-12" },
+  mobile: { 25: "col-span-1", 33: "col-span-4", 50: "col-span-2", 66: "col-span-4", 75: "col-span-3", 100: "col-span-4" },
+  tablet: { 25: "md:col-span-2", 33: "md:col-span-4", 50: "md:col-span-4", 66: "md:col-span-8", 75: "md:col-span-6", 100: "md:col-span-8" },
+  desktop: { 25: "lg:col-span-3", 33: "lg:col-span-4", 50: "lg:col-span-6", 66: "lg:col-span-8", 75: "lg:col-span-9", 100: "lg:col-span-12" },
 };
 
 // Cuando el usuario fuerza una vista de previsualización (mobile/tablet/desktop)
 // usamos clases sin prefijo responsivo para forzar ese layout exacto.
 const COL_MAP_FORCED: Record<Breakpoint, Record<WidgetWidth, string>> = {
-  mobile: { 25: "col-span-1", 50: "col-span-2", 75: "col-span-3", 100: "col-span-4" },
-  tablet: { 25: "col-span-2", 50: "col-span-4", 75: "col-span-6", 100: "col-span-8" },
-  desktop: { 25: "col-span-3", 50: "col-span-6", 75: "col-span-9", 100: "col-span-12" },
+  mobile: { 25: "col-span-1", 33: "col-span-4", 50: "col-span-2", 66: "col-span-4", 75: "col-span-3", 100: "col-span-4" },
+  tablet: { 25: "col-span-2", 33: "col-span-4", 50: "col-span-4", 66: "col-span-8", 75: "col-span-6", 100: "col-span-8" },
+  desktop: { 25: "col-span-3", 33: "col-span-4", 50: "col-span-6", 66: "col-span-8", 75: "col-span-9", 100: "col-span-12" },
 };
 
 const GRID_COLS_FORCED: Record<Breakpoint, string> = {
@@ -46,15 +46,22 @@ const PREVIEW_MAX_WIDTH: Record<Breakpoint, string> = {
 };
 
 const WIDTH_OPTIONS: { value: WidgetWidth; label: string }[] = [
-  { value: 25, label: "¼" }, { value: 50, label: "½" }, { value: 75, label: "¾" }, { value: 100, label: "1/1" },
+  { value: 25, label: "¼" },
+  { value: 33, label: "⅓" },
+  { value: 50, label: "½" },
+  { value: 66, label: "⅔" },
+  { value: 75, label: "¾" },
+  { value: 100, label: "1/1" },
 ];
 
 export function defaultWidth(id: string): WidgetWidth {
+  if (["system", "backup", "batteryStatus", "flow", "solarProduction", "houseConsumption", "weather", "radiation", "savings"].includes(id)) return 33;
   if (["icons", "mode", "flow", "forecast"].includes(id)) return 100;
   return 50;
 }
 
 function defaultMobile(id: string): WidgetWidth {
+  if (["system", "backup", "batteryStatus", "flow", "solarProduction", "houseConsumption", "weather", "radiation", "savings"].includes(id)) return 100;
   // Heavy widgets full width on mobile; numeric summaries in 2 columns of 4 (=50%).
   if (["icons", "mode", "flow", "forecast", "history", "gauges", "advanced", "quickactions"].includes(id)) return 100;
   return 50;
