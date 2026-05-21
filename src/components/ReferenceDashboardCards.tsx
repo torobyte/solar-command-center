@@ -175,11 +175,13 @@ function StatusMetric({
   value,
   accent,
   icon,
+  sub,
 }: {
   label: string;
   value: string;
   accent: string;
   icon: ReactNode;
+  sub?: string;
 }) {
   return (
     <div className="flex min-w-0 flex-col items-center text-center">
@@ -194,10 +196,12 @@ function StatusMetric({
         {icon}
       </div>
       <div className="text-[11px] font-semibold leading-none" style={{ color: accent }}>{value}</div>
+      {sub && <div className="mt-0.5 text-[10px] text-muted-foreground tabular-nums">{sub}</div>}
       <div className="mt-1 text-[11px] text-muted-foreground">{label}</div>
     </div>
   );
 }
+
 
 function ProgressRow({ label, value, progress, accent, icon }: {
   label: string;
