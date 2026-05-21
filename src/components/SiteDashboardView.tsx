@@ -11,10 +11,9 @@ import {
   HouseConsumptionReferenceCard,
   SavingsReferenceCard,
   SolarProductionReferenceCard,
-  SolarRadiationCard,
   SystemStatusCard,
   useSolarReferenceWeather,
-  WeatherOverviewCard,
+  WeatherAndRadiationCard,
 } from "@/components/ReferenceDashboardCards";
 
 /** Shared sample shape consumed by the dashboard widgets. */
