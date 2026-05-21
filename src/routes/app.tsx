@@ -580,7 +580,7 @@ function SitesIndex() {
                           <div className="text-sm font-medium">{lastSeenStr}</div>
                           <div className="text-[11px] text-muted-foreground">{lastSeenAbs}</div>
                         </td>
-                        <td className="px-4 py-4">
+                        <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1.5">
                             {!isShared && (
                               <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg border-border" title="Compartir" onClick={() => setShareSite(s)}>
@@ -592,9 +592,44 @@ function SitesIndex() {
                                 <Eye className="h-3.5 w-3.5" />
                               </Button>
                             </Link>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" title="Más opciones">
-                              <MoreVertical className="h-3.5 w-3.5" />
-                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" title="Más opciones">
+                                  <MoreVertical className="h-3.5 w-3.5" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuLabel>{s.name}</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => navigate({ to: "/sites/$siteId", params: { siteId: s.id } })}>
+                                  <Eye className="mr-2 h-4 w-4" /> Ver detalle
+                                </DropdownMenuItem>
+                                {!isShared && (
+                                  <DropdownMenuItem onClick={() => setShareSite(s)}>
+                                    <Share2 className="mr-2 h-4 w-4" /> Compartir
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(s.id); toast.success("ID copiado"); }}>
+                                  <Copy className="mr-2 h-4 w-4" /> Copiar ID
+                                </DropdownMenuItem>
+                                {!isShared && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className="text-destructive focus:text-destructive"
+                                      onClick={async () => {
+                                        if (!confirm(`¿Eliminar el sitio "${s.name}"? Esta acción no se puede deshacer.`)) return;
+                                        const { error } = await supabase.from("sites").delete().eq("id", s.id);
+                                        if (error) toast.error(error.message);
+                                        else { toast.success("Sitio eliminado"); load(); }
+                                      }}
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </td>
                       </tr>
