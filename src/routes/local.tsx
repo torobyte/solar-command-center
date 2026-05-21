@@ -234,11 +234,14 @@ function LocalDashboardPage() {
   }, [agentBase]);
 
 
+  const { branding } = useBranding();
+  const brandName = branding?.site_name || branding?.pwa_name || "Torobyte";
   const mode = formatInverterMode(latest?.inverter_mode);
   const fresh = latest?.recorded_at && (Date.now() - new Date(latest.recorded_at).getTime() < 60_000);
-  const siteName = license?.site_name ?? "SolarOps Local";
+  const siteName = license?.site_name ?? `${brandName} Local`;
   const isLinked = Boolean(pairing?.linked) || linked || Boolean(license?.site_id);
   const plan = isLinked ? (license?.plan ?? "cloud") : "trial local";
+  const isLifetime = (plan || "").toLowerCase().includes("lifetime") || (plan || "").toLowerCase().includes("perpetu");
 
   // Trial countdown (modo local). Si la licencia cloud trae expires_at lo
   // usamos; si no, calculamos 30 días desde el primer arranque local.
@@ -246,10 +249,15 @@ function LocalDashboardPage() {
   const localExp = trialStart + TRIAL_DAYS * 86_400_000;
   const expMs = cloudExp ?? localExp;
   const daysLeft = Math.max(0, Math.ceil((expMs - Date.now()) / 86_400_000));
-  const trialLabel = isLinked && cloudExp
-    ? (daysLeft > 0 ? `Licencia: ${daysLeft} día${daysLeft === 1 ? "" : "s"}` : "Licencia vencida")
-    : (daysLeft > 0 ? `Prueba: ${daysLeft}/${TRIAL_DAYS} días` : "Prueba vencida");
-  const trialTone = daysLeft > 7 ? "bg-success/15 text-success"
+  // Más de 100 años restantes = licencia "de por vida" mal modelada en el back.
+  const treatAsLifetime = isLifetime || daysLeft > 36500;
+  const trialLabel = treatAsLifetime
+    ? "Licencia: Perpetua"
+    : isLinked && cloudExp
+      ? (daysLeft > 0 ? `Licencia: ${daysLeft} día${daysLeft === 1 ? "" : "s"}` : "Licencia vencida")
+      : (daysLeft > 0 ? `Prueba: ${daysLeft}/${TRIAL_DAYS} días` : "Prueba vencida");
+  const trialTone = treatAsLifetime ? "bg-success/15 text-success"
+    : daysLeft > 7 ? "bg-success/15 text-success"
     : daysLeft > 0 ? "bg-warning/15 text-warning"
     : "bg-destructive/15 text-destructive";
 
