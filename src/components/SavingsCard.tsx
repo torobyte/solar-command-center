@@ -125,7 +125,7 @@ export function SavingsCard({ siteId, pvW, batteryDischargeW, energyPrice, feedI
           )}
         </div>
 
-        <div className="mb-4 rounded-xl border bg-[linear-gradient(180deg,color-mix(in_oklab,var(--success)_12%,white),transparent)] p-4">
+        <div className="mb-4 rounded-xl border bg-[linear-gradient(180deg,color-mix(in_oklab,var(--success)_12%,var(--tint-base)),transparent)] p-4">
           <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
             Ahorrando ahora
           </div>
