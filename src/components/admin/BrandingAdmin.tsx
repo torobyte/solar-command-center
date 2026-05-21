@@ -239,9 +239,34 @@ export function BrandingAdmin() {
                 onChange={(v) => update("favicon_url_dark", v as never)} hint="32×32 PNG/SVG" />
             </Field>
           </div>
-        </TabsContent>
 
-        <TabsContent value="colors" className="mt-6 space-y-6">
+          <div className="rounded-lg border bg-muted/30 p-4 space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold">Fondo de pantalla de login</h3>
+              <p className="text-[11px] text-muted-foreground">
+                Imagen a pantalla completa detrás del formulario de inicio de sesión. Se aplica un velo oscuro encima para mantener la legibilidad.
+              </p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="Fondo login (modo claro)">
+                <ImageUploader value={b.login_bg_url ?? ""} folder="login-bg"
+                  onChange={(v) => update("login_bg_url", v as never)} hint="JPG/PNG · ideal 1920×1080" />
+              </Field>
+              <Field label="Fondo login (modo oscuro)">
+                <ImageUploader value={b.login_bg_url_dark ?? ""} folder="login-bg-dark"
+                  onChange={(v) => update("login_bg_url_dark", v as never)} hint="Versión para tema oscuro" />
+              </Field>
+            </div>
+            <Field label={`Opacidad del velo (${Math.round((b.login_bg_overlay ?? 0.55) * 100)}%)`}>
+              <input
+                type="range" min={0} max={100} step={5}
+                value={Math.round((b.login_bg_overlay ?? 0.55) * 100)}
+                onChange={(e) => update("login_bg_overlay", (Number(e.target.value) / 100) as never)}
+                className="w-full"
+              />
+            </Field>
+          </div>
+        </TabsContent>
           <div className="rounded-lg border bg-muted/30 p-4">
             <h3 className="mb-1 text-sm font-semibold">🎨 Paletas predefinidas</h3>
             <p className="mb-4 text-xs text-muted-foreground">
