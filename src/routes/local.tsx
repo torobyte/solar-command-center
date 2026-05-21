@@ -374,15 +374,11 @@ function LocalDashboardPage() {
                       <Unlink className="mr-1.5 h-3.5 w-3.5" /> Desvincular equipo
                     </Button>
                   )}
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={`${agentBase}/wifi`} target="_blank" rel="noreferrer">
-                      <Wifi className="mr-1.5 h-3.5 w-3.5" /> Configurar WiFi
-                    </a>
+                  <Button variant="outline" size="sm" onClick={() => setWifiOpen(true)}>
+                    <Wifi className="mr-1.5 h-3.5 w-3.5" /> Configurar WiFi
                   </Button>
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={`${agentBase}/status`} target="_blank" rel="noreferrer">
-                      <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Diagnóstico del agente
-                    </a>
+                  <Button variant="outline" size="sm" onClick={() => setDiagOpen(true)}>
+                    <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Diagnóstico del agente
                   </Button>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
@@ -393,6 +389,48 @@ function LocalDashboardPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* WiFi config popup */}
+      <Dialog open={wifiOpen} onOpenChange={setWifiOpen}>
+        <DialogContent className="max-w-3xl p-0 overflow-hidden">
+          <DialogHeader className="px-5 pt-5 pb-3 border-b">
+            <DialogTitle className="flex items-center gap-2 text-base"><Wifi className="h-4 w-4" /> Configurar WiFi</DialogTitle>
+            <DialogDescription>Disponible aunque el equipo esté por Ethernet.</DialogDescription>
+          </DialogHeader>
+          <iframe
+            src={`${agentBase}/wifi`}
+            title="Configurar WiFi"
+            className="w-full h-[70vh] bg-background"
+          />
+          <DialogFooter className="px-5 py-3 border-t">
+            <Button variant="outline" size="sm" asChild>
+              <a href={`${agentBase}/wifi`} target="_blank" rel="noreferrer">Abrir en nueva pestaña</a>
+            </Button>
+            <Button size="sm" onClick={() => setWifiOpen(false)}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diagnostic popup */}
+      <Dialog open={diagOpen} onOpenChange={setDiagOpen}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden">
+          <DialogHeader className="px-5 pt-5 pb-3 border-b">
+            <DialogTitle className="flex items-center gap-2 text-base"><ExternalLink className="h-4 w-4" /> Diagnóstico del agente</DialogTitle>
+            <DialogDescription>Estado en tiempo real del agente local.</DialogDescription>
+          </DialogHeader>
+          <iframe
+            src={`${agentBase}/status`}
+            title="Diagnóstico del agente"
+            className="w-full h-[75vh] bg-background"
+          />
+          <DialogFooter className="px-5 py-3 border-t">
+            <Button variant="outline" size="sm" asChild>
+              <a href={`${agentBase}/status`} target="_blank" rel="noreferrer">Abrir en nueva pestaña</a>
+            </Button>
+            <Button size="sm" onClick={() => setDiagOpen(false)}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
