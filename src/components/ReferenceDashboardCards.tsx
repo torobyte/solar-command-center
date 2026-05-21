@@ -421,7 +421,7 @@ export function useSolarReferenceWeather(pvConfig?: PvConfig | null) {
     return () => {
       cancelled = true;
     };
-  }, [pvConfig?.latitude, pvConfig?.location_label, pvConfig?.longitude]);
+  }, [pvConfig?.latitude, pvConfig?.location_label, pvConfig?.longitude, reloadTick]);
 
   return data;
 }
