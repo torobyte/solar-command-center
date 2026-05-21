@@ -11,10 +11,9 @@ import {
   HouseConsumptionReferenceCard,
   SavingsReferenceCard,
   SolarProductionReferenceCard,
-  SolarRadiationCard,
   SystemStatusCard,
   useSolarReferenceWeather,
-  WeatherOverviewCard,
+  WeatherAndRadiationCard,
 } from "@/components/ReferenceDashboardCards";
 
 /** Shared sample shape consumed by the dashboard widgets. */
@@ -60,8 +59,7 @@ export const WIDGET_DEFS: WidgetDef[] = [
   { id: "flow", label: "Diagrama de flujo de energía" },
   { id: "solarProduction", label: "Producción solar" },
   { id: "houseConsumption", label: "Consumo de la casa" },
-  { id: "weather", label: "Clima" },
-  { id: "radiation", label: "Radiación solar" },
+  { id: "weather", label: "Clima y radiación solar" },
   { id: "savings", label: "Ahorro económico" },
 ];
 
@@ -116,8 +114,7 @@ export function SiteDashboardView({
     flow: <EnergyFlowReferenceCard pv={pv_W} load={load} gridV={gridV} battery={battery} batteryV={batteryV} batteryNetW={batteryNetW} />,
     solarProduction: <SolarProductionReferenceCard pv={pv_W} pvMax={pvMax} />,
     houseConsumption: <HouseConsumptionReferenceCard load={load} contractedPower={5200} />,
-    weather: <WeatherOverviewCard data={weatherData} />,
-    radiation: <SolarRadiationCard data={weatherData} pvConfig={pv} livePv={pv_W} />,
+    weather: <WeatherAndRadiationCard data={weatherData} pvConfig={pv} livePv={pv_W} siteId={siteId} />,
     savings: (
       <SavingsReferenceCard
         siteId={siteId}
