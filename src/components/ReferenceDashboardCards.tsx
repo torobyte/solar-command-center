@@ -798,23 +798,15 @@ export function WeatherAndRadiationCard({
 }) {
   const kwp = pvConfig?.array_kwp ?? 5.2;
   const losses = pvConfig?.system_losses_pct ?? 14;
+  const manualCalib = pvConfig?.manual_calibration ?? null;
+  const calibration = manualCalib && manualCalib > 0 ? clamp(manualCalib, 0.2, 3) : 1;
+  const calibrated = calibration !== 1;
   const hours = data?.hourly ?? [];
   const currentRadiation = Math.round(data?.current.radiation ?? 0);
-  const next12kwh = hours.reduce((sum, hour) => sum + estimateKwh(hour.radiation, kwp, losses), 0);
-
-  const radiationPoints = hours.map((hour, index) => {
-    const x = hours.length <= 1 ? 0 : (index / (hours.length - 1)) * 100;
-    const y = 100 - clamp((hour.radiation / 1000) * 100, 0, 100);
-    return `${index === 0 ? "M" : "L"}${x},${y}`;
-  }).join(" ");
-
-  const productionPoints = hours.map((hour, index) => {
-    const x = hours.length <= 1 ? 0 : (index / (hours.length - 1)) * 100;
-    const estimated = estimateKwh(hour.radiation, kwp, losses);
-    const y = 100 - clamp((estimated / 1.2) * 100, 0, 100);
-    return `${index === 0 ? "M" : "L"}${x},${y}`;
-  }).join(" ");
-
+  const next12kwh = hours.reduce((sum, hour) => sum + estimateKwh(hour.radiation, kwp, losses, calibration), 0);
+  const peakRad = Math.max(1, ...hours.map((h) => h.radiation));
+  const liveKw = Math.max(0, livePv) / 1000;
+  const pctOfPeak = kwp > 0 ? clamp((liveKw / kwp) * 100, 0, 100) : 0;
   const city = data?.city ?? "Mi ubicación";
 
   return (
