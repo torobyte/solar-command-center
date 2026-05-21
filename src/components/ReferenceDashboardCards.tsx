@@ -256,8 +256,19 @@ function SmallStat({ label, value, subtitle }: { label: string; value: string; s
   );
 }
 
+const WEATHER_PAYLOAD_KEY = "dashboard.reference.weather.payload.v1";
+const WEATHER_TTL_MS = 15 * 60 * 1000;
+
 export function useSolarReferenceWeather(pvConfig?: PvConfig | null) {
-  const [data, setData] = useState<DashboardWeatherData | null>(null);
+  const [data, setData] = useState<DashboardWeatherData | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = localStorage.getItem(WEATHER_PAYLOAD_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { data: DashboardWeatherData };
+      return parsed?.data ?? null;
+    } catch { return null; }
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -307,6 +318,21 @@ export function useSolarReferenceWeather(pvConfig?: PvConfig | null) {
           localStorage.setItem(WEATHER_STORAGE_KEY, JSON.stringify(coords));
         }
 
+        // Hydrate instantly from payload cache if fresh enough for same coords
+        if (typeof window !== "undefined") {
+          try {
+            const raw = localStorage.getItem(WEATHER_PAYLOAD_KEY);
+            if (raw) {
+              const parsed = JSON.parse(raw) as { data: DashboardWeatherData; ts: number; lat: number; lon: number };
+              const sameCoords = Math.abs((parsed.lat ?? 0) - coords.lat) < 0.05 && Math.abs((parsed.lon ?? 0) - coords.lon) < 0.05;
+              if (sameCoords && !cancelled) {
+                setData(parsed.data);
+                if (Date.now() - (parsed.ts ?? 0) < WEATHER_TTL_MS) return;
+              }
+            }
+          } catch { /* ignore */ }
+        }
+
         const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,uv_index,weather_code,shortwave_radiation&hourly=temperature_2m,weather_code,shortwave_radiation&daily=weather_code,temperature_2m_max,temperature_2m_min,sunshine_duration&forecast_days=6&timezone=auto`;
         const weatherRes = await fetch(weatherUrl);
         const weatherJson = await weatherRes.json();
@@ -345,24 +371,27 @@ export function useSolarReferenceWeather(pvConfig?: PvConfig | null) {
           sunshineHours: Number(weatherJson.daily.sunshine_duration?.[index] ?? 0) / 3600,
         }));
 
-        if (!cancelled) {
-          setData({
-            city,
-            current: {
-              temperature: Number(weatherJson.current?.temperature_2m ?? 0),
-              apparentTemperature: Number(weatherJson.current?.apparent_temperature ?? 0),
-              humidity: Number(weatherJson.current?.relative_humidity_2m ?? 0),
-              windSpeed: Number(weatherJson.current?.wind_speed_10m ?? 0),
-              uvIndex: Number(weatherJson.current?.uv_index ?? 0),
-              weatherCode: Number(weatherJson.current?.weather_code ?? 0),
-              radiation: Number(weatherJson.current?.shortwave_radiation ?? 0),
-            },
-            hourly,
-            daily,
-          });
-        }
+        const next: DashboardWeatherData = {
+          city,
+          current: {
+            temperature: Number(weatherJson.current?.temperature_2m ?? 0),
+            apparentTemperature: Number(weatherJson.current?.apparent_temperature ?? 0),
+            humidity: Number(weatherJson.current?.relative_humidity_2m ?? 0),
+            windSpeed: Number(weatherJson.current?.wind_speed_10m ?? 0),
+            uvIndex: Number(weatherJson.current?.uv_index ?? 0),
+            weatherCode: Number(weatherJson.current?.weather_code ?? 0),
+            radiation: Number(weatherJson.current?.shortwave_radiation ?? 0),
+          },
+          hourly,
+          daily,
+        };
+
+        if (!cancelled) setData(next);
+        try {
+          localStorage.setItem(WEATHER_PAYLOAD_KEY, JSON.stringify({ data: next, ts: Date.now(), lat: coords.lat, lon: coords.lon }));
+        } catch { /* ignore */ }
       } catch {
-        if (!cancelled) setData(null);
+        if (!cancelled) setData((prev) => prev);
       }
     }
 
