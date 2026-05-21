@@ -725,6 +725,7 @@ export function HouseLoadViz({ load, loadMax = 5000 }: { load: number; loadMax?:
 
 export function BackupTimeCard({
   soc, batteryKwh, usableDodPct, load, pv, batteryCount, batteryType,
+  batteryChargeW = 0, gridConnected = false,
 }: {
   soc: number;
   batteryKwh: number | null;
@@ -733,12 +734,18 @@ export function BackupTimeCard({
   pv: number;
   batteryCount: number | null;
   batteryType: string | null;
+  /** Potencia entrante a la batería (W). Si > 0 la batería se está cargando (PV o red). */
+  batteryChargeW?: number;
+  /** Indica si hay red activa supliendo carga. */
+  gridConnected?: boolean;
 }) {
   const dod = (usableDodPct ?? 80) / 100;
   const usableKwh = (batteryKwh ?? 0) * (Math.max(0, Math.min(100, soc)) / 100) * dod;
   const netDischargeW = Math.max(0, load - pv);
   const netDischargeKw = netDischargeW / 1000;
-  const charging = pv > load + 5;
+  // La batería está cargando si entra potencia a ella (no importa si viene de PV o de la red)
+  // o si la red está cubriendo el consumo (caso típico: bypass / modo línea sin descarga).
+  const charging = batteryChargeW > 25 || pv > load + 5 || (gridConnected && netDischargeW < 5);
 
   let runtimeHours: number | null = null;
   if (!charging && netDischargeKw > 0.01 && usableKwh > 0) {
