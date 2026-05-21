@@ -487,6 +487,8 @@ export function EnergyFlowReferenceCard({
   const batteryToHouse = dischargeW > 5;
   const solarToBattery = chargeW > 5;
 
+  const gridW = gridConnected && load > pv + dischargeW ? load - pv - dischargeW : 0;
+
   return (
     <div className="dashboard-card p-5 sm:p-6">
       <DashboardCardHeader
@@ -496,112 +498,149 @@ export function EnergyFlowReferenceCard({
         trailing={<Info className="h-4 w-4 text-muted-foreground" />}
       />
 
-      <svg viewBox="0 0 640 360" className="w-full" preserveAspectRatio="xMidYMid meet">
+      <svg viewBox="0 0 640 420" className="w-full" preserveAspectRatio="xMidYMid meet">
         <defs>
-          <marker id="ef-arr-solar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <marker id="ef-arr-solar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
             <path d="M0 0 L10 5 L0 10 z" fill="var(--solar)" />
           </marker>
-          <marker id="ef-arr-battery" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <marker id="ef-arr-battery" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
             <path d="M0 0 L10 5 L0 10 z" fill="var(--success)" />
           </marker>
-          <marker id="ef-arr-load" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <marker id="ef-arr-load" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
             <path d="M0 0 L10 5 L0 10 z" fill="#3b82f6" />
           </marker>
+          <marker id="ef-arr-grid" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0 0 L10 5 L0 10 z" fill="#94a3b8" />
+          </marker>
+          <radialGradient id="sun-grad" cx="35%" cy="35%">
+            <stop offset="0%" stopColor="#fffbe6" />
+            <stop offset="55%" stopColor="#fbbf24" />
+            <stop offset="100%" stopColor="#f97316" />
+          </radialGradient>
         </defs>
 
-        {/* SOLAR top center: icon + label, no overlap */}
-        <g transform="translate(280 90)">
-          <circle cx="0" cy="0" r="40" fill="color-mix(in oklab, var(--solar) 14%, white)" stroke="color-mix(in oklab, var(--solar) 35%, var(--border))" />
-          <circle cx="-2" cy="-10" r="10" fill="#fbbf24" />
-          <g stroke="#f59e0b" strokeWidth="2" strokeLinecap="round">
-            <line x1="-2" y1="-26" x2="-2" y2="-21" />
-            <line x1="-16" y1="-10" x2="-11" y2="-10" />
-            <line x1="7" y1="-10" x2="12" y2="-10" />
-            <line x1="-13" y1="-20" x2="-10" y2="-17" />
-            <line x1="6" y1="-20" x2="3" y2="-17" />
+        {/* ===== SOLAR (top) — circle r=46 at (320,75) ===== */}
+        <g transform="translate(320 75)">
+          <circle cx="0" cy="0" r="46" fill="color-mix(in oklab, var(--solar) 14%, white)" stroke="color-mix(in oklab, var(--solar) 40%, var(--border))" strokeWidth="1.2" />
+          {/* Sun */}
+          <circle cx="0" cy="-6" r="11" fill="url(#sun-grad)" />
+          <g stroke="#f59e0b" strokeWidth="2.2" strokeLinecap="round">
+            <line x1="0" y1="-24" x2="0" y2="-19" />
+            <line x1="-18" y1="-6" x2="-13" y2="-6" />
+            <line x1="13" y1="-6" x2="18" y2="-6" />
+            <line x1="-13" y1="-18" x2="-9" y2="-14" />
+            <line x1="13" y1="-18" x2="9" y2="-14" />
           </g>
-          <g transform="translate(-24 6) skewX(-22)">
-            <rect x="0" y="0" width="48" height="22" rx="2" fill="#1e3a5f" />
-            <line x1="12" y1="0" x2="12" y2="22" stroke="#3b5a8a" strokeWidth="1" />
-            <line x1="24" y1="0" x2="24" y2="22" stroke="#3b5a8a" strokeWidth="1" />
-            <line x1="36" y1="0" x2="36" y2="22" stroke="#3b5a8a" strokeWidth="1" />
-            <line x1="0" y1="11" x2="48" y2="11" stroke="#3b5a8a" strokeWidth="1" />
+          {/* Solar panel below sun */}
+          <g transform="translate(-22 10) skewX(-20)">
+            <rect x="0" y="0" width="44" height="20" rx="2" fill="#1e3a5f" stroke="#0f1f3d" />
+            <line x1="11" y1="0" x2="11" y2="20" stroke="#3b5a8a" />
+            <line x1="22" y1="0" x2="22" y2="20" stroke="#3b5a8a" />
+            <line x1="33" y1="0" x2="33" y2="20" stroke="#3b5a8a" />
+            <line x1="0" y1="10" x2="44" y2="10" stroke="#3b5a8a" />
           </g>
         </g>
-        <text x="350" y="80" className="fill-[var(--solar)] text-[22px] font-bold">{Math.round(pv)} w</text>
-        <text x="350" y="102" className="fill-muted-foreground text-[12px]">Generación solar</text>
+        {/* Solar label to the RIGHT of icon, no overlap */}
+        <text x="385" y="68" className="fill-[var(--solar)] text-[20px] font-bold">{Math.round(pv)} W</text>
+        <text x="385" y="86" className="fill-muted-foreground text-[11px]">Generación solar</text>
 
-        {/* FLOWS: battery -> junction above house -> house, solar -> house, house -> grid */}
+        {/* ===== FLOWS — all routed through clear empty space ===== */}
+        {/* Solar -> House (vertical down center) */}
         <path
-          d="M 110 230 C 170 175, 235 170, 290 215"
-          fill="none" stroke="var(--success)" strokeWidth="2.4" strokeDasharray="6 5"
-          markerEnd="url(#ef-arr-battery)"
-          className={batteryToHouse ? "flow-line flow-battery" : ""}
-          opacity={batteryToHouse ? 1 : 0.25}
-        />
-        <path
-          d="M 305 145 L 305 215"
-          fill="none" stroke="var(--solar)" strokeWidth="2.4" strokeDasharray="6 5"
+          d="M 320 125 L 320 230"
+          fill="none" stroke="var(--solar)" strokeWidth="3" strokeDasharray="7 6"
           markerEnd="url(#ef-arr-solar)"
           className={pv > 5 ? "flow-line flow-solar" : ""}
-          opacity={pv > 5 ? 1 : 0.25}
+          opacity={pv > 5 ? 1 : 0.2}
         />
+        {/* Battery -> House (curve from left) */}
         <path
-          d="M 330 215 C 395 170, 465 175, 530 230"
-          fill="none" stroke="#3b82f6" strokeWidth="2.4" strokeDasharray="6 5"
-          markerEnd="url(#ef-arr-load)"
-          className={solarToHouse > 5 ? "flow-line flow-load" : ""}
-          opacity={solarToHouse > 5 ? 1 : 0.25}
+          d="M 130 280 C 200 280, 240 270, 285 265"
+          fill="none" stroke="var(--success)" strokeWidth="3" strokeDasharray="7 6"
+          markerEnd="url(#ef-arr-battery)"
+          className={batteryToHouse ? "flow-line flow-battery" : ""}
+          opacity={batteryToHouse ? 1 : 0.2}
         />
-        <path d="M 350 270 L 530 270" fill="none" stroke="#94a3b8" strokeWidth="1.8" strokeDasharray="5 6" />
-        <path d="M 355 266 L 345 270 L 355 274" fill="none" stroke="#94a3b8" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M 525 266 L 535 270 L 525 274" fill="none" stroke="#94a3b8" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Solar -> Battery (cargando) */}
+        <path
+          d="M 285 100 C 220 110, 160 180, 130 235"
+          fill="none" stroke="var(--solar)" strokeWidth="2.4" strokeDasharray="6 6"
+          markerEnd="url(#ef-arr-battery)"
+          className={solarToBattery ? "flow-line" : ""}
+          opacity={solarToBattery ? 1 : 0.15}
+        />
+        {/* Grid -> House */}
+        <path
+          d="M 510 280 C 440 280, 400 270, 355 265"
+          fill="none" stroke="#94a3b8" strokeWidth="2.4" strokeDasharray="6 6"
+          markerEnd="url(#ef-arr-grid)"
+          className={gridW > 5 ? "flow-line" : ""}
+          opacity={gridW > 5 ? 1 : 0.2}
+        />
 
-        {/* BATTERY left */}
-        <g transform="translate(80 250)">
-          <circle cx="0" cy="0" r="34" fill="color-mix(in oklab, var(--success) 12%, white)" stroke="color-mix(in oklab, var(--success) 35%, var(--border))" />
-          <rect x="-13" y="-16" width="26" height="32" rx="4" fill="none" stroke="var(--success)" strokeWidth="2.4" />
-          <rect x="-5" y="-20" width="10" height="4" rx="1" fill="var(--success)" />
-          <path d="M 3 -8 L -5 3 L 1 3 L -3 13 L 6 -1 L 0 -1 L 4 -8 Z" fill="var(--success)" />
+        {/* ===== BATTERY (left) — circle r=42 at (90,280) ===== */}
+        <g transform="translate(90 280)">
+          <circle cx="0" cy="0" r="42" fill="color-mix(in oklab, var(--success) 12%, white)" stroke="color-mix(in oklab, var(--success) 40%, var(--border))" strokeWidth="1.2" />
+          {/* Real battery shape */}
+          <rect x="-15" y="-18" width="30" height="34" rx="4" fill="white" stroke="var(--success)" strokeWidth="2.4" />
+          <rect x="-6" y="-22" width="12" height="4" rx="1.5" fill="var(--success)" />
+          {/* Fill level */}
+          <rect x="-12" y={-15 + (30 * (1 - clamp(battery, 0, 100) / 100))} width="24" height={30 * clamp(battery, 0, 100) / 100} rx="2" fill="var(--success)" opacity="0.85" />
+          {/* Lightning bolt overlay */}
+          <path d="M 3 -8 L -5 4 L 1 4 L -3 14 L 6 0 L 0 0 L 4 -8 Z" fill="white" stroke="var(--success)" strokeWidth="0.8" strokeLinejoin="round" />
         </g>
-        <text x="80" y="312" textAnchor="middle" className="fill-[var(--success)] text-[18px] font-bold">{Math.round(batteryFlowW)} w</text>
-        <text x="80" y="332" textAnchor="middle" className="fill-muted-foreground text-[12px]">Batería</text>
-        <text x="80" y="348" textAnchor="middle" className="fill-muted-foreground text-[10px]">{Math.round(battery)}% · {batteryV.toFixed(1)} v{solarToBattery ? " · cargando" : ""}</text>
+        <text x="90" y="345" textAnchor="middle" className="fill-[var(--success)] text-[16px] font-bold">{Math.round(batteryFlowW)} W</text>
+        <text x="90" y="362" textAnchor="middle" className="fill-muted-foreground text-[11px]">Batería</text>
+        <text x="90" y="378" textAnchor="middle" className="fill-muted-foreground text-[10px]">{Math.round(battery)}% · {batteryV.toFixed(1)} V{solarToBattery ? " · cargando" : ""}</text>
 
-        {/* HOUSE center */}
-        <g transform="translate(310 250)">
-          <circle cx="0" cy="0" r="34" fill="color-mix(in oklab, var(--load) 10%, white)" stroke="color-mix(in oklab, var(--load) 35%, var(--border))" />
-          <path d="M -16 4 L 0 -14 L 16 4 L 16 16 L -16 16 Z" fill="none" stroke="var(--load)" strokeWidth="2.4" strokeLinejoin="round" />
-          <path d="M -5 16 L -5 6 L 5 6 L 5 16" fill="none" stroke="var(--load)" strokeWidth="2" strokeLinejoin="round" />
+        {/* ===== HOUSE (center) — circle r=46 at (320,275) ===== */}
+        <g transform="translate(320 275)">
+          <circle cx="0" cy="0" r="46" fill="color-mix(in oklab, var(--load) 10%, white)" stroke="color-mix(in oklab, var(--load) 40%, var(--border))" strokeWidth="1.2" />
+          {/* Realistic house */}
+          <path d="M -22 -2 L 0 -22 L 22 -2 L 22 20 L -22 20 Z" fill="white" stroke="var(--load)" strokeWidth="2.4" strokeLinejoin="round" />
+          <path d="M -24 -2 L 0 -24 L 24 -2" fill="none" stroke="var(--load)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+          {/* Door */}
+          <rect x="-6" y="6" width="12" height="14" fill="color-mix(in oklab, var(--load) 30%, white)" stroke="var(--load)" strokeWidth="1.4" />
+          {/* Window */}
+          <rect x="-17" y="2" width="8" height="8" fill="color-mix(in oklab, var(--load) 18%, white)" stroke="var(--load)" strokeWidth="1.2" />
+          <rect x="9" y="2" width="8" height="8" fill="color-mix(in oklab, var(--load) 18%, white)" stroke="var(--load)" strokeWidth="1.2" />
         </g>
-        <text x="360" y="248" className="fill-[var(--load)] text-[22px] font-bold">{Math.round(load)} w</text>
-        <text x="360" y="270" className="fill-muted-foreground text-[12px]">Consumo de la casa</text>
+        <text x="320" y="345" textAnchor="middle" className="fill-[var(--load)] text-[16px] font-bold">{Math.round(load)} W</text>
+        <text x="320" y="362" textAnchor="middle" className="fill-muted-foreground text-[11px]">Consumo casa</text>
 
-        {/* GRID right */}
-        <g transform="translate(560 250)">
-          <circle cx="0" cy="0" r="34" fill="color-mix(in oklab, var(--muted) 40%, white)" stroke="color-mix(in oklab, var(--muted-foreground) 25%, var(--border))" />
-          <g fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round">
-            <line x1="-7" y1="-18" x2="-12" y2="18" />
-            <line x1="7" y1="-18" x2="12" y2="18" />
-            <line x1="-11" y1="-10" x2="11" y2="-10" />
-            <line x1="-9" y1="-2" x2="9" y2="-2" />
-            <line x1="-13" y1="14" x2="13" y2="14" />
-            <line x1="-9" y1="-10" x2="-2" y2="-2" />
-            <line x1="-2" y1="-10" x2="-9" y2="-2" />
-            <line x1="9" y1="-10" x2="2" y2="-2" />
-            <line x1="2" y1="-10" x2="9" y2="-2" />
+        {/* ===== GRID (right) — circle r=42 at (550,280) — torre eléctrica ===== */}
+        <g transform="translate(550 280)">
+          <circle cx="0" cy="0" r="42" fill="color-mix(in oklab, var(--muted) 40%, white)" stroke="color-mix(in oklab, var(--muted-foreground) 30%, var(--border))" strokeWidth="1.2" />
+          {/* Tower legs */}
+          <g stroke="#475569" strokeWidth="2.2" strokeLinecap="round" fill="none">
+            <line x1="-12" y1="20" x2="-4" y2="-20" />
+            <line x1="12" y1="20" x2="4" y2="-20" />
+            {/* Cross beams */}
+            <line x1="-10" y1="10" x2="10" y2="10" />
+            <line x1="-7" y1="-2" x2="7" y2="-2" />
+            <line x1="-5" y1="-14" x2="5" y2="-14" />
+            {/* Diagonal bracing */}
+            <line x1="-10" y1="10" x2="0" y2="-2" />
+            <line x1="10" y1="10" x2="0" y2="-2" />
+            <line x1="-7" y1="-2" x2="0" y2="-14" />
+            <line x1="7" y1="-2" x2="0" y2="-14" />
+            {/* Top antenna */}
+            <line x1="0" y1="-14" x2="0" y2="-22" />
           </g>
+          {/* Insulators */}
+          <circle cx="-8" cy="-7" r="1.6" fill="#475569" />
+          <circle cx="8" cy="-7" r="1.6" fill="#475569" />
         </g>
-        <text x="560" y="312" textAnchor="middle" className="fill-foreground text-[18px] font-bold">0 w</text>
-        <text x="560" y="332" textAnchor="middle" className="fill-muted-foreground text-[12px]">Red</text>
-        <text x="560" y="348" textAnchor="middle" className="fill-muted-foreground text-[10px]">{gridConnected ? `${Math.round(gridV)} v` : "Desconectada"}</text>
+        <text x="550" y="345" textAnchor="middle" className="fill-foreground text-[16px] font-bold">{Math.round(gridW)} W</text>
+        <text x="550" y="362" textAnchor="middle" className="fill-muted-foreground text-[11px]">Red</text>
+        <text x="550" y="378" textAnchor="middle" className="fill-muted-foreground text-[10px]">{gridConnected ? `${Math.round(gridV)} V` : "Desconectada"}</text>
       </svg>
 
       <style>{`
-        @keyframes flow-dash { to { stroke-dashoffset: -40; } }
-        .flow-line { animation: flow-dash 1.4s linear infinite; }
-        .flow-load { animation-duration: 1.6s; }
-        .flow-battery { animation-duration: 1.8s; }
+        @keyframes flow-dash { to { stroke-dashoffset: -52; } }
+        .flow-line { animation: flow-dash 1.6s linear infinite; }
+        .flow-solar { animation-duration: 1.4s; }
+        .flow-battery { animation-duration: 2s; }
       `}</style>
     </div>
   );
@@ -835,11 +874,15 @@ export function WeatherAndRadiationCard({
   pvConfig,
   livePv,
   siteId,
+  batterySoc,
+  batteryChargingW,
 }: {
   data: DashboardWeatherData | null;
   pvConfig?: PvConfig | null;
   livePv: number;
   siteId: string;
+  batterySoc?: number;
+  batteryChargingW?: number;
 }) {
   const kwp = pvConfig?.array_kwp ?? 5.2;
   const losses = pvConfig?.system_losses_pct ?? 14;
@@ -854,14 +897,36 @@ export function WeatherAndRadiationCard({
   const pctOfPeak = kwp > 0 ? clamp((liveKw / kwp) * 100, 0, 100) : 0;
   const city = data?.city ?? "Mi ubicación";
 
+  // Tiempo estimado para cargar las baterías
+  const batteryKwh = pvConfig?.battery_kwh ?? null;
+  const usableDod = (pvConfig?.battery_usable_dod_pct ?? 80) / 100;
+  const soc = clamp(batterySoc ?? 0, 0, 100) / 100;
+  const chargeW = Math.max(0, batteryChargingW ?? 0);
+  let chargeTimeLabel: string | null = null;
+  if (batteryKwh && batteryKwh > 0 && soc < 1) {
+    const kwhNeeded = batteryKwh * usableDod * (1 - soc);
+    if (chargeW > 50) {
+      const hoursToFull = kwhNeeded / (chargeW / 1000);
+      const h = Math.floor(hoursToFull);
+      const m = Math.round((hoursToFull - h) * 60);
+      chargeTimeLabel = h > 0 ? `${h} h ${m} min` : `${m} min`;
+    } else if (next12kwh > 0.1) {
+      const hoursWithSun = kwhNeeded / (next12kwh / 12);
+      const h = Math.floor(hoursWithSun);
+      const m = Math.round((hoursWithSun - h) * 60);
+      chargeTimeLabel = `~${h} h ${m} min (sol)`;
+    }
+  }
+
+
   return (
     <div
       className="dashboard-card overflow-hidden p-0"
       style={{ background: "linear-gradient(180deg, color-mix(in oklab, var(--load) 8%, white) 0%, color-mix(in oklab, var(--card) 96%, white) 100%)" }}
     >
-      {/* Hero: clima actual con selector de ubicación CENTRADO */}
+      {/* Hero compacto */}
       <div
-        className="relative px-5 pb-5 pt-5 text-white sm:px-6"
+        className="relative px-4 pb-3 pt-3 text-white sm:px-5"
         style={{
           background: data && data.current.weatherCode <= 1
             ? "linear-gradient(135deg,#f59e0b,#ef4444)"
@@ -870,35 +935,32 @@ export function WeatherAndRadiationCard({
               : "linear-gradient(135deg,#475569,#1e293b)",
         }}
       >
-        <div className="mb-3 flex justify-center">
+        <div className="mb-2 flex justify-center">
           <LocationPicker currentLabel={city} siteId={siteId} />
         </div>
 
         {!data ? (
-          <div className="py-8 text-center text-sm text-white/80">Cargando condiciones meteorológicas…</div>
+          <div className="py-4 text-center text-sm text-white/80">Cargando…</div>
         ) : (
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-end gap-3">
-              <div className="text-[56px] font-bold leading-none">
-                {Math.round(data.current.temperature)}°
-              </div>
-              <div className="pb-2">
-                <div className="flex items-center gap-1.5 text-[13px] font-medium">
-                  <WeatherGlyph code={data.current.weatherCode} className="h-5 w-5 text-white" />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-end gap-2">
+              <div className="text-[44px] font-bold leading-none">{Math.round(data.current.temperature)}°</div>
+              <div className="pb-1">
+                <div className="flex items-center gap-1 text-[12px] font-medium">
+                  <WeatherGlyph code={data.current.weatherCode} className="h-4 w-4 text-white" />
                   <span>{weatherLabel(data.current.weatherCode)}</span>
                 </div>
-                <div className="mt-1 text-[11px] text-white/80">
-                  Sensación {Math.round(data.current.apparentTemperature)}° · Hum {Math.round(data.current.humidity)}% · Viento {Math.round(data.current.windSpeed)} km/h
+                <div className="mt-0.5 text-[10px] text-white/80">
+                  Sens {Math.round(data.current.apparentTemperature)}° · Hum {Math.round(data.current.humidity)}% · {Math.round(data.current.windSpeed)} km/h
                 </div>
               </div>
             </div>
-            <div className="rounded-xl bg-white/15 px-3 py-2 text-right backdrop-blur-sm">
-              <div className="text-[10px] uppercase tracking-wider text-white/80">Radiación</div>
-              <div className="text-[26px] font-bold tabular-nums leading-none">
-                {currentRadiation}
-                <span className="ml-1 text-xs font-normal text-white/80">W/m²</span>
+            <div className="rounded-lg bg-white/15 px-2.5 py-1.5 text-right backdrop-blur-sm">
+              <div className="text-[9px] uppercase tracking-wider text-white/80">Radiación</div>
+              <div className="text-[20px] font-bold tabular-nums leading-none">
+                {currentRadiation}<span className="ml-1 text-[10px] font-normal text-white/80">W/m²</span>
               </div>
-              <div className="mt-0.5 text-[10px] text-white/80">
+              <div className="mt-0.5 text-[9px] text-white/80">
                 {currentRadiation > 650 ? "Muy alta" : currentRadiation > 250 ? "Alta" : currentRadiation > 80 ? "Media" : "Baja"}
               </div>
             </div>
@@ -906,52 +968,56 @@ export function WeatherAndRadiationCard({
         )}
       </div>
 
+
       {data && (
-        <div className="p-5 sm:p-6">
-          {/* Producción ahora + estimada 12h */}
-          <div className="mb-4 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border bg-white/80 p-3">
-              <div className="mb-1 flex items-center justify-between">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Producción ahora <span className="text-emerald-600">(inversor)</span>
-                </div>
-                <div className="text-[10px] font-medium text-emerald-600">en vivo</div>
-              </div>
-              <div className="flex items-baseline gap-2">
-                <div className="text-[28px] font-bold tabular-nums text-emerald-600">
+        <div className="p-3 sm:p-4">
+          {/* Producción ahora + estimada 12h + carga batería (compacto) */}
+          <div className="mb-3 grid gap-2 sm:grid-cols-3">
+            <div className="rounded-lg border bg-white/80 p-2.5">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Producción ahora</div>
+              <div className="mt-1 flex items-baseline gap-1.5">
+                <div className="text-[22px] font-bold tabular-nums text-emerald-600">
                   {liveKw < 1 ? Math.round(livePv) : liveKw.toFixed(2)}
                 </div>
-                <div className="text-sm text-muted-foreground">{liveKw < 1 ? "W" : "kW"}</div>
-                <div className="ml-auto text-[10px] text-muted-foreground">{pctOfPeak.toFixed(0)}% del pico</div>
+                <div className="text-xs text-muted-foreground">{liveKw < 1 ? "W" : "kW"}</div>
+                <div className="ml-auto text-[9px] text-muted-foreground">{pctOfPeak.toFixed(0)}%</div>
               </div>
-              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full"
-                  style={{ width: `${pctOfPeak}%`, background: "linear-gradient(90deg,var(--success),var(--solar))" }}
-                />
+              <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-muted">
+                <div className="h-full rounded-full" style={{ width: `${pctOfPeak}%`, background: "linear-gradient(90deg,var(--success),var(--solar))" }} />
               </div>
             </div>
 
-            <div className="rounded-xl border bg-white/80 p-3">
-              <div className="mb-1 flex items-center justify-between gap-2">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Producción estimada 12 h{calibrated && <span className="ml-1 text-emerald-600">· calibrado</span>}
-                </div>
-                <div className="text-[10px] text-muted-foreground">
-                  {kwp} kWp · {losses}%{calibrated ? ` · ×${calibration.toFixed(2)}` : ""}
-                </div>
+            <div className="rounded-lg border bg-white/80 p-2.5">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Estimada 12 h{calibrated && <span className="ml-1 text-emerald-600">·cal</span>}
               </div>
-              <div className="flex items-baseline gap-2">
-                <div className="text-[28px] font-bold tabular-nums" style={{ color: "var(--solar)" }}>{next12kwh.toFixed(2)}</div>
-                <div className="text-sm text-muted-foreground">kWh</div>
+              <div className="mt-1 flex items-baseline gap-1.5">
+                <div className="text-[22px] font-bold tabular-nums" style={{ color: "var(--solar)" }}>{next12kwh.toFixed(2)}</div>
+                <div className="text-xs text-muted-foreground">kWh</div>
               </div>
-              <div className="mt-1 text-[11px] text-muted-foreground">
-                {next12kwh <= 0.1
-                  ? "Sin radiación significativa en las próximas 12 h"
-                  : "Estimación según radiación pronosticada"}
-              </div>
+              <div className="mt-1 text-[9px] text-muted-foreground">{kwp} kWp · {losses}%{calibrated ? ` · ×${calibration.toFixed(2)}` : ""}</div>
+            </div>
+
+            <div className="rounded-lg border bg-white/80 p-2.5">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Carga batería</div>
+              {chargeTimeLabel ? (
+                <>
+                  <div className="mt-1 text-[18px] font-bold tabular-nums text-foreground">{chargeTimeLabel}</div>
+                  <div className="mt-1 text-[9px] text-muted-foreground">
+                    {soc * 100 >= 99 ? "Completa" : `${Math.round(soc * 100)}% → 100%`}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="mt-1 text-[14px] font-semibold text-muted-foreground">
+                    {!batteryKwh ? "Sin datos" : soc * 100 >= 99 ? "Completa" : "Sin carga"}
+                  </div>
+                  <div className="mt-1 text-[9px] text-muted-foreground">{batteryKwh ? `${batteryKwh} kWh` : "Configura batería"}</div>
+                </>
+              )}
             </div>
           </div>
+
 
           {/* Gráfico 12h con barras + kWh */}
           <div className="rounded-xl border bg-white/80 p-3">
