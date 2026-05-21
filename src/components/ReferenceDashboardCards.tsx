@@ -500,10 +500,10 @@ export function EnergyFlowReferenceCard({
           </marker>
         </defs>
 
-        <path d="M140 165 C160 120 200 120 240 118" fill="none" stroke="var(--battery)" strokeWidth="2.5" markerEnd="url(#ref-arrow-battery)" />
-        <path d="M260 95 L260 136" fill="none" stroke="var(--solar)" strokeWidth="2.5" markerEnd="url(#ref-arrow-solar)" />
-        <path d="M278 118 C318 118 340 146 340 176" fill="none" stroke="var(--load)" strokeWidth="2.5" markerEnd="url(#ref-arrow-load)" />
-        <path d="M315 188 L394 188" fill="none" stroke="color-mix(in oklab, var(--muted-foreground) 70%, white)" strokeWidth="2" strokeDasharray="5 6" />
+        <path d="M140 165 C160 120 200 120 240 118" fill="none" stroke="var(--battery)" strokeWidth="2.5" markerEnd="url(#ref-arrow-battery)" strokeDasharray="6 4" className="flow-line flow-battery" />
+        <path d="M260 95 L260 136" fill="none" stroke="var(--solar)" strokeWidth="2.5" markerEnd="url(#ref-arrow-solar)" strokeDasharray="6 4" className="flow-line flow-solar" />
+        <path d="M278 118 C318 118 340 146 340 176" fill="none" stroke="var(--load)" strokeWidth="2.5" markerEnd="url(#ref-arrow-load)" strokeDasharray="6 4" className="flow-line flow-load" />
+        <path d="M315 188 L394 188" fill="none" stroke="color-mix(in oklab, var(--muted-foreground) 70%, white)" strokeWidth="2" strokeDasharray="5 6" className="flow-line flow-grid" />
         <path d="M320 184 L330 188 L320 192" fill="none" stroke="color-mix(in oklab, var(--muted-foreground) 70%, white)" strokeWidth="1.8" />
         <path d="M390 184 L380 188 L390 192" fill="none" stroke="color-mix(in oklab, var(--muted-foreground) 70%, white)" strokeWidth="1.8" />
 
