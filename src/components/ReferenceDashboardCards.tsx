@@ -597,7 +597,7 @@ export function SolarProductionReferenceCard({ pv, pvMax = 5200 }: { pv: number;
         </div>
       </div>
 
-      <FooterLink label="Ver análisis de producción" />
+      
     </div>
   );
 }
