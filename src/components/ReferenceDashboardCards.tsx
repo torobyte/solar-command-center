@@ -516,7 +516,9 @@ export function EnergyFlowReferenceCard({
   const batteryToHouse = dischargeW > 5;
   const solarToBattery = chargeW > 5;
 
-  const gridW = gridConnected && load > pv + dischargeW ? load - pv - dischargeW : 0;
+  // La red suministra el consumo de la casa MÁS lo que se está entregando a la batería (carga).
+  // Solo se cuenta como aporte de red el déficit no cubierto por PV ni por descarga de batería.
+  const gridW = gridConnected ? Math.max(0, load + chargeW - pv - dischargeW) : 0;
 
   return (
     <div className="dashboard-card p-5 sm:p-6">
