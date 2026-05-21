@@ -881,10 +881,6 @@ export function BackupTimeCard({
           </div>
         </div>
       </div>
-      <button type="button" className="mt-4 inline-flex w-full items-center justify-between rounded-xl border bg-background px-4 py-3 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground">
-        <span>Ver detalles del banco</span>
-        <ArrowRight className="h-3.5 w-3.5" />
-      </button>
     </div>
   );
 }
