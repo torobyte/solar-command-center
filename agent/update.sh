@@ -51,7 +51,22 @@ log "$OLD_HASH -> $NEW_HASH"
 install -m 755 "$TMP_AGENT" "$AGENT_DST"
 
 # ---------- 3) Refrescar dependencias Python ----------
-/opt/solarops/venv/bin/pip install --quiet --upgrade flask requests pyserial paho-mqtt || true
+# Solo intentamos instalar deps si falta alguna — evita golpear PyPI cada hora
+# y silencia errores SSL transitorios (UNEXPECTED_EOF_WHILE_READING en /simple/flask/).
+PYBIN=/opt/solarops/venv/bin/python
+PIPBIN=/opt/solarops/venv/bin/pip
+NEED_DEPS=0
+for mod in flask requests serial paho.mqtt.client; do
+  if ! "$PYBIN" -c "import $mod" >/dev/null 2>&1; then NEED_DEPS=1; break; fi
+done
+if [[ "$NEED_DEPS" == "1" ]]; then
+  log "instalando dependencias Python faltantes"
+  "$PIPBIN" install --quiet --retries 5 --timeout 30 \
+    --extra-index-url https://www.piwheels.org/simple \
+    flask requests pyserial paho-mqtt >/dev/null 2>&1 || \
+    log "pip falló (red inestable); se reintentará en la próxima ejecución"
+fi
+
 
 systemctl restart solarops.service
 log "solarops.service reiniciado"
