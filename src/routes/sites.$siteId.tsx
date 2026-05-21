@@ -489,7 +489,7 @@ function SiteDetail() {
         </TabsList>
 
         <TabsContent value="dashboard" className="mt-6 space-y-6">
-          <DashboardView latest={latest} siteId={siteId} spec={null} device={selectedDevice} />
+          <SiteDashboardView latest={latest} siteId={siteId} />
           {!latest && (
             <div className="mt-8 rounded-lg border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">
               Esperando la primera muestra de {selectedDevice?.name ?? "tu inversor"}…
