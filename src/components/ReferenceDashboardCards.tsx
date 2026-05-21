@@ -897,6 +897,28 @@ export function WeatherAndRadiationCard({
   const pctOfPeak = kwp > 0 ? clamp((liveKw / kwp) * 100, 0, 100) : 0;
   const city = data?.city ?? "Mi ubicación";
 
+  // Tiempo estimado para cargar las baterías
+  const batteryKwh = pvConfig?.battery_kwh ?? null;
+  const usableDod = (pvConfig?.battery_usable_dod_pct ?? 80) / 100;
+  const soc = clamp(batterySoc ?? 0, 0, 100) / 100;
+  const chargeW = Math.max(0, batteryChargingW ?? 0);
+  let chargeTimeLabel: string | null = null;
+  if (batteryKwh && batteryKwh > 0 && soc < 1) {
+    const kwhNeeded = batteryKwh * usableDod * (1 - soc);
+    if (chargeW > 50) {
+      const hoursToFull = kwhNeeded / (chargeW / 1000);
+      const h = Math.floor(hoursToFull);
+      const m = Math.round((hoursToFull - h) * 60);
+      chargeTimeLabel = h > 0 ? `${h} h ${m} min` : `${m} min`;
+    } else if (next12kwh > 0.1) {
+      const hoursWithSun = kwhNeeded / (next12kwh / 12);
+      const h = Math.floor(hoursWithSun);
+      const m = Math.round((hoursWithSun - h) * 60);
+      chargeTimeLabel = `~${h} h ${m} min (sol)`;
+    }
+  }
+
+
   return (
     <div
       className="dashboard-card overflow-hidden p-0"
