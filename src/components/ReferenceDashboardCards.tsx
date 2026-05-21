@@ -819,107 +819,163 @@ export function WeatherAndRadiationCard({
 
   return (
     <div
-      className="dashboard-card p-5 sm:p-6"
+      className="dashboard-card overflow-hidden p-0"
       style={{ background: "linear-gradient(180deg, color-mix(in oklab, var(--load) 8%, white) 0%, color-mix(in oklab, var(--card) 96%, white) 100%)" }}
     >
-      <DashboardCardHeader
-        icon={<Sun className="h-4 w-4" />}
-        title="Clima y radiación solar"
-        badgeColor="var(--solar)"
-        trailing={<LocationPicker currentLabel={city} siteId={siteId} />}
-      />
+      {/* Hero: clima actual con selector de ubicación CENTRADO */}
+      <div
+        className="relative px-5 pb-5 pt-5 text-white sm:px-6"
+        style={{
+          background: data && data.current.weatherCode <= 1
+            ? "linear-gradient(135deg,#f59e0b,#ef4444)"
+            : data && data.current.weatherCode <= 3
+              ? "linear-gradient(135deg,#64748b,#1e3a8a)"
+              : "linear-gradient(135deg,#475569,#1e293b)",
+        }}
+      >
+        <div className="mb-3 flex justify-center">
+          <LocationPicker currentLabel={city} siteId={siteId} />
+        </div>
 
-      {!data ? (
-        <div className="text-sm text-muted-foreground">Cargando condiciones meteorológicas…</div>
-      ) : (
-        <>
-          <div className="grid grid-cols-[1fr_1fr] gap-4 max-[640px]:grid-cols-1">
-            {/* CLIMA */}
-            <div className="rounded-2xl border bg-white/70 p-4">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Clima en {city}</div>
-              <div className="mt-2 flex items-end justify-between">
-                <div>
-                  <div className="text-[48px] font-bold leading-none text-foreground">{Math.round(data.current.temperature)}°C</div>
-                  <div className="mt-1 flex items-center gap-1.5 text-[12px] text-muted-foreground">
-                    <WeatherGlyph code={data.current.weatherCode} className="h-4 w-4" />
-                    <span>{weatherLabel(data.current.weatherCode)}</span>
-                  </div>
-                </div>
-                <WeatherGlyph code={data.current.weatherCode} className="h-12 w-12" />
+        {!data ? (
+          <div className="py-8 text-center text-sm text-white/80">Cargando condiciones meteorológicas…</div>
+        ) : (
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-end gap-3">
+              <div className="text-[56px] font-bold leading-none">
+                {Math.round(data.current.temperature)}°
               </div>
-              <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
-                <MetricLine label="Sensación" value={`${Math.round(data.current.apparentTemperature)}°C`} />
-                <MetricLine label="Humedad" value={`${Math.round(data.current.humidity)}%`} />
-                <MetricLine label="Viento" value={`${Math.round(data.current.windSpeed)} km/h`} />
-                <MetricLine label="UV" value={`${Math.round(data.current.uvIndex)}`} />
+              <div className="pb-2">
+                <div className="flex items-center gap-1.5 text-[13px] font-medium">
+                  <WeatherGlyph code={data.current.weatherCode} className="h-5 w-5 text-white" />
+                  <span>{weatherLabel(data.current.weatherCode)}</span>
+                </div>
+                <div className="mt-1 text-[11px] text-white/80">
+                  Sensación {Math.round(data.current.apparentTemperature)}° · Hum {Math.round(data.current.humidity)}% · Viento {Math.round(data.current.windSpeed)} km/h
+                </div>
+              </div>
+            </div>
+            <div className="rounded-xl bg-white/15 px-3 py-2 text-right backdrop-blur-sm">
+              <div className="text-[10px] uppercase tracking-wider text-white/80">Radiación</div>
+              <div className="text-[26px] font-bold tabular-nums leading-none">
+                {currentRadiation}
+                <span className="ml-1 text-xs font-normal text-white/80">W/m²</span>
+              </div>
+              <div className="mt-0.5 text-[10px] text-white/80">
+                {currentRadiation > 650 ? "Muy alta" : currentRadiation > 250 ? "Alta" : currentRadiation > 80 ? "Media" : "Baja"}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {data && (
+        <div className="p-5 sm:p-6">
+          {/* Producción ahora + estimada 12h */}
+          <div className="mb-4 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border bg-white/80 p-3">
+              <div className="mb-1 flex items-center justify-between">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Producción ahora <span className="text-emerald-600">(inversor)</span>
+                </div>
+                <div className="text-[10px] font-medium text-emerald-600">en vivo</div>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <div className="text-[28px] font-bold tabular-nums text-emerald-600">
+                  {liveKw < 1 ? Math.round(livePv) : liveKw.toFixed(2)}
+                </div>
+                <div className="text-sm text-muted-foreground">{liveKw < 1 ? "W" : "kW"}</div>
+                <div className="ml-auto text-[10px] text-muted-foreground">{pctOfPeak.toFixed(0)}% del pico</div>
+              </div>
+              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full"
+                  style={{ width: `${pctOfPeak}%`, background: "linear-gradient(90deg,var(--success),var(--solar))" }}
+                />
               </div>
             </div>
 
-            {/* RADIACIÓN */}
-            <div
-              className="rounded-2xl border p-4 text-white"
-              style={{ background: `linear-gradient(180deg, color-mix(in oklab, var(--solar) 90%, white) 0%, color-mix(in oklab, var(--solar) 55%, white) 100%)` }}
-            >
-              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/80">Radiación solar</div>
-              <div className="mt-2 flex items-end justify-between">
-                <div>
-                  <div className="text-[48px] font-bold leading-none">{currentRadiation}</div>
-                  <div className="text-[13px] font-medium">W/m²</div>
+            <div className="rounded-xl border bg-white/80 p-3">
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Producción estimada 12 h{calibrated && <span className="ml-1 text-emerald-600">· calibrado</span>}
                 </div>
-                <div className="text-right">
-                  <div className="text-[11px] uppercase tracking-wide text-white/80">Actual</div>
-                  <div className="text-[18px] font-semibold">{currentRadiation > 650 ? "Muy alta" : currentRadiation > 250 ? "Alta" : currentRadiation > 80 ? "Media" : "Baja"}</div>
+                <div className="text-[10px] text-muted-foreground">
+                  {kwp} kWp · {losses}%{calibrated ? ` · ×${calibration.toFixed(2)}` : ""}
                 </div>
               </div>
-              <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
-                <div className="rounded-lg bg-white/15 px-2 py-1.5">
-                  <div className="text-[10px] uppercase tracking-wide text-white/70">Producción ahora</div>
-                  <div className="text-[16px] font-bold">{Math.round(livePv)} w</div>
-                </div>
-                <div className="rounded-lg bg-white/15 px-2 py-1.5">
-                  <div className="text-[10px] uppercase tracking-wide text-white/70">Est. 12 h</div>
-                  <div className="text-[16px] font-bold">{next12kwh.toFixed(2)} kWh</div>
-                </div>
+              <div className="flex items-baseline gap-2">
+                <div className="text-[28px] font-bold tabular-nums" style={{ color: "var(--solar)" }}>{next12kwh.toFixed(2)}</div>
+                <div className="text-sm text-muted-foreground">kWh</div>
+              </div>
+              <div className="mt-1 text-[11px] text-muted-foreground">
+                {next12kwh <= 0.1
+                  ? "Sin radiación significativa en las próximas 12 h"
+                  : "Estimación según radiación pronosticada"}
               </div>
             </div>
           </div>
 
-          {/* PRONÓSTICO 6 DÍAS */}
-          <div className="mt-4 grid grid-cols-6 gap-2 rounded-xl border bg-white/80 p-3 max-[520px]:grid-cols-3">
-            {data.daily.slice(0, 6).map((day, index) => (
-              <div key={day.date} className="text-center">
-                <div className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: index === 0 ? "var(--load)" : "var(--muted-foreground)" }}>
-                  {index === 0 ? "Ahora" : new Date(day.date).toLocaleDateString("es-CL", { weekday: "short" })}
-                </div>
-                <div className="my-2 flex justify-center"><WeatherGlyph code={day.weatherCode} className="h-5 w-5" /></div>
-                <div className="text-[12px] text-foreground">{Math.round(day.max)}° / {Math.round(day.min)}°</div>
-              </div>
-            ))}
-          </div>
-
-          {/* GRÁFICO 12 H */}
-          <div className="mt-4 rounded-2xl border bg-white/90 p-3">
+          {/* Gráfico 12h con barras + kWh */}
+          <div className="rounded-xl border bg-white/80 p-3">
             <div className="mb-2 flex items-center justify-between">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-foreground">Próximas 12 h</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Próximas 12 h — radiación solar y producción estimada
+              </div>
               <div className="flex gap-3 text-[10px] text-muted-foreground">
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ background: "var(--solar)" }} />Radiación</span>
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ background: "var(--load)" }} />Producción</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ background: "var(--solar)" }} />W/m²</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ background: "var(--success)" }} />kWh</span>
               </div>
             </div>
-            <svg viewBox="0 0 100 34" className="h-24 w-full overflow-visible">
-              <path d="M0 30 H100" stroke="color-mix(in oklab, var(--border) 80%, white)" strokeWidth="0.5" />
-              <path d="M0 20 H100" stroke="color-mix(in oklab, var(--border) 70%, white)" strokeWidth="0.5" strokeDasharray="1.5 1.5" />
-              <path d="M0 10 H100" stroke="color-mix(in oklab, var(--border) 70%, white)" strokeWidth="0.5" strokeDasharray="1.5 1.5" />
-              <path d={radiationPoints} fill="none" stroke="var(--solar)" strokeWidth="1.7" strokeDasharray="3 2" />
-              <path d={productionPoints} fill="none" stroke="var(--load)" strokeWidth="1.5" />
-            </svg>
-            <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
-              {hours.slice(0, 6).map((hour) => (
-                <span key={hour.time}>{new Date(hour.time).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}</span>
-              ))}
+            <div className="flex h-28 items-end gap-1.5 pt-4">
+              {hours.map((h, i) => {
+                const height = (h.radiation / peakRad) * 100;
+                const hour = new Date(h.time).getHours();
+                const kwh = estimateKwh(h.radiation, kwp, losses, calibration);
+                return (
+                  <div key={h.time} className="flex flex-1 flex-col items-center gap-1">
+                    <div
+                      className="relative w-full rounded-t"
+                      style={{
+                        height: `${Math.max(4, height)}%`,
+                        background: "linear-gradient(180deg,var(--solar),color-mix(in oklab,var(--solar) 70%,var(--success)))",
+                        animation: `growUp 0.6s ease-out ${i * 40}ms both`,
+                      }}
+                      title={`${Math.round(h.radiation)} W/m² · ${Math.round(h.temperature)}° · ${kwh.toFixed(2)} kWh`}
+                    >
+                      {kwh > 0.05 && (
+                        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-[9px] font-semibold" style={{ color: "var(--success)" }}>
+                          {kwh.toFixed(1)}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">{hour}h</div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-        </>
+
+          {/* Pronóstico 5 días con horas de sol y kWh */}
+          <div className="mt-4 grid grid-cols-5 gap-2 rounded-xl border bg-white/80 p-3 max-[520px]:grid-cols-3">
+            {data.daily.slice(0, 5).map((day, index) => {
+              const dailyKwh = kwp * day.sunshineHours * 0.65 * (1 - losses / 100) * calibration;
+              return (
+                <div key={day.date} className="flex flex-col items-center gap-1 rounded-lg p-2 text-center">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: index === 0 ? "var(--load)" : "var(--muted-foreground)" }}>
+                    {index === 0 ? "Hoy" : new Date(day.date).toLocaleDateString("es-CL", { weekday: "short" })}
+                  </div>
+                  <WeatherGlyph code={day.weatherCode} className="h-5 w-5" />
+                  <div className="text-[12px] font-semibold text-foreground">{Math.round(day.max)}°<span className="text-muted-foreground"> / {Math.round(day.min)}°</span></div>
+                  <div className="text-[10px]" style={{ color: "var(--solar)" }}>{day.sunshineHours.toFixed(1)} h ☀</div>
+                  <div className="text-[10px] font-bold" style={{ color: "var(--success)" }}>{dailyKwh.toFixed(1)} kWh</div>
+                </div>
+              );
+            })}
+          </div>
+
+          <style>{`@keyframes growUp { from { height: 0%; opacity: 0; } }`}</style>
+        </div>
       )}
     </div>
   );
