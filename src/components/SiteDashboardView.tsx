@@ -119,6 +119,8 @@ export function SiteDashboardView({
         pv={pv_W}
         batteryCount={pv?.battery_count ?? null}
         batteryType={pv?.battery_type ?? null}
+        batteryChargeW={batteryChargeW}
+        gridConnected={gridConnected}
       />
     ),
     batteryStatus: <Battery3D soc={battery} voltage={batteryV} charging={charging} powerW={Math.abs(batteryNetW)} currentA={Number(latest?.battery_discharge_current ?? latest?.battery_charging_current ?? 0)} />,
