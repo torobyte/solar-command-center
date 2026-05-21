@@ -29,7 +29,7 @@ export function Battery3D({ soc, voltage, charging, powerW = 0, currentA = 0, te
               className="absolute inset-x-0 bottom-0 transition-[height] duration-700 ease-out"
               style={{
                 height: `${pct}%`,
-                background: `linear-gradient(180deg, color-mix(in oklab, ${fillColor} 70%, white) 0%, ${fillColor} 100%)`,
+                background: `linear-gradient(180deg, color-mix(in oklab, ${fillColor} 70%, var(--tint-base)) 0%, ${fillColor} 100%)`,
                 boxShadow: `0 0 24px ${fillColor}`,
               }}
             >
@@ -146,7 +146,7 @@ export function PowerCell3D({
               className="absolute inset-x-0 bottom-0 transition-[height] duration-700 ease-out"
               style={{
                 height: `${pct}%`,
-                background: `linear-gradient(180deg, color-mix(in oklab, ${color} 70%, white) 0%, ${color} 100%)`,
+                background: `linear-gradient(180deg, color-mix(in oklab, ${color} 70%, var(--tint-base)) 0%, ${color} 100%)`,
                 boxShadow: `0 0 24px ${color}`,
               }}
             >

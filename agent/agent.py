@@ -976,12 +976,30 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
 </style>
 </head><body>
 <div id="boot">
-  <div class="logo">SolarOps</div>
+  <div class="logo" id="bootBrand">Cargando…</div>
   <div class="spin"></div>
   <div class="sub" id="bootMsg">Conectando con el panel cloud…</div>
   <a class="btn" href="#" onclick="location.reload();return false;">Reintentar</a>
   <a class="btn" href="/status" style="background:transparent">Diagnóstico del agente</a>
 </div>
+<script>
+  // Aplica el nombre de marca configurado en el portal cloud (branding global)
+  // — así el wrapper local refleja "Torobyte" u otra marca, no SolarOps hard-coded.
+  (function(){
+    try {
+      fetch("{{ cloud_base }}/api/public/manifest", {cache:"no-store"})
+        .then(function(r){ return r.ok ? r.json() : null; })
+        .then(function(j){
+          var n = j && (j.name || j.short_name);
+          if (n) {
+            var el = document.getElementById("bootBrand"); if (el) el.textContent = n;
+            var b2 = document.getElementById("pairBrand"); if (b2) b2.textContent = n;
+            document.title = n;
+          }
+        }).catch(function(){});
+    } catch(e) {}
+  })();
+</script>
 
 <!-- Pantalla de vinculación: visible cuando el agente todavía no tiene
      device_token. Muestra el código de 6 caracteres en grande para que
@@ -989,7 +1007,7 @@ WRAPPER_PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8">
 <div id="pair" style="position:fixed;inset:0;display:none;flex-direction:column;
   align-items:center;justify-content:center;text-align:center;padding:24px;gap:18px;
   background:radial-gradient(circle at 50% 30%,#1a1d2c 0%,#0b0d14 100%)">
-  <div style="font-size:22px;font-weight:800;letter-spacing:-.02em;color:#f5b945">SolarOps</div>
+  <div id="pairBrand" style="font-size:22px;font-weight:800;letter-spacing:-.02em;color:#f5b945">Cargando…</div>
   <div style="font-size:14px;color:#9aa0ad;max-width:520px;line-height:1.5">
     Vincula este equipo a tu cuenta. Abre el portal en tu computador o teléfono,
     inicia sesión, pulsa <b>Agregar sitio</b> y escribe este código:

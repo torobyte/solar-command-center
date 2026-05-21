@@ -127,7 +127,7 @@ function DashboardCardHeader({
             className="inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold"
             style={{
               color: badgeColor ?? "var(--success)",
-              background: `color-mix(in oklab, ${badgeColor ?? "var(--success)"} 14%, white)`,
+              background: `color-mix(in oklab, ${badgeColor ?? "var(--success)"} 14%, var(--tint-base))`,
             }}
           >
             {badge}
@@ -153,7 +153,7 @@ function FooterLink({ label, to, params }: { label: string; to?: string; params?
         to={to}
         params={params as never}
         className="mt-4 inline-flex w-full items-center justify-between rounded-xl border px-4 py-3 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
-        style={{ background: "color-mix(in oklab, var(--card) 92%, white)" }}
+        style={{ background: "color-mix(in oklab, var(--card) 92%, var(--tint-base))" }}
       >
         {content}
       </Link>
@@ -163,7 +163,7 @@ function FooterLink({ label, to, params }: { label: string; to?: string; params?
   return (
     <div
       className="mt-4 inline-flex w-full items-center justify-between rounded-xl border px-4 py-3 text-xs font-semibold text-muted-foreground"
-      style={{ background: "color-mix(in oklab, var(--card) 92%, white)" }}
+      style={{ background: "color-mix(in oklab, var(--card) 92%, var(--tint-base))" }}
     >
       {content}
     </div>
@@ -188,7 +188,7 @@ function StatusMetric({
         style={{
           color: accent,
           borderColor: `color-mix(in oklab, ${accent} 28%, var(--border))`,
-          background: `color-mix(in oklab, ${accent} 8%, white)`,
+          background: `color-mix(in oklab, ${accent} 8%, var(--tint-base))`,
         }}
       >
         {icon}
@@ -212,12 +212,12 @@ function ProgressRow({ label, value, progress, accent, icon }: {
         <span className="flex items-center gap-1.5 text-muted-foreground">{icon}{label}</span>
         <span className="font-semibold text-foreground">{value}</span>
       </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-full" style={{ background: "color-mix(in oklab, var(--muted) 70%, white)" }}>
+      <div className="h-1.5 w-full overflow-hidden rounded-full" style={{ background: "color-mix(in oklab, var(--muted) 70%, var(--tint-base))" }}>
         <div
           className="h-full rounded-full"
           style={{
             width: `${clamp(progress, 0, 100)}%`,
-            background: `linear-gradient(90deg, ${accent} 0%, color-mix(in oklab, ${accent} 70%, white) 100%)`,
+            background: `linear-gradient(90deg, ${accent} 0%, color-mix(in oklab, ${accent} 70%, var(--tint-base)) 100%)`,
           }}
         />
       </div>
@@ -235,7 +235,7 @@ function SparkBars({ values, color }: { values: number[]; color: string }) {
           className="flex-1 rounded-t-[3px]"
           style={{
             height: `${Math.max(10, (value / max) * 100)}%`,
-            background: `linear-gradient(180deg, color-mix(in oklab, ${color} 74%, white), ${color})`,
+            background: `linear-gradient(180deg, color-mix(in oklab, ${color} 74%, var(--tint-base)), ${color})`,
           }}
         />
       ))}
@@ -247,7 +247,7 @@ function SmallStat({ label, value, subtitle }: { label: string; value: string; s
   return (
     <div
       className="rounded-xl border p-3"
-      style={{ background: "color-mix(in oklab, var(--card) 96%, white)" }}
+      style={{ background: "color-mix(in oklab, var(--card) 96%, var(--tint-base))" }}
     >
       <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
       <div className="mt-2 text-lg font-bold tabular-nums text-foreground">{value}</div>
@@ -440,9 +440,9 @@ export function SystemStatusCard({
 
       <div className="grid grid-cols-[1fr_auto_1fr_auto_auto_auto_1fr] items-center gap-3 pb-5 max-[520px]:grid-cols-2 max-[520px]:gap-y-5">
         <StatusMetric label="Solar" value={formatWatts(pv)} accent="var(--solar)" icon={<Sun className="h-5 w-5" />} />
-        <div className="h-px w-10 border-t border-dashed max-[520px]:hidden" style={{ borderColor: "color-mix(in oklab, var(--solar) 60%, white)" }} />
+        <div className="h-px w-10 border-t border-dashed max-[520px]:hidden" style={{ borderColor: "color-mix(in oklab, var(--solar) 60%, var(--tint-base))" }} />
         <StatusMetric label="Consumo" value={formatWatts(load)} accent="var(--load)" icon={<Home className="h-5 w-5" />} />
-        <div className="h-px w-10 border-t border-dashed max-[520px]:hidden" style={{ borderColor: "color-mix(in oklab, var(--load) 60%, white)" }} />
+        <div className="h-px w-10 border-t border-dashed max-[520px]:hidden" style={{ borderColor: "color-mix(in oklab, var(--load) 60%, var(--tint-base))" }} />
 
         <div className="flex flex-col items-center max-[520px]:col-span-2">
           <div className="relative" style={{ width: ringSize, height: ringSize }}>
@@ -452,7 +452,7 @@ export function SystemStatusCard({
                 cy={ringSize / 2}
                 r={radius}
                 fill="none"
-                stroke="color-mix(in oklab, var(--battery) 16%, white)"
+                stroke="color-mix(in oklab, var(--battery) 16%, var(--tint-base))"
                 strokeWidth={stroke}
               />
               <circle
@@ -475,7 +475,7 @@ export function SystemStatusCard({
           <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Batería</div>
         </div>
 
-        <div className="h-px w-10 border-t border-dashed max-[520px]:hidden" style={{ borderColor: "color-mix(in oklab, var(--battery) 60%, white)" }} />
+        <div className="h-px w-10 border-t border-dashed max-[520px]:hidden" style={{ borderColor: "color-mix(in oklab, var(--battery) 60%, var(--tint-base))" }} />
         <StatusMetric
           label="Red"
           value={gridConnected ? `${Math.round(gridV)} v` : "0 w"}
@@ -484,7 +484,7 @@ export function SystemStatusCard({
         />
       </div>
 
-      <div className="space-y-3 border-t pt-4" style={{ borderColor: "color-mix(in oklab, var(--border) 80%, white)" }}>
+      <div className="space-y-3 border-t pt-4" style={{ borderColor: "color-mix(in oklab, var(--border) 80%, var(--tint-base))" }}>
         <ProgressRow label="Generación solar" value={formatWatts(pv)} progress={(pv / Math.max(pvMax, 1)) * 100} accent="var(--solar)" icon={<Sun className="h-3.5 w-3.5" style={{ color: "var(--solar)" }} />} />
         <ProgressRow label="Consumo de la casa" value={formatWatts(load)} progress={(load / Math.max(loadMax, 1)) * 100} accent="var(--load)" icon={<Home className="h-3.5 w-3.5" style={{ color: "var(--load)" }} />} />
         <ProgressRow label="Estado de carga (SOC)" value={`${Math.round(battery)} %`} progress={battery} accent="var(--battery)" icon={<Zap className="h-3.5 w-3.5" style={{ color: "var(--battery)" }} />} />
@@ -550,7 +550,7 @@ export function EnergyFlowReferenceCard({
 
         {/* ===== SOLAR (top) — circle r=46 at (320,75) ===== */}
         <g transform="translate(320 75)">
-          <circle cx="0" cy="0" r="46" fill="color-mix(in oklab, var(--solar) 14%, white)" stroke="color-mix(in oklab, var(--solar) 40%, var(--border))" strokeWidth="1.2" />
+          <circle cx="0" cy="0" r="46" fill="color-mix(in oklab, var(--solar) 14%, var(--tint-base))" stroke="color-mix(in oklab, var(--solar) 40%, var(--border))" strokeWidth="1.2" />
           {/* Sun */}
           <circle cx="0" cy="-6" r="11" fill="url(#sun-grad)" />
           <g stroke="#f59e0b" strokeWidth="2.2" strokeLinecap="round">
@@ -609,7 +609,7 @@ export function EnergyFlowReferenceCard({
 
         {/* ===== BATTERY (left) — circle r=42 at (90,280) ===== */}
         <g transform="translate(90 280)">
-          <circle cx="0" cy="0" r="42" fill="color-mix(in oklab, var(--success) 12%, white)" stroke="color-mix(in oklab, var(--success) 40%, var(--border))" strokeWidth="1.2" />
+          <circle cx="0" cy="0" r="42" fill="color-mix(in oklab, var(--success) 12%, var(--tint-base))" stroke="color-mix(in oklab, var(--success) 40%, var(--border))" strokeWidth="1.2" />
           {/* Real battery shape */}
           <rect x="-15" y="-18" width="30" height="34" rx="4" fill="white" stroke="var(--success)" strokeWidth="2.4" />
           <rect x="-6" y="-22" width="12" height="4" rx="1.5" fill="var(--success)" />
@@ -624,22 +624,22 @@ export function EnergyFlowReferenceCard({
 
         {/* ===== HOUSE (center) — circle r=46 at (320,275) ===== */}
         <g transform="translate(320 275)">
-          <circle cx="0" cy="0" r="46" fill="color-mix(in oklab, var(--load) 10%, white)" stroke="color-mix(in oklab, var(--load) 40%, var(--border))" strokeWidth="1.2" />
+          <circle cx="0" cy="0" r="46" fill="color-mix(in oklab, var(--load) 10%, var(--tint-base))" stroke="color-mix(in oklab, var(--load) 40%, var(--border))" strokeWidth="1.2" />
           {/* Realistic house */}
           <path d="M -22 -2 L 0 -22 L 22 -2 L 22 20 L -22 20 Z" fill="white" stroke="var(--load)" strokeWidth="2.4" strokeLinejoin="round" />
           <path d="M -24 -2 L 0 -24 L 24 -2" fill="none" stroke="var(--load)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
           {/* Door */}
-          <rect x="-6" y="6" width="12" height="14" fill="color-mix(in oklab, var(--load) 30%, white)" stroke="var(--load)" strokeWidth="1.4" />
+          <rect x="-6" y="6" width="12" height="14" fill="color-mix(in oklab, var(--load) 30%, var(--tint-base))" stroke="var(--load)" strokeWidth="1.4" />
           {/* Window */}
-          <rect x="-17" y="2" width="8" height="8" fill="color-mix(in oklab, var(--load) 18%, white)" stroke="var(--load)" strokeWidth="1.2" />
-          <rect x="9" y="2" width="8" height="8" fill="color-mix(in oklab, var(--load) 18%, white)" stroke="var(--load)" strokeWidth="1.2" />
+          <rect x="-17" y="2" width="8" height="8" fill="color-mix(in oklab, var(--load) 18%, var(--tint-base))" stroke="var(--load)" strokeWidth="1.2" />
+          <rect x="9" y="2" width="8" height="8" fill="color-mix(in oklab, var(--load) 18%, var(--tint-base))" stroke="var(--load)" strokeWidth="1.2" />
         </g>
         <text x="320" y="345" textAnchor="middle" className="fill-[var(--load)] text-[16px] font-bold">{Math.round(load)} W</text>
         <text x="320" y="362" textAnchor="middle" className="fill-muted-foreground text-[11px]">Consumo casa</text>
 
         {/* ===== GRID (right) — circle r=42 at (550,280) — torre eléctrica ===== */}
         <g transform="translate(550 280)">
-          <circle cx="0" cy="0" r="42" fill="color-mix(in oklab, var(--muted) 40%, white)" stroke="color-mix(in oklab, var(--muted-foreground) 30%, var(--border))" strokeWidth="1.2" />
+          <circle cx="0" cy="0" r="42" fill="color-mix(in oklab, var(--muted) 40%, var(--tint-base))" stroke="color-mix(in oklab, var(--muted-foreground) 30%, var(--border))" strokeWidth="1.2" />
           {/* Tower legs */}
           <g stroke="#475569" strokeWidth="2.2" strokeLinecap="round" fill="none">
             <line x1="-12" y1="20" x2="-4" y2="-20" />
@@ -689,11 +689,11 @@ export function SolarProductionReferenceCard({ pv, pvMax = 5200 }: { pv: number;
       />
 
       <div className="grid grid-cols-[1fr_1.1fr] gap-4 max-[520px]:grid-cols-1">
-        <div className="relative min-h-[172px] overflow-hidden rounded-xl border" style={{ background: "linear-gradient(180deg, color-mix(in oklab, var(--load) 14%, white), color-mix(in oklab, var(--card) 85%, white))" }}>
+        <div className="relative min-h-[172px] overflow-hidden rounded-xl border" style={{ background: "linear-gradient(180deg, color-mix(in oklab, var(--load) 14%, var(--tint-base)), color-mix(in oklab, var(--card) 85%, var(--tint-base)))" }}>
           <div className="absolute inset-x-0 top-0 h-[58%]" style={{ background: "linear-gradient(180deg, #bfe1ff 0%, #eaf4ff 100%)" }} />
           <div className="absolute right-5 top-6 h-12 w-12 rounded-full" style={{ background: "radial-gradient(circle at 35% 35%, #fffce8, #ffd54f 58%, #ff9800 100%)", boxShadow: "0 0 24px rgba(255,193,7,.45)" }} />
           <div className="absolute bottom-0 left-0 right-0 h-[48%] bg-white" />
-          <div className="absolute bottom-0 left-[18%] h-[72%] w-[36%] bg-white" style={{ clipPath: "polygon(0 100%, 0 56%, 54% 18%, 100% 56%, 100% 100%)", border: "1px solid color-mix(in oklab, var(--border) 80%, white)" }} />
+          <div className="absolute bottom-0 left-[18%] h-[72%] w-[36%] bg-white" style={{ clipPath: "polygon(0 100%, 0 56%, 54% 18%, 100% 56%, 100% 100%)", border: "1px solid color-mix(in oklab, var(--border) 80%, var(--tint-base))" }} />
           <div className="absolute bottom-[16%] left-[4%] h-[32%] w-[58%] origin-bottom-left -skew-x-[22deg] rounded-sm border border-slate-700 bg-slate-900 shadow-lg">
             <div className="grid h-full grid-cols-4 gap-[2px] p-1">
               {Array.from({ length: 12 }).map((_, index) => (
@@ -742,7 +742,7 @@ export function HouseConsumptionReferenceCard({ load, contractedPower = 5200 }: 
         <div className="flex items-center justify-center">
           <div className="relative h-[154px] w-[154px]">
             <svg viewBox={`0 0 ${ringSize} ${ringSize}`} className="-rotate-[138deg]">
-              <circle cx={ringSize / 2} cy={ringSize / 2} r={radius} fill="none" stroke="color-mix(in oklab, var(--load) 16%, white)" strokeWidth={stroke} strokeDasharray={`${arc} ${circumference}`} strokeLinecap="round" />
+              <circle cx={ringSize / 2} cy={ringSize / 2} r={radius} fill="none" stroke="color-mix(in oklab, var(--load) 16%, var(--tint-base))" strokeWidth={stroke} strokeDasharray={`${arc} ${circumference}`} strokeLinecap="round" />
               <circle cx={ringSize / 2} cy={ringSize / 2} r={radius} fill="none" stroke="var(--load)" strokeWidth={stroke} strokeDasharray={`${arc - progress} ${circumference}`} strokeLinecap="round" />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
@@ -951,7 +951,7 @@ export function WeatherAndRadiationCard({
   return (
     <div
       className="dashboard-card overflow-hidden p-0"
-      style={{ background: "linear-gradient(180deg, color-mix(in oklab, var(--load) 8%, white) 0%, color-mix(in oklab, var(--card) 96%, white) 100%)" }}
+      style={{ background: "linear-gradient(180deg, color-mix(in oklab, var(--load) 8%, var(--tint-base)) 0%, color-mix(in oklab, var(--card) 96%, var(--tint-base)) 100%)" }}
     >
       {/* Hero compacto */}
       <div
@@ -1225,7 +1225,7 @@ export function SavingsReferenceCard({
       className="dashboard-card p-5 sm:p-6"
       style={{
         borderColor: "color-mix(in oklab, var(--success) 28%, var(--border))",
-        background: "linear-gradient(180deg, color-mix(in oklab, var(--success) 7%, white) 0%, color-mix(in oklab, var(--card) 96%, white) 100%)",
+        background: "linear-gradient(180deg, color-mix(in oklab, var(--success) 7%, var(--tint-base)) 0%, color-mix(in oklab, var(--card) 96%, var(--tint-base)) 100%)",
       }}
     >
       <div className="flex items-start justify-between gap-2">
@@ -1233,14 +1233,14 @@ export function SavingsReferenceCard({
       </div>
 
 
-      <div className="rounded-2xl border p-4" style={{ background: "color-mix(in oklab, var(--success) 8%, white)" }}>
+      <div className="rounded-2xl border p-4" style={{ background: "color-mix(in oklab, var(--success) 8%, var(--tint-base))" }}>
         <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Ahorrando ahora</div>
         <div className="mt-2 flex items-end justify-between gap-3">
           <div>
             <div className="text-[48px] font-bold leading-none" style={{ color: "var(--success)" }}>{formatCurrency(perHour, currentCurrency)}</div>
             <div className="mt-1 text-[13px] text-muted-foreground">/hora</div>
           </div>
-          <div className="flex h-16 w-16 items-center justify-center rounded-full" style={{ background: "color-mix(in oklab, var(--success) 12%, white)" }}>
+          <div className="flex h-16 w-16 items-center justify-center rounded-full" style={{ background: "color-mix(in oklab, var(--success) 12%, var(--tint-base))" }}>
             <Leaf className="h-8 w-8" style={{ color: "var(--success)" }} />
           </div>
         </div>

@@ -56,6 +56,7 @@
 
 :root {
   --radius: 0.75rem;
+  --tint-base: white;
   --background: oklch(0.985 0.005 95);
   --foreground: oklch(0.22 0.04 260);
   --card: oklch(1 0 0);
@@ -104,6 +105,7 @@
 }
 
 .dark {
+  --tint-base: oklch(0.28 0.04 260);
   --background: oklch(0.16 0.03 260);
   --foreground: oklch(0.98 0.01 95);
   --card: oklch(0.21 0.04 260);
@@ -257,6 +259,10 @@
     box-shadow: var(--shadow-card);
     transition: box-shadow 0.25s ease, transform 0.25s ease;
   }
+  .dark .dashboard-card {
+    background: linear-gradient(180deg, color-mix(in oklab, var(--card) 96%, white 4%) 0%, color-mix(in oklab, var(--card) 88%, black 12%) 100%);
+    border-color: color-mix(in oklab, var(--border) 70%, transparent);
+  }
   .dashboard-card:hover { box-shadow: var(--shadow-elevated); }
   .dashboard-card::before {
     content: "";
@@ -266,14 +272,23 @@
     background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 8%, white), transparent);
     pointer-events: none;
   }
+  .dark .dashboard-card::before {
+    background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 12%, transparent), transparent);
+  }
   .dashboard-card--success {
     border-color: color-mix(in oklab, var(--success) 28%, var(--border));
   }
   .dashboard-card--success::before {
     background: linear-gradient(180deg, color-mix(in oklab, var(--success) 14%, white), transparent);
   }
+  .dark .dashboard-card--success::before {
+    background: linear-gradient(180deg, color-mix(in oklab, var(--success) 18%, transparent), transparent);
+  }
   .dashboard-card--accent::before {
     background: linear-gradient(180deg, color-mix(in oklab, var(--primary) 14%, white), transparent);
+  }
+  .dark .dashboard-card--accent::before {
+    background: linear-gradient(180deg, color-mix(in oklab, var(--primary) 18%, transparent), transparent);
   }
   .dashboard-card--flush::before { display: none; }
   .dashboard-panel {
@@ -281,6 +296,10 @@
     border: 1px solid color-mix(in oklab, var(--border) 72%, transparent);
     background: color-mix(in oklab, var(--muted) 22%, var(--card));
     box-shadow: inset 0 1px 0 color-mix(in oklab, white 65%, transparent);
+  }
+  .dark .dashboard-panel {
+    background: color-mix(in oklab, var(--card) 80%, black 20%);
+    box-shadow: inset 0 1px 0 color-mix(in oklab, white 6%, transparent);
   }
   .dashboard-icon-chip {
     display: inline-flex;
@@ -290,6 +309,10 @@
     background: color-mix(in oklab, var(--muted) 55%, var(--card));
     border: 1px solid color-mix(in oklab, var(--border) 75%, transparent);
     box-shadow: inset 0 1px 0 color-mix(in oklab, white 72%, transparent);
+  }
+  .dark .dashboard-icon-chip {
+    background: color-mix(in oklab, var(--card) 70%, black 30%);
+    box-shadow: inset 0 1px 0 color-mix(in oklab, white 5%, transparent);
   }
 
   .icon-spring {
