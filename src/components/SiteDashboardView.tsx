@@ -6,7 +6,7 @@ import {
 } from "@/components/AdvancedVisuals";
 import { DashboardGrid, useDashboardLayout, type WidgetDef } from "@/components/DashboardCustomizer";
 import { usePvConfig, type PvConfig } from "@/components/PvSystemConfig";
-import { QuickActions } from "@/components/QuickActions";
+import { QuickActions, useQuickActionsConfig } from "@/components/QuickActions";
 import { CommandStatusFeed } from "@/components/CommandStatusFeed";
 import { useSiteRole } from "@/lib/useSiteRole";
 import {
@@ -92,6 +92,7 @@ export function SiteDashboardView({
   const canCommand = pvConfigProp !== undefined
     ? true // local agent
     : roleInfo.role === "owner" || roleInfo.role === "admin" || roleInfo.role === "operator";
+  const { config: quickActionsConfig } = useQuickActionsConfig(siteId);
 
   const pv_W = Number(latest?.pv_input_power ?? 0);
   const load = Number(latest?.ac_output_active_power ?? 0);
@@ -136,7 +137,7 @@ export function SiteDashboardView({
         currency={pv?.currency ?? "CLP"}
       />
     ),
-    quickActions: <QuickActions siteId={siteId} agentBase={agentBase ?? null} readOnly={!canCommand} />,
+    quickActions: <QuickActions siteId={siteId} agentBase={agentBase ?? null} config={quickActionsConfig} readOnly={!canCommand} />,
     commands: (
       <div className="dashboard-card p-5 sm:p-6 animate-fade-in h-full">
         <h3 className="mb-3 text-sm font-semibold sm:text-base">Estado de comandos</h3>
