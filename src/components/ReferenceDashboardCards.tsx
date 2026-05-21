@@ -8,13 +8,17 @@ import {
   Home,
   Info,
   Leaf,
+  Loader2,
+  MapPin,
   MoreVertical,
+  Search,
   Sun,
   Zap,
 } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { PvConfig } from "@/components/PvSystemConfig";
+import { toast } from "sonner";
 
 type WeatherHour = {
   time: string;
