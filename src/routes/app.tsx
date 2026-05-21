@@ -631,48 +631,7 @@ function SitesIndex() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={transferLic != null} onOpenChange={(o) => { if (!o) { setTransferLic(null); setTransferTarget(""); } }}>
-        <DialogContent className="rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ArrowRightLeft className="h-5 w-5 text-accent" /> Transferir licencia
-            </DialogTitle>
-            <DialogDescription>
-              Mueve la licencia <code className="font-mono">{transferLic?.code}</code> a otro sitio de tu cuenta.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <Label>Sitio destino</Label>
-            <Select value={transferTarget} onValueChange={setTransferTarget}>
-              <SelectTrigger><SelectValue placeholder="Selecciona un sitio…" /></SelectTrigger>
-              <SelectContent>
-                {sites
-                  .filter(s => s.owner_id === user?.id && s.id !== transferLic?.redeemed_by_site)
-                  .map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <DialogFooter>
-            <Button
-              disabled={!transferTarget || transferBusy}
-              onClick={async () => {
-                if (!transferLic || !transferTarget) return;
-                setTransferBusy(true);
-                try {
-                  await transferLicense({ data: { license_id: transferLic.id, new_site_id: transferTarget } });
-                  toast.success("Licencia transferida");
-                  setTransferLic(null); setTransferTarget("");
-                  load();
-                } catch (e) {
-                  toast.error((e as Error).message);
-                } finally { setTransferBusy(false); }
-              }}
-            >
-              {transferBusy ? "Transfiriendo…" : "Transferir"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Diálogo de transferencia de licencias movido a /account. */}
     </>
   );
 }
