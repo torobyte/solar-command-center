@@ -88,7 +88,7 @@ function SitesIndex() {
     const [{ data: s, error }, { data: lic }] = await Promise.all([
       supabase.from("sites").select("*").order("created_at", { ascending: false }),
       supabase.from("license_codes")
-        .select("id,code,plan,duration_days,assigned_email,site_name,redeemed_at,revoked_at")
+        .select("id,code,plan,duration_days,assigned_email,site_name,redeemed_at,revoked_at,redeemed_by_site")
         .order("created_at", { ascending: false }),
     ]);
     if (error) toast.error(error.message);
