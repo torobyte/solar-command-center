@@ -39,16 +39,26 @@ export function LicensesPanel() {
   const [busy, setBusy] = useState(false);
 
   async function load() {
-    const [{ data: lic }, { data: s }] = await Promise.all([
+    const [{ data: lic, error: licErr }, { data: s }] = await Promise.all([
       supabase.from("license_codes")
         .select("id,code,plan,duration_days,is_lifetime,assigned_email,site_name,redeemed_at,revoked_at,redeemed_by_site")
         .order("created_at", { ascending: false }),
       supabase.from("sites").select("id,name,owner_id"),
     ]);
+    if (licErr) toast.error(licErr.message);
     setLicenses((lic ?? []) as MyLicense[]);
     setSites((s ?? []) as MySite[]);
   }
-  useEffect(() => { if (user) load(); /* eslint-disable-next-line */ }, [user?.id]);
+  useEffect(() => {
+    if (!user) return;
+    void load();
+    // Refresh when window regains focus so transfers from other tabs show up
+    const onFocus = () => { void load(); };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
 
   const pending = licenses.filter((l) => !l.redeemed_at && !l.revoked_at);
   const redeemed = licenses.filter((l) => l.redeemed_at && !l.revoked_at && l.redeemed_by_site);
