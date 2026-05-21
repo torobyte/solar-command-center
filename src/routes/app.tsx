@@ -291,24 +291,30 @@ function SitesIndex() {
         const total = sites.length || 1;
         const pctActivos = Math.round((activos / total) * 100);
         const pctOffline = Math.round((offline / total) * 100);
+        const totalPowerW = Object.values(metrics).reduce((acc, m) => acc + (m?.pv_w ?? 0), 0);
+        const totalKwh = Object.values(metrics).reduce((acc, m) => acc + (m?.kwh_today ?? 0), 0);
+        const powerStr = totalPowerW >= 1000 ? `${(totalPowerW / 1000).toFixed(2)} kW` : `${Math.round(totalPowerW)} W`;
         const stats = [
           { label: "Sitios activos", value: activos.toString(), hint: `${pctActivos}% del total`, icon: Home, tint: "bg-blue-50 text-blue-600", hintTint: "text-blue-600" },
-          { label: "Potencia actual", value: "—", unit: "", hint: "Total generando", icon: SunIcon, tint: "bg-amber-50 text-amber-600", hintTint: "text-amber-600" },
-          { label: "Energía hoy", value: "—", unit: "", hint: "Energía producida", icon: BatteryFull, tint: "bg-emerald-50 text-emerald-600", hintTint: "text-emerald-600" },
+          { label: "Potencia actual", value: powerStr, hint: "Total generando", icon: SunIcon, tint: "bg-amber-50 text-amber-600", hintTint: "text-amber-600" },
+          { label: "Energía hoy", value: `${totalKwh.toFixed(1)} kWh`, hint: "Energía producida", icon: BatteryFull, tint: "bg-emerald-50 text-emerald-600", hintTint: "text-emerald-600" },
           { label: "Sitios offline", value: offline.toString(), hint: `${pctOffline}% del total`, icon: EyeOff, tint: "bg-rose-50 text-rose-600", hintTint: "text-rose-600" },
         ];
         return (
-          <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4 animate-fade-up">
+          <div className="mb-4 grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4 animate-fade-up">
             {stats.map((s) => (
-              <div key={s.label} className="rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between gap-3">
+              <div key={s.label} className="rounded-xl sm:rounded-2xl border bg-card p-2.5 sm:p-5 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between gap-2 sm:gap-3">
                   <div className="min-w-0">
-                    <p className="text-sm text-muted-foreground">{s.label}</p>
-                    <p className="mt-2 text-3xl font-bold tracking-tight">{s.value}</p>
-                    <p className={`mt-1 text-xs font-medium ${s.hintTint}`}>{s.hint}</p>
+                    <p className="text-[11px] sm:text-sm text-muted-foreground leading-tight">{s.label}</p>
+                    <p className="mt-1 sm:mt-2 text-lg sm:text-3xl font-bold tracking-tight truncate">{s.value}</p>
+                    <p className={`mt-0.5 sm:mt-1 text-[10px] sm:text-xs font-medium ${s.hintTint} truncate`}>{s.hint}</p>
                   </div>
-                  <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${s.tint}`}>
+                  <div className={`hidden sm:flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${s.tint}`}>
                     <s.icon className="h-6 w-6" strokeWidth={2.2} />
+                  </div>
+                  <div className={`flex sm:hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg ${s.tint}`}>
+                    <s.icon className="h-4 w-4" strokeWidth={2.2} />
                   </div>
                 </div>
               </div>
@@ -319,40 +325,59 @@ function SitesIndex() {
 
       {(() => {
         const pending = licenses.filter((l) => !l.redeemed_at && !l.revoked_at);
-        if (pending.length === 0) return null;
+        const redeemed = licenses.filter((l) => l.redeemed_at && !l.revoked_at && l.redeemed_by_site);
+        if (pending.length === 0 && redeemed.length === 0) return null;
         return (
           <div className="mb-6 overflow-hidden rounded-2xl border border-success/30 bg-gradient-to-br from-success/10 via-success/5 to-transparent p-5 animate-fade-up">
             <div className="flex items-center gap-2 mb-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-success/15 text-success">
                 <Sparkles className="h-4 w-4" strokeWidth={2.4} />
               </div>
-              <h3 className="font-semibold">Tienes {pending.length} licencia{pending.length > 1 ? "s" : ""} pendiente{pending.length > 1 ? "s" : ""}</h3>
+              <h3 className="font-semibold">Mis licencias</h3>
             </div>
-            <p className="mb-3 text-sm text-muted-foreground">
-              Estos códigos de licencia se aplican automáticamente cuando vinculas un dispositivo a tu cuenta.
-            </p>
             <div className="space-y-2">
               {pending.map((l) => (
-                <div key={l.id} className="flex items-center justify-between rounded-xl border bg-background/80 p-3">
+                <div key={l.id} className="flex items-center justify-between gap-2 rounded-xl border bg-background/80 p-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <KeyRound className="h-4 w-4 shrink-0 text-accent" strokeWidth={2.2} />
                     <div className="min-w-0">
                       <div className="font-mono text-sm truncate">{l.code}</div>
                       <div className="text-xs text-muted-foreground">
-                        {l.plan} · {l.duration_days} días{l.site_name ? ` · ${l.site_name}` : ""}
+                        {l.plan} · {l.duration_days} días · <span className="text-amber-600">Pendiente</span>
                       </div>
                     </div>
                   </div>
-                  <Button size="sm" variant="outline" className="rounded-full"
+                  <Button size="sm" variant="outline" className="rounded-full shrink-0"
                     onClick={() => { navigator.clipboard.writeText(l.code); toast.success("Código copiado"); }}>
                     <Copy className="mr-1 h-3.5 w-3.5" strokeWidth={2.2} /> Copiar
                   </Button>
                 </div>
               ))}
+              {redeemed.map((l) => {
+                const currentSite = sites.find(s => s.id === l.redeemed_by_site);
+                return (
+                  <div key={l.id} className="flex items-center justify-between gap-2 rounded-xl border bg-background/80 p-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <KeyRound className="h-4 w-4 shrink-0 text-success" strokeWidth={2.2} />
+                      <div className="min-w-0">
+                        <div className="font-mono text-sm truncate">{l.code}</div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {l.plan} · Activa en <strong>{currentSite?.name ?? "—"}</strong>
+                        </div>
+                      </div>
+                    </div>
+                    <Button size="sm" variant="outline" className="rounded-full shrink-0"
+                      onClick={() => { setTransferLic(l); setTransferTarget(""); }}>
+                      <ArrowRightLeft className="mr-1 h-3.5 w-3.5" strokeWidth={2.2} /> Transferir
+                    </Button>
+                  </div>
+                );
+              })}
             </div>
           </div>
         );
       })()}
+
 
       {sites.length === 0 ? (
         <div className="rounded-2xl border border-dashed bg-card p-12 text-center animate-fade-up">
