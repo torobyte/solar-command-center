@@ -46,6 +46,9 @@ export interface Branding {
   pwa_icon_192_dark: string | null;
   pwa_icon_512: string | null;
   pwa_icon_512_dark: string | null;
+  login_bg_url: string | null;
+  login_bg_url_dark: string | null;
+  login_bg_overlay: number;
 }
 
 const Ctx = createContext<{
@@ -53,11 +56,13 @@ const Ctx = createContext<{
   reload: () => Promise<void>;
   resolvedLogo: string | null;
   resolvedFavicon: string | null;
+  resolvedLoginBg: string | null;
 }>({
   branding: null,
   reload: async () => {},
   resolvedLogo: null,
   resolvedFavicon: null,
+  resolvedLoginBg: null,
 });
 
 export const GOOGLE_FONTS = [
