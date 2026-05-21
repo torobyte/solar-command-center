@@ -46,6 +46,9 @@ export interface Branding {
   pwa_icon_192_dark: string | null;
   pwa_icon_512: string | null;
   pwa_icon_512_dark: string | null;
+  login_bg_url: string | null;
+  login_bg_url_dark: string | null;
+  login_bg_overlay: number;
 }
 
 const Ctx = createContext<{
@@ -53,11 +56,13 @@ const Ctx = createContext<{
   reload: () => Promise<void>;
   resolvedLogo: string | null;
   resolvedFavicon: string | null;
+  resolvedLoginBg: string | null;
 }>({
   branding: null,
   reload: async () => {},
   resolvedLogo: null,
   resolvedFavicon: null,
+  resolvedLoginBg: null,
 });
 
 export const GOOGLE_FONTS = [
@@ -143,8 +148,9 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
 
   const resolvedLogo = branding ? (resolved === "dark" ? (branding.logo_url_dark || branding.logo_url) : branding.logo_url) : null;
   const resolvedFavicon = branding ? (resolved === "dark" ? (branding.favicon_url_dark || branding.favicon_url) : branding.favicon_url) : null;
+  const resolvedLoginBg = branding ? (resolved === "dark" ? (branding.login_bg_url_dark || branding.login_bg_url) : branding.login_bg_url) : null;
 
-  return <Ctx.Provider value={{ branding, reload: load, resolvedLogo, resolvedFavicon }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ branding, reload: load, resolvedLogo, resolvedFavicon, resolvedLoginBg }}>{children}</Ctx.Provider>;
 }
 
 export const useBranding = () => useContext(Ctx);

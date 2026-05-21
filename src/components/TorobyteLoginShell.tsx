@@ -38,11 +38,26 @@ export function TorobyteLoginShell({
   showSignupLink?: boolean;
   footer?: ReactNode;
 }) {
-  const { branding, resolvedLogo } = useBranding();
+  const { branding, resolvedLogo, resolvedLoginBg } = useBranding();
   const siteName = branding?.site_name ?? "TOROBYTE";
+  const overlay = branding?.login_bg_overlay ?? 0.55;
   return (
-    <div className="tb-login-theme min-h-screen bg-[var(--tb-login-bg)] text-[var(--tb-login-text)]">
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-7 pb-10 pt-12 sm:justify-center">
+    <div className="tb-login-theme relative min-h-screen bg-[var(--tb-login-bg)] text-[var(--tb-login-text)]">
+      {resolvedLoginBg && (
+        <>
+          <div
+            className="pointer-events-none absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url(${resolvedLoginBg})` }}
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{ backgroundColor: `rgba(0,0,0,${overlay})` }}
+            aria-hidden
+          />
+        </>
+      )}
+      <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-7 pb-10 pt-12 sm:justify-center">
         <div className="flex flex-col items-center gap-4 pt-8">
           {resolvedLogo ? (
             <img src={resolvedLogo} alt={siteName} className="h-24 w-24 rounded-[22px] object-contain" />
