@@ -80,7 +80,7 @@ export function LicensesPanel() {
               <div className="min-w-0">
                 <div className="font-mono text-sm truncate">{l.code}</div>
                 <div className="text-xs text-muted-foreground">
-                  {l.plan} · {l.is_lifetime ? "De por vida" : `${l.duration_days} días`} · <span className="text-amber-600">Pendiente</span>
+                  {l.plan} · {l.is_lifetime ? "Perpetua" : `${l.duration_days} días`} · <span className="text-amber-600">Pendiente</span>
                 </div>
               </div>
             </div>
