@@ -10,7 +10,7 @@
  */
 import nodemailer from "nodemailer";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { canonicalEmailTemplateId, getEmailTemplateDefault } from "./email-template-config";
+import { canonicalEmailTemplateId, getEmailTemplateDefault, normalizeEmailTemplateContent } from "./email-template-config";
 
 export type MailVars = Record<string, string | number | undefined | null>;
 
@@ -79,7 +79,14 @@ async function loadTemplate(id: string): Promise<Tpl | null> {
     .select("id,subject,html_body,text_body,enabled,wrap_with_brand")
     .eq("id", normalizedId)
     .maybeSingle();
-  return (data as Tpl | null) || null;
+  const tpl = (data as Tpl | null) || null;
+  if (!tpl) return null;
+  return {
+    ...tpl,
+    subject: normalizeEmailTemplateContent(tpl.subject),
+    html_body: normalizeEmailTemplateContent(tpl.html_body),
+    text_body: normalizeEmailTemplateContent(tpl.text_body),
+  };
 }
 
 export async function loadBrand(): Promise<Brand> {

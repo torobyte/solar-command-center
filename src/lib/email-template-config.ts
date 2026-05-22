@@ -69,3 +69,21 @@ export const EMAIL_TEMPLATE_DEFAULTS: Record<string, { subject: string; html: st
 export function getEmailTemplateDefault(id: string) {
   return EMAIL_TEMPLATE_DEFAULTS[canonicalEmailTemplateId(id)] ?? EMAIL_TEMPLATE_DEFAULTS.alert;
 }
+
+export function normalizeEmailTemplateContent(content: string | null | undefined) {
+  if (!content) return content ?? "";
+  return content
+    .replace(/SolarOps/g, "Solar Torobyte")
+    .replace(/https:\/\/[^\s"')>]+/g, (url) => {
+      if (url.includes("appsolar.torobyte.com")) return url;
+      if (url.includes("/invite/") || url.includes("/auth/confirm") || url.includes("/app") || url.includes("/sites/")) {
+        try {
+          const parsed = new URL(url);
+          return `${CANONICAL_APP_URL}${parsed.pathname}${parsed.search}${parsed.hash}`;
+        } catch {
+          return url;
+        }
+      }
+      return url;
+    });
+}

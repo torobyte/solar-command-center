@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import { Save, Eye, Code2, Pencil } from "lucide-react";
 import { EmailRichEditor } from "./EmailRichEditor";
-import { EMAIL_TEMPLATE_DEFINITIONS, canonicalEmailTemplateId } from "@/lib/email-template-config";
+import { EMAIL_TEMPLATE_DEFINITIONS, canonicalEmailTemplateId, normalizeEmailTemplateContent } from "@/lib/email-template-config";
 
 interface Tpl {
   id: string;
@@ -38,7 +38,15 @@ export function EmailTemplatesAdmin() {
   async function load() {
     const { data } = await supabase.from("email_templates").select("*");
     const map: Record<string, Tpl> = {};
-    (data as Tpl[] | null)?.forEach((t) => { map[canonicalEmailTemplateId(t.id)] = { ...t, id: canonicalEmailTemplateId(t.id) }; });
+    (data as Tpl[] | null)?.forEach((t) => {
+      map[canonicalEmailTemplateId(t.id)] = {
+        ...t,
+        id: canonicalEmailTemplateId(t.id),
+        subject: normalizeEmailTemplateContent(t.subject),
+        html_body: normalizeEmailTemplateContent(t.html_body),
+        text_body: normalizeEmailTemplateContent(t.text_body),
+      };
+    });
     for (const k of KNOWN) {
       if (!map[k.id]?.html_body || !map[k.id]?.subject) {
         const res = await loadDefault({ data: { templateId: k.id } });
