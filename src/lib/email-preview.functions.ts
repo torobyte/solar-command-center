@@ -18,7 +18,7 @@ export const getDefaultEmailHtml = createServerFn({ method: "POST" })
     const inner = def.html; // already contains {{vars}}
     const ctaHtml = ctaButton(def.cta, passthroughVars, brand);
     const fullHtml = wrapHtml(inner, brand, ctaHtml);
-    return { subject: def.subject, html: fullHtml, innerHtml: inner };
+    return { subject: def.subject, html: fullHtml, innerHtml: inner, text: def.text };
   });
 
 

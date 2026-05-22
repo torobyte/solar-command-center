@@ -55,7 +55,7 @@ export function EmailTemplatesAdmin() {
           name: map[k.id]?.name || k.name,
           subject: map[k.id]?.subject || res.subject,
           html_body: map[k.id]?.html_body || res.innerHtml,
-          text_body: map[k.id]?.text_body || "",
+          text_body: map[k.id]?.text_body || res.text,
           enabled: map[k.id]?.enabled ?? true,
           wrap_with_brand: map[k.id]?.wrap_with_brand ?? true,
         };
@@ -109,7 +109,12 @@ export function EmailTemplatesAdmin() {
   async function loadDefaultHtml(id: string) {
     try {
       const res = await loadDefault({ data: { templateId: id } });
-      up(id, { html_body: res.html, subject: tpls[id]?.subject || res.subject, wrap_with_brand: false });
+      up(id, {
+        html_body: res.html,
+        subject: tpls[id]?.subject || res.subject,
+        text_body: tpls[id]?.text_body || res.text,
+        wrap_with_brand: false,
+      });
       toast.success("Plantilla completa cargada — ya puedes editarla por completo");
     } catch (e) {
       toast.error((e as Error).message);
