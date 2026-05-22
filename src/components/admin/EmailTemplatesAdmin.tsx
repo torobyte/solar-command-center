@@ -10,7 +10,8 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Save, Eye, Code2 } from "lucide-react";
+import { Save, Eye, Code2, Pencil } from "lucide-react";
+import { EmailRichEditor } from "./EmailRichEditor";
 
 interface Tpl {
   id: string;
