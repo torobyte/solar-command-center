@@ -43,13 +43,24 @@ export function defaultDodFor(type: string | null | undefined): number {
   return BATTERY_TYPES.find((b) => b.v === type)?.dod ?? 80;
 }
 
-export function usePvConfig(siteId: string) {
+export function usePvConfig(siteId: string, agentBase?: string | null) {
   const [config, setConfig] = useState<PvConfig | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const isLocal = !siteId || siteId === "local" || siteId.startsWith("__");
   useEffect(() => {
-    // Allow callers to opt out (e.g. local agent passes a sentinel when it
-    // already has the config object from /api/pvconfig).
-    if (!siteId || siteId.startsWith("__")) { setLoaded(true); return; }
+    // Local mode: read from the agent instead of Supabase (no UUID available).
+    if (isLocal) {
+      if (!agentBase) { setLoaded(true); return; }
+      let cancelled = false;
+      (async () => {
+        try {
+          const r = await fetch(`${agentBase}/api/pvconfig`, { cache: "no-store" });
+          const j = r.ok ? await r.json() : null;
+          if (!cancelled) { setConfig((j ?? null) as PvConfig | null); setLoaded(true); }
+        } catch { if (!cancelled) setLoaded(true); }
+      })();
+      return () => { cancelled = true; };
+    }
     let cancelled = false;
     (async () => {
       const { data } = await supabase.from("pv_system_config").select("*").eq("site_id", siteId).maybeSingle();
@@ -60,16 +71,18 @@ export function usePvConfig(siteId: string) {
         (p) => setConfig(p.new as PvConfig));
     ch.subscribe();
     return () => { cancelled = true; supabase.removeChannel(ch); };
-  }, [siteId]);
+  }, [siteId, agentBase, isLocal]);
   return { config, loaded };
 }
 
-export function PvSystemConfigCard({ siteId, maxAcOutputPower, nominalBatteryV }: {
+export function PvSystemConfigCard({ siteId, maxAcOutputPower, nominalBatteryV, agentBase }: {
   siteId: string;
   maxAcOutputPower?: number | null;
   nominalBatteryV?: number | null;
+  agentBase?: string | null;
 }) {
-  const { config } = usePvConfig(siteId);
+  const isLocal = !siteId || siteId === "local" || siteId.startsWith("__");
+  const { config } = usePvConfig(siteId, agentBase);
   const [form, setForm] = useState<PvConfig>({
     site_id: siteId,
     array_kwp: null, panel_count: null, panel_watts: null,
@@ -107,11 +120,29 @@ export function PvSystemConfigCard({ siteId, maxAcOutputPower, nominalBatteryV }
 
   async function save() {
     setSaving(true);
-    const payload = { ...form, site_id: siteId };
-    const { error } = await supabase.from("pv_system_config").upsert(payload as never, { onConflict: "site_id" });
-    setSaving(false);
-    if (error) toast.error(error.message);
-    else toast.success("Configuración fotovoltaica guardada");
+    try {
+      if (isLocal) {
+        if (!agentBase) { toast.error("Sin conexión al agente local"); return; }
+        // Don't send the site_id sentinel to the agent.
+        const { site_id: _omit, ...body } = form;
+        const r = await fetch(`${agentBase}/api/pvconfig`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!r.ok) throw new Error(await r.text().catch(() => `HTTP ${r.status}`));
+        toast.success("Configuración fotovoltaica guardada en el equipo local");
+      } else {
+        const payload = { ...form, site_id: siteId };
+        const { error } = await supabase.from("pv_system_config").upsert(payload as never, { onConflict: "site_id" });
+        if (error) throw error;
+        toast.success("Configuración fotovoltaica guardada");
+      }
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
