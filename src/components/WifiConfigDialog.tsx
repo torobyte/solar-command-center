@@ -22,6 +22,26 @@ export function WifiConfigDialog({
   const [selected, setSelected] = useState<WifiNet | null>(null);
   const [password, setPassword] = useState("");
   const [connecting, setConnecting] = useState(false);
+  const [hotspot, setHotspot] = useState<HotspotInfo | null>(null);
+  const [hotspotBusy, setHotspotBusy] = useState(false);
+
+  const loadHotspot = useCallback(async () => {
+    const r = await agentFetch("/api/wifi/hotspot");
+    if (r.ok) setHotspot((r.json as HotspotInfo) ?? null);
+  }, [agentFetch]);
+
+  const toggleHotspot = async (next: boolean) => {
+    setHotspotBusy(true);
+    const r = await agentFetch("/api/wifi/hotspot", { method: "POST", body: { enabled: next } });
+    setHotspotBusy(false);
+    if (r.ok) {
+      toast.success(next ? `Hotspot "${hotspot?.ssid ?? "Solar Torobyte"}" activado` : "Hotspot apagado");
+      loadHotspot();
+    } else {
+      toast.error(r.error || `No se pudo cambiar el hotspot (HTTP ${r.status})`);
+    }
+  };
+
 
   const loadStatus = useCallback(async () => {
     const [s, r] = await Promise.all([
