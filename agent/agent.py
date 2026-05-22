@@ -910,6 +910,80 @@ def internet_up() -> bool:
         s = socket.create_connection(("1.1.1.1", 53), timeout=2); s.close(); return True
     except Exception: return False
 
+# ---------- Hotspot interno (fallback sin internet) ----------
+HOTSPOT_SSID = "Solar Torobyte"
+HOTSPOT_PASSWORD = "solartorobyte123"
+HOTSPOT_CON_NAME = "solar-torobyte-hotspot"
+
+def _hotspot_iface() -> str:
+    try:
+        out = _run(["iw", "dev"], timeout=3)
+        for ln in out.splitlines():
+            ln = ln.strip()
+            if ln.startswith("Interface "):
+                return ln.split()[1]
+    except Exception:
+        pass
+    return "wlan0"
+
+def _hotspot_active() -> bool:
+    try:
+        out = _run(["nmcli", "-t", "-f", "NAME", "connection", "show", "--active"], timeout=4)
+        return any(ln.strip() == HOTSPOT_CON_NAME for ln in out.splitlines())
+    except Exception:
+        return False
+
+def _start_hotspot() -> tuple[bool, str]:
+    iface = _hotspot_iface()
+    # Asegura radio WiFi encendida
+    try: subprocess.run(["nmcli", "radio", "wifi", "on"], capture_output=True, timeout=5)
+    except Exception: pass
+    # Borra conexión previa con el mismo nombre (ignorar errores)
+    subprocess.run(["nmcli", "connection", "delete", HOTSPOT_CON_NAME],
+                   capture_output=True, timeout=5)
+    r = subprocess.run(
+        ["nmcli", "device", "wifi", "hotspot",
+         "ifname", iface,
+         "con-name", HOTSPOT_CON_NAME,
+         "ssid", HOTSPOT_SSID,
+         "password", HOTSPOT_PASSWORD],
+        capture_output=True, text=True, timeout=25)
+    return (r.returncode == 0), ((r.stderr or r.stdout) or "").strip()
+
+def _stop_hotspot() -> tuple[bool, str]:
+    r = subprocess.run(["nmcli", "connection", "down", HOTSPOT_CON_NAME],
+                       capture_output=True, text=True, timeout=10)
+    # Si no estaba activa, lo damos por OK
+    if r.returncode != 0 and "not an active" in (r.stderr or "").lower():
+        return True, "no estaba activo"
+    return (r.returncode == 0), ((r.stderr or r.stdout) or "").strip()
+
+def hotspot_supervisor_loop():
+    """Activa el hotspot interno cuando no hay internet (o solo hay ethernet
+    sin WiFi configurada). Lo apaga en cuanto se recupera salida a internet
+    por una conexión normal (eth o WiFi cliente)."""
+    while True:
+        try:
+            online = internet_up()
+            active = _hotspot_active()
+            if not online and not active:
+                # Sin internet: levantamos el AP para que el usuario pueda
+                # entrar desde el móvil y configurar la WiFi.
+                ok, msg = _start_hotspot()
+                if ok:
+                    print(f"[agent] hotspot '{HOTSPOT_SSID}' activado (sin internet)", flush=True)
+                else:
+                    print(f"[agent] no se pudo activar hotspot: {msg}", flush=True)
+            elif online and active:
+                # Ya hay internet: el hotspot ya no es necesario.
+                ok, msg = _stop_hotspot()
+                if ok:
+                    print(f"[agent] hotspot apagado (internet recuperado)", flush=True)
+        except Exception as e:
+            print(f"[agent] hotspot loop error: {e}", flush=True)
+        time.sleep(30)
+
+
 def cpu_temp_c() -> float | None:
     try:
         v = Path("/sys/class/thermal/thermal_zone0/temp").read_text().strip()
