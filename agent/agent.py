@@ -2109,6 +2109,36 @@ def make_app(agent: Agent) -> Flask:
     def wifi_page():
         return render_template_string(WIFI_PAGE)
 
+    # ---------- Hotspot interno (fallback sin internet) ----------
+    # Si el equipo no tiene salida a internet, levantamos un AP local con
+    # SSID/clave fijos para que el usuario pueda conectarse desde el móvil
+    # y configurar la WiFi real. Una vez que el equipo recupera internet,
+    # el hotspot se apaga solo.
+    @app.get("/api/wifi/hotspot")
+    def wifi_hotspot_get():
+        return jsonify({
+            "active": _hotspot_active(),
+            "ssid": HOTSPOT_SSID,
+            "password": HOTSPOT_PASSWORD,
+            "internet_up": internet_up(),
+            "ip_eth": get_ip("eth0"),
+            "ip_wlan": get_ip("wlan0"),
+        })
+
+    @app.post("/api/wifi/hotspot")
+    def wifi_hotspot_set():
+        body = request.get_json(force=True) or {}
+        enable = bool(body.get("enabled", True))
+        if enable:
+            ok, msg = _start_hotspot()
+        else:
+            ok, msg = _stop_hotspot()
+        if not ok:
+            return jsonify({"error": msg or "No se pudo cambiar el hotspot"}), 400
+        return jsonify({"ok": True, "active": _hotspot_active(),
+                        "ssid": HOTSPOT_SSID, "password": HOTSPOT_PASSWORD})
+
+
     @app.get("/api/wifi/status")
     def wifi_status():
         return jsonify({
