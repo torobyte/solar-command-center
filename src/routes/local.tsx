@@ -345,7 +345,7 @@ function LocalDashboardPage() {
                 <InverterConfigWizard siteId="local" agentBase={agentBase} agentFetch={agentFetch} />
               </CardContent>
             </Card>
-            <PvSystemConfigCard siteId="local" />
+            <PvSystemConfigCard siteId="local" agentBase={agentBase} />
             <QuickActionsConfigCard siteId="local" />
           </TabsContent>
 
