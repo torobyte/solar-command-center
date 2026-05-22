@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Wifi, RefreshCw, Lock, Trash2, Loader2 } from "lucide-react";
+import { Wifi, RefreshCw, Lock, Trash2, Loader2, Radio } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,9 @@ import { toast } from "sonner";
 import type { AgentFetcher } from "@/routes/local";
 
 interface WifiNet { ssid: string; signal?: number; security?: string; in_use?: boolean }
-interface WifiStatus { connected?: boolean; ssid?: string | null; ip?: string | null; signal?: number | null; iface?: string | null }
+interface WifiStatus { connected?: boolean; ssid?: string | null; ip?: string | null; signal?: number | null; iface?: string | null; internet_up?: boolean; ip_eth?: string | null; ip_wlan?: string | null }
+interface HotspotInfo { active?: boolean; ssid?: string; password?: string; internet_up?: boolean; ip_eth?: string | null; ip_wlan?: string | null }
+
 
 export function WifiConfigDialog({
   open, onOpenChange, agentFetch,
@@ -20,6 +22,26 @@ export function WifiConfigDialog({
   const [selected, setSelected] = useState<WifiNet | null>(null);
   const [password, setPassword] = useState("");
   const [connecting, setConnecting] = useState(false);
+  const [hotspot, setHotspot] = useState<HotspotInfo | null>(null);
+  const [hotspotBusy, setHotspotBusy] = useState(false);
+
+  const loadHotspot = useCallback(async () => {
+    const r = await agentFetch("/api/wifi/hotspot");
+    if (r.ok) setHotspot((r.json as HotspotInfo) ?? null);
+  }, [agentFetch]);
+
+  const toggleHotspot = async (next: boolean) => {
+    setHotspotBusy(true);
+    const r = await agentFetch("/api/wifi/hotspot", { method: "POST", body: { enabled: next } });
+    setHotspotBusy(false);
+    if (r.ok) {
+      toast.success(next ? `Hotspot "${hotspot?.ssid ?? "Solar Torobyte"}" activado` : "Hotspot apagado");
+      loadHotspot();
+    } else {
+      toast.error(r.error || `No se pudo cambiar el hotspot (HTTP ${r.status})`);
+    }
+  };
+
 
   const loadStatus = useCallback(async () => {
     const [s, r] = await Promise.all([
@@ -45,8 +67,9 @@ export function WifiConfigDialog({
   useEffect(() => {
     if (!open) return;
     setSelected(null); setPassword("");
-    loadStatus(); scan();
-  }, [open, loadStatus, scan]);
+    loadStatus(); scan(); loadHotspot();
+  }, [open, loadStatus, scan, loadHotspot]);
+
 
   const toggleRadio = async (next: boolean) => {
     setRadio(next);
@@ -113,6 +136,45 @@ export function WifiConfigDialog({
               </div>
             </div>
           </div>
+
+          {/* Hotspot interno (fallback sin internet) */}
+          {(() => {
+            const offline = hotspot ? hotspot.internet_up === false : (status?.internet_up === false);
+            const showCard = offline || hotspot?.active;
+            if (!showCard) return null;
+            return (
+              <div className="rounded-lg border border-warning/40 bg-warning/5 p-3 text-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 font-semibold">
+                      <Radio className="h-3.5 w-3.5 text-warning" />
+                      Hotspot interno
+                      {hotspot?.active && (
+                        <span className="text-[10px] rounded-full bg-success/15 text-success px-1.5 py-0.5">activo</span>
+                      )}
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      Sin internet o solo cable de red. Conecta tu móvil al hotspot y abre
+                      <span className="font-mono"> http://192.168.4.1/wifi</span> para configurar la WiFi.
+                    </div>
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                      <div><div className="text-muted-foreground">SSID</div><div className="font-mono font-medium">{hotspot?.ssid ?? "Solar Torobyte"}</div></div>
+                      <div><div className="text-muted-foreground">Clave</div><div className="font-mono font-medium">{hotspot?.password ?? "solartorobyte123"}</div></div>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={Boolean(hotspot?.active)}
+                    disabled={hotspotBusy}
+                    onCheckedChange={toggleHotspot}
+                  />
+                </div>
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  Una vez que configures la WiFi y haya internet, el hotspot se apaga automáticamente.
+                </p>
+              </div>
+            );
+          })()}
+
 
           {/* Lista de redes */}
           <div>

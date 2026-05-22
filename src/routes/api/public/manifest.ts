@@ -11,9 +11,10 @@ export const Route = createFileRoute("/api/public/manifest")({
           .eq("key", "global")
           .maybeSingle();
         const b = data ?? {};
+        const siteName = (b as { site_name?: string }).site_name;
         const manifest = {
-          name: (b as { pwa_name?: string }).pwa_name ?? "SolarOps",
-          short_name: (b as { pwa_short_name?: string }).pwa_short_name ?? "SolarOps",
+          name: (b as { pwa_name?: string }).pwa_name ?? siteName ?? "SolarOps",
+          short_name: (b as { pwa_short_name?: string }).pwa_short_name ?? siteName ?? "SolarOps",
           description: (b as { pwa_description?: string }).pwa_description ?? "Monitor your solar inverter",
           start_url: "/",
           scope: "/",
