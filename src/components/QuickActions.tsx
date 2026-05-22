@@ -186,6 +186,9 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG, readO
         });
         if (!r.ok) throw new Error(await r.text().catch(() => `HTTP ${r.status}`));
         toast.success("Comando enviado al inversor");
+      } else if (isLocal) {
+        toast.error("Sin conexión al agente local — no se puede enviar el comando");
+        return;
       } else {
         const { data: u } = await supabase.auth.getUser();
         if (!u.user) { toast.error("Sesión expirada"); return; }
