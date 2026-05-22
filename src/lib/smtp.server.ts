@@ -10,6 +10,7 @@
  */
 import nodemailer from "nodemailer";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { canonicalEmailTemplateId, getEmailTemplateDefault } from "./email-template-config";
 
 export type MailVars = Record<string, string | number | undefined | null>;
 
@@ -45,44 +46,15 @@ interface Brand {
   border_color: string;
 }
 
-export const DEFAULTS: Record<string, { subject: string; html: string; text: string; cta?: string }> = {
-  signup: {
-    subject: "Bienvenido a {{site_name}}",
-    html: `<h1>¡Hola {{name}}!</h1><p>Tu cuenta en <strong>{{site_name}}</strong> fue creada con éxito. Ya puedes acceder a tu panel de control y empezar a monitorear tu sistema.</p>`,
-    text: "Hola {{name}}, tu cuenta en {{site_name}} fue creada.",
-    cta: "Ir al panel|{{link}}",
-  },
-  auth_reset: {
-    subject: "Restablece tu contraseña — {{site_name}}",
-    html: `<h1>Restablece tu contraseña</h1><p>Hola {{name}}, recibimos una solicitud para restablecer la contraseña de tu cuenta en <strong>{{site_name}}</strong>.</p><p>Haz clic en el botón de abajo para crear una nueva contraseña. Este enlace caduca en 1 hora.</p><p style="color:#888;font-size:13px;margin-top:24px">Si no fuiste tú, puedes ignorar este correo de forma segura.</p>`,
-    text: "Restablece tu contraseña: {{link}}",
-    cta: "Restablecer contraseña|{{link}}",
-  },
-  auth_verify: {
-    subject: "Verifica tu correo — {{site_name}}",
-    html: `<h1>Confirma tu correo</h1><p>Hola {{name}}, gracias por registrarte en <strong>{{site_name}}</strong>. Para terminar la configuración de tu cuenta, confirma esta dirección de correo:</p>`,
-    text: "Verifica tu correo: {{link}}",
-    cta: "Verificar correo|{{link}}",
-  },
-  invite: {
-    subject: "Te invitaron a {{site_name}}",
-    html: `<h1>Tienes una invitación</h1><p><strong>{{inviter}}</strong> te invitó a colaborar en el sitio <strong>{{site_name}}</strong> con el rol de <strong>{{role}}</strong>.</p><p style="color:#888;font-size:13px">El enlace vence el {{expires_at}}.</p>`,
-    text: "{{inviter}} te invitó a {{site_name}} ({{role}}). Acepta aquí: {{link}}",
-    cta: "Aceptar invitación|{{link}}",
-  },
-  alert: {
-    subject: "[{{severity}}] {{title}} — {{site_name}}",
-    html: `<h1>{{title}}</h1><p>Se activó una alerta en <strong>{{site_name}}</strong>:</p><p style="padding:12px 16px;background:#fff7ed;border-left:3px solid #f59e0b;border-radius:4px;color:#7c2d12">{{message}}</p>`,
-    text: "{{title}} en {{site_name}}: {{message}} — {{link}}",
-    cta: "Ver sitio|{{link}}",
-  },
-  license: {
-    subject: "Licencia actualizada — {{site_name}}",
-    html: `<h1>Tu licencia está activa</h1><p>Hola {{name}}, tu sitio <strong>{{site_name}}</strong> está en el plan <strong>{{plan}}</strong> y permanecerá activo hasta el <strong>{{expires_at}}</strong>.</p>`,
-    text: "Sitio {{site_name}}: plan {{plan}}, vence {{expires_at}}.",
-    cta: "Ver panel|{{link}}",
-  },
-};
+export const DEFAULTS = {
+  signup: getEmailTemplateDefault("signup"),
+  auth_reset: getEmailTemplateDefault("auth_reset"),
+  auth_verify: getEmailTemplateDefault("auth_verify"),
+  site_invitation: getEmailTemplateDefault("site_invitation"),
+  invite: getEmailTemplateDefault("site_invitation"),
+  alert: getEmailTemplateDefault("alert"),
+  license: getEmailTemplateDefault("license"),
+} as const;
 
 export function render(tpl: string, vars: MailVars): string {
   return tpl.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, k) => {
@@ -101,10 +73,11 @@ async function loadSmtp(): Promise<SmtpRow | null> {
 }
 
 async function loadTemplate(id: string): Promise<Tpl | null> {
+  const normalizedId = canonicalEmailTemplateId(id);
   const { data } = await supabaseAdmin
     .from("email_templates")
     .select("id,subject,html_body,text_body,enabled,wrap_with_brand")
-    .eq("id", id)
+    .eq("id", normalizedId)
     .maybeSingle();
   return (data as Tpl | null) || null;
 }
@@ -208,7 +181,9 @@ export async function sendMail(input: SendMailInput): Promise<SendMailResult> {
         (typeof baseVars.name === "string" ? baseVars.name.split(" ")[0] : baseVars.name),
       user_email: baseVars.user_email ?? baseVars.email,
       url: baseVars.url ?? baseVars.link,
-      action_url: baseVars.action_url ?? baseVars.link,
+      action_url: baseVars.action_url ?? baseVars.action_link ?? baseVars.link,
+      action_link: baseVars.action_link ?? baseVars.action_url ?? baseVars.link,
+      accept_url: baseVars.accept_url ?? baseVars.link,
     };
 
     let subject = input.subject;
@@ -219,7 +194,8 @@ export async function sendMail(input: SendMailInput): Promise<SendMailResult> {
     if (!subject || !html) {
       const tpl = await loadTemplate(input.templateId);
       if (tpl && tpl.enabled === false) return { ok: false, skipped: "template_disabled" };
-      const def = DEFAULTS[input.templateId] || DEFAULTS.alert;
+      const normalizedTemplateId = canonicalEmailTemplateId(input.templateId);
+      const def = DEFAULTS[normalizedTemplateId as keyof typeof DEFAULTS] || DEFAULTS.alert;
       subject = subject ?? render(tpl?.subject || def.subject, vars);
       const rawInner = render(tpl?.html_body || def.html, vars);
       const ctaHtml = ctaButton(ctaSpec || def.cta, vars, brand);
