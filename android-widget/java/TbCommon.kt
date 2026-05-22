@@ -62,13 +62,17 @@ internal object TbCommon {
         val charging = batW > 25 || s.optBoolean("charging", false)
         val discharging = batW < -25 || s.optBoolean("discharging", false)
         // crude efficiency: how much of consumption was self-produced
-        val totalIn = pvW + kotlin.math.max(0.0, -gridW) + kotlin.math.max(0.0, batW)
         val eff = if (loadW > 0) ((pvW / kotlin.math.max(pvW + kotlin.math.max(0.0, gridW), 1.0)) * 100).toInt().coerceIn(0, 100) else 0
-        // ETA: if discharging, capacity Wh / discharge W; if charging, missing / charge W
-        val capacityWh = s.optDouble("battery_capacity_wh", 5000.0)
+        // ETA real (minutos): prefer pre-computed eta_minutes from the API.
+        // Fallback: compute from usable battery_capacity_wh if provided.
+        val apiEta = s.optInt("eta_minutes", -1)
+        val capacityWh = s.optDouble("battery_capacity_wh", 0.0)
         val etaMin = when {
-            discharging && batW < -25 -> ((capacityWh * batPct / 100.0) / kotlin.math.abs(batW) * 60).toInt()
-            charging && batW > 25 -> ((capacityWh * (100 - batPct) / 100.0) / batW * 60).toInt()
+            apiEta > 0 -> apiEta
+            capacityWh > 0 && discharging && batW < -25 ->
+                ((capacityWh * batPct / 100.0) / kotlin.math.abs(batW) * 60).toInt()
+            capacityWh > 0 && charging && batW > 25 ->
+                ((capacityWh * (100 - batPct) / 100.0) / batW * 60).toInt()
             else -> 0
         }
         return Snapshot(

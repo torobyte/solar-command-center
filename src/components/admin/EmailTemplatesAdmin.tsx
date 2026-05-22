@@ -10,7 +10,8 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Save, Eye, Code2 } from "lucide-react";
+import { Save, Eye, Code2, Pencil } from "lucide-react";
+import { EmailRichEditor } from "./EmailRichEditor";
 
 interface Tpl {
   id: string;
@@ -148,19 +149,41 @@ export function EmailTemplatesAdmin() {
               <div>
                 <div className="flex items-center justify-between">
                   <Label className="text-xs">
-                    HTML {t.wrap_with_brand === false ? "(documento completo)" : "(cuerpo interior)"}
+                    Contenido del correo {t.wrap_with_brand === false ? "(documento HTML completo)" : "(cuerpo interior)"}
                   </Label>
                   <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={() => loadDefaultHtml(k.id)}>
                     <Code2 className="h-3 w-3 mr-1" />Cargar plantilla completa
                   </Button>
                 </div>
-                <Textarea
-                  value={t.html_body}
-                  onChange={(e) => up(k.id, { html_body: e.target.value })}
-                  rows={t.wrap_with_brand === false ? 24 : 14}
-                  className="font-mono text-xs"
-                  placeholder="<h1>Hola {{name}}</h1><p>...</p>"
-                />
+                <Tabs defaultValue={t.wrap_with_brand === false ? "html" : "visual"} className="mt-1">
+                  <TabsList className="h-8">
+                    <TabsTrigger value="visual" className="h-7 text-xs gap-1"><Pencil className="h-3 w-3" />Visual</TabsTrigger>
+                    <TabsTrigger value="html" className="h-7 text-xs gap-1"><Code2 className="h-3 w-3" />HTML</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="visual" className="mt-2">
+                    {t.wrap_with_brand === false ? (
+                      <p className="rounded-md border border-dashed bg-muted/30 p-3 text-xs text-muted-foreground">
+                        El modo "documento HTML completo" desactiva el editor visual porque incluye
+                        <code className="mx-1">&lt;html&gt;</code>/<code>&lt;head&gt;</code>. Actívalo en HTML o
+                        vuelve a activar "Envolver con marca" para editar visualmente.
+                      </p>
+                    ) : (
+                      <EmailRichEditor
+                        value={t.html_body}
+                        onChange={(html) => up(k.id, { html_body: html })}
+                      />
+                    )}
+                  </TabsContent>
+                  <TabsContent value="html" className="mt-2">
+                    <Textarea
+                      value={t.html_body}
+                      onChange={(e) => up(k.id, { html_body: e.target.value })}
+                      rows={t.wrap_with_brand === false ? 24 : 14}
+                      className="font-mono text-xs"
+                      placeholder="<h1>Hola {{name}}</h1><p>...</p>"
+                    />
+                  </TabsContent>
+                </Tabs>
               </div>
               <div>
                 <Label className="text-xs">Texto plano (fallback)</Label>

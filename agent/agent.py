@@ -2548,9 +2548,16 @@ def make_app(agent: Agent) -> Flask:
     @app.post("/api/pvconfig")
     def set_pvcfg():
         body = request.get_json(force=True) or {}
-        # Whitelist of allowed keys (mirrors cloud schema).
-        allowed = {"array_kwp","battery_kwh","panel_count","panel_watts",
-                   "azimuth","tilt","system_losses_pct","latitude","longitude"}
+        # Whitelist of allowed keys (mirrors cloud schema, including battery
+        # bank, calibration, pricing and the human-readable location label).
+        allowed = {
+            "array_kwp", "battery_kwh", "panel_count", "panel_watts",
+            "azimuth", "tilt", "system_losses_pct", "latitude", "longitude",
+            "battery_count", "battery_type", "battery_voltage_each",
+            "battery_ah_each", "battery_usable_dod_pct",
+            "location_label", "energy_price", "feed_in_price", "currency",
+            "manual_calibration", "calibration_smoothing_alpha",
+        }
         cfg = {k: body.get(k) for k in allowed if k in body}
         save_pvcfg(cfg)
         return jsonify({"ok": True, "config": cfg})
