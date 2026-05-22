@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Wifi, RefreshCw, Lock, Trash2, Loader2 } from "lucide-react";
+import { Wifi, RefreshCw, Lock, Trash2, Loader2, Radio } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,9 @@ import { toast } from "sonner";
 import type { AgentFetcher } from "@/routes/local";
 
 interface WifiNet { ssid: string; signal?: number; security?: string; in_use?: boolean }
-interface WifiStatus { connected?: boolean; ssid?: string | null; ip?: string | null; signal?: number | null; iface?: string | null }
+interface WifiStatus { connected?: boolean; ssid?: string | null; ip?: string | null; signal?: number | null; iface?: string | null; internet_up?: boolean; ip_eth?: string | null; ip_wlan?: string | null }
+interface HotspotInfo { active?: boolean; ssid?: string; password?: string; internet_up?: boolean; ip_eth?: string | null; ip_wlan?: string | null }
+
 
 export function WifiConfigDialog({
   open, onOpenChange, agentFetch,
