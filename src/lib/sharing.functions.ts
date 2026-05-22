@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendMail } from "@/lib/smtp.server";
+import { canonicalAppHref } from "@/lib/email-template-config";
 
 const ROLE_LABELS: Record<string, string> = {
   viewer: "Lector",
@@ -48,17 +49,18 @@ export const inviteToSite = createServerFn({ method: "POST" })
     const { data: inviter } = await supabaseAdmin
       .from("profiles").select("full_name,email").eq("id", userId).maybeSingle();
 
-    const link = `${data.origin.replace(/\/$/, "")}/invite/${inv.token}`;
+    const link = canonicalAppHref(`/invite/${inv.token}`);
     const expiresStr = new Date(inv.expires_at as string).toLocaleDateString();
 
     const mail = await sendMail({
       to: data.email,
-      templateId: "invite",
+      templateId: "site_invitation",
       vars: {
         site_name: site.name || "el sitio",
         inviter: inviter?.full_name || inviter?.email || "Un usuario",
         role: ROLE_LABELS[data.role] || data.role,
         link,
+        accept_url: link,
         expires_at: expiresStr,
       },
     });

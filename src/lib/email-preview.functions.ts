@@ -2,13 +2,15 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { loadBrand, wrapHtml, ctaButton, render, DEFAULTS, type MailVars } from "./smtp.server";
+import { canonicalAppHref, canonicalEmailTemplateId } from "./email-template-config";
 
 export const getDefaultEmailHtml = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ templateId: z.string().min(1).max(64) }).parse(input))
   .handler(async ({ data }) => {
     const brand = await loadBrand();
-    const def = DEFAULTS[data.templateId] || DEFAULTS.alert;
+    const templateId = canonicalEmailTemplateId(data.templateId);
+    const def = DEFAULTS[templateId as keyof typeof DEFAULTS] || DEFAULTS.alert;
     // Build the full wrapped HTML using literal {{vars}} so the admin can edit them.
     const passthroughVars = new Proxy({} as MailVars, {
       get: (_t, prop: string) => `{{${prop}}}`,
@@ -16,7 +18,7 @@ export const getDefaultEmailHtml = createServerFn({ method: "POST" })
     const inner = def.html; // already contains {{vars}}
     const ctaHtml = ctaButton(def.cta, passthroughVars, brand);
     const fullHtml = wrapHtml(inner, brand, ctaHtml);
-    return { subject: def.subject, html: fullHtml, innerHtml: inner };
+    return { subject: def.subject, html: fullHtml, innerHtml: inner, text: def.text };
   });
 
 
@@ -27,9 +29,11 @@ const SAMPLE_VARS: MailVars = {
   first_name: "María",
   email: "maria@ejemplo.cl",
   user_email: "maria@ejemplo.cl",
-  link: "https://ejemplo.cl/accion",
-  url: "https://ejemplo.cl/accion",
-  action_url: "https://ejemplo.cl/accion",
+  link: canonicalAppHref("/app"),
+  url: canonicalAppHref("/app"),
+  action_url: canonicalAppHref("/auth/confirm?type=signup"),
+  action_link: canonicalAppHref("/auth/confirm?type=signup"),
+  accept_url: canonicalAppHref("/invite/demo-token"),
   message: "Batería al 18% — considera reducir cargas no esenciales.",
   inviter: "Juan Pérez",
   role: "admin",
@@ -62,9 +66,12 @@ export const renderEmailPreview = createServerFn({ method: "POST" })
         (typeof baseVars.name === "string" ? baseVars.name.split(" ")[0] : baseVars.name),
       user_email: baseVars.user_email ?? baseVars.email,
       url: baseVars.url ?? baseVars.link,
-      action_url: baseVars.action_url ?? baseVars.link,
+      action_url: baseVars.action_url ?? baseVars.action_link ?? baseVars.link,
+      action_link: baseVars.action_link ?? baseVars.action_url ?? baseVars.link,
+      accept_url: baseVars.accept_url ?? baseVars.link,
     };
-    const def = DEFAULTS[data.templateId] || DEFAULTS.alert;
+    const templateId = canonicalEmailTemplateId(data.templateId);
+    const def = DEFAULTS[templateId as keyof typeof DEFAULTS] || DEFAULTS.alert;
     const subject = render(data.subject || def.subject, vars);
     const innerHtml = render(data.html || def.html, vars);
     const ctaHtml = ctaButton(data.cta || def.cta, vars, brand);

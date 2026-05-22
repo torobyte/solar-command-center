@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendMail } from "@/lib/smtp.server";
+import { canonicalAppUrl } from "@/lib/email-template-config";
 
 const signupSchema = z.object({
   email: z.string().email().max(255).transform((v) => v.trim().toLowerCase()),
@@ -21,7 +22,7 @@ function buildBrandedLink(
   type: "signup" | "recovery" | "invite" | "magiclink" | "email_change",
   next: string,
 ) {
-  const base = origin.replace(/\/$/, "");
+  const base = canonicalAppUrl(origin).replace(/\/$/, "");
   const params = new URLSearchParams({
     token_hash: tokenHash,
     type,
@@ -39,7 +40,7 @@ export const signUpWithCustomEmail = createServerFn({ method: "POST" })
       password: data.password,
       options: {
         data: { full_name: data.full_name },
-        redirectTo: `${data.origin.replace(/\/$/, "")}/app`,
+        redirectTo: `${canonicalAppUrl(data.origin).replace(/\/$/, "")}/app`,
       },
     });
 
@@ -74,7 +75,7 @@ export const sendRecoveryEmail = createServerFn({ method: "POST" })
       type: "recovery",
       email: data.email,
       options: {
-        redirectTo: `${data.origin.replace(/\/$/, "")}/reset-password`,
+        redirectTo: `${canonicalAppUrl(data.origin).replace(/\/$/, "")}/reset-password`,
       },
     });
 
@@ -96,6 +97,7 @@ export const sendRecoveryEmail = createServerFn({ method: "POST" })
         name: data.email,
         email: data.email,
         link,
+        action_link: link,
       },
     });
 
