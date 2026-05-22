@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import { Save, Eye, Code2, Pencil } from "lucide-react";
 import { EmailRichEditor } from "./EmailRichEditor";
+import { EMAIL_TEMPLATE_DEFINITIONS, canonicalEmailTemplateId } from "@/lib/email-template-config";
 
 interface Tpl {
   id: string;
@@ -23,14 +24,7 @@ interface Tpl {
   wrap_with_brand: boolean | null;
 }
 
-const KNOWN: { id: string; name: string }[] = [
-  { id: "signup", name: "Signup / bienvenida" },
-  { id: "auth_reset", name: "Auth — reset password" },
-  { id: "auth_verify", name: "Auth — verificar email" },
-  { id: "invite", name: "Invitación a sitio" },
-  { id: "alert", name: "Alertas / notificaciones" },
-  { id: "license", name: "Licencia" },
-];
+const KNOWN: { id: string; name: string }[] = [...EMAIL_TEMPLATE_DEFINITIONS];
 
 export function EmailTemplatesAdmin() {
   const [tpls, setTpls] = useState<Record<string, Tpl>>({});
@@ -44,12 +38,21 @@ export function EmailTemplatesAdmin() {
   async function load() {
     const { data } = await supabase.from("email_templates").select("*");
     const map: Record<string, Tpl> = {};
-    (data as Tpl[] | null)?.forEach((t) => { map[t.id] = t; });
+    (data as Tpl[] | null)?.forEach((t) => { map[canonicalEmailTemplateId(t.id)] = { ...t, id: canonicalEmailTemplateId(t.id) }; });
     for (const k of KNOWN) {
-      if (!map[k.id]) {
+      if (!map[k.id]?.html_body || !map[k.id]?.subject) {
+        const res = await loadDefault({ data: { templateId: k.id } });
         map[k.id] = {
-          id: k.id, name: k.name, subject: "", html_body: "", text_body: "", enabled: true, wrap_with_brand: true,
+          id: k.id,
+          name: map[k.id]?.name || k.name,
+          subject: map[k.id]?.subject || res.subject,
+          html_body: map[k.id]?.html_body || res.innerHtml,
+          text_body: map[k.id]?.text_body || "",
+          enabled: map[k.id]?.enabled ?? true,
+          wrap_with_brand: map[k.id]?.wrap_with_brand ?? true,
         };
+      } else {
+        map[k.id] = { ...map[k.id], id: k.id, name: map[k.id]?.name || k.name };
       }
     }
     setTpls(map);
@@ -62,7 +65,7 @@ export function EmailTemplatesAdmin() {
 
   async function save(id: string) {
     setSaving(true);
-    const t = tpls[id];
+    const t = { ...tpls[id], id: canonicalEmailTemplateId(id) };
     const { error } = await supabase.from("email_templates").upsert(t as never, { onConflict: "id" });
     setSaving(false);
     if (error) return toast.error(error.message);
@@ -104,7 +107,7 @@ export function EmailTemplatesAdmin() {
       <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-1">
         <p>
           Variables: <code>{"{{name}}"}</code> (alias: <code>{"{{full_name}}"}</code>, <code>{"{{first_name}}"}</code>),{" "}
-          <code>{"{{email}}"}</code>, <code>{"{{link}}"}</code> (alias: <code>{"{{url}}"}</code>),{" "}
+          <code>{"{{email}}"}</code>, <code>{"{{link}}"}</code> (alias: <code>{"{{url}}"}</code>, <code>{"{{action_link}}"}</code>, <code>{"{{accept_url}}"}</code>),{" "}
           <code>{"{{site_name}}"}</code>, <code>{"{{message}}"}</code>, <code>{"{{plan}}"}</code>,{" "}
           <code>{"{{expires_at}}"}</code>, <code>{"{{inviter}}"}</code>, <code>{"{{role}}"}</code>.
         </p>

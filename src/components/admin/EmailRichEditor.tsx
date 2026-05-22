@@ -154,6 +154,8 @@ function Toolbar({ editor }: { editor: Editor }) {
       <div className="ml-auto flex items-center gap-1">
         <VarChip editor={editor} v="{{name}}" />
         <VarChip editor={editor} v="{{link}}" />
+        <VarChip editor={editor} v="{{action_link}}" />
+        <VarChip editor={editor} v="{{accept_url}}" />
         <VarChip editor={editor} v="{{site_name}}" />
       </div>
     </div>
