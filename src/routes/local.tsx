@@ -346,6 +346,7 @@ function LocalDashboardPage() {
               </CardContent>
             </Card>
             <PvSystemConfigCard siteId="local" />
+            <QuickActionsConfigCard siteId="local" />
           </TabsContent>
 
           <TabsContent value="system" className="mt-6 space-y-4">
