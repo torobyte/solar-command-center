@@ -67,8 +67,9 @@ export function WifiConfigDialog({
   useEffect(() => {
     if (!open) return;
     setSelected(null); setPassword("");
-    loadStatus(); scan();
-  }, [open, loadStatus, scan]);
+    loadStatus(); scan(); loadHotspot();
+  }, [open, loadStatus, scan, loadHotspot]);
+
 
   const toggleRadio = async (next: boolean) => {
     setRadio(next);
