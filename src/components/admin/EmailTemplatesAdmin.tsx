@@ -48,7 +48,7 @@ export function EmailTemplatesAdmin() {
       };
     });
     for (const k of KNOWN) {
-      if (!map[k.id]?.html_body || !map[k.id]?.subject) {
+      if (!map[k.id]?.html_body || !map[k.id]?.subject || !map[k.id]?.text_body) {
         const res = await loadDefault({ data: { templateId: k.id } });
         map[k.id] = {
           id: k.id,
@@ -73,7 +73,13 @@ export function EmailTemplatesAdmin() {
 
   async function save(id: string) {
     setSaving(true);
-    const t = { ...tpls[id], id: canonicalEmailTemplateId(id) };
+    const t = {
+      ...tpls[id],
+      id: canonicalEmailTemplateId(id),
+      subject: normalizeEmailTemplateContent(tpls[id]?.subject),
+      html_body: normalizeEmailTemplateContent(tpls[id]?.html_body),
+      text_body: normalizeEmailTemplateContent(tpls[id]?.text_body),
+    };
     const { error } = await supabase.from("email_templates").upsert(t as never, { onConflict: "id" });
     setSaving(false);
     if (error) return toast.error(error.message);
