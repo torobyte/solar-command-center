@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { SiteDashboardView, type DashboardSample, formatInverterMode } from "@/components/SiteDashboardView";
 import { InverterConfigWizard } from "@/components/InverterConfigWizard";
 import { PvSystemConfigCard, type PvConfig } from "@/components/PvSystemConfig";
+import { QuickActionsConfigCard } from "@/components/QuickActions";
 import { WifiConfigDialog } from "@/components/WifiConfigDialog";
 import { AgentDiagnosticDialog } from "@/components/AgentDiagnosticDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
