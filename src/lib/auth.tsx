@@ -25,6 +25,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
+    let userInitiatedSignOut = false;
+
+    const tryRestoreFromNativeBridge = async (): Promise<Session | null> => {
+      if (typeof window === "undefined") return null;
+      const bridge = (window as unknown as {
+        SolarWidgetBridge?: {
+          getSavedSession?: () => string;
+          isNativeApp?: () => string;
+        };
+      }).SolarWidgetBridge;
+      if (!bridge?.getSavedSession) return null;
+      try {
+        const raw = bridge.getSavedSession();
+        if (!raw) return null;
+        const parsed = JSON.parse(raw) as { access_token?: string; refresh_token?: string };
+        if (!parsed.access_token || !parsed.refresh_token) return null;
+        const { data, error } = await supabase.auth.setSession({
+          access_token: parsed.access_token,
+          refresh_token: parsed.refresh_token,
+        });
+        if (error) return null;
+        return data.session;
+      } catch {
+        return null;
+      }
+    };
 
     const applySession = async (nextSession: Session | null) => {
       if (!active) return;
@@ -61,14 +87,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const { data } = await supabase.auth.getSession();
         if (!active) return;
-        await applySession(data.session);
+        if (data.session) {
+          await applySession(data.session);
+        } else {
+          // Sin sesión: si estamos dentro de la APK, intenta revalidar desde el bridge nativo.
+          const restored = await tryRestoreFromNativeBridge();
+          await applySession(restored);
+        }
       } finally {
         if (active) setAuthLoading(false);
       }
     };
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!active) return;
+      // Si la sesión se pierde por expiración / fallo de refresh, no dejamos
+      // al usuario fuera: intentamos restaurar desde el bridge nativo antes
+      // de reportar SIGNED_OUT al resto de la app.
+      if ((event === "SIGNED_OUT" || event === "TOKEN_REFRESHED") && !nextSession && !userInitiatedSignOut) {
+        setAuthLoading(true);
+        void (async () => {
+          const restored = await tryRestoreFromNativeBridge();
+          await applySession(restored ?? null);
+          if (active) setAuthLoading(false);
+        })();
+        return;
+      }
+      if (event === "SIGNED_OUT") userInitiatedSignOut = false;
       setAuthLoading(true);
       void applySession(nextSession).finally(() => {
         if (active) setAuthLoading(false);
@@ -76,6 +121,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     void initialize();
+
+    // Marcador para que las próximas señales SIGNED_OUT se consideren
+    // intencionadas por el usuario.
+    (window as unknown as { __markUserSignOut?: () => void }).__markUserSignOut = () => {
+      userInitiatedSignOut = true;
+    };
 
     return () => {
       active = false;
@@ -88,7 +139,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       session, role,
       loading: authLoading || (!!user && roleLoading),
-      signOut: async () => { await supabase.auth.signOut(); },
+      signOut: async () => {
+        try {
+          (window as unknown as { __markUserSignOut?: () => void }).__markUserSignOut?.();
+        } catch {}
+        await supabase.auth.signOut();
+      },
     }}>
       {children}
     </Ctx.Provider>

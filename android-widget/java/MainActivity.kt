@@ -105,6 +105,31 @@ class MainActivity : Activity() {
         /** Marca que esta sesión está corriendo dentro de la APK nativa. */
         @JavascriptInterface
         fun isNativeApp(): String = "1"
+
+        /**
+         * Devuelve la sesión guardada (JSON con access_token/refresh_token)
+         * para que la WebView pueda revalidar automáticamente cuando supabase
+         * marca SIGNED_OUT (token expirado, refresh fallido offline, etc.).
+         * Si no hay sesión guardada devuelve cadena vacía.
+         */
+        @JavascriptInterface
+        fun getSavedSession(): String {
+            val raw = appPrefs().getString(WidgetSetupActivity.KEY_AUTH_SESSION, null)
+            if (raw.isNullOrBlank()) return ""
+            // Intentamos refrescar en background para próximas llamadas, pero
+            // devolvemos lo que tengamos ahora mismo (el JS hará setSession).
+            thread {
+                runCatching {
+                    val refreshed = ensureFreshSession(raw)
+                    if (refreshed != raw) {
+                        appPrefs().edit()
+                            .putString(WidgetSetupActivity.KEY_AUTH_SESSION, refreshed)
+                            .apply()
+                    }
+                }
+            }
+            return raw
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled")

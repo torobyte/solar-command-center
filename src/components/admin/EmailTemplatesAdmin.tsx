@@ -36,32 +36,45 @@ export function EmailTemplatesAdmin() {
   const loadDefault = useServerFn(getDefaultEmailHtml);
 
   async function load() {
+    // 1) Cargar SIEMPRE los defaults completos en paralelo (asunto, HTML, texto).
+    const defaults = await Promise.all(
+      KNOWN.map(async (k) => {
+        try {
+          const res = await loadDefault({ data: { templateId: k.id } });
+          return { id: k.id, name: k.name, subject: res.subject, html: res.innerHtml, text: res.text };
+        } catch {
+          return { id: k.id, name: k.name, subject: "", html: "", text: "" };
+        }
+      })
+    );
+
+    // 2) Leer lo guardado en la base de datos.
     const { data } = await supabase.from("email_templates").select("*");
-    const map: Record<string, Tpl> = {};
+    const dbMap: Record<string, Tpl> = {};
     (data as Tpl[] | null)?.forEach((t) => {
-      map[canonicalEmailTemplateId(t.id)] = {
+      const id = canonicalEmailTemplateId(t.id);
+      dbMap[id] = {
         ...t,
-        id: canonicalEmailTemplateId(t.id),
+        id,
         subject: normalizeEmailTemplateContent(t.subject),
         html_body: normalizeEmailTemplateContent(t.html_body),
         text_body: normalizeEmailTemplateContent(t.text_body),
       };
     });
-    for (const k of KNOWN) {
-      if (!map[k.id]?.html_body || !map[k.id]?.subject || !map[k.id]?.text_body) {
-        const res = await loadDefault({ data: { templateId: k.id } });
-        map[k.id] = {
-          id: k.id,
-          name: map[k.id]?.name || k.name,
-          subject: map[k.id]?.subject || res.subject,
-          html_body: map[k.id]?.html_body || res.innerHtml,
-          text_body: map[k.id]?.text_body || res.text,
-          enabled: map[k.id]?.enabled ?? true,
-          wrap_with_brand: map[k.id]?.wrap_with_brand ?? true,
-        };
-      } else {
-        map[k.id] = { ...map[k.id], id: k.id, name: map[k.id]?.name || k.name };
-      }
+
+    // 3) Mezclar: precargar siempre con defaults; la BD sólo sobrescribe si tiene valor no vacío.
+    const map: Record<string, Tpl> = {};
+    for (const d of defaults) {
+      const db = dbMap[d.id];
+      map[d.id] = {
+        id: d.id,
+        name: db?.name || d.name,
+        subject: db?.subject?.trim() ? db.subject : d.subject,
+        html_body: db?.html_body?.trim() ? db.html_body : d.html,
+        text_body: db?.text_body?.trim() ? db.text_body : d.text,
+        enabled: db?.enabled ?? true,
+        wrap_with_brand: db?.wrap_with_brand ?? true,
+      };
     }
     setTpls(map);
   }
