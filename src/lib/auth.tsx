@@ -139,7 +139,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       session, role,
       loading: authLoading || (!!user && roleLoading),
-      signOut: async () => { await supabase.auth.signOut(); },
+      signOut: async () => {
+        try {
+          (window as unknown as { __markUserSignOut?: () => void }).__markUserSignOut?.();
+        } catch {}
+        await supabase.auth.signOut();
+      },
     }}>
       {children}
     </Ctx.Provider>
