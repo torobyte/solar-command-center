@@ -13,4 +13,5 @@
     <color name="tb_warn">#FBBF24</color>
     <color name="tb_good">#4ADE80</color>
     <color name="tb_danger">#F87171</color>
+    <color name="tb_node">#1E293B</color>
 </resources>
