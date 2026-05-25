@@ -135,13 +135,29 @@ export function applyBrandingToDOM(b: Branding, mode: "light" | "dark" = "dark")
   }
 }
 
+const BRANDING_CACHE_KEY = "branding.cache.v1";
+
 export function BrandingProvider({ children }: { children: ReactNode }) {
-  const [branding, setBranding] = useState<Branding | null>(null);
+  const [branding, setBranding] = useState<Branding | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = localStorage.getItem(BRANDING_CACHE_KEY);
+      if (raw) return JSON.parse(raw) as Branding;
+    } catch { /* noop */ }
+    return null;
+  });
   const { resolved } = useTheme();
 
   async function load() {
-    const { data } = await supabase.from("branding_settings").select("*").eq("key", "global").maybeSingle();
-    if (data) setBranding(data as unknown as Branding);
+    try {
+      const fetchP = supabase.from("branding_settings").select("*").eq("key", "global").maybeSingle();
+      const timeout = new Promise<{ data: null }>((resolve) => setTimeout(() => resolve({ data: null }), 4000));
+      const { data } = (await Promise.race([fetchP, timeout])) as { data: Branding | null };
+      if (data) {
+        setBranding(data);
+        try { localStorage.setItem(BRANDING_CACHE_KEY, JSON.stringify(data)); } catch { /* noop */ }
+      }
+    } catch { /* offline: usamos caché */ }
   }
   useEffect(() => { load(); }, []);
   useEffect(() => { if (branding) applyBrandingToDOM(branding, resolved); }, [branding, resolved]);

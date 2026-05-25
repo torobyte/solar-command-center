@@ -576,48 +576,7 @@ function SiteDetail() {
             manualCalibration={pvForCompare?.manual_calibration ?? null}
           />
 
-          <ChartCard title="Daily energy (kWh)">
-            <AreaChart data={totals}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-              <XAxis dataKey="day" fontSize={11} />
-              <YAxis fontSize={11} />
-              <Tooltip />
-              <Legend />
-              <Area type="monotone" dataKey="pv_kwh" name="Solar" stroke="var(--solar)" fill="var(--solar)" fillOpacity={0.2} />
-              <Area type="monotone" dataKey="load_kwh" name="Load" stroke="var(--load)" fill="var(--load)" fillOpacity={0.2} />
-              <Area type="monotone" dataKey="grid_used_kwh" name="Grid" stroke="var(--grid)" fill="var(--grid)" fillOpacity={0.2} />
-              <Area type="monotone" dataKey="battery_discharged_kwh" name="Batería descargada" stroke="var(--battery)" fill="var(--battery)" fillOpacity={0.2} />
-              <Area type="monotone" dataKey="battery_charged_kwh" name="Batería cargada" stroke="hsl(142 60% 35%)" fill="hsl(142 60% 35%)" fillOpacity={0.15} />
-            </AreaChart>
-          </ChartCard>
-
-          <div className="overflow-x-auto rounded-lg border bg-card">
-            <table className="w-full min-w-[640px] text-sm">
-              <thead className="border-b bg-muted/50 text-left">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Day</th>
-                  <th className="px-4 py-3 font-medium">PV</th>
-                  <th className="px-4 py-3 font-medium">Load</th>
-                  <th className="px-4 py-3 font-medium">Grid</th>
-                  <th className="px-4 py-3 font-medium">Battery in</th>
-                  <th className="px-4 py-3 font-medium">Battery out</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...totals].reverse().map((d) => (
-                  <tr key={d.day} className="border-b last:border-0">
-                    <td className="px-4 py-3 font-mono text-xs">{d.day}</td>
-                    <td className="px-4 py-3">{d.pv_kwh.toFixed(2)} kWh</td>
-                    <td className="px-4 py-3">{d.load_kwh.toFixed(2)} kWh</td>
-                    <td className="px-4 py-3">{d.grid_used_kwh.toFixed(2)} kWh</td>
-                    <td className="px-4 py-3">{d.battery_charged_kwh.toFixed(2)} kWh</td>
-                    <td className="px-4 py-3">{d.battery_discharged_kwh.toFixed(2)} kWh</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {totals.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">No daily data yet.</p>}
-          </div>
+          <TotalsPeriodView siteId={siteId} totals={totals} />
         </TabsContent>
 
         <TabsContent value="savings" className="mt-6">
@@ -645,7 +604,119 @@ function SiteDetail() {
   );
 }
 
-/* ---------------- Configuration tab ---------------- */
+/* ---------------- Totals view with period selector ---------------- */
+
+type TotalsPeriod = "day" | "week" | "month" | "year";
+
+function TotalsPeriodView({ siteId, totals }: { siteId: string; totals: DailyTotal[] }) {
+  const [period, setPeriod] = useState<TotalsPeriod>("week");
+  const [monthly, setMonthly] = useState<DailyTotal[] | null>(null);
+  const [loadingYear, setLoadingYear] = useState(false);
+
+  useEffect(() => {
+    if (period !== "year") return;
+    let alive = true;
+    setLoadingYear(true);
+    (async () => {
+      // Pull last 365 days of daily_totals and aggregate by month.
+      const since = new Date();
+      since.setDate(since.getDate() - 365);
+      const { data } = await supabase
+        .from("daily_totals")
+        .select("day, pv_kwh, load_kwh, grid_used_kwh, battery_charged_kwh, battery_discharged_kwh")
+        .eq("site_id", siteId)
+        .gte("day", since.toISOString().slice(0, 10))
+        .order("day", { ascending: true });
+      if (!alive) return;
+      const buckets = new Map<string, DailyTotal>();
+      for (const r of (data ?? []) as DailyTotal[]) {
+        const month = r.day.slice(0, 7);
+        const acc = buckets.get(month) ?? { day: month, pv_kwh: 0, load_kwh: 0, grid_used_kwh: 0, battery_charged_kwh: 0, battery_discharged_kwh: 0 };
+        acc.pv_kwh += Number(r.pv_kwh) || 0;
+        acc.load_kwh += Number(r.load_kwh) || 0;
+        acc.grid_used_kwh += Number(r.grid_used_kwh) || 0;
+        acc.battery_charged_kwh += Number(r.battery_charged_kwh) || 0;
+        acc.battery_discharged_kwh += Number(r.battery_discharged_kwh) || 0;
+        buckets.set(month, acc);
+      }
+      setMonthly(Array.from(buckets.values()));
+      setLoadingYear(false);
+    })();
+    return () => { alive = false; };
+  }, [period, siteId]);
+
+  const data = useMemo(() => {
+    if (period === "day") return totals.slice(-1);
+    if (period === "week") return totals.slice(-7);
+    if (period === "month") return totals.slice(-30);
+    return monthly ?? [];
+  }, [period, totals, monthly]);
+
+  const xKey = "day";
+  return (
+    <>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-muted-foreground">Periodo:</span>
+        <div className="inline-flex overflow-hidden rounded-md border">
+          {(["day", "week", "month", "year"] as const).map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setPeriod(p)}
+              className={`px-3 py-1 text-xs transition-colors ${period === p ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+            >
+              {p === "day" ? "Día" : p === "week" ? "Semana" : p === "month" ? "Mes" : "Año"}
+            </button>
+          ))}
+        </div>
+        {period === "year" && loadingYear && <span className="text-xs text-muted-foreground">Cargando…</span>}
+      </div>
+
+      <ChartCard title={period === "year" ? "Energía mensual (kWh)" : "Energía diaria (kWh)"}>
+        <AreaChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+          <XAxis dataKey={xKey} fontSize={11} />
+          <YAxis fontSize={11} />
+          <Tooltip />
+          <Legend />
+          <Area type="monotone" dataKey="pv_kwh" name="Solar" stroke="var(--solar)" fill="var(--solar)" fillOpacity={0.2} />
+          <Area type="monotone" dataKey="load_kwh" name="Load" stroke="var(--load)" fill="var(--load)" fillOpacity={0.2} />
+          <Area type="monotone" dataKey="grid_used_kwh" name="Grid" stroke="var(--grid)" fill="var(--grid)" fillOpacity={0.2} />
+          <Area type="monotone" dataKey="battery_discharged_kwh" name="Batería descargada" stroke="var(--battery)" fill="var(--battery)" fillOpacity={0.2} />
+          <Area type="monotone" dataKey="battery_charged_kwh" name="Batería cargada" stroke="hsl(142 60% 35%)" fill="hsl(142 60% 35%)" fillOpacity={0.15} />
+        </AreaChart>
+      </ChartCard>
+
+      <div className="overflow-x-auto rounded-lg border bg-card">
+        <table className="w-full min-w-[640px] text-sm">
+          <thead className="border-b bg-muted/50 text-left">
+            <tr>
+              <th className="px-4 py-3 font-medium">{period === "year" ? "Mes" : "Día"}</th>
+              <th className="px-4 py-3 font-medium">PV</th>
+              <th className="px-4 py-3 font-medium">Carga</th>
+              <th className="px-4 py-3 font-medium">Red</th>
+              <th className="px-4 py-3 font-medium">Bat. carga</th>
+              <th className="px-4 py-3 font-medium">Bat. desc.</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...data].reverse().map((d) => (
+              <tr key={d.day} className="border-b last:border-0">
+                <td className="px-4 py-3 font-mono text-xs">{d.day}</td>
+                <td className="px-4 py-3">{Number(d.pv_kwh).toFixed(2)} kWh</td>
+                <td className="px-4 py-3">{Number(d.load_kwh).toFixed(2)} kWh</td>
+                <td className="px-4 py-3">{Number(d.grid_used_kwh).toFixed(2)} kWh</td>
+                <td className="px-4 py-3">{Number(d.battery_charged_kwh).toFixed(2)} kWh</td>
+                <td className="px-4 py-3">{Number(d.battery_discharged_kwh).toFixed(2)} kWh</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {data.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">Sin datos para este periodo.</p>}
+      </div>
+    </>
+  );
+}
 
 interface InverterSpec {
   driver: string | null; model_name: string | null; serial_number: string | null;
