@@ -67,10 +67,11 @@ export const Route = createFileRoute("/api/public/ingest")({
 
             for (const key of numericFields) {
               if (!(key in s)) continue;
-              const coerced = coerceNumeric(s[key]);
+              const coerced = coerceNumeric(s[key], key);
               if (coerced !== null) row[key] = coerced;
               mutated = mutated || coerced === null || s[key] !== coerced;
             }
+
 
             for (const key of textFields) {
               if (!(key in s)) continue;
