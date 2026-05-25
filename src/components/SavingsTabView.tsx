@@ -94,18 +94,30 @@ export function SavingsTabView({ siteId, canEdit }: Props) {
 
   const priceNum = Number(price) || 0;
 
-  const enriched = useMemo(() => rows.map((r) => {
+  const filteredRows = useMemo(() => {
+    return rows.filter((r) => {
+      if (from && r.day < from) return false;
+      if (to && r.day > to) return false;
+      return true;
+    });
+  }, [rows, from, to]);
+
+  const enriched = useMemo(() => filteredRows.map((r) => {
     const saved = Number(r.pv_kwh || 0) + Number(r.battery_discharged_kwh || 0);
     return { ...r, saved_kwh: saved, saved_money: saved * priceNum };
-  }), [rows, priceNum]);
+  }), [filteredRows, priceNum]);
 
-  const daily = useMemo(() => enriched.slice(-60).map((r) => ({
-    label: r.day.slice(5),
-    pv: +r.pv_kwh.toFixed(2),
-    battery: +r.battery_discharged_kwh.toFixed(2),
-    saved: +r.saved_kwh.toFixed(2),
-    money: +r.saved_money.toFixed(2),
-  })), [enriched]);
+  const daily = useMemo(() => {
+    const slice = (from || to) ? enriched : enriched.slice(-60);
+    return slice.map((r) => ({
+      label: r.day.slice(5),
+      pv: +r.pv_kwh.toFixed(2),
+      battery: +r.battery_discharged_kwh.toFixed(2),
+      saved: +r.saved_kwh.toFixed(2),
+      money: +r.saved_money.toFixed(2),
+    }));
+  }, [enriched, from, to]);
+
 
   const monthly = useMemo(() => {
     const buckets = new Map<string, { pv: number; battery: number; saved: number; money: number }>();
@@ -164,6 +176,22 @@ export function SavingsTabView({ siteId, canEdit }: Props) {
   function restoreSavings() {
     try { localStorage.removeItem(baselineKey); setHasBaseline(false); toast.success("Histórico restaurado"); } catch { /* ignore */ }
   }
+
+  async function eraseHistoryRange() {
+    const rangeLabel = from || to ? `entre ${from || "inicio"} y ${to || "hoy"}` : "completo";
+    if (!confirm(`¿Eliminar el histórico ${rangeLabel}? Esta acción no se puede deshacer.`)) return;
+    setResetting(true);
+    try {
+      await resetHistoryFn({ data: { site_id: siteId, from: from || undefined, to: to || undefined } });
+      toast.success("Histórico eliminado");
+      loadAll();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setResetting(false);
+    }
+  }
+
 
   return (
     <div className="space-y-6">
