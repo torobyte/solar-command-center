@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { Coins, TrendingUp, Calendar, Sparkles, Save, Loader2 } from "lucide-react";
+import { Coins, TrendingUp, Calendar, Sparkles, Save, Loader2, Trash2 } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend, AreaChart, Area } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { resetSiteHistory } from "@/lib/history.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
