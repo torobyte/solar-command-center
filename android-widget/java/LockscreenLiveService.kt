@@ -102,19 +102,21 @@ class LockscreenLiveService : Service() {
         val bat = (s?.optDouble("battery_pct", 0.0) ?: 0.0).toInt().coerceIn(0, 100)
         val grid = (s?.optDouble("grid_v", 0.0) ?: 0.0).toInt()
 
+        val pvStr = if (pv >= 1000) String.format("%.1fkW", pv / 1000.0) else "${pv}W"
+        val loadStr = if (load >= 1000) String.format("%.1fkW", load / 1000.0) else "${load}W"
+
         val collapsed = RemoteViews(packageName, R.layout.notif_lockscreen_collapsed).apply {
-            setTextViewText(R.id.notif_site, siteName)
-            setTextViewText(R.id.notif_pv, "☀ ${pv}W")
-            setTextViewText(R.id.notif_bat, "🔋 ${bat}%")
-            setTextViewText(R.id.notif_load, "⚡ ${load}W")
+            setTextViewText(R.id.notif_pv, pvStr)
+            setTextViewText(R.id.notif_bat, "${bat}%")
+            setTextViewText(R.id.notif_load, loadStr)
         }
         val expanded = RemoteViews(packageName, R.layout.notif_lockscreen).apply {
             setTextViewText(R.id.notif_site, siteName)
-            setTextViewText(R.id.notif_pv_value, "${pv} W")
-            setTextViewText(R.id.notif_bat_value, "${bat}%")
+            setTextViewText(R.id.notif_pv_value, "$pv W")
+            setTextViewText(R.id.notif_bat_value, "$bat%")
             setProgressBar(R.id.notif_bat_bar, 100, bat, false)
-            setTextViewText(R.id.notif_load_value, "${load} W")
-            setTextViewText(R.id.notif_grid_value, if (grid > 50) "RED ${grid} V" else "RED OFF")
+            setTextViewText(R.id.notif_load_value, "$load W")
+            setTextViewText(R.id.notif_grid_value, if (grid > 50) "RED $grid V" else "RED OFF")
             setTextViewText(R.id.notif_updated, if (json == null) "● SIN CONEXIÓN" else "● EN VIVO")
         }
 
@@ -130,10 +132,15 @@ class LockscreenLiveService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
+        // Texto nativo de respaldo — siempre visible aunque el sistema ignore el custom view
+        val tickerText = "☀ $pvStr   🔋 $bat%   🏠 $loadStr"
+
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_compass)
             .setContentTitle(siteName)
-            .setContentText("☀ ${pv}W · 🔋 ${bat}% · ⚡ ${load}W")
+            .setContentText(tickerText)
+            .setSubText(if (json == null) "Sin conexión" else "En vivo")
+            .setTicker(tickerText)
             .setCustomContentView(collapsed)
             .setCustomBigContentView(expanded)
             .setCustomHeadsUpContentView(collapsed)
@@ -149,6 +156,7 @@ class LockscreenLiveService : Service() {
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .build()
     }
+
 
 
     private fun ensureChannel() {
