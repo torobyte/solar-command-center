@@ -114,8 +114,8 @@ class LockscreenLiveService : Service() {
             setTextViewText(R.id.notif_bat_value, "${bat}%")
             setProgressBar(R.id.notif_bat_bar, 100, bat, false)
             setTextViewText(R.id.notif_load_value, "${load} W")
-            setTextViewText(R.id.notif_grid_value, if (grid > 50) "${grid} V" else "OFF")
-            setTextViewText(R.id.notif_updated, if (json == null) "Sin conexión" else "● en vivo")
+            setTextViewText(R.id.notif_grid_value, if (grid > 50) "RED ${grid} V" else "RED OFF")
+            setTextViewText(R.id.notif_updated, if (json == null) "● SIN CONEXIÓN" else "● EN VIVO")
         }
 
         val open = packageManager.getLaunchIntentForPackage(packageName)
@@ -136,8 +136,9 @@ class LockscreenLiveService : Service() {
             .setContentText("☀ ${pv}W · 🔋 ${bat}% · ⚡ ${load}W")
             .setCustomContentView(collapsed)
             .setCustomBigContentView(expanded)
+            .setCustomHeadsUpContentView(collapsed)
             .setStyle(NotificationCompat.DecoratedCustomViewStyle())
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setOngoing(true)
@@ -148,6 +149,7 @@ class LockscreenLiveService : Service() {
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .build()
     }
+
 
     private fun ensureChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
