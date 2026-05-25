@@ -67,10 +67,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setRoleLoading(true);
       try {
-        const { data, error } = await supabase
+        // Timeout corto: si Supabase no responde (cloud caído / offline)
+        // degradamos a "user" en vez de bloquear la UI indefinidamente.
+        const rolePromise = supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", nextUser.id);
+        const timeout = new Promise<{ data: null; error: Error }>((resolve) =>
+          setTimeout(() => resolve({ data: null, error: new Error("role-timeout") }), 4000),
+        );
+        const { data, error } = (await Promise.race([rolePromise, timeout])) as { data: { role: string }[] | null; error: Error | null };
         if (!active) return;
         if (error) throw error;
         if (data?.some((r) => r.role === "superadmin")) setRole("superadmin");
@@ -85,12 +91,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const initialize = async () => {
       setAuthLoading(true);
       try {
-        const { data } = await supabase.auth.getSession();
+        // getSession internamente puede intentar refrescar contra la red;
+        // timeout para no bloquear el modo offline (/local).
+        const sessionPromise = supabase.auth.getSession();
+        const timeout = new Promise<{ data: { session: null } }>((resolve) =>
+          setTimeout(() => resolve({ data: { session: null } }), 3500),
+        );
+        const { data } = (await Promise.race([sessionPromise, timeout])) as { data: { session: Session | null } };
         if (!active) return;
         if (data.session) {
           await applySession(data.session);
         } else {
-          // Sin sesión: si estamos dentro de la APK, intenta revalidar desde el bridge nativo.
           const restored = await tryRestoreFromNativeBridge();
           await applySession(restored);
         }
