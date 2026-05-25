@@ -1,170 +1,92 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- TOROBYTE — Notificación en pantalla bloqueada (vista compacta, estilo widget) -->
+<!-- TOROBYTE — Vista colapsada: una sola línea con las 3 métricas grandes, siempre visibles -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="16dp"
-    android:background="@drawable/tb_widget_bg">
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingStart="14dp"
+    android:paddingEnd="14dp"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp"
+    android:background="@drawable/tb_widget_bg"
+    android:weightSum="3">
 
-    <!-- Header -->
+    <!-- Solar -->
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_weight="1"
         android:orientation="horizontal"
         android:gravity="center_vertical">
+        <ImageView
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:src="@drawable/ic_tb_sun" />
         <TextView
-            android:id="@+id/notif_site"
+            android:id="@+id/notif_pv"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text=""
+            android:paddingStart="6dp"
+            android:text="0W"
             android:textColor="@color/tb_fg"
-            android:textSize="16sp"
+            android:textSize="17sp"
             android:textStyle="bold"
-            android:letterSpacing="0.1"
             android:singleLine="true"
-            android:ellipsize="end" />
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="● EN VIVO"
-            android:textColor="@color/tb_good"
-            android:textSize="10sp"
-            android:textStyle="bold"
-            android:letterSpacing="0.15" />
+            android:ellipsize="end"
+            android:includeFontPadding="false" />
     </LinearLayout>
 
-    <!-- Body: 3 large metric tiles -->
+    <!-- Batería -->
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_weight="1"
         android:orientation="horizontal"
-        android:layout_marginTop="12dp"
-        android:weightSum="3">
-
-        <!-- Solar -->
-        <LinearLayout
+        android:gravity="center_vertical">
+        <ImageView
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:src="@drawable/ic_tb_bolt" />
+        <TextView
+            android:id="@+id/notif_bat"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="start"
-            android:padding="10dp"
-            android:layout_marginEnd="6dp"
-            android:background="@drawable/tb_node_bg">
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
-                <ImageView
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:src="@drawable/ic_tb_sun" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="SOLAR"
-                    android:textColor="@color/tb_muted"
-                    android:textSize="10sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.15"
-                    android:paddingStart="4dp" />
-            </LinearLayout>
-            <TextView
-                android:id="@+id/notif_pv"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="0 W"
-                android:textColor="@color/tb_fg"
-                android:textSize="22sp"
-                android:textStyle="bold"
-                android:layout_marginTop="4dp"
-                android:includeFontPadding="false" />
-        </LinearLayout>
+            android:paddingStart="6dp"
+            android:text="0%"
+            android:textColor="@color/tb_good"
+            android:textSize="17sp"
+            android:textStyle="bold"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:includeFontPadding="false" />
+    </LinearLayout>
 
-        <!-- Batería -->
-        <LinearLayout
+    <!-- Consumo -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+        <ImageView
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:src="@drawable/ic_tb_home" />
+        <TextView
+            android:id="@+id/notif_load"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="start"
-            android:padding="10dp"
-            android:layout_marginStart="3dp"
-            android:layout_marginEnd="3dp"
-            android:background="@drawable/tb_node_bg">
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
-                <ImageView
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:src="@drawable/ic_tb_bolt" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="BATERÍA"
-                    android:textColor="@color/tb_muted"
-                    android:textSize="10sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.15"
-                    android:paddingStart="4dp" />
-            </LinearLayout>
-            <TextView
-                android:id="@+id/notif_bat"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="0%"
-                android:textColor="@color/tb_good"
-                android:textSize="22sp"
-                android:textStyle="bold"
-                android:layout_marginTop="4dp"
-                android:includeFontPadding="false" />
-        </LinearLayout>
-
-        <!-- Consumo -->
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="start"
-            android:padding="10dp"
-            android:layout_marginStart="6dp"
-            android:background="@drawable/tb_node_bg">
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
-                <ImageView
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:src="@drawable/ic_tb_home" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="CONSUMO"
-                    android:textColor="@color/tb_muted"
-                    android:textSize="10sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.15"
-                    android:paddingStart="4dp" />
-            </LinearLayout>
-            <TextView
-                android:id="@+id/notif_load"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="0 W"
-                android:textColor="@color/tb_accent"
-                android:textSize="22sp"
-                android:textStyle="bold"
-                android:layout_marginTop="4dp"
-                android:includeFontPadding="false" />
-        </LinearLayout>
+            android:paddingStart="6dp"
+            android:text="0W"
+            android:textColor="@color/tb_accent"
+            android:textSize="17sp"
+            android:textStyle="bold"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:includeFontPadding="false" />
     </LinearLayout>
 </LinearLayout>
