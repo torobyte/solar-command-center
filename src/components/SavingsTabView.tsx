@@ -275,7 +275,30 @@ export function SavingsTabView({ siteId, canEdit }: Props) {
           kwh={yearRow?.saved ?? 0} money={yearRow?.money ?? 0} currency={currency} />
       </div>
 
+      <div className="rounded-xl border bg-card p-4 sm:p-5">
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <Label className="text-xs">Desde</Label>
+            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="mt-1 h-9 w-40" />
+          </div>
+          <div>
+            <Label className="text-xs">Hasta</Label>
+            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="mt-1 h-9 w-40" />
+          </div>
+          <Button size="sm" variant="ghost" onClick={() => { setFrom(""); setTo(""); }}>Limpiar</Button>
+          <div className="ml-auto flex gap-2">
+            {canEdit && (
+              <Button size="sm" variant="destructive" disabled={resetting} onClick={eraseHistoryRange}>
+                {resetting ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Trash2 className="mr-1.5 h-3.5 w-3.5" />}
+                Borrar histórico {from || to ? "del rango" : "completo"}
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div className="rounded-xl border bg-card p-4 sm:p-6">
+
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div>
             <h2 className="text-lg font-semibold">Energía ahorrada</h2>
