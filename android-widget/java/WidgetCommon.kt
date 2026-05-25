@@ -50,6 +50,15 @@ object WidgetCommon {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(KEY_BASE_URL, DEFAULT_BASE_URL) ?: DEFAULT_BASE_URL
 
+    /** PendingIntent que dispara un TICK a TODOS los providers del paquete. */
+    fun refreshAllIntent(context: Context, widgetId: Int): PendingIntent {
+        val intent = Intent(ACTION_TICK).apply { `package` = context.packageName }
+        return PendingIntent.getBroadcast(
+            context, widgetId, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
     fun openAppIntent(context: Context, widgetId: Int): PendingIntent {
         val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
             ?: Intent(Intent.ACTION_VIEW, Uri.parse(baseUrl(context)))

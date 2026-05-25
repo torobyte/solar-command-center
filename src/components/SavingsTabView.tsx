@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { Coins, TrendingUp, Calendar, Sparkles, Save, Loader2 } from "lucide-react";
+import { Coins, TrendingUp, Calendar, Sparkles, Save, Loader2, Trash2 } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend, AreaChart, Area } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { resetSiteHistory } from "@/lib/history.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,6 +46,10 @@ export function SavingsTabView({ siteId, canEdit }: Props) {
   const [view, setView] = useState<Granularity>("day");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [from, setFrom] = useState<string>("");
+  const [to, setTo] = useState<string>("");
+  const [resetting, setResetting] = useState(false);
+  const resetHistoryFn = useServerFn(resetSiteHistory);
 
   async function loadAll() {
     setLoading(true);
@@ -88,18 +94,30 @@ export function SavingsTabView({ siteId, canEdit }: Props) {
 
   const priceNum = Number(price) || 0;
 
-  const enriched = useMemo(() => rows.map((r) => {
+  const filteredRows = useMemo(() => {
+    return rows.filter((r) => {
+      if (from && r.day < from) return false;
+      if (to && r.day > to) return false;
+      return true;
+    });
+  }, [rows, from, to]);
+
+  const enriched = useMemo(() => filteredRows.map((r) => {
     const saved = Number(r.pv_kwh || 0) + Number(r.battery_discharged_kwh || 0);
     return { ...r, saved_kwh: saved, saved_money: saved * priceNum };
-  }), [rows, priceNum]);
+  }), [filteredRows, priceNum]);
 
-  const daily = useMemo(() => enriched.slice(-60).map((r) => ({
-    label: r.day.slice(5),
-    pv: +r.pv_kwh.toFixed(2),
-    battery: +r.battery_discharged_kwh.toFixed(2),
-    saved: +r.saved_kwh.toFixed(2),
-    money: +r.saved_money.toFixed(2),
-  })), [enriched]);
+  const daily = useMemo(() => {
+    const slice = (from || to) ? enriched : enriched.slice(-60);
+    return slice.map((r) => ({
+      label: r.day.slice(5),
+      pv: +r.pv_kwh.toFixed(2),
+      battery: +r.battery_discharged_kwh.toFixed(2),
+      saved: +r.saved_kwh.toFixed(2),
+      money: +r.saved_money.toFixed(2),
+    }));
+  }, [enriched, from, to]);
+
 
   const monthly = useMemo(() => {
     const buckets = new Map<string, { pv: number; battery: number; saved: number; money: number }>();
@@ -158,6 +176,22 @@ export function SavingsTabView({ siteId, canEdit }: Props) {
   function restoreSavings() {
     try { localStorage.removeItem(baselineKey); setHasBaseline(false); toast.success("Histórico restaurado"); } catch { /* ignore */ }
   }
+
+  async function eraseHistoryRange() {
+    const rangeLabel = from || to ? `entre ${from || "inicio"} y ${to || "hoy"}` : "completo";
+    if (!confirm(`¿Eliminar el histórico ${rangeLabel}? Esta acción no se puede deshacer.`)) return;
+    setResetting(true);
+    try {
+      await resetHistoryFn({ data: { site_id: siteId, from: from || undefined, to: to || undefined } });
+      toast.success("Histórico eliminado");
+      loadAll();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setResetting(false);
+    }
+  }
+
 
   return (
     <div className="space-y-6">
@@ -241,7 +275,30 @@ export function SavingsTabView({ siteId, canEdit }: Props) {
           kwh={yearRow?.saved ?? 0} money={yearRow?.money ?? 0} currency={currency} />
       </div>
 
+      <div className="rounded-xl border bg-card p-4 sm:p-5">
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <Label className="text-xs">Desde</Label>
+            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="mt-1 h-9 w-40" />
+          </div>
+          <div>
+            <Label className="text-xs">Hasta</Label>
+            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="mt-1 h-9 w-40" />
+          </div>
+          <Button size="sm" variant="ghost" onClick={() => { setFrom(""); setTo(""); }}>Limpiar</Button>
+          <div className="ml-auto flex gap-2">
+            {canEdit && (
+              <Button size="sm" variant="destructive" disabled={resetting} onClick={eraseHistoryRange}>
+                {resetting ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Trash2 className="mr-1.5 h-3.5 w-3.5" />}
+                Borrar histórico {from || to ? "del rango" : "completo"}
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div className="rounded-xl border bg-card p-4 sm:p-6">
+
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div>
             <h2 className="text-lg font-semibold">Energía ahorrada</h2>

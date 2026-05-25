@@ -546,12 +546,36 @@ class Agent:
                             if not self.transport:
                                 err = "inversor no disponible"
                             else:
-                                with self.lock:
-                                    reply = self.transport.send(raw)
-                                ok = "ACK" in (reply or "").upper()
-                                result = {"raw": raw, "reply": reply}
+                                # Retry hasta 3 veces si la respuesta parece
+                                # telemetría mezclada (QPIGS/QPIRI) por una
+                                # lectura desincronizada del bus serial.
+                                reply = ""
+                                ok = False
+                                for attempt in range(3):
+                                    with self.lock:
+                                        # Drenar buffer de entrada antes de enviar
+                                        try:
+                                            if hasattr(self.transport, "ser"):
+                                                self.transport.ser.reset_input_buffer()
+                                        except Exception:
+                                            pass
+                                        reply = self.transport.send(raw)
+                                    up = (reply or "").upper().strip()
+                                    if "ACK" in up:
+                                        ok = True; break
+                                    if "NAK" in up:
+                                        ok = False; break
+                                    # Respuesta ambigua (parece telemetría): reintentar
+                                    time.sleep(0.3)
+                                result = {"raw": raw, "reply": reply, "attempts": attempt + 1}
                                 status = "done" if ok else "failed"
-                                if not ok: err = f"NAK: {reply}"
+                                if not ok:
+                                    up = (reply or "").upper().strip()
+                                    if "NAK" not in up and up:
+                                        err = "respuesta del inversor no concluyente — el comando puede haberse aplicado"
+                                    else:
+                                        err = f"NAK: {reply}"
+
                     except Exception as e:
                         err = f"{type(e).__name__}: {e}"
                     try:
@@ -2440,9 +2464,19 @@ def make_app(agent: Agent) -> Flask:
                 results.append({"command": cmd, "ok": False, "error": "comando no soportado en local"})
                 continue
             try:
-                with agent.lock:
-                    reply = agent.transport.send(raw)
-                ok = "ACK" in reply.upper()
+                reply = ""; ok = False
+                for attempt in range(3):
+                    with agent.lock:
+                        try:
+                            if hasattr(agent.transport, "ser"):
+                                agent.transport.ser.reset_input_buffer()
+                        except Exception:
+                            pass
+                        reply = agent.transport.send(raw)
+                    up = (reply or "").upper().strip()
+                    if "ACK" in up: ok = True; break
+                    if "NAK" in up: ok = False; break
+                    time.sleep(0.3)
                 results.append({"command": cmd, "raw": raw, "ok": ok, "reply": reply})
             except Exception as e:
                 results.append({"command": cmd, "raw": raw, "ok": False, "error": str(e)})
