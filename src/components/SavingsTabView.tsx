@@ -46,6 +46,10 @@ export function SavingsTabView({ siteId, canEdit }: Props) {
   const [view, setView] = useState<Granularity>("day");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [from, setFrom] = useState<string>("");
+  const [to, setTo] = useState<string>("");
+  const [resetting, setResetting] = useState(false);
+  const resetHistoryFn = useServerFn(resetSiteHistory);
 
   async function loadAll() {
     setLoading(true);
