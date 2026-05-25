@@ -10,20 +10,51 @@ const numericFields = [
 
 const textFields = ["device_status", "inverter_mode"] as const;
 
-function coerceNumeric(value: unknown): number | null {
+/**
+ * Rangos físicamente plausibles para descartar lecturas corruptas
+ * (QPIGS con tokens basura, ruido en el bus serial, etc.). Valores
+ * fuera de rango → null (no se persisten) para no envenenar el
+ * histórico ni los cálculos de ahorro económico.
+ */
+const NUMERIC_BOUNDS: Record<string, [number, number]> = {
+  grid_voltage: [0, 500],
+  grid_frequency: [0, 100],
+  ac_output_voltage: [0, 500],
+  ac_output_frequency: [0, 100],
+  ac_output_apparent_power: [0, 50000],
+  ac_output_active_power: [0, 50000],
+  load_percent: [0, 100],
+  bus_voltage: [0, 800],
+  battery_voltage: [0, 100],
+  battery_charging_current: [0, 500],
+  battery_capacity: [0, 100],
+  battery_discharge_current: [0, 500],
+  inverter_temperature: [-20, 200],
+  pv_input_current: [0, 500],
+  pv_input_voltage: [0, 800],
+  pv_input_power: [0, 50000],
+};
+
+function coerceNumeric(value: unknown, field?: string): number | null {
   if (value == null) return null;
-  if (typeof value === "number") return Number.isFinite(value) ? value : null;
-  if (typeof value !== "string") return null;
-
-  const normalized = value.trim().replace(/,/g, ".");
-  if (!normalized) return null;
-
-  const matches = normalized.match(/-?\d+(?:\.\d+)?/g);
-  if (!matches?.length) return null;
-
-  const parsed = Number(matches[matches.length - 1]);
-  return Number.isFinite(parsed) ? parsed : null;
+  let n: number | null = null;
+  if (typeof value === "number") n = Number.isFinite(value) ? value : null;
+  else if (typeof value === "string") {
+    const normalized = value.trim().replace(/,/g, ".");
+    const matches = normalized ? normalized.match(/-?\d+(?:\.\d+)?/g) : null;
+    if (matches?.length) {
+      const parsed = Number(matches[matches.length - 1]);
+      n = Number.isFinite(parsed) ? parsed : null;
+    }
+  }
+  if (n == null) return null;
+  if (field && NUMERIC_BOUNDS[field]) {
+    const [min, max] = NUMERIC_BOUNDS[field];
+    if (n < min || n > max) return null;
+  }
+  return n;
 }
+
 
 function coerceText(value: unknown): string | null {
   if (value == null) return null;
