@@ -2464,9 +2464,19 @@ def make_app(agent: Agent) -> Flask:
                 results.append({"command": cmd, "ok": False, "error": "comando no soportado en local"})
                 continue
             try:
-                with agent.lock:
-                    reply = agent.transport.send(raw)
-                ok = "ACK" in reply.upper()
+                reply = ""; ok = False
+                for attempt in range(3):
+                    with agent.lock:
+                        try:
+                            if hasattr(agent.transport, "ser"):
+                                agent.transport.ser.reset_input_buffer()
+                        except Exception:
+                            pass
+                        reply = agent.transport.send(raw)
+                    up = (reply or "").upper().strip()
+                    if "ACK" in up: ok = True; break
+                    if "NAK" in up: ok = False; break
+                    time.sleep(0.3)
                 results.append({"command": cmd, "raw": raw, "ok": ok, "reply": reply})
             except Exception as e:
                 results.append({"command": cmd, "raw": raw, "ok": False, "error": str(e)})
