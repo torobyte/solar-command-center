@@ -576,48 +576,7 @@ function SiteDetail() {
             manualCalibration={pvForCompare?.manual_calibration ?? null}
           />
 
-          <ChartCard title="Daily energy (kWh)">
-            <AreaChart data={totals}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-              <XAxis dataKey="day" fontSize={11} />
-              <YAxis fontSize={11} />
-              <Tooltip />
-              <Legend />
-              <Area type="monotone" dataKey="pv_kwh" name="Solar" stroke="var(--solar)" fill="var(--solar)" fillOpacity={0.2} />
-              <Area type="monotone" dataKey="load_kwh" name="Load" stroke="var(--load)" fill="var(--load)" fillOpacity={0.2} />
-              <Area type="monotone" dataKey="grid_used_kwh" name="Grid" stroke="var(--grid)" fill="var(--grid)" fillOpacity={0.2} />
-              <Area type="monotone" dataKey="battery_discharged_kwh" name="Batería descargada" stroke="var(--battery)" fill="var(--battery)" fillOpacity={0.2} />
-              <Area type="monotone" dataKey="battery_charged_kwh" name="Batería cargada" stroke="hsl(142 60% 35%)" fill="hsl(142 60% 35%)" fillOpacity={0.15} />
-            </AreaChart>
-          </ChartCard>
-
-          <div className="overflow-x-auto rounded-lg border bg-card">
-            <table className="w-full min-w-[640px] text-sm">
-              <thead className="border-b bg-muted/50 text-left">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Day</th>
-                  <th className="px-4 py-3 font-medium">PV</th>
-                  <th className="px-4 py-3 font-medium">Load</th>
-                  <th className="px-4 py-3 font-medium">Grid</th>
-                  <th className="px-4 py-3 font-medium">Battery in</th>
-                  <th className="px-4 py-3 font-medium">Battery out</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...totals].reverse().map((d) => (
-                  <tr key={d.day} className="border-b last:border-0">
-                    <td className="px-4 py-3 font-mono text-xs">{d.day}</td>
-                    <td className="px-4 py-3">{d.pv_kwh.toFixed(2)} kWh</td>
-                    <td className="px-4 py-3">{d.load_kwh.toFixed(2)} kWh</td>
-                    <td className="px-4 py-3">{d.grid_used_kwh.toFixed(2)} kWh</td>
-                    <td className="px-4 py-3">{d.battery_charged_kwh.toFixed(2)} kWh</td>
-                    <td className="px-4 py-3">{d.battery_discharged_kwh.toFixed(2)} kWh</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {totals.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">No daily data yet.</p>}
-          </div>
+          <TotalsPeriodView siteId={siteId} totals={totals} />
         </TabsContent>
 
         <TabsContent value="savings" className="mt-6">
