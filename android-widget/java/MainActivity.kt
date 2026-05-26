@@ -391,6 +391,10 @@ class MainActivity : Activity() {
         if (areNotificationsEnabled() && saved != null) {
             runCatching { AlertsStreamService.start(applicationContext) }
         }
+        // Resucita widgets: re-programa alarmas, reinicia el stream y dispara
+        // un tick inmediato. Esto repara los widgets si el sistema mató los
+        // timers durante Doze profundo.
+        runCatching { WidgetCommon.kickAll(applicationContext) }
         // Sesión perpetua: en cada onResume intentamos refrescar el token
         // silenciosamente para que nunca expire mientras el usuario use la app.
         if (!saved.isNullOrBlank()) {
