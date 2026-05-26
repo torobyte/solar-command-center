@@ -11,7 +11,14 @@ class TbWidgetMain : AppWidgetProvider() {
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
-        if (intent.action == WidgetCommon.ACTION_TICK) refreshAll(context)
+        if (intent.action == WidgetCommon.ACTION_TICK) {
+            refreshAll(context)
+            // Re-agenda el siguiente tick (alarm one-shot exact) y asegura
+            // que el stream service esté vivo: si el sistema lo mató en Doze
+            // los widgets se quedaban congelados durante horas.
+            WidgetCommon.scheduleAlarmFor(context, TbWidgetMain::class.java)
+            try { WidgetStreamService.start(context) } catch (_: Exception) {}
+        }
     }
 
     override fun onUpdate(context: Context, mgr: AppWidgetManager, ids: IntArray) {

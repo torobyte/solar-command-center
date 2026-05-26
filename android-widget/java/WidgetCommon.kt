@@ -81,21 +81,72 @@ object WidgetCommon {
         else null
     } catch (_: Exception) { null }
 
-    /** Schedules a global refresh tick for every widget of [providerClass] using the SHORTEST per-widget interval. */
+    /**
+     * Programa el siguiente tick para [providerClass].
+     *
+     * `setRepeating` en Android 5+ es inexacto y Doze lo silencia tras unas
+     * horas, por eso usamos un alarm one-shot con `setExactAndAllowWhileIdle`
+     * y nos re-agendamos cada vez que el tick se dispara (el provider llama a
+     * scheduleAlarmFor en cada onReceive). Así los widgets siguen vivos aunque
+     * el dispositivo entre en Doze profundo.
+     */
     fun scheduleAlarmFor(context: Context, providerClass: Class<*>) {
         val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val pi = tickIntent(context, providerClass)
         val ids = widgetIdsFor(context, providerClass)
-        val intervalSec = if (ids.isEmpty()) DEFAULT_REFRESH_SEC
-            else ids.minOf { intervalFor(context, it) }.coerceAtLeast(15)
+        if (ids.isEmpty()) { am.cancel(pi); return }
+        val intervalSec = ids.minOf { intervalFor(context, it) }.coerceAtLeast(15)
         val intervalMs = intervalSec * 1000L
-        val first = SystemClock.elapsedRealtime() + intervalMs
-        am.setRepeating(AlarmManager.ELAPSED_REALTIME, first, intervalMs, pi)
+        val triggerAt = SystemClock.elapsedRealtime() + intervalMs
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                am.setExactAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAt, pi)
+            } else {
+                am.setExact(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAt, pi)
+            }
+        } catch (_: SecurityException) {
+            // setExact* puede requerir permiso en Android 12+; caer en inexact.
+            am.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAt, pi)
+        } catch (_: Exception) {
+            am.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAt, pi)
+        }
     }
 
     fun cancelAlarmFor(context: Context, providerClass: Class<*>) {
         val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         am.cancel(tickIntent(context, providerClass))
+    }
+
+    /** Todas las clases de widget conocidas — usado por [kickAll]. */
+    private val ALL_PROVIDERS: List<Class<*>> by lazy {
+        listOf(
+            TbWidgetMain::class.java,
+            TbWidgetSummary::class.java,
+            TbWidgetBattery2x2::class.java,
+            TbWidgetBattery1x1::class.java,
+            TbWidgetFlow::class.java,
+            TbWidgetRing::class.java,
+            TbWidgetStatus::class.java,
+        )
+    }
+
+    /**
+     * Re-agenda alarmas, levanta el WidgetStreamService y fuerza un tick
+     * inmediato en cada provider con widgets activos. Llamar desde
+     * MainActivity.onResume para resucitar widgets que el sistema haya
+     * dejado dormir.
+     */
+    fun kickAll(context: Context) {
+        try { WidgetStreamService.start(context) } catch (_: Exception) {}
+        for (cls in ALL_PROVIDERS) {
+            val ids = widgetIdsFor(context, cls)
+            if (ids.isEmpty()) continue
+            scheduleAlarmFor(context, cls)
+            try {
+                val intent = Intent(context, cls).apply { action = ACTION_TICK }
+                context.sendBroadcast(intent)
+            } catch (_: Exception) {}
+        }
     }
 
     private fun tickIntent(context: Context, providerClass: Class<*>): PendingIntent {
