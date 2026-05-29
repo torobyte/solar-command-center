@@ -431,6 +431,7 @@ export function SystemStatusCard({
   load,
   battery,
   batteryV,
+  batteryW = 0,
   gridV,
   gridW = 0,
   pvMax,
@@ -440,6 +441,8 @@ export function SystemStatusCard({
   load: number;
   battery: number;
   batteryV: number;
+  /** Potencia neta de la batería (W). Positivo = descarga, negativo = carga. */
+  batteryW?: number;
   gridV: number;
   /** Potencia tomada de la red (W) — incluye consumo casa + carga batería. */
   gridW?: number;
