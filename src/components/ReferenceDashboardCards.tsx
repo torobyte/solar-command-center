@@ -499,8 +499,12 @@ export function SystemStatusCard({
               <div className="text-[34px] font-bold leading-none tabular-nums" style={{ color: "var(--battery)" }}>{Math.round(battery)}%</div>
             </div>
           </div>
-          <div className="mt-2 text-[12px] font-semibold tabular-nums text-foreground">{batteryV.toFixed(1)} V</div>
-          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Batería</div>
+          <div className="mt-2 text-[12px] font-semibold tabular-nums text-foreground">
+            {batteryW > 25 ? `↓ ${formatWatts(batteryW)}` : batteryW < -25 ? `↑ ${formatWatts(Math.abs(batteryW))}` : formatWatts(0)}
+          </div>
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Batería · {batteryW > 25 ? "descargando" : batteryW < -25 ? "cargando" : "reposo"}
+          </div>
         </div>
 
         <div className="h-px w-10 border-t border-dashed max-[520px]:hidden" style={{ borderColor: "color-mix(in oklab, var(--battery) 60%, var(--tint-base))" }} />
