@@ -111,7 +111,7 @@ export function SiteDashboardView({
   const gridW = gridConnected ? Math.max(0, load + batteryChargeW - pv_W - batteryDischargeW) : 0;
 
   const widgets: Record<string, React.ReactNode> = {
-    system: <SystemStatusCard pv={pv_W} load={load} battery={battery} batteryV={batteryV} gridV={gridV} gridW={gridW} pvMax={pvMax} />,
+    system: <SystemStatusCard pv={pv_W} load={load} battery={battery} batteryV={batteryV} batteryW={batteryNetW} gridV={gridV} gridW={gridW} pvMax={pvMax} />,
     backup: (
       <BackupTimeCard
         soc={battery}
