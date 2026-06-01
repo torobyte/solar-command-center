@@ -62,12 +62,10 @@ fi
 NEW_HASH=$(sha256sum "$TMP_AGENT" | awk '{print $1}')
 OLD_HASH=$(sha256sum "$AGENT_DST" 2>/dev/null | awk '{print $1}' || echo "none")
 
-if [[ "$NEW_HASH" == "$OLD_HASH" ]]; then
-  exit 0
+if [[ "$NEW_HASH" != "$OLD_HASH" ]]; then
+  log "$OLD_HASH -> $NEW_HASH"
+  install -m 755 "$TMP_AGENT" "$AGENT_DST"
 fi
-
-log "$OLD_HASH -> $NEW_HASH"
-install -m 755 "$TMP_AGENT" "$AGENT_DST"
 
 # ---------- 3) Refrescar dependencias Python ----------
 # Solo intentamos instalar deps si falta alguna — evita golpear PyPI cada hora
@@ -87,7 +85,7 @@ if [[ "$NEED_DEPS" == "1" ]]; then
 fi
 
 
-systemctl restart solarops.service
 repair_bootstrap_ap
+systemctl restart solarops.service
 systemctl restart solarops-ap.service >/dev/null 2>&1 || true
 log "solarops.service reiniciado"
