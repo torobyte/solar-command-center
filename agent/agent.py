@@ -19,7 +19,7 @@ from pathlib import Path
 import requests
 from flask import Flask, jsonify, redirect, render_template_string, request
 
-CLOUD_URL_DEFAULT = "https://project--7cb3041b-eb20-43aa-ba17-b0848cb53051.lovable.app"
+CLOUD_URL_DEFAULT = "https://appsolar.torobyte.com"
 CONFIG_PATH = Path(os.environ.get("SOLAROPS_CONFIG", "/etc/solarops/config.json"))
 DB_PATH = Path(os.environ.get("SOLAROPS_DB", "/var/lib/solarops/state.db"))
 POLL_INTERVAL = 1.0  # leer inversor cada 1s para sensación "en vivo"
@@ -935,9 +935,12 @@ def internet_up() -> bool:
     except Exception: return False
 
 # ---------- Hotspot interno (fallback sin internet) ----------
-HOTSPOT_SSID = "Solar Torobyte"
-HOTSPOT_PASSWORD = "solartorobyte123"
-HOTSPOT_CON_NAME = "solar-torobyte-hotspot"
+HOTSPOT_SSID = os.environ.get("SOLAROPS_AP_SSID", "Solar Torobyte")
+HOTSPOT_PASSWORD = os.environ.get("SOLAROPS_AP_PASSWORD", "solartorobyte123")
+HOTSPOT_CON_NAME = os.environ.get("SOLAROPS_AP_CON_NAME", "solarops-ap")
+HOTSPOT_LEGACY_CON_NAMES = tuple(
+    name for name in ("solar-torobyte-hotspot", "SolarOps-Setup") if name != HOTSPOT_CON_NAME
+)
 
 def _hotspot_iface() -> str:
     try:
@@ -953,7 +956,8 @@ def _hotspot_iface() -> str:
 def _hotspot_active() -> bool:
     try:
         out = _run(["nmcli", "-t", "-f", "NAME", "connection", "show", "--active"], timeout=4)
-        return any(ln.strip() == HOTSPOT_CON_NAME for ln in out.splitlines())
+        valid = {HOTSPOT_CON_NAME, *HOTSPOT_LEGACY_CON_NAMES}
+        return any(ln.strip() in valid for ln in out.splitlines())
     except Exception:
         return False
 
@@ -962,9 +966,11 @@ def _start_hotspot() -> tuple[bool, str]:
     # Asegura radio WiFi encendida
     try: subprocess.run(["nmcli", "radio", "wifi", "on"], capture_output=True, timeout=5)
     except Exception: pass
-    # Borra conexión previa con el mismo nombre (ignorar errores)
-    subprocess.run(["nmcli", "connection", "delete", HOTSPOT_CON_NAME],
-                   capture_output=True, timeout=5)
+    # Limpia perfiles previos para evitar que una instalación vieja reactive
+    # automáticamente el SSID anterior segundos después.
+    for conn_name in (HOTSPOT_CON_NAME, *HOTSPOT_LEGACY_CON_NAMES):
+        subprocess.run(["nmcli", "connection", "down", conn_name], capture_output=True, timeout=5)
+        subprocess.run(["nmcli", "connection", "delete", conn_name], capture_output=True, timeout=5)
     r = subprocess.run(
         ["nmcli", "device", "wifi", "hotspot",
          "ifname", iface,
@@ -975,12 +981,18 @@ def _start_hotspot() -> tuple[bool, str]:
     return (r.returncode == 0), ((r.stderr or r.stdout) or "").strip()
 
 def _stop_hotspot() -> tuple[bool, str]:
-    r = subprocess.run(["nmcli", "connection", "down", HOTSPOT_CON_NAME],
-                       capture_output=True, text=True, timeout=10)
-    # Si no estaba activa, lo damos por OK
-    if r.returncode != 0 and "not an active" in (r.stderr or "").lower():
-        return True, "no estaba activo"
-    return (r.returncode == 0), ((r.stderr or r.stdout) or "").strip()
+    any_active = False
+    last_msg = "no estaba activo"
+    for conn_name in (HOTSPOT_CON_NAME, *HOTSPOT_LEGACY_CON_NAMES):
+        r = subprocess.run(["nmcli", "connection", "down", conn_name],
+                           capture_output=True, text=True, timeout=10)
+        stderr = (r.stderr or "").lower()
+        if r.returncode == 0:
+            any_active = True
+            last_msg = (r.stderr or r.stdout or "").strip() or f"{conn_name} apagado"
+        elif "not an active" not in stderr and "unknown connection" not in stderr:
+            return False, ((r.stderr or r.stdout) or "").strip()
+    return True, last_msg if any_active else "no estaba activo"
 
 def hotspot_supervisor_loop():
     """Activa el hotspot interno cuando no hay internet (o solo hay ethernet
@@ -2048,7 +2060,7 @@ def make_app(agent: Agent) -> Flask:
     # URL pública del dashboard cloud que sirve la UI compartida.
     CLOUD_BASE = os.environ.get(
         "SOLAROPS_CLOUD_URL",
-        "https://solar-heartbeat-sync.lovable.app",
+        "https://appsolar.torobyte.com",
     ).rstrip("/")
 
     @app.after_request
