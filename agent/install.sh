@@ -192,7 +192,7 @@ WantedBy=timers.target
 EOF
 
 # ---------------------------------------------------------------------------
-# [6.5/9] AP DE BOOTSTRAP — WiFi propio "SolarOps-Setup" cuando no hay internet
+# [6.5/9] AP DE BOOTSTRAP — WiFi propio "Solar Torobyte" cuando no hay internet
 # ---------------------------------------------------------------------------
 echo "▶ [6.5/9] Configurando modo AP de bootstrap (WiFi de configuración)…"
 
@@ -203,6 +203,8 @@ AP_CONN_NAME="solarops-ap"
 if command -v nmcli >/dev/null 2>&1; then
   WIFI_IFACE=$(nmcli -t -f DEVICE,TYPE device | awk -F: '$2=="wifi"{print $1; exit}')
   if [[ -n "$WIFI_IFACE" ]]; then
+    nmcli connection down "solar-torobyte-hotspot" >/dev/null 2>&1 || true
+    nmcli connection delete "solar-torobyte-hotspot" >/dev/null 2>&1 || true
     nmcli connection delete "$AP_CONN_NAME" >/dev/null 2>&1 || true
     nmcli connection add type wifi ifname "$WIFI_IFACE" con-name "$AP_CONN_NAME" \
       autoconnect no ssid "$AP_SSID" >/dev/null 2>&1 || true

@@ -8,12 +8,31 @@ AGENT_URL="${CLOUD_URL}/api/public/agent/agent"
 UPDATER_URL="${CLOUD_URL}/api/public/agent/update"
 AGENT_DST="/opt/solarops/agent.py"
 UPDATER_DST="/opt/solarops/update.sh"
+AP_SSID="${SOLAROPS_AP_SSID:-Solar Torobyte}"
+AP_PASSWORD="${SOLAROPS_AP_PASSWORD:-solartorobyte123}"
+AP_CONN_NAME="solarops-ap"
 
 TMP_AGENT=$(mktemp)
 TMP_UPDATER=$(mktemp)
 trap 'rm -f "$TMP_AGENT" "$TMP_UPDATER"' EXIT
 
 log() { echo "[update $(date -u +%H:%M:%S)] $*"; }
+
+repair_bootstrap_ap() {
+  command -v nmcli >/dev/null 2>&1 || return 0
+  local wifi_iface
+  wifi_iface=$(nmcli -t -f DEVICE,TYPE device 2>/dev/null | awk -F: '$2=="wifi"{print $1; exit}')
+  [[ -n "$wifi_iface" ]] || return 0
+
+  nmcli connection down "solar-torobyte-hotspot" >/dev/null 2>&1 || true
+  nmcli connection delete "solar-torobyte-hotspot" >/dev/null 2>&1 || true
+  nmcli connection delete "$AP_CONN_NAME" >/dev/null 2>&1 || true
+  nmcli connection add type wifi ifname "$wifi_iface" con-name "$AP_CONN_NAME" autoconnect no ssid "$AP_SSID" >/dev/null 2>&1 || true
+  nmcli connection modify "$AP_CONN_NAME" \
+    802-11-wireless.mode ap 802-11-wireless.band bg \
+    ipv4.method shared ipv6.method ignore \
+    wifi-sec.key-mgmt wpa-psk wifi-sec.psk "$AP_PASSWORD" >/dev/null 2>&1 || true
+}
 
 # ---------- 1) Auto-actualización del propio updater ----------
 if curl -fsSL --max-time 30 "$UPDATER_URL" -o "$TMP_UPDATER"; then
@@ -69,4 +88,6 @@ fi
 
 
 systemctl restart solarops.service
+repair_bootstrap_ap
+systemctl restart solarops-ap.service >/dev/null 2>&1 || true
 log "solarops.service reiniciado"
