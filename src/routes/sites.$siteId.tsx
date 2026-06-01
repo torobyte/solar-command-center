@@ -1063,7 +1063,7 @@ function ConfigurationView({ site, subTab, onSubTabChange, role }: { site: Site;
               })()}
             </div>
             <p className="mt-2 text-[11px] text-muted-foreground">
-              Tip: si no abre, conéctate al WiFi <span className="font-mono">SolarOps-Setup</span> (contraseña por defecto <span className="font-mono">solarops1234</span>) y entra a <span className="font-mono">http://192.168.4.1/wifi</span>.
+              Tip: si no abre, conéctate al WiFi <span className="font-mono">Solar Torobyte</span> (contraseña por defecto <span className="font-mono">solartorobyte123</span>) y entra a <span className="font-mono">http://192.168.4.1/wifi</span>.
             </p>
           </div>
         </Section>

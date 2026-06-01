@@ -196,8 +196,8 @@ EOF
 # ---------------------------------------------------------------------------
 echo "▶ [6.5/9] Configurando modo AP de bootstrap (WiFi de configuración)…"
 
-AP_SSID="${SOLAROPS_AP_SSID:-SolarOps-Setup}"
-AP_PASSWORD="${SOLAROPS_AP_PASSWORD:-solarops1234}"
+AP_SSID="${SOLAROPS_AP_SSID:-Solar Torobyte}"
+AP_PASSWORD="${SOLAROPS_AP_PASSWORD:-solartorobyte123}"
 AP_CONN_NAME="solarops-ap"
 
 if command -v nmcli >/dev/null 2>&1; then
@@ -379,7 +379,7 @@ echo "   ☁  Dashboard nube:   ${CLOUD_URL}/app"
 echo "   🖥  Kiosko:           systemctl status solarops-kiosk"
 echo "   📜 Logs agente:      journalctl -u solarops -f"
 echo "   🔄 Auto-update:      cada hora desde ${CLOUD_URL}/api/public/agent/agent"
-echo "   📶 AP de bootstrap:  SSID=${AP_SSID:-SolarOps-Setup}  contraseña=${AP_PASSWORD:-solarops1234}"
+echo "   📶 AP de bootstrap:  SSID=${AP_SSID:-Solar Torobyte}  contraseña=${AP_PASSWORD:-solartorobyte123}"
 echo "   🆔 hardware_id:      ${HARDWARE_ID}"
 echo "   🧩 Placa:            ${BOARD}"
 if [[ -n "${DEVICE_TOKEN:-}" ]]; then

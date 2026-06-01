@@ -2157,7 +2157,7 @@ def make_app(agent: Agent) -> Flask:
         return jsonify({"online": internet_up()})
 
     # ---------- Captive Portal (iOS / Android / Windows / generic) ----------
-    # Cuando el dispositivo está en modo AP ("SolarOps-Setup"), los SO modernos
+    # Cuando el dispositivo está en modo AP ("Solar Torobyte"), los SO modernos
     # hacen un probe a una URL conocida para detectar el portal cautivo. Si
     # respondemos algo distinto al esperado, lanzan automáticamente el popup
     # con nuestra página /wifi.
