@@ -196,8 +196,8 @@ EOF
 # ---------------------------------------------------------------------------
 echo "▶ [6.5/9] Configurando modo AP de bootstrap (WiFi de configuración)…"
 
-AP_SSID="${SOLAROPS_AP_SSID:-SolarOps-Setup}"
-AP_PASSWORD="${SOLAROPS_AP_PASSWORD:-solarops1234}"
+AP_SSID="${SOLAROPS_AP_SSID:-Solar Torobyte}"
+AP_PASSWORD="${SOLAROPS_AP_PASSWORD:-solartorobyte123}"
 AP_CONN_NAME="solarops-ap"
 
 if command -v nmcli >/dev/null 2>&1; then
