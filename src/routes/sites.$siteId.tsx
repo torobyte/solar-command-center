@@ -329,7 +329,15 @@ function SiteDetail() {
               : row.device_id === selectedDevice.id;
           if (!matches) return;
           setLatest((prev) => mergeSample(prev, filterSpikes(prev, row, spikeRef.current)));
-          setHistory((h) => (h.length && h[h.length - 1].recorded_at === row.recorded_at) ? h : [...h.slice(-719), row]);
+          setHistory((h) => {
+            if (h.length && h[h.length - 1].recorded_at === row.recorded_at) return h;
+            const cutoff = Date.now() - 12 * 60 * 60 * 1000;
+            const next = [...h, row];
+            // Drop puntos fuera de la ventana de 12h
+            let i = 0;
+            while (i < next.length && new Date(next[i].recorded_at).getTime() < cutoff) i++;
+            return i > 0 ? next.slice(i) : next;
+          });
         })
       .subscribe();
 
@@ -346,7 +354,14 @@ function SiteDetail() {
       if (!row) return;
       setLatest((prev) => {
         if (prev && prev.recorded_at === row.recorded_at) return prev;
-        setHistory((h) => (h.length && h[h.length - 1].recorded_at === row.recorded_at) ? h : [...h.slice(-719), row]);
+        setHistory((h) => {
+          if (h.length && h[h.length - 1].recorded_at === row.recorded_at) return h;
+          const cutoff = Date.now() - 12 * 60 * 60 * 1000;
+          const next = [...h, row];
+          let i = 0;
+          while (i < next.length && new Date(next[i].recorded_at).getTime() < cutoff) i++;
+          return i > 0 ? next.slice(i) : next;
+        });
         return mergeSample(prev, filterSpikes(prev, row, spikeRef.current));
       });
     }
