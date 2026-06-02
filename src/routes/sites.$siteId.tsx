@@ -273,12 +273,17 @@ function SiteDetail() {
   async function load() {
     await loadSite();
 
+    // Charts muestran las últimas 12 horas. Filtramos por tiempo en vez de
+    // por cantidad de filas para que el rango coincida siempre con la etiqueta
+    // "last 12h" (sin importar la frecuencia de muestreo).
+    const since12h = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
     let tq = supabase
       .from("telemetry_samples")
       .select("recorded_at, ac_output_active_power, pv_input_power, battery_capacity, battery_voltage, battery_discharge_current, battery_charging_current, grid_voltage, inverter_mode, device_id")
-      .eq("site_id", siteId);
+      .eq("site_id", siteId)
+      .gte("recorded_at", since12h);
     tq = applyDeviceFilter(tq as never) as never;
-    const { data: t } = await tq.order("recorded_at", { ascending: false }).limit(720);
+    const { data: t } = await tq.order("recorded_at", { ascending: false }).limit(5000);
     const rows = (t ?? []).reverse() as Sample[];
     setHistory(rows);
     // Fold from oldest → newest preserving the last known non-null value per
