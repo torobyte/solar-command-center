@@ -273,12 +273,17 @@ function SiteDetail() {
   async function load() {
     await loadSite();
 
+    // Charts muestran las últimas 12 horas. Filtramos por tiempo en vez de
+    // por cantidad de filas para que el rango coincida siempre con la etiqueta
+    // "last 12h" (sin importar la frecuencia de muestreo).
+    const since12h = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
     let tq = supabase
       .from("telemetry_samples")
       .select("recorded_at, ac_output_active_power, pv_input_power, battery_capacity, battery_voltage, battery_discharge_current, battery_charging_current, grid_voltage, inverter_mode, device_id")
-      .eq("site_id", siteId);
+      .eq("site_id", siteId)
+      .gte("recorded_at", since12h);
     tq = applyDeviceFilter(tq as never) as never;
-    const { data: t } = await tq.order("recorded_at", { ascending: false }).limit(720);
+    const { data: t } = await tq.order("recorded_at", { ascending: false }).limit(5000);
     const rows = (t ?? []).reverse() as Sample[];
     setHistory(rows);
     // Fold from oldest → newest preserving the last known non-null value per
@@ -324,7 +329,15 @@ function SiteDetail() {
               : row.device_id === selectedDevice.id;
           if (!matches) return;
           setLatest((prev) => mergeSample(prev, filterSpikes(prev, row, spikeRef.current)));
-          setHistory((h) => (h.length && h[h.length - 1].recorded_at === row.recorded_at) ? h : [...h.slice(-719), row]);
+          setHistory((h) => {
+            if (h.length && h[h.length - 1].recorded_at === row.recorded_at) return h;
+            const cutoff = Date.now() - 12 * 60 * 60 * 1000;
+            const next = [...h, row];
+            // Drop puntos fuera de la ventana de 12h
+            let i = 0;
+            while (i < next.length && new Date(next[i].recorded_at).getTime() < cutoff) i++;
+            return i > 0 ? next.slice(i) : next;
+          });
         })
       .subscribe();
 
@@ -341,7 +354,14 @@ function SiteDetail() {
       if (!row) return;
       setLatest((prev) => {
         if (prev && prev.recorded_at === row.recorded_at) return prev;
-        setHistory((h) => (h.length && h[h.length - 1].recorded_at === row.recorded_at) ? h : [...h.slice(-719), row]);
+        setHistory((h) => {
+          if (h.length && h[h.length - 1].recorded_at === row.recorded_at) return h;
+          const cutoff = Date.now() - 12 * 60 * 60 * 1000;
+          const next = [...h, row];
+          let i = 0;
+          while (i < next.length && new Date(next[i].recorded_at).getTime() < cutoff) i++;
+          return i > 0 ? next.slice(i) : next;
+        });
         return mergeSample(prev, filterSpikes(prev, row, spikeRef.current));
       });
     }
@@ -360,20 +380,32 @@ function SiteDetail() {
   useEffect(() => { localStorage.setItem("chart.smoothMode", smoothMode); }, [smoothMode]);
   useEffect(() => { localStorage.setItem("chart.smoothWindow", String(smoothWindow)); }, [smoothWindow]);
 
-  const rawChartData = useMemo(() => history.map((r) => {
-    const bv = Number(r.battery_voltage ?? 0);
-    const di = Number(r.battery_discharge_current ?? 0);
-    const ci = Number(r.battery_charging_current ?? 0);
-    const batW = bv * (di - ci); // positivo = descarga, negativo = carga
-    return {
-      t: new Date(r.recorded_at).getTime(),
-      pv: r.pv_input_power == null ? null : Number(r.pv_input_power),
-      load: r.ac_output_active_power == null ? null : Number(r.ac_output_active_power),
-      soc: r.battery_capacity == null ? null : Number(r.battery_capacity),
-      grid: r.grid_voltage == null ? null : Number(r.grid_voltage),
-      battery: r.battery_voltage == null ? null : +batW.toFixed(1),
-    };
-  }), [history]);
+  const rawChartData = useMemo(() => {
+    // Aplicar filtro de picos en una pasada hacia adelante para que valores
+    // anómalos puntuales no deformen el gráfico.
+    const skips: SpikeState = {};
+    let prev: Sample | null = null;
+    const cleaned: Sample[] = [];
+    for (const r of history) {
+      const next = filterSpikes(prev, r, skips);
+      cleaned.push(next);
+      prev = mergeSample(prev, next);
+    }
+    return cleaned.map((r) => {
+      const bv = Number(r.battery_voltage ?? 0);
+      const di = Number(r.battery_discharge_current ?? 0);
+      const ci = Number(r.battery_charging_current ?? 0);
+      const batW = bv * (di - ci); // positivo = descarga, negativo = carga
+      return {
+        t: new Date(r.recorded_at).getTime(),
+        pv: r.pv_input_power == null ? null : Number(r.pv_input_power),
+        load: r.ac_output_active_power == null ? null : Number(r.ac_output_active_power),
+        soc: r.battery_capacity == null ? null : Number(r.battery_capacity),
+        grid: r.grid_voltage == null ? null : Number(r.grid_voltage),
+        battery: r.battery_voltage == null ? null : +batW.toFixed(1),
+      };
+    });
+  }, [history]);
 
   const chartData = useMemo(
     () => smoothSeries(rawChartData, smoothMode, smoothWindow),
