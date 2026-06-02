@@ -124,6 +124,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })();
         return;
       }
+      // TOKEN_REFRESHED con sesión válida ocurre al volver al tab (Supabase
+      // auto-refresca el access token). NO re-disparamos applySession ni
+      // volvemos a poner la UI en "loading" — eso hace que toda la app
+      // parpadee y se vuelva a montar al cambiar de pestaña/app. Sólo
+      // actualizamos la sesión silenciosamente; el user y el rol no cambian.
+      if (event === "TOKEN_REFRESHED" && nextSession) {
+        setSession(nextSession);
+        setUser(nextSession.user ?? null);
+        return;
+      }
       if (event === "SIGNED_OUT") userInitiatedSignOut = false;
       setAuthLoading(true);
       void applySession(nextSession).finally(() => {
