@@ -85,10 +85,8 @@ export function SiteDashboardView({
   const liveCfg = usePvConfig(pvConfigProp === undefined ? siteId : "__skipped__");
   const pv: PvConfig | null = pvConfigProp ?? liveCfg.config;
   const roleInfo = useSiteRole(pvConfigProp === undefined ? siteId : null);
-  const canCommand = pvConfigProp !== undefined
-    ? true // local agent
-    : roleInfo.role === "owner" || roleInfo.role === "admin" || roleInfo.role === "operator";
-  const { config: quickActionsConfig } = useQuickActionsConfig(siteId);
+  void roleInfo;
+  void agentBase;
 
   const pv_W = Number(latest?.pv_input_power ?? 0);
   const load = Number(latest?.ac_output_active_power ?? 0);
