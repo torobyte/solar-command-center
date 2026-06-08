@@ -57,13 +57,13 @@ const WIDTH_OPTIONS: { value: WidgetWidth; label: string }[] = [
 export function defaultWidth(id: string): WidgetWidth {
   if (id === "weather") return 66;
   if (id === "quickActions" || id === "commands") return 50;
-  if (["system", "backup", "batteryStatus", "flow", "solarProduction", "houseConsumption", "savings"].includes(id)) return 33;
+  if (["system", "backup", "batteryStatus", "flow", "solarProduction", "houseConsumption", "savings", "environmental"].includes(id)) return 33;
   if (["icons", "mode", "forecast"].includes(id)) return 100;
   return 50;
 }
 
 function defaultMobile(id: string): WidgetWidth {
-  if (["system", "backup", "batteryStatus", "flow", "solarProduction", "houseConsumption", "weather", "savings", "quickActions", "commands"].includes(id)) return 100;
+  if (["system", "backup", "batteryStatus", "flow", "solarProduction", "houseConsumption", "weather", "savings", "environmental", "quickActions", "commands"].includes(id)) return 100;
   if (["icons", "mode", "forecast", "history", "gauges", "advanced", "quickactions"].includes(id)) return 100;
   return 50;
 }
