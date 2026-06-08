@@ -8,6 +8,7 @@ import { DashboardGrid, useDashboardLayout, type WidgetDef } from "@/components/
 import { usePvConfig, type PvConfig } from "@/components/PvSystemConfig";
 import { useSiteRole } from "@/lib/useSiteRole";
 import {
+  EnvironmentalImpactCard,
   EnergyFlowReferenceCard,
   HouseConsumptionReferenceCard,
   SavingsReferenceCard,
@@ -60,6 +61,7 @@ export const WIDGET_DEFS: WidgetDef[] = [
   { id: "flow", label: "Diagrama de flujo de energía" },
   { id: "solarProduction", label: "Producción solar" },
   { id: "houseConsumption", label: "Consumo de la casa" },
+  { id: "environmental", label: "Impacto ambiental" },
   { id: "weather", label: "Clima y radiación solar" },
   { id: "savings", label: "Ahorro económico" },
 ];
@@ -123,6 +125,7 @@ export function SiteDashboardView({
     flow: <EnergyFlowReferenceCard pv={pv_W} load={load} gridV={gridV} battery={battery} batteryV={batteryV} batteryNetW={batteryNetW} />,
     solarProduction: <SolarProductionReferenceCard pv={pv_W} pvMax={pvMax} />,
     houseConsumption: <HouseConsumptionReferenceCard load={load} contractedPower={5200} />,
+    environmental: <EnvironmentalImpactCard siteId={siteId} emissionFactor={0.4} />,
     weather: <WeatherAndRadiationCard data={weatherData} pvConfig={pv} livePv={pv_W} siteId={siteId} batterySoc={battery} batteryChargingW={batteryChargeW} />,
     savings: (
       <SavingsReferenceCard
