@@ -22,6 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<Role | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [roleLoading, setRoleLoading] = useState(true);
+  const [bootstrapped, setBootstrapped] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -106,7 +107,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await applySession(restored);
         }
       } finally {
-        if (active) setAuthLoading(false);
+        if (active) {
+          setAuthLoading(false);
+          setBootstrapped(true);
+        }
       }
     };
 
@@ -116,11 +120,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // al usuario fuera: intentamos restaurar desde el bridge nativo antes
       // de reportar SIGNED_OUT al resto de la app.
       if ((event === "SIGNED_OUT" || event === "TOKEN_REFRESHED") && !nextSession && !userInitiatedSignOut) {
-        setAuthLoading(true);
         void (async () => {
           const restored = await tryRestoreFromNativeBridge();
           await applySession(restored ?? null);
-          if (active) setAuthLoading(false);
+          if (active) {
+            setAuthLoading(false);
+            setBootstrapped(true);
+          }
         })();
         return;
       }
@@ -135,9 +141,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       if (event === "SIGNED_OUT") userInitiatedSignOut = false;
-      setAuthLoading(true);
+      const shouldBlockUi = !bootstrapped;
+      if (shouldBlockUi) setAuthLoading(true);
       void applySession(nextSession).finally(() => {
-        if (active) setAuthLoading(false);
+        if (active) {
+          if (shouldBlockUi) setAuthLoading(false);
+          setBootstrapped(true);
+        }
       });
     });
 
