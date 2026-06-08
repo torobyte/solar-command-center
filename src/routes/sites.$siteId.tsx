@@ -136,7 +136,7 @@ function filterSpikes(prev: Sample | null, next: Sample, skips: SpikeState): Sam
 }
 
 /* ---------------- Chart smoothing ---------------- */
-type SeriesPoint = { t: number; pv: number | null; load: number | null; soc: number | null; grid: number | null };
+type SeriesPoint = { t: number; pv: number | null; load: number | null; soc: number | null; battery: number | null; grid: number | null };
 type ChartWindow = "3h" | "12h" | "24h";
 type ChartResolution = "raw" | "5m" | "15m" | "1h";
 
@@ -144,18 +144,19 @@ function smoothSeries(
   data: SeriesPoint[],
   mode: "off" | "mean" | "median",
   window: number,
-): Array<{ t: number; pv: number; load: number; soc: number; grid: number }> {
+): Array<{ t: number; pv: number; load: number; soc: number; battery: number; grid: number }> {
   if (mode === "off" || window <= 1) {
     return data.map((p) => ({
       t: p.t,
       pv: p.pv ?? 0,
       load: p.load ?? 0,
       soc: p.soc ?? 0,
+      battery: p.battery ?? 0,
       grid: p.grid ?? 0,
     }));
   }
-  const keys: ("pv" | "load" | "soc" | "grid")[] = ["pv", "load", "soc", "grid"];
-  const out = data.map((p) => ({ t: p.t, pv: 0, load: 0, soc: 0, grid: 0 }));
+  const keys: ("pv" | "load" | "soc" | "battery" | "grid")[] = ["pv", "load", "soc", "battery", "grid"];
+  const out = data.map((p) => ({ t: p.t, pv: 0, load: 0, soc: 0, battery: 0, grid: 0 }));
   for (let i = 0; i < data.length; i++) {
     const start = Math.max(0, i - window + 1);
     const slice = data.slice(start, i + 1);
