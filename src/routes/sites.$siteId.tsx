@@ -416,6 +416,7 @@ function SiteDetail() {
 
   const sidebarItems: { id: SiteTab; label: string; icon: typeof LayoutDashboard }[] = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "control", label: "Control", icon: Zap },
     { id: "charts", label: "Charts", icon: LineChart },
     { id: "totals", label: "Totales", icon: Calculator },
     { id: "savings", label: "Ahorro", icon: Coins },
