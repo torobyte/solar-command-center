@@ -139,6 +139,17 @@ function filterSpikes(prev: Sample | null, next: Sample, skips: SpikeState): Sam
 type SeriesPoint = { t: number; pv: number | null; load: number | null; soc: number | null; battery: number | null; grid: number | null };
 type ChartWindow = "3h" | "12h" | "24h";
 type ChartResolution = "raw" | "5m" | "15m" | "1h";
+type ChartPoint = {
+  t: number;
+  pv: number;
+  load: number;
+  soc: number;
+  battery: number;
+  grid: number;
+  batteryCharge: number;
+  batteryDischarge: number;
+  solarShare: number;
+};
 
 function smoothSeries(
   data: SeriesPoint[],
@@ -193,10 +204,7 @@ function average(nums: number[]) {
   return nums.reduce((sum, value) => sum + value, 0) / nums.length;
 }
 
-function bucketSeries(
-  data: Array<{ t: number; pv: number; load: number; soc: number; battery: number; grid: number }>,
-  resolution: ChartResolution,
-) {
+function bucketSeries(data: ChartPoint[], resolution: ChartResolution): ChartPoint[] {
   const bucketMs = getBucketMs(resolution);
   if (!bucketMs) return data;
 
@@ -215,6 +223,9 @@ function bucketSeries(
     soc: average(points.map((p) => p.soc)),
     battery: average(points.map((p) => p.battery)),
     grid: average(points.map((p) => p.grid)),
+    batteryCharge: average(points.map((p) => p.batteryCharge)),
+    batteryDischarge: average(points.map((p) => p.batteryDischarge)),
+    solarShare: average(points.map((p) => p.solarShare)),
   }));
 }
 
