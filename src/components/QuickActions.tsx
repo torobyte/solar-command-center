@@ -326,7 +326,7 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG, readO
 
           {config.buzzer && (
             <ActionGroup
-              icon={current.buzzerEnabled === false ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-4 w-4" strokeWidth={2.4} />}
+              icon={current.buzzerEnabled === false ? <VolumeX className="h-4 w-4" strokeWidth={2.4} /> : <Volume2 className="h-4 w-4" strokeWidth={2.4} />}
               title="Buzzer / alarma"
               hint={current.buzzerEnabled == null ? "Sin datos del inversor todavía" : `Actual: ${current.buzzerEnabled ? "Encendido" : "Silenciado"}`}
             >
