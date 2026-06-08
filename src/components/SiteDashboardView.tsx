@@ -64,8 +64,6 @@ export const WIDGET_DEFS: WidgetDef[] = [
   { id: "houseConsumption", label: "Consumo de la casa" },
   { id: "weather", label: "Clima y radiación solar" },
   { id: "savings", label: "Ahorro económico" },
-  { id: "quickActions", label: "Acciones rápidas" },
-  { id: "commands", label: "Estado de comandos" },
 ];
 
 /**
