@@ -391,12 +391,15 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG, readO
 
 function ActionGroup({ icon, title, hint, children }: { icon: React.ReactNode; title: string; hint?: string; children: React.ReactNode }) {
   return (
-    <div className="dashboard-panel p-3">
-      <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-        {icon}{title}
+    <div className="dashboard-panel group relative overflow-hidden rounded-2xl p-5 transition-all duration-300 hover:border-accent/40 hover:shadow-lg">
+      <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent/10 text-accent ring-1 ring-accent/20">
+          {icon}
+        </span>
+        <span className="tracking-tight">{title}</span>
       </div>
-      <div className="flex flex-wrap gap-1.5">{children}</div>
-      {hint && <p className="mt-2 text-[10px] text-muted-foreground/70">{hint}</p>}
+      <div className="grid grid-cols-2 gap-2">{children}</div>
+      {hint && <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground/80">{hint}</p>}
     </div>
   );
 }
@@ -409,14 +412,17 @@ function Chip({ label, onClick, loading, active, warning }: { label: string; onC
       onClick={onClick}
       title={warning && !active ? "Valor bajo — requiere confirmación" : undefined}
       className={[
-        "inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold transition-all",
-        "disabled:opacity-50 disabled:cursor-wait active:scale-95",
+        "relative inline-flex h-12 items-center justify-center gap-1.5 rounded-xl border px-3 text-sm font-semibold transition-all duration-200",
+        "disabled:opacity-50 disabled:cursor-wait active:scale-[0.97]",
         active
-          ? "border-accent bg-accent text-accent-foreground shadow-md ring-2 ring-accent/30"
-          : "border-border bg-card text-foreground hover:bg-muted hover:border-accent/40",
+          ? "border-transparent bg-gradient-to-br from-accent to-accent/80 text-accent-foreground shadow-lg shadow-accent/30 ring-2 ring-accent/40"
+          : "border-border/70 bg-background/60 text-foreground backdrop-blur hover:border-accent/50 hover:bg-accent/5 hover:shadow-md",
       ].join(" ")}
     >
-      {warning && !active && <AlertTriangle className="h-3 w-3 text-warning" strokeWidth={2.6} />}
+      {active && (
+        <span className="absolute right-2 top-1.5 h-1.5 w-1.5 rounded-full bg-accent-foreground/80 shadow" aria-hidden />
+      )}
+      {warning && !active && <AlertTriangle className="h-3.5 w-3.5 text-warning" strokeWidth={2.6} />}
       {loading ? "…" : label}
     </button>
   );
