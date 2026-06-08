@@ -208,7 +208,7 @@ function bucketSeries(data: ChartPoint[], resolution: ChartResolution): ChartPoi
   const bucketMs = getBucketMs(resolution);
   if (!bucketMs) return data;
 
-  const buckets = new Map<number, Array<{ t: number; pv: number; load: number; soc: number; battery: number; grid: number }>>();
+  const buckets = new Map<number, ChartPoint[]>();
   for (const point of data) {
     const key = Math.floor(point.t / bucketMs) * bucketMs;
     const list = buckets.get(key) ?? [];
@@ -730,7 +730,7 @@ function SiteDetail() {
               <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
               <XAxis dataKey="t" tickFormatter={(v) => format(new Date(v), chartWindow === "24h" ? "dd HH:mm" : "HH:mm")} fontSize={11} minTickGap={24} />
               <YAxis fontSize={11} unit=" W" />
-              <Tooltip labelFormatter={(v) => format(new Date(v as number), "dd/MM HH:mm")} formatter={(value: number) => [`${Math.round(value).toLocaleString("es-CL")} W`, ""]} />
+              <Tooltip labelFormatter={(v) => format(new Date(v as number), "dd/MM HH:mm")} formatter={(value) => [`${Math.round(Number(value ?? 0)).toLocaleString("es-CL")} W`, ""]} />
               <Legend />
               <Area type="monotone" dataKey="pv" name="Solar" stroke="var(--solar)" fill="url(#gPv)" strokeWidth={2.2} />
               <Area type="monotone" dataKey="load" name="Consumo" stroke="var(--load)" fill="url(#gLoad)" strokeWidth={2.2} />
