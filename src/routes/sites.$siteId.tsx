@@ -280,6 +280,8 @@ function SiteDetail() {
   const spikeRef = useRef<SpikeState>({});
   const [tab, setTab] = useState<SiteTab>("dashboard");
   const [configSubTab, setConfigSubTab] = useState<string>("inverter");
+  const [chartWindow, setChartWindow] = useState<ChartWindow>("12h");
+  const [chartResolution, setChartResolution] = useState<ChartResolution>("5m");
 
   // If a viewer somehow lands on the Config tab (deep-link, role just demoted),
   // bounce them back to the dashboard so they don't see a "blocked" empty pane.
@@ -318,15 +320,12 @@ function SiteDetail() {
   async function load() {
     await loadSite();
 
-    // Charts muestran las últimas 12 horas. Filtramos por tiempo en vez de
-    // por cantidad de filas para que el rango coincida siempre con la etiqueta
-    // "last 12h" (sin importar la frecuencia de muestreo).
-    const since12h = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+    const sinceWindow = new Date(Date.now() - getWindowMs("24h")).toISOString();
     let tq = supabase
       .from("telemetry_samples")
       .select("recorded_at, ac_output_active_power, pv_input_power, battery_capacity, battery_voltage, battery_discharge_current, battery_charging_current, grid_voltage, inverter_mode, device_id")
       .eq("site_id", siteId)
-      .gte("recorded_at", since12h);
+      .gte("recorded_at", sinceWindow);
     tq = applyDeviceFilter(tq as never) as never;
     const { data: t } = await tq.order("recorded_at", { ascending: false }).limit(5000);
     const rows = (t ?? []).reverse() as Sample[];
@@ -376,9 +375,8 @@ function SiteDetail() {
           setLatest((prev) => mergeSample(prev, filterSpikes(prev, row, spikeRef.current)));
           setHistory((h) => {
             if (h.length && h[h.length - 1].recorded_at === row.recorded_at) return h;
-            const cutoff = Date.now() - 12 * 60 * 60 * 1000;
+            const cutoff = Date.now() - getWindowMs("24h");
             const next = [...h, row];
-            // Drop puntos fuera de la ventana de 12h
             let i = 0;
             while (i < next.length && new Date(next[i].recorded_at).getTime() < cutoff) i++;
             return i > 0 ? next.slice(i) : next;
@@ -401,7 +399,7 @@ function SiteDetail() {
         if (prev && prev.recorded_at === row.recorded_at) return prev;
         setHistory((h) => {
           if (h.length && h[h.length - 1].recorded_at === row.recorded_at) return h;
-          const cutoff = Date.now() - 12 * 60 * 60 * 1000;
+            const cutoff = Date.now() - getWindowMs("24h");
           const next = [...h, row];
           let i = 0;
           while (i < next.length && new Date(next[i].recorded_at).getTime() < cutoff) i++;
@@ -426,8 +424,6 @@ function SiteDetail() {
   useEffect(() => { localStorage.setItem("chart.smoothWindow", String(smoothWindow)); }, [smoothWindow]);
 
   const rawChartData = useMemo(() => {
-    // Aplicar filtro de picos en una pasada hacia adelante para que valores
-    // anómalos puntuales no deformen el gráfico.
     const skips: SpikeState = {};
     let prev: Sample | null = null;
     const cleaned: Sample[] = [];
@@ -440,22 +436,47 @@ function SiteDetail() {
       const bv = Number(r.battery_voltage ?? 0);
       const di = Number(r.battery_discharge_current ?? 0);
       const ci = Number(r.battery_charging_current ?? 0);
-      const batW = bv * (di - ci); // positivo = descarga, negativo = carga
+      const batW = bv * (di - ci);
+      const pv = r.pv_input_power == null ? 0 : Number(r.pv_input_power);
+      const load = r.ac_output_active_power == null ? 0 : Number(r.ac_output_active_power);
+      const battery = r.battery_voltage == null ? 0 : +batW.toFixed(1);
+      const grid = Number(r.grid_voltage ?? 0) > 50 ? Math.max(0, load - pv - Math.max(0, battery)) : 0;
       return {
         t: new Date(r.recorded_at).getTime(),
-        pv: r.pv_input_power == null ? null : Number(r.pv_input_power),
-        load: r.ac_output_active_power == null ? null : Number(r.ac_output_active_power),
-        soc: r.battery_capacity == null ? null : Number(r.battery_capacity),
-        grid: r.grid_voltage == null ? null : Number(r.grid_voltage),
-        battery: r.battery_voltage == null ? null : +batW.toFixed(1),
+        pv,
+        load,
+        soc: r.battery_capacity == null ? 0 : Number(r.battery_capacity),
+        grid,
+        battery,
       };
     });
   }, [history]);
 
-  const chartData = useMemo(
-    () => smoothSeries(rawChartData, smoothMode, smoothWindow),
-    [rawChartData, smoothMode, smoothWindow],
-  );
+  const chartData = useMemo(() => {
+    const cutoff = Date.now() - getWindowMs(chartWindow);
+    const windowed = rawChartData.filter((point) => point.t >= cutoff);
+    const smoothed = smoothSeries(windowed, smoothMode, smoothWindow).map((point) => ({
+      ...point,
+      batteryCharge: Math.max(0, -point.battery),
+      batteryDischarge: Math.max(0, point.battery),
+      solarShare: point.load > 0 ? Math.min(100, (point.pv / point.load) * 100) : 0,
+    }));
+    return bucketSeries(smoothed, chartResolution);
+  }, [chartResolution, chartWindow, rawChartData, smoothMode, smoothWindow]);
+
+  const chartStats = useMemo(() => {
+    if (!chartData.length) {
+      return { peakPv: 0, peakLoad: 0, avgLoad: 0, gridUseAvg: 0, selfSupply: 0 };
+    }
+    const peakPv = Math.max(...chartData.map((p) => p.pv));
+    const peakLoad = Math.max(...chartData.map((p) => p.load));
+    const avgLoad = average(chartData.map((p) => p.load));
+    const gridUseAvg = average(chartData.map((p) => p.grid));
+    const totalLoad = chartData.reduce((sum, p) => sum + p.load, 0);
+    const totalGrid = chartData.reduce((sum, p) => sum + p.grid, 0);
+    const selfSupply = totalLoad > 0 ? Math.max(0, Math.min(100, ((totalLoad - totalGrid) / totalLoad) * 100)) : 0;
+    return { peakPv, peakLoad, avgLoad, gridUseAvg, selfSupply };
+  }, [chartData]);
 
   if (!site) return <SiteDetailSkeleton />;
 
