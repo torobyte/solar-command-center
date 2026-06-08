@@ -137,6 +137,8 @@ function filterSpikes(prev: Sample | null, next: Sample, skips: SpikeState): Sam
 
 /* ---------------- Chart smoothing ---------------- */
 type SeriesPoint = { t: number; pv: number | null; load: number | null; soc: number | null; grid: number | null };
+type ChartWindow = "3h" | "12h" | "24h";
+type ChartResolution = "raw" | "5m" | "15m" | "1h";
 
 function smoothSeries(
   data: SeriesPoint[],
@@ -170,6 +172,49 @@ function smoothSeries(
     }
   }
   return out;
+}
+
+function getWindowMs(window: ChartWindow) {
+  if (window === "3h") return 3 * 60 * 60 * 1000;
+  if (window === "24h") return 24 * 60 * 60 * 1000;
+  return 12 * 60 * 60 * 1000;
+}
+
+function getBucketMs(resolution: ChartResolution) {
+  if (resolution === "5m") return 5 * 60 * 1000;
+  if (resolution === "15m") return 15 * 60 * 1000;
+  if (resolution === "1h") return 60 * 60 * 1000;
+  return 0;
+}
+
+function average(nums: number[]) {
+  if (!nums.length) return 0;
+  return nums.reduce((sum, value) => sum + value, 0) / nums.length;
+}
+
+function bucketSeries(
+  data: Array<{ t: number; pv: number; load: number; soc: number; battery: number; grid: number }>,
+  resolution: ChartResolution,
+) {
+  const bucketMs = getBucketMs(resolution);
+  if (!bucketMs) return data;
+
+  const buckets = new Map<number, Array<{ t: number; pv: number; load: number; soc: number; battery: number; grid: number }>>();
+  for (const point of data) {
+    const key = Math.floor(point.t / bucketMs) * bucketMs;
+    const list = buckets.get(key) ?? [];
+    list.push(point);
+    buckets.set(key, list);
+  }
+
+  return Array.from(buckets.entries()).map(([t, points]) => ({
+    t,
+    pv: average(points.map((p) => p.pv)),
+    load: average(points.map((p) => p.load)),
+    soc: average(points.map((p) => p.soc)),
+    battery: average(points.map((p) => p.battery)),
+    grid: average(points.map((p) => p.grid)),
+  }));
 }
 
 function InlineSiteName({ site, onRenamed }: { site: Site; onRenamed: (name: string) => void }) {
