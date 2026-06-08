@@ -513,6 +513,7 @@ function SiteDetail() {
         {/* Tablet-only top tabs. Mobile usa MobileBottomNav (abajo), desktop usa el sidebar. */}
         <TabsList className="hidden h-11 rounded-full bg-muted/60 p-1 md:inline-flex lg:hidden">
           <TabsTrigger value="dashboard" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><LayoutDashboard className="h-3.5 w-3.5" strokeWidth={2.2} />Dashboard</TabsTrigger>
+          <TabsTrigger value="control" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Zap className="h-3.5 w-3.5" strokeWidth={2.2} />Control</TabsTrigger>
           <TabsTrigger value="charts" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><LineChart className="h-3.5 w-3.5" strokeWidth={2.2} />Charts</TabsTrigger>
           <TabsTrigger value="totals" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Calculator className="h-3.5 w-3.5" strokeWidth={2.2} />Totals</TabsTrigger>
           <TabsTrigger value="savings" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Coins className="h-3.5 w-3.5" strokeWidth={2.2} />Ahorro</TabsTrigger>
