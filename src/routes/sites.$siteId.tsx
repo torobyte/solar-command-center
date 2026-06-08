@@ -644,6 +644,39 @@ function SiteDetail() {
   );
 }
 
+/* ---------------- Control panel (Quick actions + Command status) ---------------- */
+
+function ControlPanelView({ siteId, canCommand }: { siteId: string; canCommand: boolean }) {
+  const { config } = useQuickActionsConfig(siteId);
+  return (
+    <div className="space-y-6">
+      <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-accent/10 via-card to-card p-6 shadow-elevated sm:p-8">
+        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-accent/20 blur-3xl" aria-hidden />
+        <div className="pointer-events-none absolute -left-20 -bottom-24 h-64 w-64 rounded-full bg-primary/15 blur-3xl" aria-hidden />
+        <div className="relative flex flex-col gap-2">
+          <div className="inline-flex items-center gap-2 self-start rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-accent">
+            <Zap className="h-3.5 w-3.5" strokeWidth={2.6} /> Centro de control
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Comandos del inversor</h1>
+          <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
+            Aplica cambios remotos al inversor y haz seguimiento del estado de cada comando enviado en tiempo real.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="xl:col-span-2">
+          <QuickActions siteId={siteId} config={config} readOnly={!canCommand} />
+        </div>
+        <div className="xl:col-span-1">
+          <CommandStatusFeed siteId={siteId} limit={12} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 /* ---------------- Totals view with period selector ---------------- */
 
 type TotalsPeriod = "day" | "week" | "month" | "year";
