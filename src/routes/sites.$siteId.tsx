@@ -606,71 +606,188 @@ function SiteDetail() {
 
 
         <TabsContent value="charts" className="mt-6 space-y-6">
-          <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card/60 p-3 text-sm">
-            <div className="flex items-center gap-2">
-              <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">Suavizado</span>
+          <div className="overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-card via-card to-muted/30 shadow-elevated">
+            <div className="border-b border-border/60 px-5 py-5 sm:px-6">
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-accent">
+                    <LineChart className="h-3.5 w-3.5" strokeWidth={2.6} /> Telemetría real
+                  </div>
+                  <h2 className="mt-3 text-2xl font-bold tracking-tight">Charts corregidos y estabilizados</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">La ventana temporal ahora coincide con el rango visible y la serie de red usa potencia estimada, no voltaje.</p>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[540px] xl:grid-cols-4">
+                  <div>
+                    <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Rango</div>
+                    <div className="inline-flex w-full overflow-hidden rounded-xl border bg-background">
+                      {(["3h", "12h", "24h"] as const).map((range) => (
+                        <button
+                          key={range}
+                          type="button"
+                          onClick={() => setChartWindow(range)}
+                          className={`flex-1 px-3 py-2 text-xs font-semibold transition-colors ${chartWindow === range ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+                        >
+                          {range}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Resolución</div>
+                    <div className="inline-flex w-full overflow-hidden rounded-xl border bg-background">
+                      {([
+                        ["raw", "Raw"],
+                        ["5m", "5m"],
+                        ["15m", "15m"],
+                        ["1h", "1h"],
+                      ] as const).map(([value, label]) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => setChartResolution(value)}
+                          className={`flex-1 px-3 py-2 text-xs font-semibold transition-colors ${chartResolution === value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Suavizado</div>
+                    <div className="inline-flex w-full overflow-hidden rounded-xl border bg-background">
+                      {(["off", "mean", "median"] as const).map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setSmoothMode(m)}
+                          className={`flex-1 px-3 py-2 text-xs font-semibold transition-colors ${smoothMode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+                        >
+                          {m === "off" ? "Off" : m === "mean" ? "Media" : "Mediana"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-1 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      <span>Ventana filtro</span>
+                      <span className="font-mono normal-case">{smoothWindow} pts</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={2}
+                      max={30}
+                      step={1}
+                      value={smoothWindow}
+                      disabled={smoothMode === "off"}
+                      onChange={(e) => setSmoothWindow(Number(e.target.value))}
+                      className="w-full accent-primary disabled:opacity-40"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="inline-flex overflow-hidden rounded-md border">
-              {(["off", "mean", "median"] as const).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setSmoothMode(m)}
-                  className={`px-3 py-1 text-xs transition-colors ${smoothMode === m ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
-                >
-                  {m === "off" ? "Sin filtro" : m === "mean" ? "Promedio móvil" : "Mediana"}
-                </button>
-              ))}
-            </div>
-            <div className="ml-auto flex items-center gap-2">
-              <label className="text-xs text-muted-foreground">Ventana</label>
-              <input
-                type="range" min={2} max={30} step={1}
-                value={smoothWindow}
-                disabled={smoothMode === "off"}
-                onChange={(e) => setSmoothWindow(Number(e.target.value))}
-                className="w-32 accent-primary disabled:opacity-40"
-              />
-              <span className="w-12 text-right font-mono text-xs tabular-nums">{smoothWindow} pts</span>
+
+            <div className="grid gap-3 px-5 py-5 sm:grid-cols-2 xl:grid-cols-5 sm:px-6">
+              <QuickKpi label="Pico solar" value={`${Math.round(chartStats.peakPv).toLocaleString("es-CL")} W`} accent="var(--solar)" />
+              <QuickKpi label="Pico consumo" value={`${Math.round(chartStats.peakLoad).toLocaleString("es-CL")} W`} accent="var(--load)" />
+              <QuickKpi label="Carga media" value={`${Math.round(chartStats.avgLoad).toLocaleString("es-CL")} W`} accent="var(--primary)" />
+              <QuickKpi label="Red media" value={`${Math.round(chartStats.gridUseAvg).toLocaleString("es-CL")} W`} accent="var(--grid)" />
+              <QuickKpi label="Autosuministro" value={`${chartStats.selfSupply.toFixed(0)} %`} accent="var(--success)" />
             </div>
           </div>
-          <ChartCard title="Power (W) — last 12h">
+
+          <ChartCard title={`Potencias reales — ${chartWindow}`}>
             <AreaChart data={chartData}>
               <defs>
                 <linearGradient id="gPv" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(var(--solar, 45 100% 50%))" stopOpacity={0.6} />
-                  <stop offset="100%" stopColor="hsl(var(--solar, 45 100% 50%))" stopOpacity={0} />
+                  <stop offset="0%" stopColor="var(--solar)" stopOpacity={0.55} />
+                  <stop offset="100%" stopColor="var(--solar)" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="gLoad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(var(--load, 200 90% 55%))" stopOpacity={0.6} />
-                  <stop offset="100%" stopColor="hsl(var(--load, 200 90% 55%))" stopOpacity={0} />
+                  <stop offset="0%" stopColor="var(--load)" stopOpacity={0.45} />
+                  <stop offset="100%" stopColor="var(--load)" stopOpacity={0} />
                 </linearGradient>
-                <linearGradient id="gBat" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(var(--battery, 142 70% 45%))" stopOpacity={0.5} />
-                  <stop offset="100%" stopColor="hsl(var(--battery, 142 70% 45%))" stopOpacity={0} />
+                <linearGradient id="gGrid" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--grid)" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="var(--grid)" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-              <XAxis dataKey="t" tickFormatter={(v) => format(new Date(v), "HH:mm")} fontSize={11} />
-              <YAxis fontSize={11} />
-              <Tooltip labelFormatter={(v) => format(new Date(v as number), "PP HH:mm")} />
+              <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+              <XAxis dataKey="t" tickFormatter={(v) => format(new Date(v), chartWindow === "24h" ? "dd HH:mm" : "HH:mm")} fontSize={11} minTickGap={24} />
+              <YAxis fontSize={11} unit=" W" />
+              <Tooltip labelFormatter={(v) => format(new Date(v as number), "dd/MM HH:mm")} formatter={(value: number) => [`${Math.round(value).toLocaleString("es-CL")} W`, ""]} />
               <Legend />
-              <Area type="monotone" dataKey="pv" name="Solar" stroke="var(--solar)" fill="url(#gPv)" />
-              <Area type="monotone" dataKey="load" name="Load" stroke="var(--load)" fill="url(#gLoad)" />
-              <Area type="monotone" dataKey="battery" name="Batería (+desc/−carga)" stroke="var(--battery)" fill="url(#gBat)" />
+              <Area type="monotone" dataKey="pv" name="Solar" stroke="var(--solar)" fill="url(#gPv)" strokeWidth={2.2} />
+              <Area type="monotone" dataKey="load" name="Consumo" stroke="var(--load)" fill="url(#gLoad)" strokeWidth={2.2} />
+              <Area type="monotone" dataKey="grid" name="Red estimada" stroke="var(--grid)" fill="url(#gGrid)" strokeWidth={2} />
             </AreaChart>
           </ChartCard>
 
-          <ChartCard title="Battery SOC (%) — last 12h">
-            <AreaChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-              <XAxis dataKey="t" tickFormatter={(v) => format(new Date(v), "HH:mm")} fontSize={11} />
-              <YAxis domain={[0, 100]} fontSize={11} />
-              <Tooltip labelFormatter={(v) => format(new Date(v as number), "PP HH:mm")} />
-              <Area type="monotone" dataKey="soc" stroke="var(--battery)" fill="var(--battery)" fillOpacity={0.2} />
-            </AreaChart>
-          </ChartCard>
+          <div className="grid gap-6 xl:grid-cols-2">
+            <ChartCard title="Batería — carga / descarga (W)">
+              <AreaChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                <XAxis dataKey="t" tickFormatter={(v) => format(new Date(v), chartWindow === "24h" ? "dd HH:mm" : "HH:mm")} fontSize={11} minTickGap={24} />
+                <YAxis fontSize={11} unit=" W" />
+                <Tooltip labelFormatter={(v) => format(new Date(v as number), "dd/MM HH:mm")} />
+                <Legend />
+                <Area type="monotone" dataKey="batteryDischarge" name="Descarga" stroke="var(--battery)" fill="var(--battery)" fillOpacity={0.22} strokeWidth={2.2} />
+                <Area type="monotone" dataKey="batteryCharge" name="Carga" stroke="var(--accent)" fill="var(--accent)" fillOpacity={0.18} strokeWidth={2.2} />
+              </AreaChart>
+            </ChartCard>
+
+            <ChartCard title="Estado de batería y cobertura solar">
+              <AreaChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                <XAxis dataKey="t" tickFormatter={(v) => format(new Date(v), chartWindow === "24h" ? "dd HH:mm" : "HH:mm")} fontSize={11} minTickGap={24} />
+                <YAxis yAxisId="left" domain={[0, 100]} fontSize={11} unit=" %" />
+                <YAxis yAxisId="right" orientation="right" domain={[0, 100]} fontSize={11} unit=" %" />
+                <Tooltip labelFormatter={(v) => format(new Date(v as number), "dd/MM HH:mm")} />
+                <Legend />
+                <Area yAxisId="left" type="monotone" dataKey="soc" name="SOC batería" stroke="var(--battery)" fill="var(--battery)" fillOpacity={0.18} strokeWidth={2.2} />
+                <Area yAxisId="right" type="monotone" dataKey="solarShare" name="Cobertura solar" stroke="var(--success)" fill="var(--success)" fillOpacity={0.12} strokeWidth={2} />
+              </AreaChart>
+            </ChartCard>
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border bg-card">
+            <div className="border-b px-4 py-3 text-sm font-semibold">Últimos puntos procesados</div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] text-sm">
+                <thead className="bg-muted/40 text-left">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">Hora</th>
+                    <th className="px-4 py-3 font-medium">Solar</th>
+                    <th className="px-4 py-3 font-medium">Consumo</th>
+                    <th className="px-4 py-3 font-medium">Red</th>
+                    <th className="px-4 py-3 font-medium">Bat. carga</th>
+                    <th className="px-4 py-3 font-medium">Bat. descarga</th>
+                    <th className="px-4 py-3 font-medium">SOC</th>
+                    <th className="px-4 py-3 font-medium">Cobertura solar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...chartData].slice(-18).reverse().map((point) => (
+                    <tr key={point.t} className="border-t border-border/60">
+                      <td className="px-4 py-3 font-mono text-xs">{format(new Date(point.t), "dd/MM HH:mm")}</td>
+                      <td className="px-4 py-3">{Math.round(point.pv).toLocaleString("es-CL")} W</td>
+                      <td className="px-4 py-3">{Math.round(point.load).toLocaleString("es-CL")} W</td>
+                      <td className="px-4 py-3">{Math.round(point.grid).toLocaleString("es-CL")} W</td>
+                      <td className="px-4 py-3">{Math.round(point.batteryCharge).toLocaleString("es-CL")} W</td>
+                      <td className="px-4 py-3">{Math.round(point.batteryDischarge).toLocaleString("es-CL")} W</td>
+                      <td className="px-4 py-3">{point.soc.toFixed(1)} %</td>
+                      <td className="px-4 py-3">{point.solarShare.toFixed(0)} %</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {chartData.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">Sin datos suficientes en la ventana seleccionada.</p>}
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="totals" className="mt-6 space-y-6">
