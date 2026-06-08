@@ -532,6 +532,12 @@ function SiteDetail() {
           )}
         </TabsContent>
 
+        <TabsContent value="control" className="mt-6">
+          <ControlPanelView siteId={siteId} canCommand={roleInfo.role === "owner" || roleInfo.role === "admin" || roleInfo.role === "operator"} />
+        </TabsContent>
+
+
+
         <TabsContent value="charts" className="mt-6 space-y-6">
           <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card/60 p-3 text-sm">
             <div className="flex items-center gap-2">
