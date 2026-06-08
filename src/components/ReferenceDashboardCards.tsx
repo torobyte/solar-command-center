@@ -1304,6 +1304,106 @@ export function SavingsReferenceCard({
   );
 }
 
+export function EnvironmentalImpactCard({
+  siteId,
+  emissionFactor = 0.4,
+}: {
+  siteId: string;
+  emissionFactor?: number;
+}) {
+  const [todayKwh, setTodayKwh] = useState<number | null>(null);
+  const [monthKwh, setMonthKwh] = useState<number | null>(null);
+  const [yearKwh, setYearKwh] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!siteId || siteId === "local") return;
+    let cancelled = false;
+
+    async function loadTotals() {
+      const now = new Date();
+      const today = now.toISOString().slice(0, 10);
+      const yearStart = new Date(now.getFullYear(), 0, 1).toISOString().slice(0, 10);
+      const monthPrefix = today.slice(0, 7);
+
+      const { data } = await supabase
+        .from("daily_totals")
+        .select("day, pv_kwh")
+        .eq("site_id", siteId)
+        .gte("day", yearStart)
+        .order("day", { ascending: true });
+
+      if (cancelled || !data) return;
+
+      let year = 0;
+      let month = 0;
+      let day = 0;
+
+      for (const row of data) {
+        const pvKwh = Math.max(0, Number(row.pv_kwh ?? 0));
+        year += pvKwh;
+        if (String(row.day).startsWith(monthPrefix)) month += pvKwh;
+        if (row.day === today) day += pvKwh;
+      }
+
+      setTodayKwh(day);
+      setMonthKwh(month);
+      setYearKwh(year);
+    }
+
+    void loadTotals();
+    return () => {
+      cancelled = true;
+    };
+  }, [siteId]);
+
+  const co2Today = Math.max(0, (todayKwh ?? 0) * emissionFactor);
+  const co2Month = Math.max(0, (monthKwh ?? 0) * emissionFactor);
+  const co2Year = Math.max(0, (yearKwh ?? 0) * emissionFactor);
+  const treesEquivalent = co2Year / 22;
+
+  return (
+    <div
+      className="dashboard-card p-5 sm:p-6"
+      style={{
+        borderColor: "color-mix(in oklab, var(--success) 26%, var(--border))",
+        background: "linear-gradient(180deg, color-mix(in oklab, var(--success) 9%, var(--tint-base)) 0%, color-mix(in oklab, var(--card) 96%, var(--tint-base)) 100%)",
+      }}
+    >
+      <DashboardCardHeader
+        icon={<Leaf className="h-4 w-4" />}
+        title="Impacto ambiental"
+        badge="CO₂ evitado"
+        badgeColor="var(--success)"
+      />
+
+      <div className="rounded-2xl border p-4" style={{ background: "color-mix(in oklab, var(--success) 9%, var(--tint-base))" }}>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Acumulado anual</div>
+            <div className="mt-2 text-[44px] font-bold leading-none" style={{ color: "var(--success)" }}>
+              {co2Year.toFixed(1)}
+            </div>
+            <div className="mt-1 text-[13px] text-muted-foreground">kg CO₂ evitados</div>
+          </div>
+          <div className="flex h-16 w-16 items-center justify-center rounded-full" style={{ background: "color-mix(in oklab, var(--success) 12%, var(--tint-base))" }}>
+            <Leaf className="h-8 w-8" style={{ color: "var(--success)" }} />
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-3 gap-3 max-[520px]:grid-cols-1">
+        <SmallStat label="Hoy" value={`${co2Today.toFixed(2)} kg`} subtitle={`${(todayKwh ?? 0).toFixed(1)} kWh`} />
+        <SmallStat label="Este mes" value={`${co2Month.toFixed(1)} kg`} subtitle={`${(monthKwh ?? 0).toFixed(1)} kWh`} />
+        <SmallStat label="Árboles equiv." value={treesEquivalent.toFixed(1)} subtitle={`${co2Year.toFixed(0)} kg/año ÷ 22`} />
+      </div>
+
+      <div className="mt-3 rounded-lg border border-dashed bg-muted/30 px-3 py-2 text-[11px] text-muted-foreground">
+        Cálculo: CO₂ evitado = Energía generada (kWh) × {emissionFactor.toFixed(2)} kg CO₂/kWh · Árboles equivalentes = CO₂ anual ÷ 22.
+      </div>
+    </div>
+  );
+}
+
 function MetricLine({ label, value }: { label: string; value: string }) {
   return (
     <>

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -22,6 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<Role | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [roleLoading, setRoleLoading] = useState(true);
+  const bootstrappedRef = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -106,7 +107,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await applySession(restored);
         }
       } finally {
-        if (active) setAuthLoading(false);
+        if (active) {
+          setAuthLoading(false);
+          bootstrappedRef.current = true;
+        }
       }
     };
 
@@ -116,11 +120,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // al usuario fuera: intentamos restaurar desde el bridge nativo antes
       // de reportar SIGNED_OUT al resto de la app.
       if ((event === "SIGNED_OUT" || event === "TOKEN_REFRESHED") && !nextSession && !userInitiatedSignOut) {
-        setAuthLoading(true);
         void (async () => {
           const restored = await tryRestoreFromNativeBridge();
           await applySession(restored ?? null);
-          if (active) setAuthLoading(false);
+          if (active) {
+            setAuthLoading(false);
+            bootstrappedRef.current = true;
+          }
         })();
         return;
       }
@@ -135,9 +141,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       if (event === "SIGNED_OUT") userInitiatedSignOut = false;
-      setAuthLoading(true);
+      const shouldBlockUi = !bootstrappedRef.current;
+      if (shouldBlockUi) setAuthLoading(true);
       void applySession(nextSession).finally(() => {
-        if (active) setAuthLoading(false);
+        if (active) {
+          if (shouldBlockUi) setAuthLoading(false);
+          bootstrappedRef.current = true;
+        }
       });
     });
 

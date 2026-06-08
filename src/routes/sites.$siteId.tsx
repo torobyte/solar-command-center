@@ -136,24 +136,38 @@ function filterSpikes(prev: Sample | null, next: Sample, skips: SpikeState): Sam
 }
 
 /* ---------------- Chart smoothing ---------------- */
-type SeriesPoint = { t: number; pv: number | null; load: number | null; soc: number | null; grid: number | null };
+type SeriesPoint = { t: number; pv: number | null; load: number | null; soc: number | null; battery: number | null; grid: number | null };
+type ChartWindow = "3h" | "12h" | "24h";
+type ChartResolution = "raw" | "5m" | "15m" | "1h";
+type ChartPoint = {
+  t: number;
+  pv: number;
+  load: number;
+  soc: number;
+  battery: number;
+  grid: number;
+  batteryCharge: number;
+  batteryDischarge: number;
+  solarShare: number;
+};
 
 function smoothSeries(
   data: SeriesPoint[],
   mode: "off" | "mean" | "median",
   window: number,
-): Array<{ t: number; pv: number; load: number; soc: number; grid: number }> {
+): Array<{ t: number; pv: number; load: number; soc: number; battery: number; grid: number }> {
   if (mode === "off" || window <= 1) {
     return data.map((p) => ({
       t: p.t,
       pv: p.pv ?? 0,
       load: p.load ?? 0,
       soc: p.soc ?? 0,
+      battery: p.battery ?? 0,
       grid: p.grid ?? 0,
     }));
   }
-  const keys: ("pv" | "load" | "soc" | "grid")[] = ["pv", "load", "soc", "grid"];
-  const out = data.map((p) => ({ t: p.t, pv: 0, load: 0, soc: 0, grid: 0 }));
+  const keys: ("pv" | "load" | "soc" | "battery" | "grid")[] = ["pv", "load", "soc", "battery", "grid"];
+  const out = data.map((p) => ({ t: p.t, pv: 0, load: 0, soc: 0, battery: 0, grid: 0 }));
   for (let i = 0; i < data.length; i++) {
     const start = Math.max(0, i - window + 1);
     const slice = data.slice(start, i + 1);
@@ -170,6 +184,49 @@ function smoothSeries(
     }
   }
   return out;
+}
+
+function getWindowMs(window: ChartWindow) {
+  if (window === "3h") return 3 * 60 * 60 * 1000;
+  if (window === "24h") return 24 * 60 * 60 * 1000;
+  return 12 * 60 * 60 * 1000;
+}
+
+function getBucketMs(resolution: ChartResolution) {
+  if (resolution === "5m") return 5 * 60 * 1000;
+  if (resolution === "15m") return 15 * 60 * 1000;
+  if (resolution === "1h") return 60 * 60 * 1000;
+  return 0;
+}
+
+function average(nums: number[]) {
+  if (!nums.length) return 0;
+  return nums.reduce((sum, value) => sum + value, 0) / nums.length;
+}
+
+function bucketSeries(data: ChartPoint[], resolution: ChartResolution): ChartPoint[] {
+  const bucketMs = getBucketMs(resolution);
+  if (!bucketMs) return data;
+
+  const buckets = new Map<number, ChartPoint[]>();
+  for (const point of data) {
+    const key = Math.floor(point.t / bucketMs) * bucketMs;
+    const list = buckets.get(key) ?? [];
+    list.push(point);
+    buckets.set(key, list);
+  }
+
+  return Array.from(buckets.entries()).map(([t, points]) => ({
+    t,
+    pv: average(points.map((p) => p.pv)),
+    load: average(points.map((p) => p.load)),
+    soc: average(points.map((p) => p.soc)),
+    battery: average(points.map((p) => p.battery)),
+    grid: average(points.map((p) => p.grid)),
+    batteryCharge: average(points.map((p) => p.batteryCharge)),
+    batteryDischarge: average(points.map((p) => p.batteryDischarge)),
+    solarShare: average(points.map((p) => p.solarShare)),
+  }));
 }
 
 function InlineSiteName({ site, onRenamed }: { site: Site; onRenamed: (name: string) => void }) {
@@ -235,6 +292,8 @@ function SiteDetail() {
   const spikeRef = useRef<SpikeState>({});
   const [tab, setTab] = useState<SiteTab>("dashboard");
   const [configSubTab, setConfigSubTab] = useState<string>("inverter");
+  const [chartWindow, setChartWindow] = useState<ChartWindow>("12h");
+  const [chartResolution, setChartResolution] = useState<ChartResolution>("5m");
 
   // If a viewer somehow lands on the Config tab (deep-link, role just demoted),
   // bounce them back to the dashboard so they don't see a "blocked" empty pane.
@@ -273,15 +332,12 @@ function SiteDetail() {
   async function load() {
     await loadSite();
 
-    // Charts muestran las últimas 12 horas. Filtramos por tiempo en vez de
-    // por cantidad de filas para que el rango coincida siempre con la etiqueta
-    // "last 12h" (sin importar la frecuencia de muestreo).
-    const since12h = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+    const sinceWindow = new Date(Date.now() - getWindowMs("24h")).toISOString();
     let tq = supabase
       .from("telemetry_samples")
       .select("recorded_at, ac_output_active_power, pv_input_power, battery_capacity, battery_voltage, battery_discharge_current, battery_charging_current, grid_voltage, inverter_mode, device_id")
       .eq("site_id", siteId)
-      .gte("recorded_at", since12h);
+      .gte("recorded_at", sinceWindow);
     tq = applyDeviceFilter(tq as never) as never;
     const { data: t } = await tq.order("recorded_at", { ascending: false }).limit(5000);
     const rows = (t ?? []).reverse() as Sample[];
@@ -331,9 +387,8 @@ function SiteDetail() {
           setLatest((prev) => mergeSample(prev, filterSpikes(prev, row, spikeRef.current)));
           setHistory((h) => {
             if (h.length && h[h.length - 1].recorded_at === row.recorded_at) return h;
-            const cutoff = Date.now() - 12 * 60 * 60 * 1000;
+            const cutoff = Date.now() - getWindowMs("24h");
             const next = [...h, row];
-            // Drop puntos fuera de la ventana de 12h
             let i = 0;
             while (i < next.length && new Date(next[i].recorded_at).getTime() < cutoff) i++;
             return i > 0 ? next.slice(i) : next;
@@ -356,7 +411,7 @@ function SiteDetail() {
         if (prev && prev.recorded_at === row.recorded_at) return prev;
         setHistory((h) => {
           if (h.length && h[h.length - 1].recorded_at === row.recorded_at) return h;
-          const cutoff = Date.now() - 12 * 60 * 60 * 1000;
+            const cutoff = Date.now() - getWindowMs("24h");
           const next = [...h, row];
           let i = 0;
           while (i < next.length && new Date(next[i].recorded_at).getTime() < cutoff) i++;
@@ -381,8 +436,6 @@ function SiteDetail() {
   useEffect(() => { localStorage.setItem("chart.smoothWindow", String(smoothWindow)); }, [smoothWindow]);
 
   const rawChartData = useMemo(() => {
-    // Aplicar filtro de picos en una pasada hacia adelante para que valores
-    // anómalos puntuales no deformen el gráfico.
     const skips: SpikeState = {};
     let prev: Sample | null = null;
     const cleaned: Sample[] = [];
@@ -395,22 +448,49 @@ function SiteDetail() {
       const bv = Number(r.battery_voltage ?? 0);
       const di = Number(r.battery_discharge_current ?? 0);
       const ci = Number(r.battery_charging_current ?? 0);
-      const batW = bv * (di - ci); // positivo = descarga, negativo = carga
+      const batW = bv * (di - ci);
+      const pv = r.pv_input_power == null ? 0 : Number(r.pv_input_power);
+      const load = r.ac_output_active_power == null ? 0 : Number(r.ac_output_active_power);
+      const battery = r.battery_voltage == null ? 0 : +batW.toFixed(1);
+      const batteryDischarge = Math.max(0, battery);
+      const batteryCharge = Math.max(0, -battery);
+      const grid = Number(r.grid_voltage ?? 0) > 50 ? Math.max(0, load + batteryCharge - pv - batteryDischarge) : 0;
       return {
         t: new Date(r.recorded_at).getTime(),
-        pv: r.pv_input_power == null ? null : Number(r.pv_input_power),
-        load: r.ac_output_active_power == null ? null : Number(r.ac_output_active_power),
-        soc: r.battery_capacity == null ? null : Number(r.battery_capacity),
-        grid: r.grid_voltage == null ? null : Number(r.grid_voltage),
-        battery: r.battery_voltage == null ? null : +batW.toFixed(1),
+        pv,
+        load,
+        soc: r.battery_capacity == null ? 0 : Number(r.battery_capacity),
+        grid,
+        battery,
       };
     });
   }, [history]);
 
-  const chartData = useMemo(
-    () => smoothSeries(rawChartData, smoothMode, smoothWindow),
-    [rawChartData, smoothMode, smoothWindow],
-  );
+  const chartData = useMemo(() => {
+    const cutoff = Date.now() - getWindowMs(chartWindow);
+    const windowed = rawChartData.filter((point) => point.t >= cutoff);
+    const smoothed = smoothSeries(windowed, smoothMode, smoothWindow).map((point) => ({
+      ...point,
+      batteryCharge: Math.max(0, -point.battery),
+      batteryDischarge: Math.max(0, point.battery),
+      solarShare: point.load > 0 ? Math.min(100, (point.pv / point.load) * 100) : 0,
+    }));
+    return bucketSeries(smoothed, chartResolution);
+  }, [chartResolution, chartWindow, rawChartData, smoothMode, smoothWindow]);
+
+  const chartStats = useMemo(() => {
+    if (!chartData.length) {
+      return { peakPv: 0, peakLoad: 0, avgLoad: 0, gridUseAvg: 0, selfSupply: 0 };
+    }
+    const peakPv = Math.max(...chartData.map((p) => p.pv));
+    const peakLoad = Math.max(...chartData.map((p) => p.load));
+    const avgLoad = average(chartData.map((p) => p.load));
+    const gridUseAvg = average(chartData.map((p) => p.grid));
+    const totalLoad = chartData.reduce((sum, p) => sum + p.load, 0);
+    const totalGrid = chartData.reduce((sum, p) => sum + p.grid, 0);
+    const selfSupply = totalLoad > 0 ? Math.max(0, Math.min(100, ((totalLoad - totalGrid) / totalLoad) * 100)) : 0;
+    return { peakPv, peakLoad, avgLoad, gridUseAvg, selfSupply };
+  }, [chartData]);
 
   if (!site) return <SiteDetailSkeleton />;
 
@@ -539,71 +619,188 @@ function SiteDetail() {
 
 
         <TabsContent value="charts" className="mt-6 space-y-6">
-          <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card/60 p-3 text-sm">
-            <div className="flex items-center gap-2">
-              <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">Suavizado</span>
+          <div className="overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-card via-card to-muted/30 shadow-elevated">
+            <div className="border-b border-border/60 px-5 py-5 sm:px-6">
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-accent">
+                    <LineChart className="h-3.5 w-3.5" strokeWidth={2.6} /> Telemetría real
+                  </div>
+                  <h2 className="mt-3 text-2xl font-bold tracking-tight">Charts corregidos y estabilizados</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">La ventana temporal ahora coincide con el rango visible y la serie de red usa potencia estimada, no voltaje.</p>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[540px] xl:grid-cols-4">
+                  <div>
+                    <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Rango</div>
+                    <div className="inline-flex w-full overflow-hidden rounded-xl border bg-background">
+                      {(["3h", "12h", "24h"] as const).map((range) => (
+                        <button
+                          key={range}
+                          type="button"
+                          onClick={() => setChartWindow(range)}
+                          className={`flex-1 px-3 py-2 text-xs font-semibold transition-colors ${chartWindow === range ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+                        >
+                          {range}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Resolución</div>
+                    <div className="inline-flex w-full overflow-hidden rounded-xl border bg-background">
+                      {([
+                        ["raw", "Raw"],
+                        ["5m", "5m"],
+                        ["15m", "15m"],
+                        ["1h", "1h"],
+                      ] as const).map(([value, label]) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => setChartResolution(value)}
+                          className={`flex-1 px-3 py-2 text-xs font-semibold transition-colors ${chartResolution === value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Suavizado</div>
+                    <div className="inline-flex w-full overflow-hidden rounded-xl border bg-background">
+                      {(["off", "mean", "median"] as const).map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setSmoothMode(m)}
+                          className={`flex-1 px-3 py-2 text-xs font-semibold transition-colors ${smoothMode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+                        >
+                          {m === "off" ? "Off" : m === "mean" ? "Media" : "Mediana"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-1 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      <span>Ventana filtro</span>
+                      <span className="font-mono normal-case">{smoothWindow} pts</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={2}
+                      max={30}
+                      step={1}
+                      value={smoothWindow}
+                      disabled={smoothMode === "off"}
+                      onChange={(e) => setSmoothWindow(Number(e.target.value))}
+                      className="w-full accent-primary disabled:opacity-40"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="inline-flex overflow-hidden rounded-md border">
-              {(["off", "mean", "median"] as const).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setSmoothMode(m)}
-                  className={`px-3 py-1 text-xs transition-colors ${smoothMode === m ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
-                >
-                  {m === "off" ? "Sin filtro" : m === "mean" ? "Promedio móvil" : "Mediana"}
-                </button>
-              ))}
-            </div>
-            <div className="ml-auto flex items-center gap-2">
-              <label className="text-xs text-muted-foreground">Ventana</label>
-              <input
-                type="range" min={2} max={30} step={1}
-                value={smoothWindow}
-                disabled={smoothMode === "off"}
-                onChange={(e) => setSmoothWindow(Number(e.target.value))}
-                className="w-32 accent-primary disabled:opacity-40"
-              />
-              <span className="w-12 text-right font-mono text-xs tabular-nums">{smoothWindow} pts</span>
+
+            <div className="grid gap-3 px-5 py-5 sm:grid-cols-2 xl:grid-cols-5 sm:px-6">
+              <QuickKpi label="Pico solar" value={`${Math.round(chartStats.peakPv).toLocaleString("es-CL")} W`} accent="var(--solar)" />
+              <QuickKpi label="Pico consumo" value={`${Math.round(chartStats.peakLoad).toLocaleString("es-CL")} W`} accent="var(--load)" />
+              <QuickKpi label="Carga media" value={`${Math.round(chartStats.avgLoad).toLocaleString("es-CL")} W`} accent="var(--primary)" />
+              <QuickKpi label="Red media" value={`${Math.round(chartStats.gridUseAvg).toLocaleString("es-CL")} W`} accent="var(--grid)" />
+              <QuickKpi label="Autosuministro" value={`${chartStats.selfSupply.toFixed(0)} %`} accent="var(--success)" />
             </div>
           </div>
-          <ChartCard title="Power (W) — last 12h">
+
+          <ChartCard title={`Potencias reales — ${chartWindow}`}>
             <AreaChart data={chartData}>
               <defs>
                 <linearGradient id="gPv" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(var(--solar, 45 100% 50%))" stopOpacity={0.6} />
-                  <stop offset="100%" stopColor="hsl(var(--solar, 45 100% 50%))" stopOpacity={0} />
+                  <stop offset="0%" stopColor="var(--solar)" stopOpacity={0.55} />
+                  <stop offset="100%" stopColor="var(--solar)" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="gLoad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(var(--load, 200 90% 55%))" stopOpacity={0.6} />
-                  <stop offset="100%" stopColor="hsl(var(--load, 200 90% 55%))" stopOpacity={0} />
+                  <stop offset="0%" stopColor="var(--load)" stopOpacity={0.45} />
+                  <stop offset="100%" stopColor="var(--load)" stopOpacity={0} />
                 </linearGradient>
-                <linearGradient id="gBat" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(var(--battery, 142 70% 45%))" stopOpacity={0.5} />
-                  <stop offset="100%" stopColor="hsl(var(--battery, 142 70% 45%))" stopOpacity={0} />
+                <linearGradient id="gGrid" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--grid)" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="var(--grid)" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-              <XAxis dataKey="t" tickFormatter={(v) => format(new Date(v), "HH:mm")} fontSize={11} />
-              <YAxis fontSize={11} />
-              <Tooltip labelFormatter={(v) => format(new Date(v as number), "PP HH:mm")} />
+              <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+              <XAxis dataKey="t" tickFormatter={(v) => format(new Date(v), chartWindow === "24h" ? "dd HH:mm" : "HH:mm")} fontSize={11} minTickGap={24} />
+              <YAxis fontSize={11} unit=" W" />
+              <Tooltip labelFormatter={(v) => format(new Date(v as number), "dd/MM HH:mm")} formatter={(value) => [`${Math.round(Number(value ?? 0)).toLocaleString("es-CL")} W`, ""]} />
               <Legend />
-              <Area type="monotone" dataKey="pv" name="Solar" stroke="var(--solar)" fill="url(#gPv)" />
-              <Area type="monotone" dataKey="load" name="Load" stroke="var(--load)" fill="url(#gLoad)" />
-              <Area type="monotone" dataKey="battery" name="Batería (+desc/−carga)" stroke="var(--battery)" fill="url(#gBat)" />
+              <Area type="monotone" dataKey="pv" name="Solar" stroke="var(--solar)" fill="url(#gPv)" strokeWidth={2.2} />
+              <Area type="monotone" dataKey="load" name="Consumo" stroke="var(--load)" fill="url(#gLoad)" strokeWidth={2.2} />
+              <Area type="monotone" dataKey="grid" name="Red estimada" stroke="var(--grid)" fill="url(#gGrid)" strokeWidth={2} />
             </AreaChart>
           </ChartCard>
 
-          <ChartCard title="Battery SOC (%) — last 12h">
-            <AreaChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-              <XAxis dataKey="t" tickFormatter={(v) => format(new Date(v), "HH:mm")} fontSize={11} />
-              <YAxis domain={[0, 100]} fontSize={11} />
-              <Tooltip labelFormatter={(v) => format(new Date(v as number), "PP HH:mm")} />
-              <Area type="monotone" dataKey="soc" stroke="var(--battery)" fill="var(--battery)" fillOpacity={0.2} />
-            </AreaChart>
-          </ChartCard>
+          <div className="grid gap-6 xl:grid-cols-2">
+            <ChartCard title="Batería — carga / descarga (W)">
+              <AreaChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                <XAxis dataKey="t" tickFormatter={(v) => format(new Date(v), chartWindow === "24h" ? "dd HH:mm" : "HH:mm")} fontSize={11} minTickGap={24} />
+                <YAxis fontSize={11} unit=" W" />
+                <Tooltip labelFormatter={(v) => format(new Date(v as number), "dd/MM HH:mm")} />
+                <Legend />
+                <Area type="monotone" dataKey="batteryDischarge" name="Descarga" stroke="var(--battery)" fill="var(--battery)" fillOpacity={0.22} strokeWidth={2.2} />
+                <Area type="monotone" dataKey="batteryCharge" name="Carga" stroke="var(--accent)" fill="var(--accent)" fillOpacity={0.18} strokeWidth={2.2} />
+              </AreaChart>
+            </ChartCard>
+
+            <ChartCard title="Estado de batería y cobertura solar">
+              <AreaChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                <XAxis dataKey="t" tickFormatter={(v) => format(new Date(v), chartWindow === "24h" ? "dd HH:mm" : "HH:mm")} fontSize={11} minTickGap={24} />
+                <YAxis yAxisId="left" domain={[0, 100]} fontSize={11} unit=" %" />
+                <YAxis yAxisId="right" orientation="right" domain={[0, 100]} fontSize={11} unit=" %" />
+                <Tooltip labelFormatter={(v) => format(new Date(v as number), "dd/MM HH:mm")} />
+                <Legend />
+                <Area yAxisId="left" type="monotone" dataKey="soc" name="SOC batería" stroke="var(--battery)" fill="var(--battery)" fillOpacity={0.18} strokeWidth={2.2} />
+                <Area yAxisId="right" type="monotone" dataKey="solarShare" name="Cobertura solar" stroke="var(--success)" fill="var(--success)" fillOpacity={0.12} strokeWidth={2} />
+              </AreaChart>
+            </ChartCard>
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border bg-card">
+            <div className="border-b px-4 py-3 text-sm font-semibold">Últimos puntos procesados</div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] text-sm">
+                <thead className="bg-muted/40 text-left">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">Hora</th>
+                    <th className="px-4 py-3 font-medium">Solar</th>
+                    <th className="px-4 py-3 font-medium">Consumo</th>
+                    <th className="px-4 py-3 font-medium">Red</th>
+                    <th className="px-4 py-3 font-medium">Bat. carga</th>
+                    <th className="px-4 py-3 font-medium">Bat. descarga</th>
+                    <th className="px-4 py-3 font-medium">SOC</th>
+                    <th className="px-4 py-3 font-medium">Cobertura solar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...chartData].slice(-18).reverse().map((point) => (
+                    <tr key={point.t} className="border-t border-border/60">
+                      <td className="px-4 py-3 font-mono text-xs">{format(new Date(point.t), "dd/MM HH:mm")}</td>
+                      <td className="px-4 py-3">{Math.round(point.pv).toLocaleString("es-CL")} W</td>
+                      <td className="px-4 py-3">{Math.round(point.load).toLocaleString("es-CL")} W</td>
+                      <td className="px-4 py-3">{Math.round(point.grid).toLocaleString("es-CL")} W</td>
+                      <td className="px-4 py-3">{Math.round(point.batteryCharge).toLocaleString("es-CL")} W</td>
+                      <td className="px-4 py-3">{Math.round(point.batteryDischarge).toLocaleString("es-CL")} W</td>
+                      <td className="px-4 py-3">{point.soc.toFixed(1)} %</td>
+                      <td className="px-4 py-3">{point.solarShare.toFixed(0)} %</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {chartData.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">Sin datos suficientes en la ventana seleccionada.</p>}
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="totals" className="mt-6 space-y-6">
@@ -1204,6 +1401,15 @@ function ChartCard({ title, children }: { title: string; children: React.ReactEl
       <div className="h-64 w-full">
         <ResponsiveContainer width="100%" height="100%">{children}</ResponsiveContainer>
       </div>
+    </div>
+  );
+}
+
+function QuickKpi({ label, value, accent }: { label: string; value: string; accent: string }) {
+  return (
+    <div className="rounded-2xl border bg-background/80 p-4 shadow-sm">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
+      <div className="mt-2 text-2xl font-bold tabular-nums" style={{ color: accent }}>{value}</div>
     </div>
   );
 }
