@@ -18,6 +18,7 @@ export function RealtimeStatusMonitor() {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const downTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastConnectRef = useRef(0);
 
   const SUSTAINED_DOWN_MS = 20_000; // only warn after 20s of being down
 
@@ -42,6 +43,9 @@ export function RealtimeStatusMonitor() {
   }
 
   function connect() {
+    const now = Date.now();
+    if (now - lastConnectRef.current < 10_000) return channelRef.current ?? undefined;
+    lastConnectRef.current = now;
     if (channelRef.current) {
       try { supabase.removeChannel(channelRef.current); } catch {}
       channelRef.current = null;
@@ -81,7 +85,10 @@ export function RealtimeStatusMonitor() {
   useEffect(() => {
     connect();
     const onOnline = () => connect();
-    const onVisible = () => { if (document.visibilityState === "visible") connect(); };
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      if (!channelRef.current) connect();
+    };
     window.addEventListener("online", onOnline);
     document.addEventListener("visibilitychange", onVisible);
     return () => {
