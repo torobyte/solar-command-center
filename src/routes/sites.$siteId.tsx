@@ -1403,6 +1403,15 @@ function ChartCard({ title, children }: { title: string; children: React.ReactEl
   );
 }
 
+function QuickKpi({ label, value, accent }: { label: string; value: string; accent: string }) {
+  return (
+    <div className="rounded-2xl border bg-background/80 p-4 shadow-sm">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
+      <div className="mt-2 text-2xl font-bold tabular-nums" style={{ color: accent }}>{value}</div>
+    </div>
+  );
+}
+
 /* ---------------- Inverter-style dashboard ---------------- */
 
 function Section({ title, children, icon: Icon }: { title: string; children: React.ReactNode; icon?: typeof Cpu }) {
