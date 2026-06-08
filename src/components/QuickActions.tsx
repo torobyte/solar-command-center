@@ -247,7 +247,7 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG, readO
         <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2">
           {config.amps && (
             <ActionGroup
-              icon={<BatteryCharging className="h-3.5 w-3.5" />}
+              icon={<BatteryCharging className="h-4 w-4" strokeWidth={2.4} />}
               title="Carga desde red (A)"
               hint={current.amps != null ? `Actual: ${current.amps} A` : "Sin datos del inversor todavía · al aplicar un valor se confirmará al recibir respuesta"}
             >
@@ -276,7 +276,7 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG, readO
 
           {config.outputPriority && (
             <ActionGroup
-              icon={<Power className="h-3.5 w-3.5" />}
+              icon={<Power className="h-4 w-4" strokeWidth={2.4} />}
               title="Prioridad de salida"
               hint={current.outputPriority ? `Actual: ${POP_OPTS.find((o) => o.v === current.outputPriority)?.l ?? current.outputPriority}` : "Sin datos del inversor todavía"}
             >
@@ -301,7 +301,7 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG, readO
 
           {config.chargerPriority && (
             <ActionGroup
-              icon={<Zap className="h-3.5 w-3.5" />}
+              icon={<Zap className="h-4 w-4" strokeWidth={2.4} />}
               title="Prioridad de carga"
               hint={current.chargerPriority ? `Actual: ${PCP_OPTS.find((o) => o.v === current.chargerPriority)?.l ?? current.chargerPriority}` : "Sin datos del inversor todavía"}
             >
@@ -326,7 +326,7 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG, readO
 
           {config.buzzer && (
             <ActionGroup
-              icon={current.buzzerEnabled === false ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+              icon={current.buzzerEnabled === false ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-4 w-4" strokeWidth={2.4} />}
               title="Buzzer / alarma"
               hint={current.buzzerEnabled == null ? "Sin datos del inversor todavía" : `Actual: ${current.buzzerEnabled ? "Encendido" : "Silenciado"}`}
             >
