@@ -14,6 +14,7 @@ import {
 import { format } from "date-fns";
 import { useI18n } from "@/lib/i18n";
 import { SiteDashboardView } from "@/components/SiteDashboardView";
+import { SolarMonitorView } from "@/components/SolarMonitorView";
 import { SavingsTabView } from "@/components/SavingsTabView";
 import { PvSystemConfigCard, usePvConfig } from "@/components/PvSystemConfig";
 import { ProductionHistoryCompare } from "@/components/ProductionHistoryCompare";
