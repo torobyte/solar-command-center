@@ -22,7 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<Role | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [roleLoading, setRoleLoading] = useState(true);
-  const [bootstrapped, setBootstrapped] = useState(false);
+  const bootstrappedRef = useState({ current: false })[0];
 
   useEffect(() => {
     let active = true;
@@ -109,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } finally {
         if (active) {
           setAuthLoading(false);
-          setBootstrapped(true);
+          bootstrappedRef.current = true;
         }
       }
     };
@@ -125,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await applySession(restored ?? null);
           if (active) {
             setAuthLoading(false);
-            setBootstrapped(true);
+            bootstrappedRef.current = true;
           }
         })();
         return;
@@ -141,12 +141,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       if (event === "SIGNED_OUT") userInitiatedSignOut = false;
-      const shouldBlockUi = !bootstrapped;
+      const shouldBlockUi = !bootstrappedRef.current;
       if (shouldBlockUi) setAuthLoading(true);
       void applySession(nextSession).finally(() => {
         if (active) {
           if (shouldBlockUi) setAuthLoading(false);
-          setBootstrapped(true);
+          bootstrappedRef.current = true;
         }
       });
     });
