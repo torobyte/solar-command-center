@@ -219,28 +219,32 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG, readO
   const noneEnabled = !config.amps && !config.outputPriority && !config.chargerPriority && !config.buzzer;
 
   return (
-    <div className="dashboard-card h-full p-5 sm:p-6 animate-fade-in">
-      <div className="relative mb-4 flex items-center gap-3">
-        <div className="dashboard-icon-chip flex h-10 w-10 items-center justify-center text-accent">
-          <Zap className="h-4 w-4" strokeWidth={2.4} />
+    <div className="dashboard-card relative h-full overflow-hidden p-6 sm:p-8 animate-fade-in">
+      {/* decorative gradient accent */}
+      <div className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-gradient-to-br from-accent/25 via-accent/10 to-transparent blur-3xl" aria-hidden />
+      <div className="pointer-events-none absolute -left-16 bottom-0 h-40 w-40 rounded-full bg-gradient-to-tr from-primary/15 to-transparent blur-3xl" aria-hidden />
+
+      <div className="relative mb-6 flex items-center gap-4">
+        <div className="dashboard-icon-chip flex h-12 w-12 items-center justify-center text-accent shadow-md ring-1 ring-accent/30">
+          <Zap className="h-5 w-5" strokeWidth={2.4} />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-semibold sm:text-base">Acciones rápidas</h3>
-          <p className="text-[11px] text-muted-foreground">Configuración remota inmediata · valores actuales del inversor</p>
+          <h2 className="text-lg font-bold tracking-tight sm:text-xl">Acciones rápidas</h2>
+          <p className="text-xs text-muted-foreground sm:text-sm">Controla el inversor en tiempo real. Cada cambio pedirá confirmación.</p>
         </div>
         {readOnly && (
-          <span className="shrink-0 rounded-full border border-muted-foreground/30 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <span className="shrink-0 rounded-full border border-muted-foreground/30 bg-muted/50 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Solo lectura
           </span>
         )}
       </div>
 
       {noneEnabled ? (
-        <p className="dashboard-panel border-dashed p-4 text-center text-xs text-muted-foreground">
+        <p className="dashboard-panel border-dashed p-6 text-center text-sm text-muted-foreground">
           No hay acciones habilitadas. Actívalas en Configuración → Inversor → Acciones rápidas.
         </p>
       ) : (
-        <div className="grid grid-cols-1 gap-3 @[520px]:grid-cols-2">
+        <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2">
           {config.amps && (
             <ActionGroup
               icon={<BatteryCharging className="h-3.5 w-3.5" />}
