@@ -219,31 +219,35 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG, readO
   const noneEnabled = !config.amps && !config.outputPriority && !config.chargerPriority && !config.buzzer;
 
   return (
-    <div className="dashboard-card h-full p-5 sm:p-6 animate-fade-in">
-      <div className="relative mb-4 flex items-center gap-3">
-        <div className="dashboard-icon-chip flex h-10 w-10 items-center justify-center text-accent">
-          <Zap className="h-4 w-4" strokeWidth={2.4} />
+    <div className="dashboard-card relative h-full overflow-hidden p-6 sm:p-8 animate-fade-in">
+      {/* decorative gradient accent */}
+      <div className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-gradient-to-br from-accent/25 via-accent/10 to-transparent blur-3xl" aria-hidden />
+      <div className="pointer-events-none absolute -left-16 bottom-0 h-40 w-40 rounded-full bg-gradient-to-tr from-primary/15 to-transparent blur-3xl" aria-hidden />
+
+      <div className="relative mb-6 flex items-center gap-4">
+        <div className="dashboard-icon-chip flex h-12 w-12 items-center justify-center text-accent shadow-md ring-1 ring-accent/30">
+          <Zap className="h-5 w-5" strokeWidth={2.4} />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-semibold sm:text-base">Acciones rápidas</h3>
-          <p className="text-[11px] text-muted-foreground">Configuración remota inmediata · valores actuales del inversor</p>
+          <h2 className="text-lg font-bold tracking-tight sm:text-xl">Acciones rápidas</h2>
+          <p className="text-xs text-muted-foreground sm:text-sm">Controla el inversor en tiempo real. Cada cambio pedirá confirmación.</p>
         </div>
         {readOnly && (
-          <span className="shrink-0 rounded-full border border-muted-foreground/30 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <span className="shrink-0 rounded-full border border-muted-foreground/30 bg-muted/50 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Solo lectura
           </span>
         )}
       </div>
 
       {noneEnabled ? (
-        <p className="dashboard-panel border-dashed p-4 text-center text-xs text-muted-foreground">
+        <p className="dashboard-panel border-dashed p-6 text-center text-sm text-muted-foreground">
           No hay acciones habilitadas. Actívalas en Configuración → Inversor → Acciones rápidas.
         </p>
       ) : (
-        <div className="grid grid-cols-1 gap-3 @[520px]:grid-cols-2">
+        <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2">
           {config.amps && (
             <ActionGroup
-              icon={<BatteryCharging className="h-3.5 w-3.5" />}
+              icon={<BatteryCharging className="h-4 w-4" strokeWidth={2.4} />}
               title="Carga desde red (A)"
               hint={current.amps != null ? `Actual: ${current.amps} A` : "Sin datos del inversor todavía · al aplicar un valor se confirmará al recibir respuesta"}
             >
@@ -272,7 +276,7 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG, readO
 
           {config.outputPriority && (
             <ActionGroup
-              icon={<Power className="h-3.5 w-3.5" />}
+              icon={<Power className="h-4 w-4" strokeWidth={2.4} />}
               title="Prioridad de salida"
               hint={current.outputPriority ? `Actual: ${POP_OPTS.find((o) => o.v === current.outputPriority)?.l ?? current.outputPriority}` : "Sin datos del inversor todavía"}
             >
@@ -297,7 +301,7 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG, readO
 
           {config.chargerPriority && (
             <ActionGroup
-              icon={<Zap className="h-3.5 w-3.5" />}
+              icon={<Zap className="h-4 w-4" strokeWidth={2.4} />}
               title="Prioridad de carga"
               hint={current.chargerPriority ? `Actual: ${PCP_OPTS.find((o) => o.v === current.chargerPriority)?.l ?? current.chargerPriority}` : "Sin datos del inversor todavía"}
             >
@@ -322,7 +326,7 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG, readO
 
           {config.buzzer && (
             <ActionGroup
-              icon={current.buzzerEnabled === false ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+              icon={current.buzzerEnabled === false ? <VolumeX className="h-4 w-4" strokeWidth={2.4} /> : <Volume2 className="h-4 w-4" strokeWidth={2.4} />}
               title="Buzzer / alarma"
               hint={current.buzzerEnabled == null ? "Sin datos del inversor todavía" : `Actual: ${current.buzzerEnabled ? "Encendido" : "Silenciado"}`}
             >
@@ -387,12 +391,15 @@ export function QuickActions({ siteId, agentBase, config = DEFAULT_CONFIG, readO
 
 function ActionGroup({ icon, title, hint, children }: { icon: React.ReactNode; title: string; hint?: string; children: React.ReactNode }) {
   return (
-    <div className="dashboard-panel p-3">
-      <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-        {icon}{title}
+    <div className="dashboard-panel group relative overflow-hidden rounded-2xl p-5 transition-all duration-300 hover:border-accent/40 hover:shadow-lg">
+      <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent/10 text-accent ring-1 ring-accent/20">
+          {icon}
+        </span>
+        <span className="tracking-tight">{title}</span>
       </div>
-      <div className="flex flex-wrap gap-1.5">{children}</div>
-      {hint && <p className="mt-2 text-[10px] text-muted-foreground/70">{hint}</p>}
+      <div className="grid grid-cols-2 gap-2">{children}</div>
+      {hint && <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground/80">{hint}</p>}
     </div>
   );
 }
@@ -405,14 +412,17 @@ function Chip({ label, onClick, loading, active, warning }: { label: string; onC
       onClick={onClick}
       title={warning && !active ? "Valor bajo — requiere confirmación" : undefined}
       className={[
-        "inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold transition-all",
-        "disabled:opacity-50 disabled:cursor-wait active:scale-95",
+        "relative inline-flex h-12 items-center justify-center gap-1.5 rounded-xl border px-3 text-sm font-semibold transition-all duration-200",
+        "disabled:opacity-50 disabled:cursor-wait active:scale-[0.97]",
         active
-          ? "border-accent bg-accent text-accent-foreground shadow-md ring-2 ring-accent/30"
-          : "border-border bg-card text-foreground hover:bg-muted hover:border-accent/40",
+          ? "border-transparent bg-gradient-to-br from-accent to-accent/80 text-accent-foreground shadow-lg shadow-accent/30 ring-2 ring-accent/40"
+          : "border-border/70 bg-background/60 text-foreground backdrop-blur hover:border-accent/50 hover:bg-accent/5 hover:shadow-md",
       ].join(" ")}
     >
-      {warning && !active && <AlertTriangle className="h-3 w-3 text-warning" strokeWidth={2.6} />}
+      {active && (
+        <span className="absolute right-2 top-1.5 h-1.5 w-1.5 rounded-full bg-accent-foreground/80 shadow" aria-hidden />
+      )}
+      {warning && !active && <AlertTriangle className="h-3.5 w-3.5 text-warning" strokeWidth={2.6} />}
       {loading ? "…" : label}
     </button>
   );

@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Copy, Battery, Sun, Plug, Cpu, AlertCircle, LayoutDashboard, LineChart, Calculator, Settings2, Info, Wifi, HardDrive, Terminal, SlidersHorizontal, Download, Pencil, Check, X, Coins } from "lucide-react";
+import { ArrowLeft, Copy, Battery, Sun, Plug, Cpu, AlertCircle, LayoutDashboard, LineChart, Calculator, Settings2, Info, Wifi, HardDrive, Terminal, SlidersHorizontal, Download, Pencil, Check, X, Coins, Zap } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
@@ -25,7 +25,7 @@ import { BellRing } from "lucide-react";
 import { MobileBottomNav, type SiteTab } from "@/components/MobileBottomNav";
 import { PageHeaderSkeleton, DashboardSkeleton, SectionSkeleton } from "@/components/LoadingStates";
 import { InverterConfigWizard } from "@/components/InverterConfigWizard";
-import { QuickActionsConfigCard } from "@/components/QuickActions";
+import { QuickActions, QuickActionsConfigCard, useQuickActionsConfig } from "@/components/QuickActions";
 import { LockscreenLiveCard } from "@/components/LockscreenLiveCard";
 import { CommandStatusFeed } from "@/components/CommandStatusFeed";
 import { SiteSharing } from "@/components/SiteSharing";
@@ -416,6 +416,7 @@ function SiteDetail() {
 
   const sidebarItems: { id: SiteTab; label: string; icon: typeof LayoutDashboard }[] = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "control", label: "Control", icon: Zap },
     { id: "charts", label: "Charts", icon: LineChart },
     { id: "totals", label: "Totales", icon: Calculator },
     { id: "savings", label: "Ahorro", icon: Coins },
@@ -512,6 +513,7 @@ function SiteDetail() {
         {/* Tablet-only top tabs. Mobile usa MobileBottomNav (abajo), desktop usa el sidebar. */}
         <TabsList className="hidden h-11 rounded-full bg-muted/60 p-1 md:inline-flex lg:hidden">
           <TabsTrigger value="dashboard" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><LayoutDashboard className="h-3.5 w-3.5" strokeWidth={2.2} />Dashboard</TabsTrigger>
+          <TabsTrigger value="control" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Zap className="h-3.5 w-3.5" strokeWidth={2.2} />Control</TabsTrigger>
           <TabsTrigger value="charts" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><LineChart className="h-3.5 w-3.5" strokeWidth={2.2} />Charts</TabsTrigger>
           <TabsTrigger value="totals" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Calculator className="h-3.5 w-3.5" strokeWidth={2.2} />Totals</TabsTrigger>
           <TabsTrigger value="savings" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Coins className="h-3.5 w-3.5" strokeWidth={2.2} />Ahorro</TabsTrigger>
@@ -529,6 +531,12 @@ function SiteDetail() {
             </div>
           )}
         </TabsContent>
+
+        <TabsContent value="control" className="mt-6">
+          <ControlPanelView siteId={siteId} canCommand={roleInfo.role === "owner" || roleInfo.role === "admin" || roleInfo.role === "operator"} />
+        </TabsContent>
+
+
 
         <TabsContent value="charts" className="mt-6 space-y-6">
           <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card/60 p-3 text-sm">
@@ -635,6 +643,39 @@ function SiteDetail() {
     </>
   );
 }
+
+/* ---------------- Control panel (Quick actions + Command status) ---------------- */
+
+function ControlPanelView({ siteId, canCommand }: { siteId: string; canCommand: boolean }) {
+  const { config } = useQuickActionsConfig(siteId);
+  return (
+    <div className="space-y-6">
+      <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-accent/10 via-card to-card p-6 shadow-elevated sm:p-8">
+        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-accent/20 blur-3xl" aria-hidden />
+        <div className="pointer-events-none absolute -left-20 -bottom-24 h-64 w-64 rounded-full bg-primary/15 blur-3xl" aria-hidden />
+        <div className="relative flex flex-col gap-2">
+          <div className="inline-flex items-center gap-2 self-start rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-accent">
+            <Zap className="h-3.5 w-3.5" strokeWidth={2.6} /> Centro de control
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Comandos del inversor</h1>
+          <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
+            Aplica cambios remotos al inversor y haz seguimiento del estado de cada comando enviado en tiempo real.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="xl:col-span-2">
+          <QuickActions siteId={siteId} config={config} readOnly={!canCommand} />
+        </div>
+        <div className="xl:col-span-1">
+          <CommandStatusFeed siteId={siteId} limit={12} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 /* ---------------- Totals view with period selector ---------------- */
 
