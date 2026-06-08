@@ -452,7 +452,9 @@ function SiteDetail() {
       const pv = r.pv_input_power == null ? 0 : Number(r.pv_input_power);
       const load = r.ac_output_active_power == null ? 0 : Number(r.ac_output_active_power);
       const battery = r.battery_voltage == null ? 0 : +batW.toFixed(1);
-      const grid = Number(r.grid_voltage ?? 0) > 50 ? Math.max(0, load - pv - Math.max(0, battery)) : 0;
+      const batteryDischarge = Math.max(0, battery);
+      const batteryCharge = Math.max(0, -battery);
+      const grid = Number(r.grid_voltage ?? 0) > 50 ? Math.max(0, load + batteryCharge - pv - batteryDischarge) : 0;
       return {
         t: new Date(r.recorded_at).getTime(),
         pv,
