@@ -6,6 +6,7 @@ import { useSolarReferenceWeather, type DashboardWeatherData } from "@/component
 import { formatInverterMode, type DashboardSample } from "@/components/SiteDashboardView";
 import { useTheme } from "@/lib/theme";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { SavingsCard } from "@/components/SavingsCard";
 import sceneSunnyDay from "@/assets/scene-sunny-day.jpg";
 import sceneCloudyDay from "@/assets/scene-cloudy-day.jpg";
 import sceneRainyNight from "@/assets/scene-rainy-night.jpg";
@@ -947,7 +948,17 @@ export function SolarMonitorView({
                 light={isLight}
             />
           )}
-        </div>
+      </div>
+
+      {/* ============= ECONOMIC SAVINGS ============= */}
+      <SavingsCard
+        siteId={siteId}
+        pvW={solarW}
+        batteryDischargeW={batDischargeW}
+        energyPrice={energyPrice || null}
+        feedInPrice={feedInPrice || null}
+        currency={currency || null}
+      />
       </div>
         </div>
       </div>
