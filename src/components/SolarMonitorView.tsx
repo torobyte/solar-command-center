@@ -951,20 +951,14 @@ export function SolarMonitorView({
       </div>
 
       {/* ============= ECONOMIC SAVINGS ============= */}
-      <div
-        className="rounded-2xl border p-4 backdrop-blur-md"
-        style={{ background: isLight ? "rgba(255,255,255,0.82)" : "rgba(8,18,30,0.85)", borderColor: isLight ? "rgba(15,23,42,0.08)" : "rgba(255,255,255,0.08)" }}
-      >
-        <div className="mb-3 text-[11px] font-semibold tracking-wider text-muted-foreground">AHORRO ECONÓMICO</div>
-        <SavingsCard
-          siteId={siteId}
-          pvW={solarW}
-          batteryDischargeW={batDischargeW}
-          energyPrice={energyPrice || null}
-          feedInPrice={feedInPrice || null}
-          currency={currency || null}
-        />
-      </div>
+      <SavingsCard
+        siteId={siteId}
+        pvW={solarW}
+        batteryDischargeW={batDischargeW}
+        energyPrice={energyPrice || null}
+        feedInPrice={feedInPrice || null}
+        currency={currency || null}
+      />
       </div>
         </div>
       </div>
