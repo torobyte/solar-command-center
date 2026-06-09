@@ -58,12 +58,8 @@ export const WIDGET_DEFS: WidgetDef[] = [
   { id: "system", label: "Estado general del sistema" },
   { id: "backup", label: "Tiempo de respaldo" },
   { id: "batteryStatus", label: "Batería" },
-  { id: "flow", label: "Diagrama de flujo de energía" },
-  { id: "solarProduction", label: "Producción solar" },
-  { id: "houseConsumption", label: "Consumo de la casa" },
   { id: "environmental", label: "Impacto ambiental" },
   { id: "weather", label: "Clima y radiación solar" },
-  { id: "savings", label: "Ahorro económico" },
 ];
 
 /**
