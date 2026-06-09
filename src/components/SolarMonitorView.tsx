@@ -993,19 +993,19 @@ export function SolarMonitorView({
 
       {/* ============= ECONOMIC SAVINGS ============= */}
       <div
-        className="rounded-2xl border p-4 backdrop-blur-md"
+        className="rounded-2xl border p-3 backdrop-blur-md"
         style={{ background: isLight ? "rgba(255,255,255,0.82)" : "rgba(8,18,30,0.85)", borderColor: isLight ? "rgba(15,23,42,0.08)" : "rgba(255,255,255,0.08)" }}
       >
-        <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="mb-2 flex items-center justify-between gap-2">
           <div className="text-[11px] font-semibold tracking-wider text-muted-foreground">AHORRO ECONÓMICO</div>
           {energyPrice > 0 && (
             <div className="text-[10px] text-muted-foreground">
-              Tarifa {fmtMoney(energyPrice)}/kWh{feedInPrice > 0 ? ` · Inyección ${fmtMoney(feedInPrice)}/kWh` : ""}
+              {fmtMoney(energyPrice)}/kWh{feedInPrice > 0 ? ` · ${fmtMoney(feedInPrice)}/kWh inj.` : ""}
             </div>
           )}
         </div>
         {energyPrice > 0 ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <SummaryCard
               icon={<Zap className="h-5 w-5" style={{ color: "#22c55e" }} />}
               accent="#22c55e"
@@ -1036,7 +1036,7 @@ export function SolarMonitorView({
             <SummaryCard
               icon={<BatteryFull className="h-5 w-5" style={{ color: "#a78bfa" }} />}
               accent="#a78bfa"
-              title="Año proyectado"
+              title="Año proj."
               value={fmtMoney(savingsYear)}
               unit=""
               sub={savings.yearKwh > 0 ? `${savings.yearKwh.toFixed(0)} kWh reales` : "estimado"}
@@ -1049,8 +1049,8 @@ export function SolarMonitorView({
           </p>
         )}
       </div>
-        </div>
-      </div>
+    </div>
+  </div>
 
       {/* ============= DETAIL DIALOGS ============= */}
       <WidgetDetailDialog
