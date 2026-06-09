@@ -15,6 +15,10 @@ interface Props {
   currency?: string | null;
   /** Estimated daily kWh from forecast (optional, for projections). */
   forecastDailyKwh?: number | null;
+  /** When true, render without the outer card chrome (for use inside another card). */
+  bare?: boolean;
+  /** When true, hide the "Ver historial completo" link. */
+  hideHistoryLink?: boolean;
 }
 
 function fmt(n: number, currency: string): string {
@@ -38,7 +42,7 @@ function fmt(n: number, currency: string): string {
  * Reads from the `daily_totals` aggregation table so today, this month
  * and this year are always available regardless of telemetry density.
  */
-export function SavingsCard({ siteId, pvW, batteryDischargeW, energyPrice, feedInPrice, currency, forecastDailyKwh }: Props) {
+export function SavingsCard({ siteId, pvW, batteryDischargeW, energyPrice, feedInPrice, currency, forecastDailyKwh, bare, hideHistoryLink }: Props) {
   const cur = currency || "CLP";
   const price = energyPrice ?? 0;
   const [todayKwh, setTodayKwh] = useState<number | null>(null);
@@ -78,8 +82,8 @@ export function SavingsCard({ siteId, pvW, batteryDischargeW, energyPrice, feedI
   }, [siteId]);
 
   if (!price) {
-    return (
-      <div className="dashboard-card p-5 sm:p-6 animate-fade-in h-full">
+    const emptyInner = (
+      <>
         <div className="flex items-center gap-2 mb-2">
           <Coins className="h-5 w-5 text-[var(--solar)]" />
           <div className="text-sm font-semibold">Ahorro económico</div>
@@ -87,8 +91,10 @@ export function SavingsCard({ siteId, pvW, batteryDischargeW, energyPrice, feedI
         <p className="text-xs text-muted-foreground">
           Configura el <strong>precio del kWh</strong> en el sistema fotovoltaico para ver cuánto dinero estás ahorrando.
         </p>
-      </div>
+      </>
     );
+    if (bare) return <div className="animate-fade-in">{emptyInner}</div>;
+    return <div className="dashboard-card p-5 sm:p-6 animate-fade-in h-full">{emptyInner}</div>;
   }
 
   const liveW = Math.max(0, Number(pvW ?? 0)) + Math.max(0, Number(batteryDischargeW ?? 0));
@@ -102,73 +108,78 @@ export function SavingsCard({ siteId, pvW, batteryDischargeW, energyPrice, feedI
     : (forecastDailyKwh ?? 0) * 365;
   const savingsYear = projectedYearKwh * price;
 
-  return (
-    <div className="@container dashboard-card dashboard-card--success p-5 sm:p-6 animate-fade-in h-full">
-
-      <div className="relative">
-        <div className="flex items-center justify-between gap-2 mb-4">
-          <div className="flex items-center gap-2">
-            <div className="rounded-md bg-emerald-500/15 p-1.5">
-              <Coins className="h-4 w-4 text-emerald-600" />
-            </div>
-            <div>
-              <div className="text-sm font-semibold">Ahorro económico</div>
-              <div className="text-[10px] text-muted-foreground">
-                Tarifa {fmt(price, cur)}/kWh{feedInPrice ? ` · Inyección ${fmt(feedInPrice, cur)}/kWh` : ""}
-              </div>
+  const inner = (
+    <div className="relative">
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <div className="flex items-center gap-2">
+          <div className="rounded-md bg-emerald-500/15 p-1.5">
+            <Coins className="h-4 w-4 text-emerald-600" />
+          </div>
+          <div>
+            <div className="text-sm font-semibold">Ahorro económico</div>
+            <div className="text-[10px] text-muted-foreground">
+              Tarifa {fmt(price, cur)}/kWh{feedInPrice ? ` · Inyección ${fmt(feedInPrice, cur)}/kWh` : ""}
             </div>
           </div>
-          {liveW > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> en vivo
-            </span>
-          )}
         </div>
-
-        <div className="mb-4 rounded-xl border bg-[linear-gradient(180deg,color-mix(in_oklab,var(--success)_12%,var(--tint-base)),transparent)] p-4">
-          <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-            Ahorrando ahora
-          </div>
-          <div className="flex items-baseline gap-1">
-            <div className="text-4xl font-extrabold text-emerald-600 tabular-nums">
-              {fmt(savingsPerHour, cur)}
-            </div>
-            <div className="text-xs text-muted-foreground">/hora</div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-2 @[520px]:grid-cols-3">
-          <Stat
-            icon={<Sparkles className="h-3.5 w-3.5" />}
-            label="Hoy"
-            value={fmt(savingsToday, cur)}
-            sub={todayKwh != null ? `${todayKwh.toFixed(1)} kWh` : "—"}
-          />
-          <Stat
-            icon={<Calendar className="h-3.5 w-3.5" />}
-            label="Este mes"
-            value={fmt(savingsMonth, cur)}
-            sub={monthKwh != null ? `${monthKwh.toFixed(0)} kWh` : "—"}
-          />
-          <Stat
-            icon={<TrendingUp className="h-3.5 w-3.5" />}
-            label="Año proyectado"
-            value={fmt(savingsYear, cur)}
-            sub={yearKwh != null ? `${yearKwh.toFixed(0)} kWh real` : "estimado"}
-          />
-        </div>
-
-        {siteId && siteId !== "local" && (
-          <Link
-            to="/sites/$siteId/savings"
-            params={{ siteId }}
-            className="mt-4 inline-flex w-full items-center justify-between rounded-xl border bg-background px-4 py-3 text-xs font-semibold text-emerald-700 transition-colors hover:text-emerald-600"
-          >
-            <span>Ver historial completo</span>
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
+        {liveW > 0 && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> en vivo
+          </span>
         )}
       </div>
+
+      <div className="mb-4 rounded-xl border bg-[linear-gradient(180deg,color-mix(in_oklab,var(--success)_12%,var(--tint-base)),transparent)] p-4">
+        <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+          Ahorrando ahora
+        </div>
+        <div className="flex items-baseline gap-1">
+          <div className="text-4xl font-extrabold text-emerald-600 tabular-nums">
+            {fmt(savingsPerHour, cur)}
+          </div>
+          <div className="text-xs text-muted-foreground">/hora</div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-2 @[520px]:grid-cols-3">
+        <Stat
+          icon={<Sparkles className="h-3.5 w-3.5" />}
+          label="Hoy"
+          value={fmt(savingsToday, cur)}
+          sub={todayKwh != null ? `${todayKwh.toFixed(1)} kWh` : "—"}
+        />
+        <Stat
+          icon={<Calendar className="h-3.5 w-3.5" />}
+          label="Este mes"
+          value={fmt(savingsMonth, cur)}
+          sub={monthKwh != null ? `${monthKwh.toFixed(0)} kWh` : "—"}
+        />
+        <Stat
+          icon={<TrendingUp className="h-3.5 w-3.5" />}
+          label="Año proyectado"
+          value={fmt(savingsYear, cur)}
+          sub={yearKwh != null ? `${yearKwh.toFixed(0)} kWh real` : "estimado"}
+        />
+      </div>
+
+      {!hideHistoryLink && siteId && siteId !== "local" && (
+        <Link
+          to="/sites/$siteId/savings"
+          params={{ siteId }}
+          className="mt-4 inline-flex w-full items-center justify-between rounded-xl border bg-background px-4 py-3 text-xs font-semibold text-emerald-700 transition-colors hover:text-emerald-600"
+        >
+          <span>Ver historial completo</span>
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
+      )}
+    </div>
+  );
+
+  if (bare) return <div className="@container animate-fade-in">{inner}</div>;
+
+  return (
+    <div className="@container dashboard-card dashboard-card--success p-5 sm:p-6 animate-fade-in h-full">
+      {inner}
     </div>
   );
 }
