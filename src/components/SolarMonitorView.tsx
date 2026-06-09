@@ -4,6 +4,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePvConfig, type PvConfig } from "@/components/PvSystemConfig";
 import { useSolarReferenceWeather, type DashboardWeatherData } from "@/components/ReferenceDashboardCards";
 import type { DashboardSample } from "@/components/SiteDashboardView";
+import sceneSunnyDay from "@/assets/scene-sunny-day.jpg";
+import sceneCloudyDay from "@/assets/scene-cloudy-day.jpg";
+import sceneRainyNight from "@/assets/scene-rainy-night.jpg";
+import sceneSnowyNight from "@/assets/scene-snowy-night.jpg";
+
+/** Picks the most appropriate hyperrealistic background scene for the current weather/time. */
+function pickSceneImage(theme: WeatherTheme): string {
+  if (theme.precipitation === "snow") return sceneSnowyNight;
+  if (theme.precipitation === "rain" || theme.precipitation === "heavy_rain" || theme.precipitation === "drizzle" || theme.precipitation === "thunder") return sceneRainyNight;
+  if (!theme.isDay) return sceneRainyNight; // night fallback (dark scene)
+  if (theme.weatherType === "clear_day" || theme.solarMultiplier >= 0.7) return sceneSunnyDay;
+  return sceneCloudyDay;
+}
 
 /* =========================================================================
    Weather mapping
@@ -458,16 +471,68 @@ export function SolarMonitorView({
         className="relative overflow-hidden rounded-3xl border"
         style={{
           borderColor: "rgba(255,255,255,0.08)",
-          background: theme.sceneGradient,
-          minHeight: 380,
+          background: "#020617",
+          minHeight: 420,
         }}
       >
-        <div className="absolute inset-0">
-          <HouseScene theme={theme} />
-        </div>
+        {/* Hyperrealistic background scene */}
+        <img
+          src={pickSceneImage(theme)}
+          alt="Escena residencial solar"
+          className="absolute inset-0 h-full w-full object-cover"
+          width={1024}
+          height={1280}
+          loading="lazy"
+        />
+        {/* Subtle dark gradient for card legibility */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{ background: "linear-gradient(180deg, rgba(2,6,23,0.35) 0%, rgba(2,6,23,0.05) 30%, rgba(2,6,23,0.0) 60%, rgba(2,6,23,0.55) 100%)" }}
+        />
+
+        {/* Animated precipitation overlay on top of photo */}
+        {(theme.precipitation === "rain" || theme.precipitation === "heavy_rain" || theme.precipitation === "drizzle") && (
+          <svg viewBox="0 0 400 420" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 h-full w-full">
+            <g stroke="#bae6fd" strokeWidth={theme.precipitation === "heavy_rain" ? 1.1 : 0.7} opacity={theme.precipitation === "drizzle" ? 0.35 : 0.55}>
+              {Array.from({ length: theme.precipitation === "heavy_rain" ? 70 : 40 }).map((_, i) => {
+                const x = (i * 53) % 400;
+                const y = (i * 37) % 300;
+                return (
+                  <line key={i} x1={x} y1={y} x2={x - 5} y2={y + 14}>
+                    <animate attributeName="y1" from={y - 40} to={y + 380} dur={`${0.55 + (i % 5) * 0.18}s`} repeatCount="indefinite" />
+                    <animate attributeName="y2" from={y - 26} to={y + 394} dur={`${0.55 + (i % 5) * 0.18}s`} repeatCount="indefinite" />
+                  </line>
+                );
+              })}
+            </g>
+          </svg>
+        )}
+        {theme.precipitation === "snow" && (
+          <svg viewBox="0 0 400 420" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 h-full w-full">
+            <g fill="#f1f5f9" opacity="0.9">
+              {Array.from({ length: 50 }).map((_, i) => {
+                const x = (i * 43) % 400;
+                const y = (i * 29) % 300;
+                return (
+                  <circle key={i} cx={x} cy={y} r={1 + (i % 3) * 0.4}>
+                    <animate attributeName="cy" from={y - 40} to={y + 420} dur={`${2 + (i % 4) * 0.6}s`} repeatCount="indefinite" />
+                    <animate attributeName="cx" values={`${x};${x + 6};${x - 4};${x}`} dur={`${3 + (i % 3)}s`} repeatCount="indefinite" />
+                  </circle>
+                );
+              })}
+            </g>
+          </svg>
+        )}
+        {theme.precipitation === "thunder" && (
+          <svg viewBox="0 0 400 420" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 h-full w-full">
+            <path d="M180,40 L195,80 L185,86 L205,140" stroke="#fde68a" strokeWidth="2.5" fill="none">
+              <animate attributeName="opacity" values="0;0.95;0;0" keyTimes="0;0.05;0.15;1" dur="4s" repeatCount="indefinite" />
+            </path>
+          </svg>
+        )}
 
         {/* Floating cards layer */}
-        <div className="relative h-[380px] w-full">
+        <div className="relative h-[420px] w-full">
           {/* Solar — top center */}
           <div className="absolute left-1/2 top-4 -translate-x-1/2">
             <FloatCard
@@ -481,31 +546,31 @@ export function SolarMonitorView({
           </div>
 
           {/* Grid — top left */}
-          <div className="absolute left-3 top-24">
+          <div className="absolute left-3 top-28">
             <FloatCard
               icon={<Zap className="h-5 w-5" />}
               accent="#38bdf8"
               label="RED"
-              value={(gridKw >= 0 ? gridKw : gridKw).toFixed(2)}
+              value={gridKw.toFixed(2)}
               unit="kW"
               sub={!gridConnected ? "Desconectada" : gridKw >= 0 ? "Importando" : "Exportando"}
             />
           </div>
 
           {/* Consumo — center */}
-          <div className="absolute left-1/2 top-[195px] -translate-x-1/2">
+          <div className="absolute left-1/2 top-[220px] -translate-x-1/2">
             <FloatCard
               icon={<HomeIcon className="h-5 w-5" />}
               accent="#3b82f6"
               label="CONSUMO"
               value={fmtKw(loadW)}
               unit="kW"
-              sub="Consumo actual"
+              sub="Consumo de casa"
             />
           </div>
 
           {/* Battery — right */}
-          <div className="absolute right-3 top-[170px]">
+          <div className="absolute right-3 top-[195px]">
             <FloatCard
               icon={<BatteryFull className="h-5 w-5" />}
               accent="#22c55e"
@@ -516,6 +581,7 @@ export function SolarMonitorView({
           </div>
         </div>
       </div>
+
 
       {/* ============= FLOW BAR ============= */}
       <div
