@@ -458,12 +458,13 @@ export function SolarMonitorView({
 
       {/* ============= SCENE WITH FLOATING CARDS ============= */}
       <div
-        className="relative overflow-hidden rounded-3xl border w-full aspect-[4/5] sm:aspect-[5/4] lg:aspect-[4/5]"
+        className="relative overflow-hidden rounded-3xl border w-full aspect-[4/3] sm:aspect-[16/10] lg:aspect-[16/10] max-h-[640px] mx-auto"
         style={{
           borderColor: "rgba(255,255,255,0.08)",
           background: isLight ? "#e5eef7" : "#020617",
         }}
       >
+
 
         {/* Hyperrealistic background scene */}
         <img
@@ -556,8 +557,8 @@ export function SolarMonitorView({
                   />
                 </div>
 
-                {/* Battery — top right (near house upper-right) */}
-                <div className="absolute right-2 top-[28%] sm:right-4 sm:top-[30%]">
+                {/* Battery — bottom right (over battery cabinet) */}
+                <div className="absolute right-2 bottom-[14%] sm:right-4 sm:bottom-[18%]">
                   <FloatCard
                     icon={<BatteryLevelIcon pct={batPct} className="h-5 w-5" color="#22c55e" />}
                     accent="#22c55e"
@@ -568,6 +569,7 @@ export function SolarMonitorView({
                     light={isLight}
                   />
                 </div>
+
 
 
                 {/* Consumo — bottom center */}
