@@ -255,40 +255,18 @@
     overflow: hidden;
     border-radius: calc(var(--radius) + 8px);
     border: 1px solid color-mix(in oklab, var(--border) 82%, transparent);
-    background: linear-gradient(180deg, color-mix(in oklab, var(--card) 98%, white) 0%, color-mix(in oklab, var(--card) 94%, var(--muted)) 100%);
+    background: var(--card);
     box-shadow: var(--shadow-card);
     transition: box-shadow 0.25s ease, transform 0.25s ease;
   }
   .dark .dashboard-card {
-    background: linear-gradient(180deg, color-mix(in oklab, var(--card) 96%, white 4%) 0%, color-mix(in oklab, var(--card) 88%, black 12%) 100%);
+    background: var(--card);
     border-color: color-mix(in oklab, var(--border) 70%, transparent);
   }
   .dashboard-card:hover { box-shadow: var(--shadow-elevated); }
-  .dashboard-card::before {
-    content: "";
-    position: absolute;
-    inset: 0 0 auto 0;
-    height: 72px;
-    background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 8%, white), transparent);
-    pointer-events: none;
-  }
-  .dark .dashboard-card::before {
-    background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 12%, transparent), transparent);
-  }
+  .dashboard-card::before { content: none; }
   .dashboard-card--success {
     border-color: color-mix(in oklab, var(--success) 28%, var(--border));
-  }
-  .dashboard-card--success::before {
-    background: linear-gradient(180deg, color-mix(in oklab, var(--success) 14%, white), transparent);
-  }
-  .dark .dashboard-card--success::before {
-    background: linear-gradient(180deg, color-mix(in oklab, var(--success) 18%, transparent), transparent);
-  }
-  .dashboard-card--accent::before {
-    background: linear-gradient(180deg, color-mix(in oklab, var(--primary) 14%, white), transparent);
-  }
-  .dark .dashboard-card--accent::before {
-    background: linear-gradient(180deg, color-mix(in oklab, var(--primary) 18%, transparent), transparent);
   }
   .dashboard-card--flush::before { display: none; }
   .dashboard-panel {
