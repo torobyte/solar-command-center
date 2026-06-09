@@ -691,7 +691,7 @@ function SummaryCard({
   icon, accent, title, value, unit, sub, light = false,
 }: { icon: React.ReactNode; accent: string; title: string; value: string; unit: string; sub: string; light?: boolean }) {
   return (
-    <div className={`rounded-xl border p-3 ${light ? "border-slate-900/8 bg-slate-900/[0.03]" : "border-white/5 bg-white/[0.02]"}`}>
+    <div className={`rounded-xl border p-3 ${light ? "border-slate-900/10 bg-slate-900/[0.03]" : "border-white/5 bg-white/[0.02]"}`}>
       <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-full" style={{ background: `${accent}1a` }}>
         {icon}
       </div>
