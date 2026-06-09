@@ -550,7 +550,7 @@ export function SolarMonitorView({
         )}
 
         {/* Floating cards layer */}
-        <div className="relative h-[420px] w-full">
+        <div className="relative h-full min-h-[420px] sm:min-h-[480px] lg:min-h-[560px] w-full">
           {(() => {
             const solar = fmtPower(solarW);
             const grid = fmtPower(estGridW);
@@ -559,7 +559,7 @@ export function SolarMonitorView({
             return (
               <>
                 {/* Solar — top center */}
-                <div className="absolute left-1/2 top-3 -translate-x-1/2">
+                <div className="absolute left-1/2 top-3 -translate-x-1/2 sm:top-5">
                   <FloatCard
                     icon={<WeatherIcon type={theme.weatherType} className="h-5 w-5" />}
                     accent={theme.solarAccent}
@@ -572,7 +572,7 @@ export function SolarMonitorView({
                 </div>
 
                 {/* Grid — left middle */}
-                <div className="absolute left-2 top-24">
+                <div className="absolute left-2 top-[42%] -translate-y-1/2 sm:left-4">
                   <FloatCard
                     icon={<Zap className="h-5 w-5" />}
                     accent="#38bdf8"
@@ -585,7 +585,7 @@ export function SolarMonitorView({
                 </div>
 
                 {/* Battery — right middle */}
-                <div className="absolute right-2 top-24">
+                <div className="absolute right-2 top-[42%] -translate-y-1/2 sm:right-4">
                   <FloatCard
                     icon={<BatteryLevelIcon pct={batPct} className="h-5 w-5" color="#22c55e" />}
                     accent="#22c55e"
@@ -598,7 +598,7 @@ export function SolarMonitorView({
                 </div>
 
                 {/* Consumo — bottom center */}
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 sm:bottom-5">
                   <FloatCard
                     icon={<HomeIcon className="h-5 w-5" />}
                     accent="#3b82f6"
