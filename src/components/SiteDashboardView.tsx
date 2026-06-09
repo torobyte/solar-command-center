@@ -13,6 +13,8 @@ import {
   useSolarReferenceWeather,
   WeatherAndRadiationCard,
 } from "@/components/ReferenceDashboardCards";
+import { LottieScene, weatherToScene, type SceneKind } from "@/components/LottieScene";
+
 
 /** Shared sample shape consumed by the dashboard widgets. */
 export interface DashboardSample {
@@ -98,6 +100,16 @@ export function SiteDashboardView({
   // Aporte de la red = (consumo casa + carga batería) - (PV + descarga batería)
   const gridW = gridConnected ? Math.max(0, load + batteryChargeW - pv_W - batteryDischargeW) : 0;
 
+  const weatherScene: SceneKind = weatherToScene(weatherData?.current?.weatherCode);
+
+  const scenes: Record<string, SceneKind> = {
+    system: "energy",
+    backup: "shield",
+    batteryStatus: "battery",
+    environmental: "forest",
+    weather: weatherScene,
+  };
+
   const widgets: Record<string, React.ReactNode> = {
     system: <SystemStatusCard pv={pv_W} load={load} battery={battery} batteryV={batteryV} batteryW={batteryNetW} gridV={gridV} gridW={gridW} pvMax={pvMax} />,
     backup: (
@@ -123,10 +135,29 @@ export function SiteDashboardView({
       defs={WIDGET_DEFS}
       state={state}
       onChange={persist}
-      render={(id) => widgets[id] ?? null}
+      render={(id) => {
+        const node = widgets[id];
+        if (!node) return null;
+        const scene = scenes[id];
+        return (
+          <div className="relative h-full">
+            {scene ? (
+              <LottieScene
+                kind={scene}
+                opacity={0.22}
+                className="rounded-2xl [mask-image:linear-gradient(180deg,rgba(0,0,0,0.85),rgba(0,0,0,0.4))]"
+              />
+            ) : null}
+            <div className="relative z-[1] h-full [&>.dashboard-card]:h-full [&>div]:h-full">
+              {node}
+            </div>
+          </div>
+        );
+      }}
     />
   );
 }
+
 
 function IconCard({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {
   return (
