@@ -707,35 +707,8 @@ export function SolarMonitorView({
 
   return (
     <div className="space-y-4">
-      {/* ============= HEADER ============= */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <button className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/80 transition hover:bg-white/10">
-            <Menu className="h-4 w-4" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold leading-tight text-foreground">Monitor Solar</h1>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>Sistema Residencial</span>
-              <span className="flex items-center gap-1">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                </span>
-                <span className="text-emerald-400 font-medium">En línea</span>
-              </span>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-1">
-          <button className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/80 transition hover:bg-white/10">
-            <Bell className="h-4 w-4" />
-          </button>
-          <button className="flex h-10 w-10 items-center justify-center rounded-full text-white/70 transition hover:bg-white/5">
-            <MoreVertical className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
+      {/* Header eliminado por solicitud del usuario */}
+
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
