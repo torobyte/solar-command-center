@@ -16,7 +16,7 @@ export function MobileBottomNav({ value, onChange, hideTabs }: { value: SiteTab;
   const visible = items.filter((i) => !hideTabs?.includes(i.id));
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 lg:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       aria-label="Site sections"
     >
