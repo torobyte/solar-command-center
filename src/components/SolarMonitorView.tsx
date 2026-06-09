@@ -153,13 +153,27 @@ function useTodayTotals(siteId: string): DailyTotals {
 /* =========================================================================
    Helpers
    ========================================================================= */
-function fmtKw(w: number): string {
-  const kw = w / 1000;
-  if (Math.abs(kw) < 10) return kw.toFixed(2);
-  return kw.toFixed(1);
+/** Returns integer power with adaptive unit: <1000W -> "450" W, otherwise "1" or "12" kW. */
+function fmtPower(w: number): { value: string; unit: string } {
+  const abs = Math.abs(w);
+  if (abs < 1000) return { value: String(Math.round(w)), unit: "W" };
+  return { value: String(Math.round(w / 1000)), unit: "kW" };
 }
 function fmtKwh(v: number): string {
-  return Math.abs(v) < 10 ? v.toFixed(1) : v.toFixed(1);
+  return Math.round(v).toString();
+}
+
+/** Battery icon that fills proportionally to charge level (0-100). */
+function BatteryLevelIcon({ pct, className = "h-5 w-5", color = "currentColor" }: { pct: number; className?: string; color?: string }) {
+  const p = Math.max(0, Math.min(100, pct));
+  const fillW = (p / 100) * 14; // inner width 14
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="7" width="17" height="10" rx="2" />
+      <line x1="22" y1="11" x2="22" y2="13" />
+      <rect x="5" y="9" width={fillW} height="6" rx="1" fill={color} stroke="none" />
+    </svg>
+  );
 }
 
 /* =========================================================================
@@ -536,56 +550,67 @@ export function SolarMonitorView({
 
         {/* Floating cards layer */}
         <div className="relative h-[420px] w-full">
-          {/* Solar — top center */}
-          <div className="absolute left-1/2 top-4 -translate-x-1/2">
-            <FloatCard
-              icon={<WeatherIcon type={theme.weatherType} className="h-5 w-5" />}
-              accent={theme.solarAccent}
-              label="SOLAR"
-              value={fmtKw(solarW)}
-              unit="kW"
-              sub={solarW > 50 ? "Generando" : theme.isDay ? "Baja generación" : "Sin generación"}
-              light={isLight}
-            />
-          </div>
+          {(() => {
+            const solar = fmtPower(solarW);
+            const grid = fmtPower(estGridW);
+            const load = fmtPower(loadW);
+            const batPct = Math.round(batterySoc);
+            return (
+              <>
+                {/* Solar — top center */}
+                <div className="absolute left-1/2 top-3 -translate-x-1/2">
+                  <FloatCard
+                    icon={<WeatherIcon type={theme.weatherType} className="h-5 w-5" />}
+                    accent={theme.solarAccent}
+                    label="SOLAR"
+                    value={solar.value}
+                    unit={solar.unit}
+                    sub={solarW > 50 ? "Generando" : theme.isDay ? "Baja generación" : "Sin generación"}
+                    light={isLight}
+                  />
+                </div>
 
-          {/* Grid — top left */}
-          <div className="absolute left-3 top-28">
-            <FloatCard
-              icon={<Zap className="h-5 w-5" />}
-              accent="#38bdf8"
-              label="RED"
-              value={gridKw.toFixed(2)}
-              unit="kW"
-              sub={!gridConnected ? "Desconectada" : gridKw >= 0 ? "Importando" : "Exportando"}
-              light={isLight}
-            />
-          </div>
+                {/* Grid — left middle */}
+                <div className="absolute left-2 top-24">
+                  <FloatCard
+                    icon={<Zap className="h-5 w-5" />}
+                    accent="#38bdf8"
+                    label="RED"
+                    value={grid.value}
+                    unit={grid.unit}
+                    sub={!gridConnected ? "Desconectada" : estGridW >= 0 ? "Importando" : "Exportando"}
+                    light={isLight}
+                  />
+                </div>
 
-          {/* Consumo — center */}
-          <div className="absolute left-1/2 top-[220px] -translate-x-1/2">
-            <FloatCard
-              icon={<HomeIcon className="h-5 w-5" />}
-              accent="#3b82f6"
-              label="CONSUMO"
-              value={fmtKw(loadW)}
-              unit="kW"
-              sub="Consumo de casa"
-              light={isLight}
-            />
-          </div>
+                {/* Battery — right middle */}
+                <div className="absolute right-2 top-24">
+                  <FloatCard
+                    icon={<BatteryLevelIcon pct={batPct} className="h-5 w-5" color="#22c55e" />}
+                    accent="#22c55e"
+                    label="BATERÍA"
+                    value={`${batPct}`}
+                    unit="%"
+                    sub={batteryKwh != null ? `${batteryKwh.toFixed(1)} kWh` : (batChargeW > 20 ? "Cargando" : batDischargeW > 20 ? "Descargando" : "En espera")}
+                    light={isLight}
+                  />
+                </div>
 
-          {/* Battery — right */}
-          <div className="absolute right-3 top-[195px]">
-            <FloatCard
-              icon={<BatteryFull className="h-5 w-5" />}
-              accent="#22c55e"
-              label="BATERÍA"
-              value={`${Math.round(batterySoc)}%`}
-              sub={batteryKwh != null ? `${batteryKwh.toFixed(2)} kWh` : (batChargeW > 20 ? "Cargando" : batDischargeW > 20 ? "Descargando" : "En espera")}
-              light={isLight}
-            />
-          </div>
+                {/* Consumo — bottom center */}
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
+                  <FloatCard
+                    icon={<HomeIcon className="h-5 w-5" />}
+                    accent="#3b82f6"
+                    label="CONSUMO"
+                    value={load.value}
+                    unit={load.unit}
+                    sub="Consumo de casa"
+                    light={isLight}
+                  />
+                </div>
+              </>
+            );
+          })()}
         </div>
       </div>
 
@@ -596,11 +621,18 @@ export function SolarMonitorView({
         style={{ background: isLight ? "rgba(255,255,255,0.82)" : "rgba(8,18,30,0.85)", borderColor: isLight ? "rgba(15,23,42,0.08)" : "rgba(255,255,255,0.08)" }}
       >
         <div className="mb-3 text-[11px] font-semibold tracking-wider text-muted-foreground">FLUJO DE ENERGÍA</div>
-        <div className="grid grid-cols-4 items-center gap-2 sm:gap-3">
-          <FlowNode icon={<WeatherIcon type={theme.weatherType} className="h-6 w-6" />} value={fmtKw(solarW)} label="Solar" connector={theme.solarAccent} light={isLight} />
-          <FlowNode icon={<Zap className="h-6 w-6" style={{ color: "#38bdf8" }} />} value={gridKw.toFixed(2)} label="Red" connector="#38bdf8" light={isLight} />
-          <FlowNode icon={<HomeIcon className="h-6 w-6" style={{ color: "#3b82f6" }} />} value={fmtKw(loadW)} label="Consumo" connector="#22c55e" light={isLight} />
-          <FlowNode icon={<BatteryFull className="h-6 w-6" style={{ color: "#22c55e" }} />} value={fmtKw(Math.abs(batteryW))} label="Batería" connector="transparent" light={isLight} last />
+        <div className="grid grid-cols-2 items-center gap-3 sm:grid-cols-4">
+          {(() => {
+            const s = fmtPower(solarW), g = fmtPower(estGridW), l = fmtPower(loadW), b = fmtPower(Math.abs(batteryW));
+            return (
+              <>
+                <FlowNode icon={<WeatherIcon type={theme.weatherType} className="h-6 w-6" />} value={s.value} unit={s.unit} label="Solar" connector={theme.solarAccent} light={isLight} />
+                <FlowNode icon={<Zap className="h-6 w-6" style={{ color: "#38bdf8" }} />} value={g.value} unit={g.unit} label="Red" connector="#38bdf8" light={isLight} />
+                <FlowNode icon={<HomeIcon className="h-6 w-6" style={{ color: "#3b82f6" }} />} value={l.value} unit={l.unit} label="Consumo" connector="#22c55e" light={isLight} />
+                <FlowNode icon={<BatteryLevelIcon pct={Math.round(batterySoc)} className="h-6 w-6" color="#22c55e" />} value={b.value} unit={b.unit} label="Batería" connector="transparent" light={isLight} last />
+              </>
+            );
+          })()}
         </div>
       </div>
 
@@ -666,8 +698,8 @@ export function SolarMonitorView({
 }
 
 function FlowNode({
-  icon, value, label, connector, last = false, light = false,
-}: { icon: React.ReactNode; value: string; label: string; connector: string; last?: boolean; light?: boolean }) {
+  icon, value, unit = "kW", label, connector, last = false, light = false,
+}: { icon: React.ReactNode; value: string; unit?: string; label: string; connector: string; last?: boolean; light?: boolean }) {
   return (
     <div className="flex items-center gap-2">
       <div className="flex flex-col items-center">
@@ -676,7 +708,7 @@ function FlowNode({
       <div className="min-w-0 leading-tight">
         <div className="flex items-baseline gap-1">
           <span className="text-sm font-bold tabular-nums text-foreground">{value}</span>
-          <span className="text-[10px] text-muted-foreground">kW</span>
+          <span className="text-[10px] text-muted-foreground">{unit}</span>
         </div>
         <div className="text-[10px] text-muted-foreground">{label}</div>
       </div>
