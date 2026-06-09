@@ -15,6 +15,10 @@ interface Props {
   currency?: string | null;
   /** Estimated daily kWh from forecast (optional, for projections). */
   forecastDailyKwh?: number | null;
+  /** When true, render without the outer card chrome (for use inside another card). */
+  bare?: boolean;
+  /** When true, hide the "Ver historial completo" link. */
+  hideHistoryLink?: boolean;
 }
 
 function fmt(n: number, currency: string): string {
