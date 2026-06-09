@@ -108,9 +108,6 @@ export function SavingsCard({ siteId, pvW, batteryDischargeW, energyPrice, feedI
     : (forecastDailyKwh ?? 0) * 365;
   const savingsYear = projectedYearKwh * price;
 
-  return (
-    <div className="@container dashboard-card dashboard-card--success p-5 sm:p-6 animate-fade-in h-full">
-
   const inner = (
     <div className="relative">
       <div className="flex items-center justify-between gap-2 mb-4">
