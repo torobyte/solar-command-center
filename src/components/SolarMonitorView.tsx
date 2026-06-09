@@ -452,6 +452,8 @@ export function SolarMonitorView({
         </div>
       </div>
 
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="space-y-4 lg:col-span-2">
       {/* ============= WEATHER CARD ============= */}
       <div
         className="flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 backdrop-blur-md"
