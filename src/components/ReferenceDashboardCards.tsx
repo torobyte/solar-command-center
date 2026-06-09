@@ -990,10 +990,7 @@ export function WeatherAndRadiationCard({
 
 
   return (
-    <div
-      className="dashboard-card overflow-hidden p-0"
-      style={{ background: "linear-gradient(180deg, color-mix(in oklab, var(--load) 8%, var(--tint-base)) 0%, color-mix(in oklab, var(--card) 96%, var(--tint-base)) 100%)" }}
-    >
+    <div className="dashboard-card overflow-hidden p-0">
       {/* Hero compacto */}
       <div
         className="relative px-4 pb-3 pt-3 text-white sm:px-5"
@@ -1264,10 +1261,7 @@ export function SavingsReferenceCard({
   return (
     <div
       className="dashboard-card p-5 sm:p-6"
-      style={{
-        borderColor: "color-mix(in oklab, var(--success) 28%, var(--border))",
-        background: "linear-gradient(180deg, color-mix(in oklab, var(--success) 7%, var(--tint-base)) 0%, color-mix(in oklab, var(--card) 96%, var(--tint-base)) 100%)",
-      }}
+      style={{ borderColor: "color-mix(in oklab, var(--success) 28%, var(--border))" }}
     >
       <div className="flex items-start justify-between gap-2">
         <DashboardCardHeader icon={<Leaf className="h-4 w-4" />} title="Ahorro económico" badge="● En vivo" badgeColor="var(--success)" />
@@ -1364,10 +1358,7 @@ export function EnvironmentalImpactCard({
   return (
     <div
       className="dashboard-card p-5 sm:p-6"
-      style={{
-        borderColor: "color-mix(in oklab, var(--success) 26%, var(--border))",
-        background: "linear-gradient(180deg, color-mix(in oklab, var(--success) 9%, var(--tint-base)) 0%, color-mix(in oklab, var(--card) 96%, var(--tint-base)) 100%)",
-      }}
+      style={{ borderColor: "color-mix(in oklab, var(--success) 26%, var(--border))" }}
     >
       <DashboardCardHeader
         icon={<Leaf className="h-4 w-4" />}
