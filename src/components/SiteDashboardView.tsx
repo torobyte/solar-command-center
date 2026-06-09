@@ -10,6 +10,7 @@ import { useSiteRole } from "@/lib/useSiteRole";
 import {
   EnvironmentalImpactCard,
   SystemStatusCard,
+  useSolarReferenceWeather,
   WeatherAndRadiationCard,
 } from "@/components/ReferenceDashboardCards";
 
