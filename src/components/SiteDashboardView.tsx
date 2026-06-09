@@ -145,8 +145,8 @@ export function SiteDashboardView({
             {scene ? (
               <LottieScene
                 kind={scene}
-                opacity={0.18}
-                className="rounded-[calc(var(--radius)+8px)] mix-blend-screen [mask-image:radial-gradient(ellipse_at_center,rgba(0,0,0,0.9),rgba(0,0,0,0.35))]"
+                opacity={0.28}
+                className="rounded-[calc(var(--radius)+8px)] [mask-image:radial-gradient(ellipse_at_center,rgba(0,0,0,0.85),rgba(0,0,0,0.25))]"
               />
             ) : null}
           </div>
