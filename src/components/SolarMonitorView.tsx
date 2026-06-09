@@ -1,14 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bell, MoreVertical, Menu, Sun, Moon, Cloud, CloudRain, CloudSnow, CloudLightning, CloudDrizzle, CloudFog, Home as HomeIcon, BatteryFull, Zap } from "lucide-react";
+import { Bell, MoreVertical, Menu, Sun, Moon, Cloud, CloudRain, CloudSnow, CloudLightning, CloudDrizzle, CloudFog, Home as HomeIcon, BatteryFull, Zap, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePvConfig, type PvConfig } from "@/components/PvSystemConfig";
 import { useSolarReferenceWeather, type DashboardWeatherData } from "@/components/ReferenceDashboardCards";
 import type { DashboardSample } from "@/components/SiteDashboardView";
 import { useTheme } from "@/lib/theme";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import sceneSunnyDay from "@/assets/scene-sunny-day.jpg";
 import sceneCloudyDay from "@/assets/scene-cloudy-day.jpg";
 import sceneRainyNight from "@/assets/scene-rainy-night.jpg";
 import sceneSnowyNight from "@/assets/scene-snowy-night.jpg";
+import detailSolarImg from "@/assets/detail-solar.jpg";
+import detailGridImg from "@/assets/detail-grid.jpg";
+import detailBatteryImg from "@/assets/detail-battery.jpg";
+import detailConsumoImg from "@/assets/detail-consumo.jpg";
 
 /** Picks the most appropriate hyperrealistic background scene for the current weather/time. */
 function pickSceneImage(theme: WeatherTheme): string {
@@ -180,31 +185,108 @@ function BatteryLevelIcon({ pct, className = "h-5 w-5", color = "currentColor" }
    Floating card
    ========================================================================= */
 function FloatCard({
-  label, value, unit, sub, icon, accent, className = "", light = false,
+  label, value, unit, sub, icon, accent, className = "", light = false, onClick,
 }: {
   label: string; value: string; unit?: string; sub?: string;
   icon: React.ReactNode; accent: string; className?: string; light?: boolean;
+  onClick?: () => void;
 }) {
+  const Tag = onClick ? "button" : "div";
   return (
-    <div
-      className={`pointer-events-auto inline-flex items-center gap-1.5 sm:gap-3 rounded-xl sm:rounded-2xl border px-2 py-1.5 sm:px-3.5 sm:py-2.5 backdrop-blur-md shadow-[0_10px_30px_-12px_rgba(0,0,0,0.7)] ${className}`}
+    <Tag
+      onClick={onClick}
+      className={`pointer-events-auto inline-flex items-center gap-1 sm:gap-3 rounded-lg sm:rounded-2xl border px-1.5 py-1 sm:px-3.5 sm:py-2.5 backdrop-blur-md shadow-[0_10px_30px_-12px_rgba(0,0,0,0.7)] transition-all duration-200 ${onClick ? "cursor-pointer hover:scale-105 active:scale-95" : ""} ${className}`}
       style={{
-        background: light ? "rgba(255,255,255,0.88)" : "rgba(8,18,30,0.85)",
+        background: light ? "rgba(255,255,255,0.92)" : "rgba(8,18,30,0.85)",
         borderColor: light ? "rgba(15,23,42,0.08)" : "rgba(255,255,255,0.08)",
       }}
     >
-      <div className="flex h-6 w-6 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg sm:rounded-xl" style={{ background: `${accent}1f`, color: accent }}>
+      <div className="flex h-5 w-5 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-md sm:rounded-xl" style={{ background: `${accent}1f`, color: accent }}>
         {icon}
       </div>
-      <div className="leading-tight">
-        <div className={`text-[8px] sm:text-[10px] font-semibold tracking-wider ${light ? "text-slate-500" : "text-white/60"}`}>{label}</div>
+      <div className="leading-tight text-left">
+        <div className={`text-[7px] sm:text-[10px] font-semibold tracking-wider ${light ? "text-slate-500" : "text-white/60"}`}>{label}</div>
         <div className="flex items-baseline gap-0.5 sm:gap-1">
-          <span className={`text-xs sm:text-lg font-bold tabular-nums ${light ? "text-slate-900" : "text-white"}`}>{value}</span>
-          {unit && <span className={`text-[9px] sm:text-[11px] font-medium ${light ? "text-slate-500" : "text-white/60"}`}>{unit}</span>}
+          <span className={`text-[11px] sm:text-lg font-bold tabular-nums ${light ? "text-slate-900" : "text-white"}`}>{value}</span>
+          {unit && <span className={`text-[8px] sm:text-[11px] font-medium ${light ? "text-slate-500" : "text-white/60"}`}>{unit}</span>}
         </div>
-        {sub && <div className="text-[8px] sm:text-[10px] font-medium leading-tight" style={{ color: accent }}>{sub}</div>}
+        {sub && <div className="text-[7px] sm:text-[10px] font-medium leading-tight" style={{ color: accent }}>{sub}</div>}
       </div>
-    </div>
+    </Tag>
+  );
+}
+
+/* =========================================================================
+   Widget detail dialog
+   ========================================================================= */
+interface DetailStat { label: string; value: string; unit?: string; accent?: string }
+function WidgetDetailDialog({
+  open, onOpenChange, image, title, subtitle, accent, icon, stats, description, light,
+}: {
+  open: boolean; onOpenChange: (v: boolean) => void;
+  image: string; title: string; subtitle: string; accent: string;
+  icon: React.ReactNode; stats: DetailStat[]; description: string; light: boolean;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className="max-w-lg overflow-hidden border-0 p-0 sm:rounded-3xl"
+        style={{ background: light ? "rgba(255,255,255,0.98)" : "rgba(8,18,30,0.96)" }}
+      >
+        {/* Hero image */}
+        <div className="relative h-48 w-full overflow-hidden sm:h-56">
+          <img
+            src={image}
+            alt={title}
+            className="absolute inset-0 h-full w-full object-cover animate-[scale-in_0.5s_ease-out]"
+            loading="lazy"
+            width={1024}
+            height={512}
+          />
+          <div
+            className="absolute inset-0"
+            style={{ background: `linear-gradient(180deg, transparent 0%, transparent 40%, ${light ? "rgba(255,255,255,0.95)" : "rgba(8,18,30,0.95)"} 100%)` }}
+          />
+          <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
+            <div className="flex items-center gap-3 animate-fade-in">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl backdrop-blur-md" style={{ background: `${accent}33`, color: accent, border: `1px solid ${accent}55` }}>
+                {icon}
+              </div>
+              <div>
+                <DialogTitle className={`text-xl font-bold ${light ? "text-slate-900" : "text-white"}`}>{title}</DialogTitle>
+                <DialogDescription className={`text-xs ${light ? "text-slate-600" : "text-white/70"}`}>{subtitle}</DialogDescription>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Stat grid — same style as bottom summary cards */}
+        <div className="grid grid-cols-2 gap-3 p-4 sm:p-5">
+          {stats.map((s, i) => (
+            <div
+              key={s.label}
+              className="rounded-2xl border p-3 backdrop-blur-md animate-fade-in"
+              style={{
+                background: light ? "rgba(248,250,252,0.9)" : "rgba(15,23,42,0.6)",
+                borderColor: light ? "rgba(15,23,42,0.08)" : "rgba(255,255,255,0.08)",
+                animationDelay: `${i * 80}ms`,
+                animationFillMode: "backwards",
+              }}
+            >
+              <div className={`text-[10px] font-semibold uppercase tracking-wider ${light ? "text-slate-500" : "text-white/50"}`}>{s.label}</div>
+              <div className="mt-1 flex items-baseline gap-1">
+                <span className="text-xl font-bold tabular-nums" style={{ color: s.accent ?? accent }}>{s.value}</span>
+                {s.unit && <span className={`text-[11px] ${light ? "text-slate-500" : "text-white/60"}`}>{s.unit}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className={`px-4 pb-5 text-xs leading-relaxed sm:px-5 ${light ? "text-slate-600" : "text-white/70"}`}>
+          {description}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -421,6 +503,8 @@ export function SolarMonitorView({
   const exportToday = Math.max(0, totals.gridExportKwh);
   const showExport = exportToday > 0;
 
+  const [openDetail, setOpenDetail] = useState<null | "solar" | "grid" | "battery" | "consumo">(null);
+
   return (
     <div className="space-y-4">
       {/* ============= HEADER ============= */}
@@ -533,7 +617,7 @@ export function SolarMonitorView({
             return (
               <>
                 {/* Solar — top center */}
-                <div className="absolute left-1/2 top-3 -translate-x-1/2 sm:top-5">
+                <div className="absolute left-1/2 top-2 -translate-x-1/2 sm:top-5">
                   <FloatCard
                     icon={<WeatherIcon type={theme.weatherType} className="h-5 w-5" />}
                     accent={theme.solarAccent}
@@ -542,11 +626,12 @@ export function SolarMonitorView({
                     unit={solar.unit}
                     sub={solarW > 50 ? "Generando" : theme.isDay ? "Baja generación" : "Sin generación"}
                     light={isLight}
+                    onClick={() => setOpenDetail("solar")}
                   />
                 </div>
 
                 {/* Grid — left middle */}
-                <div className="absolute left-2 top-[42%] -translate-y-1/2 sm:left-4">
+                <div className="absolute left-1.5 top-[38%] -translate-y-1/2 sm:left-4 sm:top-[42%]">
                   <FloatCard
                     icon={<Zap className="h-5 w-5" />}
                     accent="#38bdf8"
@@ -555,11 +640,12 @@ export function SolarMonitorView({
                     unit={grid.unit}
                     sub={!gridConnected ? "Desconectada" : estGridW >= 0 ? "Importando" : "Exportando"}
                     light={isLight}
+                    onClick={() => setOpenDetail("grid")}
                   />
                 </div>
 
                 {/* Battery — bottom right (over battery cabinet) */}
-                <div className="absolute right-2 bottom-[14%] sm:right-4 sm:bottom-[18%]">
+                <div className="absolute right-1.5 bottom-[12%] sm:right-4 sm:bottom-[18%]">
                   <FloatCard
                     icon={<BatteryLevelIcon pct={batPct} className="h-5 w-5" color="#22c55e" />}
                     accent="#22c55e"
@@ -568,13 +654,12 @@ export function SolarMonitorView({
                     unit="%"
                     sub={batteryKwh != null ? `${batteryKwh.toFixed(1)} kWh` : (batChargeW > 20 ? "Cargando" : batDischargeW > 20 ? "Descargando" : "En espera")}
                     light={isLight}
+                    onClick={() => setOpenDetail("battery")}
                   />
                 </div>
 
-
-
                 {/* Consumo — bottom center */}
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 sm:bottom-5">
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 sm:bottom-5">
                   <FloatCard
                     icon={<HomeIcon className="h-5 w-5" />}
                     accent="#3b82f6"
@@ -583,6 +668,7 @@ export function SolarMonitorView({
                     unit={load.unit}
                     sub="Consumo de casa"
                     light={isLight}
+                    onClick={() => setOpenDetail("consumo")}
                   />
                 </div>
               </>
@@ -591,6 +677,7 @@ export function SolarMonitorView({
         </div>
       </div>
         </div>
+
 
         <div className="space-y-4">
       {/* ============= WEATHER CARD ============= */}
@@ -705,6 +792,76 @@ export function SolarMonitorView({
       </div>
         </div>
       </div>
+
+      {/* ============= DETAIL DIALOGS ============= */}
+      <WidgetDetailDialog
+        open={openDetail === "solar"}
+        onOpenChange={(v) => !v && setOpenDetail(null)}
+        image={detailSolarImg}
+        title="Generación Solar"
+        subtitle={theme.weatherLabel + " · " + theme.generationQualityLabel}
+        accent={theme.solarAccent}
+        icon={<WeatherIcon type={theme.weatherType} className="h-6 w-6" />}
+        light={isLight}
+        stats={[
+          { label: "Potencia actual", value: fmtPower(solarW).value, unit: fmtPower(solarW).unit },
+          { label: "Generado hoy", value: fmtKwh(totals.pvKwh), unit: "kWh" },
+          { label: "Calidad", value: `${Math.round(theme.solarMultiplier * 100)}`, unit: "%" },
+          { label: "Capacidad PV", value: pv?.array_kwp ? `${pv.array_kwp}` : "—", unit: "kWp" },
+        ]}
+        description="Energía generada por tus paneles fotovoltaicos en tiempo real. La calidad depende de las condiciones climáticas actuales y la posición del sol."
+      />
+      <WidgetDetailDialog
+        open={openDetail === "grid"}
+        onOpenChange={(v) => !v && setOpenDetail(null)}
+        image={detailGridImg}
+        title="Red Eléctrica"
+        subtitle={!gridConnected ? "Desconectada" : estGridW >= 0 ? "Importando energía" : "Exportando energía"}
+        accent="#38bdf8"
+        icon={<Zap className="h-6 w-6" />}
+        light={isLight}
+        stats={[
+          { label: "Flujo actual", value: fmtPower(Math.abs(estGridW)).value, unit: fmtPower(Math.abs(estGridW)).unit },
+          { label: "Voltaje", value: `${Math.round(gridV)}`, unit: "V" },
+          { label: "Importado hoy", value: fmtKwh(totals.gridImportKwh), unit: "kWh" },
+          { label: "Exportado hoy", value: fmtKwh(exportToday), unit: "kWh" },
+        ]}
+        description="Estado de la conexión a la red eléctrica pública. Cuando los paneles no cubren el consumo, la red aporta la energía faltante."
+      />
+      <WidgetDetailDialog
+        open={openDetail === "battery"}
+        onOpenChange={(v) => !v && setOpenDetail(null)}
+        image={detailBatteryImg}
+        title="Batería"
+        subtitle={batChargeW > 20 ? "Cargando" : batDischargeW > 20 ? "Descargando" : "En espera"}
+        accent="#22c55e"
+        icon={<BatteryLevelIcon pct={Math.round(batterySoc)} className="h-6 w-6" color="#22c55e" />}
+        light={isLight}
+        stats={[
+          { label: "Carga (SOC)", value: `${Math.round(batterySoc)}`, unit: "%" },
+          { label: "Energía", value: batteryKwh != null ? batteryKwh.toFixed(1) : "—", unit: "kWh" },
+          { label: "Voltaje", value: batteryV ? batteryV.toFixed(1) : "—", unit: "V" },
+          { label: "Potencia", value: fmtPower(Math.abs(batteryW)).value, unit: fmtPower(Math.abs(batteryW)).unit },
+        ]}
+        description="Estado del banco de baterías del sistema. Permite almacenar excedentes solares para usarlos durante la noche o en cortes de red."
+      />
+      <WidgetDetailDialog
+        open={openDetail === "consumo"}
+        onOpenChange={(v) => !v && setOpenDetail(null)}
+        image={detailConsumoImg}
+        title="Consumo del Hogar"
+        subtitle="Energía utilizada por tu casa"
+        accent="#3b82f6"
+        icon={<HomeIcon className="h-6 w-6" />}
+        light={isLight}
+        stats={[
+          { label: "Consumo actual", value: fmtPower(loadW).value, unit: fmtPower(loadW).unit },
+          { label: "Total hoy", value: fmtKwh(totals.loadKwh), unit: "kWh" },
+          { label: "Desde solar", value: fmtKwh(Math.max(0, totals.pvKwh - exportToday)), unit: "kWh" },
+          { label: "Desde red", value: fmtKwh(totals.gridImportKwh), unit: "kWh" },
+        ]}
+        description="Energía total consumida por los aparatos y cargas del hogar en tiempo real."
+      />
     </div>
   );
 }
