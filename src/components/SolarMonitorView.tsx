@@ -12,7 +12,7 @@ import sceneRainyNight from "@/assets/scene-rainy-night.jpg";
 import sceneSnowyNight from "@/assets/scene-snowy-night.jpg";
 import detailSolarImg from "@/assets/detail-solar.jpg";
 import detailGridImg from "@/assets/detail-grid.jpg";
-import detailBatteryImg from "@/assets/detail-battery.jpg";
+
 import detailConsumoImg from "@/assets/detail-consumo.jpg";
 
 /** Picks the most appropriate hyperrealistic background scene for the current weather/time. */
