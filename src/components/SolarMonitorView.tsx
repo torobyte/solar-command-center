@@ -181,6 +181,122 @@ function BatteryLevelIcon({ pct, className = "h-5 w-5", color = "currentColor" }
   );
 }
 
+/** Hyperrealistic animated battery hero — liquid wave fill, bubbles when charging, glowing bolt. */
+function BatteryAnimated({ pct, charging, discharging }: { pct: number; charging: boolean; discharging: boolean }) {
+  const p = Math.max(0, Math.min(100, pct));
+  const innerX = 18, innerY = 26, innerW = 232, innerH = 88;
+  const fillW = (p / 100) * innerW;
+  const fillColor = p < 20 ? "#ef4444" : p < 40 ? "#f59e0b" : "#22c55e";
+  const glowColor = p < 20 ? "#fecaca" : p < 40 ? "#fde68a" : "#bbf7d0";
+  const surfaceX = innerX + fillW;
+  return (
+    <svg viewBox="0 0 280 140" className="h-full w-full max-w-[420px] drop-shadow-[0_18px_40px_rgba(0,0,0,0.55)]">
+      <defs>
+        <linearGradient id="bat-shell" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="#475569" />
+          <stop offset="55%" stopColor="#1e293b" />
+          <stop offset="100%" stopColor="#020617" />
+        </linearGradient>
+        <linearGradient id="bat-bezel" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="#0f172a" />
+          <stop offset="100%" stopColor="#000" />
+        </linearGradient>
+        <linearGradient id="bat-fill" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor={fillColor} stopOpacity="1" />
+          <stop offset="100%" stopColor={fillColor} stopOpacity="0.55" />
+        </linearGradient>
+        <linearGradient id="bat-gloss" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="#fff" stopOpacity="0.45" />
+          <stop offset="60%" stopColor="#fff" stopOpacity="0.05" />
+          <stop offset="100%" stopColor="#fff" stopOpacity="0" />
+        </linearGradient>
+        <radialGradient id="bat-glow" cx="0.5" cy="0.5" r="0.6">
+          <stop offset="0%" stopColor={glowColor} stopOpacity="0.65" />
+          <stop offset="100%" stopColor={glowColor} stopOpacity="0" />
+        </radialGradient>
+        <clipPath id="bat-clip">
+          <rect x={innerX} y={innerY} width={innerW} height={innerH} rx="10" />
+        </clipPath>
+      </defs>
+
+      {/* Outer shell */}
+      <rect x="4" y="10" width="252" height="120" rx="22" fill="url(#bat-shell)" stroke="#0b1220" strokeWidth="2" />
+      <rect x="8" y="14" width="244" height="112" rx="18" fill="none" stroke="#334155" strokeOpacity="0.4" strokeWidth="1" />
+      {/* Cap */}
+      <rect x="256" y="48" width="20" height="44" rx="6" fill="url(#bat-shell)" stroke="#0b1220" strokeWidth="2" />
+      {/* Inner well */}
+      <rect x={innerX - 2} y={innerY - 2} width={innerW + 4} height={innerH + 4} rx="12" fill="url(#bat-bezel)" />
+      <rect x={innerX} y={innerY} width={innerW} height={innerH} rx="10" fill="#020617" />
+
+      {/* Liquid fill */}
+      <g clipPath="url(#bat-clip)">
+        <rect x={innerX} y={innerY} width={Math.max(fillW, 0)} height={innerH} fill="url(#bat-fill)" />
+        {/* Surface wave */}
+        {fillW > 6 && (
+          <path
+            fill={fillColor}
+            opacity="0.85"
+            d={`M ${surfaceX - 50} ${innerY} q 10 8 20 0 t 20 0 t 20 0 v ${innerH} h -60 z`}
+          >
+            <animate
+              attributeName="d"
+              dur={charging ? "1.6s" : "3.4s"}
+              repeatCount="indefinite"
+              values={`
+                M ${surfaceX - 50} ${innerY + 0} q 10 6 20 0 t 20 0 t 20 0 v ${innerH} h -60 z;
+                M ${surfaceX - 50} ${innerY - 4} q 10 -6 20 0 t 20 0 t 20 0 v ${innerH + 4} h -60 z;
+                M ${surfaceX - 50} ${innerY + 0} q 10 6 20 0 t 20 0 t 20 0 v ${innerH} h -60 z
+              `}
+            />
+          </path>
+        )}
+        {/* Inner glow */}
+        <rect x={innerX} y={innerY} width={Math.max(fillW, 0)} height={innerH} fill="url(#bat-glow)" />
+        {/* Bubbles while charging */}
+        {charging && Array.from({ length: 7 }).map((_, i) => {
+          const cx = innerX + 18 + (i * 28) % Math.max(20, fillW - 10);
+          const r = 1.5 + (i % 3) * 0.6;
+          const dur = 1.4 + (i % 4) * 0.5;
+          return (
+            <circle key={i} cx={cx} cy={innerY + innerH - 4} r={r} fill="#fff" opacity="0.7">
+              <animate attributeName="cy" from={innerY + innerH - 4} to={innerY + 6} dur={`${dur}s`} repeatCount="indefinite" begin={`${i * 0.2}s`} />
+              <animate attributeName="opacity" values="0;0.8;0" dur={`${dur}s`} repeatCount="indefinite" begin={`${i * 0.2}s`} />
+              <animate attributeName="r" values={`${r};${r * 1.4};${r * 0.6}`} dur={`${dur}s`} repeatCount="indefinite" begin={`${i * 0.2}s`} />
+            </circle>
+          );
+        })}
+        {/* Discharge "drain" lines */}
+        {discharging && Array.from({ length: 4 }).map((_, i) => (
+          <line key={i} x1={innerX + 8 + i * 18} y1={innerY + 10} x2={innerX + 8 + i * 18} y2={innerY + innerH - 10}
+            stroke="#fca5a5" strokeWidth="1" opacity="0.4">
+            <animate attributeName="opacity" values="0;0.5;0" dur={`${1.2 + i * 0.2}s`} repeatCount="indefinite" begin={`${i * 0.15}s`} />
+          </line>
+        ))}
+      </g>
+
+      {/* Top gloss */}
+      <rect x={innerX} y={innerY} width={innerW} height="22" rx="10" fill="url(#bat-gloss)" />
+
+      {/* SOC text */}
+      <text x={innerX + innerW / 2} y={innerY + innerH / 2 + 10} textAnchor="middle"
+        fontFamily="system-ui,sans-serif" fontWeight="800" fontSize="36"
+        fill="#fff" stroke="rgba(0,0,0,0.4)" strokeWidth="1" paintOrder="stroke">
+        {Math.round(p)}%
+      </text>
+
+      {/* Charging bolt overlay */}
+      {charging && (
+        <g transform="translate(126, 44)">
+          <path d="M14 0 L0 30 L11 30 L7 52 L26 18 L14 18 Z"
+            fill="#fde68a" stroke="#a16207" strokeWidth="1.4">
+            <animate attributeName="opacity" values="0.65;1;0.65" dur="1.1s" repeatCount="indefinite" />
+          </path>
+        </g>
+      )}
+    </svg>
+  );
+}
+
 /* =========================================================================
    Floating card
    ========================================================================= */
