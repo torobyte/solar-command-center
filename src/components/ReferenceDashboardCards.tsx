@@ -418,8 +418,19 @@ export function useSolarReferenceWeather(pvConfig?: PvConfig | null) {
     }
 
     void load();
+    // Refrescar cada 10 minutos para que la animación refleje la condición actual
+    const interval = setInterval(() => { void load(); }, 10 * 60 * 1000);
+    // Reanudar al volver el foco para reflejar el clima al momento
+    const onFocus = () => { void load(); };
+    if (typeof window !== "undefined") {
+      window.addEventListener("focus", onFocus);
+    }
     return () => {
       cancelled = true;
+      clearInterval(interval);
+      if (typeof window !== "undefined") {
+        window.removeEventListener("focus", onFocus);
+      }
     };
   }, [pvConfig?.latitude, pvConfig?.location_label, pvConfig?.longitude, reloadTick]);
 
