@@ -335,33 +335,44 @@ function FloatCard({
 /* =========================================================================
    Widget detail dialog
    ========================================================================= */
-interface DetailStat { label: string; value: string; unit?: string; accent?: string }
+interface DetailStat { label: string; value: string; unit?: string; accent?: string; hint?: string }
 function WidgetDetailDialog({
-  open, onOpenChange, image, title, subtitle, accent, icon, stats, description, light,
+  open, onOpenChange, image, heroNode, title, subtitle, accent, icon, stats, description, light,
 }: {
   open: boolean; onOpenChange: (v: boolean) => void;
-  image: string; title: string; subtitle: string; accent: string;
+  image?: string;
+  heroNode?: React.ReactNode;
+  title: string; subtitle: string; accent: string;
   icon: React.ReactNode; stats: DetailStat[]; description: string; light: boolean;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-lg overflow-hidden border-0 p-0 sm:rounded-3xl"
+        className="max-w-lg overflow-hidden border-0 p-0 sm:rounded-3xl max-h-[92vh] flex flex-col"
         style={{ background: light ? "rgba(255,255,255,0.98)" : "rgba(8,18,30,0.96)" }}
       >
-        {/* Hero image */}
-        <div className="relative h-48 w-full overflow-hidden sm:h-56">
-          <img
-            src={image}
-            alt={title}
-            className="absolute inset-0 h-full w-full object-cover animate-[scale-in_0.5s_ease-out]"
-            loading="lazy"
-            width={1024}
-            height={512}
-          />
+        {/* Hero */}
+        <div
+          className="relative h-52 w-full overflow-hidden sm:h-60 shrink-0"
+          style={heroNode ? { background: light ? "linear-gradient(135deg,#e2e8f0 0%,#94a3b8 100%)" : "linear-gradient(135deg,#0b1325 0%,#020617 100%)" } : undefined}
+        >
+          {heroNode ? (
+            <div className="absolute inset-0 flex items-center justify-center p-4 animate-[scale-in_0.4s_ease-out]">
+              {heroNode}
+            </div>
+          ) : (
+            <img
+              src={image}
+              alt={title}
+              className="absolute inset-0 h-full w-full object-cover animate-[scale-in_0.5s_ease-out]"
+              loading="lazy"
+              width={1024}
+              height={512}
+            />
+          )}
           <div
             className="absolute inset-0"
-            style={{ background: `linear-gradient(180deg, transparent 0%, transparent 40%, ${light ? "rgba(255,255,255,0.95)" : "rgba(8,18,30,0.95)"} 100%)` }}
+            style={{ background: `linear-gradient(180deg, transparent 0%, transparent 45%, ${light ? "rgba(255,255,255,0.95)" : "rgba(8,18,30,0.95)"} 100%)` }}
           />
           <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
             <div className="flex items-center gap-3 animate-fade-in">
@@ -376,30 +387,33 @@ function WidgetDetailDialog({
           </div>
         </div>
 
-        {/* Stat grid — same style as bottom summary cards */}
-        <div className="grid grid-cols-2 gap-3 p-4 sm:p-5">
-          {stats.map((s, i) => (
-            <div
-              key={s.label}
-              className="rounded-2xl border p-3 backdrop-blur-md animate-fade-in"
-              style={{
-                background: light ? "rgba(248,250,252,0.9)" : "rgba(15,23,42,0.6)",
-                borderColor: light ? "rgba(15,23,42,0.08)" : "rgba(255,255,255,0.08)",
-                animationDelay: `${i * 80}ms`,
-                animationFillMode: "backwards",
-              }}
-            >
-              <div className={`text-[10px] font-semibold uppercase tracking-wider ${light ? "text-slate-500" : "text-white/50"}`}>{s.label}</div>
-              <div className="mt-1 flex items-baseline gap-1">
-                <span className="text-xl font-bold tabular-nums" style={{ color: s.accent ?? accent }}>{s.value}</span>
-                {s.unit && <span className={`text-[11px] ${light ? "text-slate-500" : "text-white/60"}`}>{s.unit}</span>}
+        {/* Scrollable body */}
+        <div className="overflow-y-auto">
+          <div className="grid grid-cols-2 gap-2.5 p-4 sm:p-5">
+            {stats.map((s, i) => (
+              <div
+                key={s.label}
+                className="rounded-xl border p-2.5 backdrop-blur-md animate-fade-in"
+                style={{
+                  background: light ? "rgba(248,250,252,0.9)" : "rgba(15,23,42,0.6)",
+                  borderColor: light ? "rgba(15,23,42,0.08)" : "rgba(255,255,255,0.08)",
+                  animationDelay: `${i * 50}ms`,
+                  animationFillMode: "backwards",
+                }}
+              >
+                <div className={`text-[9px] font-semibold uppercase tracking-wider ${light ? "text-slate-500" : "text-white/50"}`}>{s.label}</div>
+                <div className="mt-0.5 flex items-baseline gap-1">
+                  <span className="text-base font-bold tabular-nums sm:text-lg" style={{ color: s.accent ?? accent }}>{s.value}</span>
+                  {s.unit && <span className={`text-[10px] ${light ? "text-slate-500" : "text-white/60"}`}>{s.unit}</span>}
+                </div>
+                {s.hint && <div className={`mt-0.5 text-[9px] ${light ? "text-slate-400" : "text-white/40"}`}>{s.hint}</div>}
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        <div className={`px-4 pb-5 text-xs leading-relaxed sm:px-5 ${light ? "text-slate-600" : "text-white/70"}`}>
-          {description}
+          <div className={`px-4 pb-5 text-xs leading-relaxed sm:px-5 ${light ? "text-slate-600" : "text-white/70"}`}>
+            {description}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
