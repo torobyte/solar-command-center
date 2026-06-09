@@ -13,7 +13,6 @@ import {
   useSolarReferenceWeather,
   WeatherAndRadiationCard,
 } from "@/components/ReferenceDashboardCards";
-import { LottieScene, weatherToScene, type SceneKind } from "@/components/LottieScene";
 
 
 /** Shared sample shape consumed by the dashboard widgets. */
@@ -94,21 +93,13 @@ export function SiteDashboardView({
   const charging = pv_W > load;
   const pvMax = (pv?.array_kwp ?? 5) * 1000;
   const weatherData = useSolarReferenceWeather(pv);
+  void mode;
+  void charging;
   const batteryDischargeW = Math.max(0, Number(latest?.battery_discharge_current ?? 0) * batteryV);
   const batteryChargeW = Math.max(0, Number(latest?.battery_charging_current ?? 0) * batteryV);
   const batteryNetW = batteryDischargeW - batteryChargeW;
   // Aporte de la red = (consumo casa + carga batería) - (PV + descarga batería)
   const gridW = gridConnected ? Math.max(0, load + batteryChargeW - pv_W - batteryDischargeW) : 0;
-
-  const weatherScene: SceneKind = weatherToScene(weatherData?.current?.weatherCode);
-
-  const scenes: Record<string, SceneKind> = {
-    system: "energy",
-    backup: "shield",
-    batteryStatus: "battery",
-    environmental: "forest",
-    weather: weatherScene,
-  };
 
   const widgets: Record<string, React.ReactNode> = {
     system: <SystemStatusCard pv={pv_W} load={load} battery={battery} batteryV={batteryV} batteryW={batteryNetW} gridV={gridV} gridW={gridW} pvMax={pvMax} />,
@@ -138,20 +129,11 @@ export function SiteDashboardView({
       render={(id) => {
         const node = widgets[id];
         if (!node) return null;
-        const scene = scenes[id];
         return (
-          <div className="relative h-full [&>div]:h-full [&>div>.dashboard-card]:h-full">
+          <div className="h-full [&>div]:h-full [&>div>.dashboard-card]:h-full">
             {node}
-            {scene ? (
-              <LottieScene
-                kind={scene}
-                opacity={0.28}
-                className="rounded-[calc(var(--radius)+8px)] [mask-image:radial-gradient(ellipse_at_center,rgba(0,0,0,0.85),rgba(0,0,0,0.25))]"
-              />
-            ) : null}
           </div>
         );
-
       }}
     />
   );
