@@ -790,8 +790,76 @@ export function SolarMonitorView({
           )}
         </div>
       </div>
-        </div>
-      </div>
+
+      {/* ============= DETAIL DIALOGS ============= */}
+      <WidgetDetailDialog
+        open={openDetail === "solar"}
+        onOpenChange={(v) => !v && setOpenDetail(null)}
+        image={detailSolarImg}
+        title="Generación Solar"
+        subtitle={theme.weatherLabel + " · " + theme.generationQualityLabel}
+        accent={theme.solarAccent}
+        icon={<WeatherIcon type={theme.weatherType} className="h-6 w-6" />}
+        light={isLight}
+        stats={[
+          { label: "Potencia actual", value: fmtPower(solarW).value, unit: fmtPower(solarW).unit },
+          { label: "Generado hoy", value: fmtKwh(totals.pvKwh), unit: "kWh" },
+          { label: "Calidad", value: `${Math.round(theme.solarMultiplier * 100)}`, unit: "%" },
+          { label: "Capacidad PV", value: pv?.pv_kw_total ? `${pv.pv_kw_total}` : "—", unit: "kWp" },
+        ]}
+        description="Energía generada por tus paneles fotovoltaicos en tiempo real. La calidad depende de las condiciones climáticas actuales y la posición del sol."
+      />
+      <WidgetDetailDialog
+        open={openDetail === "grid"}
+        onOpenChange={(v) => !v && setOpenDetail(null)}
+        image={detailGridImg}
+        title="Red Eléctrica"
+        subtitle={!gridConnected ? "Desconectada" : estGridW >= 0 ? "Importando energía" : "Exportando energía"}
+        accent="#38bdf8"
+        icon={<Zap className="h-6 w-6" />}
+        light={isLight}
+        stats={[
+          { label: "Flujo actual", value: fmtPower(Math.abs(estGridW)).value, unit: fmtPower(Math.abs(estGridW)).unit },
+          { label: "Voltaje", value: `${Math.round(gridV)}`, unit: "V" },
+          { label: "Importado hoy", value: fmtKwh(totals.gridImportKwh), unit: "kWh" },
+          { label: "Exportado hoy", value: fmtKwh(exportToday), unit: "kWh" },
+        ]}
+        description="Estado de la conexión a la red eléctrica pública. Cuando los paneles no cubren el consumo, la red aporta la energía faltante."
+      />
+      <WidgetDetailDialog
+        open={openDetail === "battery"}
+        onOpenChange={(v) => !v && setOpenDetail(null)}
+        image={detailBatteryImg}
+        title="Batería"
+        subtitle={batChargeW > 20 ? "Cargando" : batDischargeW > 20 ? "Descargando" : "En espera"}
+        accent="#22c55e"
+        icon={<BatteryLevelIcon pct={Math.round(batterySoc)} className="h-6 w-6" color="#22c55e" />}
+        light={isLight}
+        stats={[
+          { label: "Carga (SOC)", value: `${Math.round(batterySoc)}`, unit: "%" },
+          { label: "Energía", value: batteryKwh != null ? batteryKwh.toFixed(1) : "—", unit: "kWh" },
+          { label: "Voltaje", value: batteryV ? batteryV.toFixed(1) : "—", unit: "V" },
+          { label: "Potencia", value: fmtPower(Math.abs(batteryW)).value, unit: fmtPower(Math.abs(batteryW)).unit },
+        ]}
+        description="Estado del banco de baterías del sistema. Permite almacenar excedentes solares para usarlos durante la noche o en cortes de red."
+      />
+      <WidgetDetailDialog
+        open={openDetail === "consumo"}
+        onOpenChange={(v) => !v && setOpenDetail(null)}
+        image={detailConsumoImg}
+        title="Consumo del Hogar"
+        subtitle="Energía utilizada por tu casa"
+        accent="#3b82f6"
+        icon={<HomeIcon className="h-6 w-6" />}
+        light={isLight}
+        stats={[
+          { label: "Consumo actual", value: fmtPower(loadW).value, unit: fmtPower(loadW).unit },
+          { label: "Total hoy", value: fmtKwh(totals.loadKwh), unit: "kWh" },
+          { label: "Desde solar", value: fmtKwh(Math.max(0, totals.pvKwh - exportToday)), unit: "kWh" },
+          { label: "Desde red", value: fmtKwh(totals.gridImportKwh), unit: "kWh" },
+        ]}
+        description="Energía total consumida por los aparatos y cargas del hogar en tiempo real."
+      />
     </div>
   );
 }
