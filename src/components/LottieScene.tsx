@@ -1,4 +1,4 @@
-import { memo } from "react";
+import React, { memo } from "react";
 
 /**
  * Escenas SVG animadas temáticas por tipo de tarjeta.
@@ -229,7 +229,7 @@ function Shield() {
   );
 }
 
-const SCENES: Record<SceneKind, () => JSX.Element> = {
+const SCENES: Record<SceneKind, () => React.ReactElement> = {
   forest: Forest,
   sun: Sun,
   rain: Rain,
