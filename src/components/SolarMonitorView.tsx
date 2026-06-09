@@ -454,45 +454,17 @@ export function SolarMonitorView({
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
-      {/* ============= WEATHER CARD ============= */}
-      <div
-        className="flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 backdrop-blur-md"
-        style={{ background: isLight ? "rgba(255,255,255,0.82)" : "rgba(8,18,30,0.85)", borderColor: isLight ? "rgba(15,23,42,0.08)" : "rgba(255,255,255,0.08)" }}
-      >
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5">
-            <WeatherIcon type={theme.weatherType} className="h-7 w-7" />
-          </div>
-          <div className="leading-tight">
-            <div className="text-base font-semibold text-foreground">{theme.weatherLabel}</div>
-            <div className="text-xl font-bold tabular-nums text-foreground">
-              {weather ? Math.round(weather.current.temperature) : "—"}<span className="text-sm font-medium text-muted-foreground">° C</span>
-            </div>
-            {today && (
-              <div className="text-[11px] text-muted-foreground">
-                Hoy: Máx. {Math.round(today.max)}° &nbsp; Mín. {Math.round(today.min)}°
-              </div>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center gap-2 text-right">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5">
-            <WeatherIcon type={theme.weatherType} className="h-4 w-4" />
-          </div>
-          <div className="max-w-[140px] text-xs font-medium text-muted-foreground">
-            {theme.generationQualityLabel}
-          </div>
-        </div>
-      </div>
+
 
       {/* ============= SCENE WITH FLOATING CARDS ============= */}
       <div
-        className="relative overflow-hidden rounded-3xl border min-h-[420px] sm:min-h-[480px] lg:min-h-[560px]"
+        className="relative overflow-hidden rounded-3xl border w-full aspect-[4/5] sm:aspect-[5/4] lg:aspect-[4/5]"
         style={{
           borderColor: "rgba(255,255,255,0.08)",
           background: isLight ? "#e5eef7" : "#020617",
         }}
       >
+
         {/* Hyperrealistic background scene */}
         <img
           src={pickSceneImage(theme)}
@@ -550,7 +522,7 @@ export function SolarMonitorView({
         )}
 
         {/* Floating cards layer */}
-        <div className="relative h-full min-h-[420px] sm:min-h-[480px] lg:min-h-[560px] w-full">
+        <div className="relative h-full w-full">
           {(() => {
             const solar = fmtPower(solarW);
             const grid = fmtPower(estGridW);
@@ -584,8 +556,8 @@ export function SolarMonitorView({
                   />
                 </div>
 
-                {/* Battery — right middle */}
-                <div className="absolute right-2 top-[42%] -translate-y-1/2 sm:right-4">
+                {/* Battery — top right (near house upper-right) */}
+                <div className="absolute right-2 top-[28%] sm:right-4 sm:top-[30%]">
                   <FloatCard
                     icon={<BatteryLevelIcon pct={batPct} className="h-5 w-5" color="#22c55e" />}
                     accent="#22c55e"
@@ -596,6 +568,7 @@ export function SolarMonitorView({
                     light={isLight}
                   />
                 </div>
+
 
                 {/* Consumo — bottom center */}
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 sm:bottom-5">
@@ -617,7 +590,39 @@ export function SolarMonitorView({
         </div>
 
         <div className="space-y-4">
+      {/* ============= WEATHER CARD ============= */}
+      <div
+        className="flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 backdrop-blur-md"
+        style={{ background: isLight ? "rgba(255,255,255,0.82)" : "rgba(8,18,30,0.85)", borderColor: isLight ? "rgba(15,23,42,0.08)" : "rgba(255,255,255,0.08)" }}
+      >
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5">
+            <WeatherIcon type={theme.weatherType} className="h-7 w-7" />
+          </div>
+          <div className="leading-tight">
+            <div className="text-base font-semibold text-foreground">{theme.weatherLabel}</div>
+            <div className="text-xl font-bold tabular-nums text-foreground">
+              {weather ? Math.round(weather.current.temperature) : "—"}<span className="text-sm font-medium text-muted-foreground">° C</span>
+            </div>
+            {today && (
+              <div className="text-[11px] text-muted-foreground">
+                Hoy: Máx. {Math.round(today.max)}° &nbsp; Mín. {Math.round(today.min)}°
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 text-right">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5">
+            <WeatherIcon type={theme.weatherType} className="h-4 w-4" />
+          </div>
+          <div className="max-w-[140px] text-xs font-medium text-muted-foreground">
+            {theme.generationQualityLabel}
+          </div>
+        </div>
+      </div>
+
       {/* ============= FLOW BAR ============= */}
+
       <div
         className="rounded-2xl border p-4 backdrop-blur-md"
         style={{ background: isLight ? "rgba(255,255,255,0.82)" : "rgba(8,18,30,0.85)", borderColor: isLight ? "rgba(15,23,42,0.08)" : "rgba(255,255,255,0.08)" }}
