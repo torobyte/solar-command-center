@@ -661,12 +661,12 @@ export function SolarMonitorView({
 }
 
 function FlowNode({
-  icon, value, label, connector, last = false,
-}: { icon: React.ReactNode; value: string; label: string; connector: string; last?: boolean }) {
+  icon, value, label, connector, last = false, light = false,
+}: { icon: React.ReactNode; value: string; label: string; connector: string; last?: boolean; light?: boolean }) {
   return (
     <div className="flex items-center gap-2">
       <div className="flex flex-col items-center">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5">{icon}</div>
+        <div className={`flex h-10 w-10 items-center justify-center rounded-full ${light ? "bg-slate-900/5" : "bg-white/5"}`}>{icon}</div>
       </div>
       <div className="min-w-0 leading-tight">
         <div className="flex items-baseline gap-1">
@@ -683,10 +683,10 @@ function FlowNode({
 }
 
 function SummaryCard({
-  icon, accent, title, value, unit, sub,
-}: { icon: React.ReactNode; accent: string; title: string; value: string; unit: string; sub: string }) {
+  icon, accent, title, value, unit, sub, light = false,
+}: { icon: React.ReactNode; accent: string; title: string; value: string; unit: string; sub: string; light?: boolean }) {
   return (
-    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
+    <div className={`rounded-xl border p-3 ${light ? "border-slate-900/8 bg-slate-900/[0.03]" : "border-white/5 bg-white/[0.02]"}`}>
       <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-full" style={{ background: `${accent}1a` }}>
         {icon}
       </div>
