@@ -1049,7 +1049,6 @@ export function SolarMonitorView({
           </p>
         )}
       </div>
-      </div>
         </div>
       </div>
 
