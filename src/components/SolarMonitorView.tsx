@@ -696,6 +696,8 @@ export function SolarMonitorView({
           )}
         </div>
       </div>
+        </div>
+      </div>
     </div>
   );
 }
