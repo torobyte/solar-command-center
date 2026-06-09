@@ -153,13 +153,27 @@ function useTodayTotals(siteId: string): DailyTotals {
 /* =========================================================================
    Helpers
    ========================================================================= */
-function fmtKw(w: number): string {
-  const kw = w / 1000;
-  if (Math.abs(kw) < 10) return kw.toFixed(2);
-  return kw.toFixed(1);
+/** Returns integer power with adaptive unit: <1000W -> "450" W, otherwise "1" or "12" kW. */
+function fmtPower(w: number): { value: string; unit: string } {
+  const abs = Math.abs(w);
+  if (abs < 1000) return { value: String(Math.round(w)), unit: "W" };
+  return { value: String(Math.round(w / 1000)), unit: "kW" };
 }
 function fmtKwh(v: number): string {
-  return Math.abs(v) < 10 ? v.toFixed(1) : v.toFixed(1);
+  return Math.round(v).toString();
+}
+
+/** Battery icon that fills proportionally to charge level (0-100). */
+function BatteryLevelIcon({ pct, className = "h-5 w-5", color = "currentColor" }: { pct: number; className?: string; color?: string }) {
+  const p = Math.max(0, Math.min(100, pct));
+  const fillW = (p / 100) * 14; // inner width 14
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="7" width="17" height="10" rx="2" />
+      <line x1="22" y1="11" x2="22" y2="13" />
+      <rect x="5" y="9" width={fillW} height="6" rx="1" fill={color} stroke="none" />
+    </svg>
+  );
 }
 
 /* =========================================================================
