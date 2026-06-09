@@ -140,19 +140,18 @@ export function SiteDashboardView({
         if (!node) return null;
         const scene = scenes[id];
         return (
-          <div className="relative h-full">
+          <div className="relative h-full [&>div]:h-full [&>div>.dashboard-card]:h-full">
+            {node}
             {scene ? (
               <LottieScene
                 kind={scene}
-                opacity={0.22}
-                className="rounded-2xl [mask-image:linear-gradient(180deg,rgba(0,0,0,0.85),rgba(0,0,0,0.4))]"
+                opacity={0.18}
+                className="rounded-[calc(var(--radius)+8px)] mix-blend-screen [mask-image:radial-gradient(ellipse_at_center,rgba(0,0,0,0.9),rgba(0,0,0,0.35))]"
               />
             ) : null}
-            <div className="relative z-[1] h-full [&>.dashboard-card]:h-full [&>div]:h-full">
-              {node}
-            </div>
           </div>
         );
+
       }}
     />
   );
