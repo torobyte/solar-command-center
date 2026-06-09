@@ -3,7 +3,7 @@ import { Bell, MoreVertical, Menu, Sun, Moon, Cloud, CloudRain, CloudSnow, Cloud
 import { supabase } from "@/integrations/supabase/client";
 import { usePvConfig, type PvConfig } from "@/components/PvSystemConfig";
 import { useSolarReferenceWeather, type DashboardWeatherData } from "@/components/ReferenceDashboardCards";
-import type { DashboardSample } from "@/components/SiteDashboardView";
+import { formatInverterMode, type DashboardSample } from "@/components/SiteDashboardView";
 import { useTheme } from "@/lib/theme";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import sceneSunnyDay from "@/assets/scene-sunny-day.jpg";
@@ -12,7 +12,7 @@ import sceneRainyNight from "@/assets/scene-rainy-night.jpg";
 import sceneSnowyNight from "@/assets/scene-snowy-night.jpg";
 import detailSolarImg from "@/assets/detail-solar.jpg";
 import detailGridImg from "@/assets/detail-grid.jpg";
-import detailBatteryImg from "@/assets/detail-battery.jpg";
+
 import detailConsumoImg from "@/assets/detail-consumo.jpg";
 
 /** Picks the most appropriate hyperrealistic background scene for the current weather/time. */
@@ -181,6 +181,122 @@ function BatteryLevelIcon({ pct, className = "h-5 w-5", color = "currentColor" }
   );
 }
 
+/** Hyperrealistic animated battery hero — liquid wave fill, bubbles when charging, glowing bolt. */
+function BatteryAnimated({ pct, charging, discharging }: { pct: number; charging: boolean; discharging: boolean }) {
+  const p = Math.max(0, Math.min(100, pct));
+  const innerX = 18, innerY = 26, innerW = 232, innerH = 88;
+  const fillW = (p / 100) * innerW;
+  const fillColor = p < 20 ? "#ef4444" : p < 40 ? "#f59e0b" : "#22c55e";
+  const glowColor = p < 20 ? "#fecaca" : p < 40 ? "#fde68a" : "#bbf7d0";
+  const surfaceX = innerX + fillW;
+  return (
+    <svg viewBox="0 0 280 140" className="h-full w-full max-w-[420px] drop-shadow-[0_18px_40px_rgba(0,0,0,0.55)]">
+      <defs>
+        <linearGradient id="bat-shell" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="#475569" />
+          <stop offset="55%" stopColor="#1e293b" />
+          <stop offset="100%" stopColor="#020617" />
+        </linearGradient>
+        <linearGradient id="bat-bezel" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="#0f172a" />
+          <stop offset="100%" stopColor="#000" />
+        </linearGradient>
+        <linearGradient id="bat-fill" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor={fillColor} stopOpacity="1" />
+          <stop offset="100%" stopColor={fillColor} stopOpacity="0.55" />
+        </linearGradient>
+        <linearGradient id="bat-gloss" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="#fff" stopOpacity="0.45" />
+          <stop offset="60%" stopColor="#fff" stopOpacity="0.05" />
+          <stop offset="100%" stopColor="#fff" stopOpacity="0" />
+        </linearGradient>
+        <radialGradient id="bat-glow" cx="0.5" cy="0.5" r="0.6">
+          <stop offset="0%" stopColor={glowColor} stopOpacity="0.65" />
+          <stop offset="100%" stopColor={glowColor} stopOpacity="0" />
+        </radialGradient>
+        <clipPath id="bat-clip">
+          <rect x={innerX} y={innerY} width={innerW} height={innerH} rx="10" />
+        </clipPath>
+      </defs>
+
+      {/* Outer shell */}
+      <rect x="4" y="10" width="252" height="120" rx="22" fill="url(#bat-shell)" stroke="#0b1220" strokeWidth="2" />
+      <rect x="8" y="14" width="244" height="112" rx="18" fill="none" stroke="#334155" strokeOpacity="0.4" strokeWidth="1" />
+      {/* Cap */}
+      <rect x="256" y="48" width="20" height="44" rx="6" fill="url(#bat-shell)" stroke="#0b1220" strokeWidth="2" />
+      {/* Inner well */}
+      <rect x={innerX - 2} y={innerY - 2} width={innerW + 4} height={innerH + 4} rx="12" fill="url(#bat-bezel)" />
+      <rect x={innerX} y={innerY} width={innerW} height={innerH} rx="10" fill="#020617" />
+
+      {/* Liquid fill */}
+      <g clipPath="url(#bat-clip)">
+        <rect x={innerX} y={innerY} width={Math.max(fillW, 0)} height={innerH} fill="url(#bat-fill)" />
+        {/* Surface wave */}
+        {fillW > 6 && (
+          <path
+            fill={fillColor}
+            opacity="0.85"
+            d={`M ${surfaceX - 50} ${innerY} q 10 8 20 0 t 20 0 t 20 0 v ${innerH} h -60 z`}
+          >
+            <animate
+              attributeName="d"
+              dur={charging ? "1.6s" : "3.4s"}
+              repeatCount="indefinite"
+              values={`
+                M ${surfaceX - 50} ${innerY + 0} q 10 6 20 0 t 20 0 t 20 0 v ${innerH} h -60 z;
+                M ${surfaceX - 50} ${innerY - 4} q 10 -6 20 0 t 20 0 t 20 0 v ${innerH + 4} h -60 z;
+                M ${surfaceX - 50} ${innerY + 0} q 10 6 20 0 t 20 0 t 20 0 v ${innerH} h -60 z
+              `}
+            />
+          </path>
+        )}
+        {/* Inner glow */}
+        <rect x={innerX} y={innerY} width={Math.max(fillW, 0)} height={innerH} fill="url(#bat-glow)" />
+        {/* Bubbles while charging */}
+        {charging && Array.from({ length: 7 }).map((_, i) => {
+          const cx = innerX + 18 + (i * 28) % Math.max(20, fillW - 10);
+          const r = 1.5 + (i % 3) * 0.6;
+          const dur = 1.4 + (i % 4) * 0.5;
+          return (
+            <circle key={i} cx={cx} cy={innerY + innerH - 4} r={r} fill="#fff" opacity="0.7">
+              <animate attributeName="cy" from={innerY + innerH - 4} to={innerY + 6} dur={`${dur}s`} repeatCount="indefinite" begin={`${i * 0.2}s`} />
+              <animate attributeName="opacity" values="0;0.8;0" dur={`${dur}s`} repeatCount="indefinite" begin={`${i * 0.2}s`} />
+              <animate attributeName="r" values={`${r};${r * 1.4};${r * 0.6}`} dur={`${dur}s`} repeatCount="indefinite" begin={`${i * 0.2}s`} />
+            </circle>
+          );
+        })}
+        {/* Discharge "drain" lines */}
+        {discharging && Array.from({ length: 4 }).map((_, i) => (
+          <line key={i} x1={innerX + 8 + i * 18} y1={innerY + 10} x2={innerX + 8 + i * 18} y2={innerY + innerH - 10}
+            stroke="#fca5a5" strokeWidth="1" opacity="0.4">
+            <animate attributeName="opacity" values="0;0.5;0" dur={`${1.2 + i * 0.2}s`} repeatCount="indefinite" begin={`${i * 0.15}s`} />
+          </line>
+        ))}
+      </g>
+
+      {/* Top gloss */}
+      <rect x={innerX} y={innerY} width={innerW} height="22" rx="10" fill="url(#bat-gloss)" />
+
+      {/* SOC text */}
+      <text x={innerX + innerW / 2} y={innerY + innerH / 2 + 10} textAnchor="middle"
+        fontFamily="system-ui,sans-serif" fontWeight="800" fontSize="36"
+        fill="#fff" stroke="rgba(0,0,0,0.4)" strokeWidth="1" paintOrder="stroke">
+        {Math.round(p)}%
+      </text>
+
+      {/* Charging bolt overlay */}
+      {charging && (
+        <g transform="translate(126, 44)">
+          <path d="M14 0 L0 30 L11 30 L7 52 L26 18 L14 18 Z"
+            fill="#fde68a" stroke="#a16207" strokeWidth="1.4">
+            <animate attributeName="opacity" values="0.65;1;0.65" dur="1.1s" repeatCount="indefinite" />
+          </path>
+        </g>
+      )}
+    </svg>
+  );
+}
+
 /* =========================================================================
    Floating card
    ========================================================================= */
@@ -219,33 +335,44 @@ function FloatCard({
 /* =========================================================================
    Widget detail dialog
    ========================================================================= */
-interface DetailStat { label: string; value: string; unit?: string; accent?: string }
+interface DetailStat { label: string; value: string; unit?: string; accent?: string; hint?: string }
 function WidgetDetailDialog({
-  open, onOpenChange, image, title, subtitle, accent, icon, stats, description, light,
+  open, onOpenChange, image, heroNode, title, subtitle, accent, icon, stats, description, light,
 }: {
   open: boolean; onOpenChange: (v: boolean) => void;
-  image: string; title: string; subtitle: string; accent: string;
+  image?: string;
+  heroNode?: React.ReactNode;
+  title: string; subtitle: string; accent: string;
   icon: React.ReactNode; stats: DetailStat[]; description: string; light: boolean;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-lg overflow-hidden border-0 p-0 sm:rounded-3xl"
+        className="max-w-lg overflow-hidden border-0 p-0 sm:rounded-3xl max-h-[92vh] flex flex-col"
         style={{ background: light ? "rgba(255,255,255,0.98)" : "rgba(8,18,30,0.96)" }}
       >
-        {/* Hero image */}
-        <div className="relative h-48 w-full overflow-hidden sm:h-56">
-          <img
-            src={image}
-            alt={title}
-            className="absolute inset-0 h-full w-full object-cover animate-[scale-in_0.5s_ease-out]"
-            loading="lazy"
-            width={1024}
-            height={512}
-          />
+        {/* Hero */}
+        <div
+          className="relative h-52 w-full overflow-hidden sm:h-60 shrink-0"
+          style={heroNode ? { background: light ? "linear-gradient(135deg,#e2e8f0 0%,#94a3b8 100%)" : "linear-gradient(135deg,#0b1325 0%,#020617 100%)" } : undefined}
+        >
+          {heroNode ? (
+            <div className="absolute inset-0 flex items-center justify-center p-4 animate-[scale-in_0.4s_ease-out]">
+              {heroNode}
+            </div>
+          ) : (
+            <img
+              src={image}
+              alt={title}
+              className="absolute inset-0 h-full w-full object-cover animate-[scale-in_0.5s_ease-out]"
+              loading="lazy"
+              width={1024}
+              height={512}
+            />
+          )}
           <div
             className="absolute inset-0"
-            style={{ background: `linear-gradient(180deg, transparent 0%, transparent 40%, ${light ? "rgba(255,255,255,0.95)" : "rgba(8,18,30,0.95)"} 100%)` }}
+            style={{ background: `linear-gradient(180deg, transparent 0%, transparent 45%, ${light ? "rgba(255,255,255,0.95)" : "rgba(8,18,30,0.95)"} 100%)` }}
           />
           <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
             <div className="flex items-center gap-3 animate-fade-in">
@@ -260,30 +387,33 @@ function WidgetDetailDialog({
           </div>
         </div>
 
-        {/* Stat grid — same style as bottom summary cards */}
-        <div className="grid grid-cols-2 gap-3 p-4 sm:p-5">
-          {stats.map((s, i) => (
-            <div
-              key={s.label}
-              className="rounded-2xl border p-3 backdrop-blur-md animate-fade-in"
-              style={{
-                background: light ? "rgba(248,250,252,0.9)" : "rgba(15,23,42,0.6)",
-                borderColor: light ? "rgba(15,23,42,0.08)" : "rgba(255,255,255,0.08)",
-                animationDelay: `${i * 80}ms`,
-                animationFillMode: "backwards",
-              }}
-            >
-              <div className={`text-[10px] font-semibold uppercase tracking-wider ${light ? "text-slate-500" : "text-white/50"}`}>{s.label}</div>
-              <div className="mt-1 flex items-baseline gap-1">
-                <span className="text-xl font-bold tabular-nums" style={{ color: s.accent ?? accent }}>{s.value}</span>
-                {s.unit && <span className={`text-[11px] ${light ? "text-slate-500" : "text-white/60"}`}>{s.unit}</span>}
+        {/* Scrollable body */}
+        <div className="overflow-y-auto">
+          <div className="grid grid-cols-2 gap-2.5 p-4 sm:p-5">
+            {stats.map((s, i) => (
+              <div
+                key={s.label}
+                className="rounded-xl border p-2.5 backdrop-blur-md animate-fade-in"
+                style={{
+                  background: light ? "rgba(248,250,252,0.9)" : "rgba(15,23,42,0.6)",
+                  borderColor: light ? "rgba(15,23,42,0.08)" : "rgba(255,255,255,0.08)",
+                  animationDelay: `${i * 50}ms`,
+                  animationFillMode: "backwards",
+                }}
+              >
+                <div className={`text-[9px] font-semibold uppercase tracking-wider ${light ? "text-slate-500" : "text-white/50"}`}>{s.label}</div>
+                <div className="mt-0.5 flex items-baseline gap-1">
+                  <span className="text-base font-bold tabular-nums sm:text-lg" style={{ color: s.accent ?? accent }}>{s.value}</span>
+                  {s.unit && <span className={`text-[10px] ${light ? "text-slate-500" : "text-white/60"}`}>{s.unit}</span>}
+                </div>
+                {s.hint && <div className={`mt-0.5 text-[9px] ${light ? "text-slate-400" : "text-white/40"}`}>{s.hint}</div>}
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        <div className={`px-4 pb-5 text-xs leading-relaxed sm:px-5 ${light ? "text-slate-600" : "text-white/70"}`}>
-          {description}
+          <div className={`px-4 pb-5 text-xs leading-relaxed sm:px-5 ${light ? "text-slate-600" : "text-white/70"}`}>
+            {description}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
@@ -499,9 +629,38 @@ export function SolarMonitorView({
   const isLight = resolved === "light";
 
   const batteryKwh = pv?.battery_kwh ? (pv.battery_kwh * batterySoc / 100) : null;
+  const batteryCapKwh = pv?.battery_kwh ?? null;
 
   const exportToday = Math.max(0, totals.gridExportKwh);
   const showExport = exportToday > 0;
+
+  // Derived metrics for popups
+  const inverter = formatInverterMode(latest?.inverter_mode);
+  const selfFromSolar = Math.max(0, totals.pvKwh - exportToday);
+  const selfSufficiencyPct = totals.loadKwh > 0 ? Math.round((selfFromSolar / totals.loadKwh) * 100) : 0;
+  const solarEffPct = pv?.array_kwp && pv.array_kwp > 0 ? Math.round((solarW / (pv.array_kwp * 1000)) * 100) : null;
+  const currency = pv?.currency ?? "";
+  const energyPrice = Number(pv?.energy_price ?? 0);
+  const feedInPrice = Number(pv?.feed_in_price ?? 0);
+  const gridCostToday = totals.gridImportKwh * energyPrice;
+  const exportRevenueToday = exportToday * feedInPrice;
+  const savedToday = selfFromSolar * energyPrice;
+  const netBalanceToday = exportRevenueToday + savedToday - gridCostToday;
+  // Backup time: remaining battery energy / current load
+  const backupHours = batteryKwh != null && loadW > 50 ? (batteryKwh * 1000) / loadW : null;
+  const batCurrentA = Math.max(
+    Number(latest?.battery_charging_current ?? 0),
+    Number(latest?.battery_discharge_current ?? 0),
+  );
+  const batStateLabel = batChargeW > 20 ? "Cargando" : batDischargeW > 20 ? "Descargando" : "En espera";
+  const co2Saved = (totals.pvKwh * 0.4).toFixed(1); // ~0.4 kg CO2 per kWh avoided
+  const panelLabel = pv?.panel_count && pv?.panel_watts
+    ? `${pv.panel_count}×${pv.panel_watts}W`
+    : pv?.panel_count ? `${pv.panel_count}` : "—";
+  const orientationLabel = pv?.azimuth != null && pv?.tilt != null
+    ? `${Math.round(pv.azimuth)}°/${Math.round(pv.tilt)}°`
+    : "—";
+  const fmtMoney = (v: number) => `${currency ? currency + " " : ""}${Math.round(v).toLocaleString()}`;
 
   const [openDetail, setOpenDetail] = useState<null | "solar" | "grid" | "battery" | "consumo">(null);
 
@@ -806,10 +965,16 @@ export function SolarMonitorView({
         stats={[
           { label: "Potencia actual", value: fmtPower(solarW).value, unit: fmtPower(solarW).unit },
           { label: "Generado hoy", value: fmtKwh(totals.pvKwh), unit: "kWh" },
-          { label: "Calidad", value: `${Math.round(theme.solarMultiplier * 100)}`, unit: "%" },
+          { label: "Eficiencia", value: solarEffPct != null ? `${solarEffPct}` : "—", unit: "%", hint: "vs capacidad pico" },
+          { label: "Calidad climática", value: `${Math.round(theme.solarMultiplier * 100)}`, unit: "%" },
           { label: "Capacidad PV", value: pv?.array_kwp ? `${pv.array_kwp}` : "—", unit: "kWp" },
+          { label: "Paneles", value: panelLabel, hint: pv?.panel_count ? `${pv.panel_count} módulos` : undefined },
+          { label: "Orientación / tilt", value: orientationLabel, hint: "azimut / inclinación" },
+          { label: "Temperatura", value: weather ? `${Math.round(weather.current.temperature)}` : "—", unit: "°C" },
+          { label: "Ahorrado hoy", value: energyPrice > 0 ? fmtMoney(savedToday) : "—", hint: "autoconsumo evitó comprar" },
+          { label: "CO₂ evitado", value: co2Saved, unit: "kg", hint: "estimado hoy" },
         ]}
-        description="Energía generada por tus paneles fotovoltaicos en tiempo real. La calidad depende de las condiciones climáticas actuales y la posición del sol."
+        description="Energía generada por tus paneles fotovoltaicos en tiempo real. La eficiencia compara la potencia instantánea con la capacidad pico instalada; la calidad climática refleja cuánto del potencial solar se aprovecha con el clima actual."
       />
       <WidgetDetailDialog
         open={openDetail === "grid"}
@@ -821,46 +986,61 @@ export function SolarMonitorView({
         icon={<Zap className="h-6 w-6" />}
         light={isLight}
         stats={[
-          { label: "Flujo actual", value: fmtPower(Math.abs(estGridW)).value, unit: fmtPower(Math.abs(estGridW)).unit },
-          { label: "Voltaje", value: `${Math.round(gridV)}`, unit: "V" },
+          { label: "Flujo actual", value: fmtPower(Math.abs(estGridW)).value, unit: fmtPower(Math.abs(estGridW)).unit, hint: estGridW >= 0 ? "Importando" : "Exportando" },
+          { label: "Voltaje", value: gridV ? `${Math.round(gridV)}` : "—", unit: "V" },
+          { label: "Estado", value: gridConnected ? "Conectada" : "Desconectada", accent: gridConnected ? "#22c55e" : "#ef4444" },
+          { label: "Modo inversor", value: inverter.code || "—", hint: inverter.label !== "—" ? inverter.label : undefined },
           { label: "Importado hoy", value: fmtKwh(totals.gridImportKwh), unit: "kWh" },
           { label: "Exportado hoy", value: fmtKwh(exportToday), unit: "kWh" },
+          { label: "Costo importación", value: energyPrice > 0 ? fmtMoney(gridCostToday) : "—", hint: energyPrice > 0 ? `${energyPrice}/kWh` : "sin tarifa configurada" },
+          { label: "Ingreso exportación", value: feedInPrice > 0 ? fmtMoney(exportRevenueToday) : "—", hint: feedInPrice > 0 ? `${feedInPrice}/kWh` : "sin tarifa configurada" },
+          { label: "Balance neto hoy", value: energyPrice > 0 || feedInPrice > 0 ? fmtMoney(netBalanceToday) : "—", accent: netBalanceToday >= 0 ? "#22c55e" : "#ef4444", hint: "ahorro + venta − compra" },
         ]}
-        description="Estado de la conexión a la red eléctrica pública. Cuando los paneles no cubren el consumo, la red aporta la energía faltante."
+        description="Estado de la conexión a la red eléctrica pública. El balance neto combina lo que la red te aporta (importación), lo que le entregas (exportación) y el ahorro por autoconsumo solar."
       />
       <WidgetDetailDialog
         open={openDetail === "battery"}
         onOpenChange={(v) => !v && setOpenDetail(null)}
-        image={detailBatteryImg}
+        heroNode={<BatteryAnimated pct={Math.round(batterySoc)} charging={batChargeW > 20} discharging={batDischargeW > 20} />}
         title="Batería"
-        subtitle={batChargeW > 20 ? "Cargando" : batDischargeW > 20 ? "Descargando" : "En espera"}
+        subtitle={batStateLabel + (batteryCapKwh ? ` · ${batteryCapKwh} kWh totales` : "")}
         accent="#22c55e"
         icon={<BatteryLevelIcon pct={Math.round(batterySoc)} className="h-6 w-6" color="#22c55e" />}
         light={isLight}
         stats={[
           { label: "Carga (SOC)", value: `${Math.round(batterySoc)}`, unit: "%" },
-          { label: "Energía", value: batteryKwh != null ? batteryKwh.toFixed(1) : "—", unit: "kWh" },
+          { label: "Energía disponible", value: batteryKwh != null ? batteryKwh.toFixed(1) : "—", unit: "kWh", hint: batteryCapKwh ? `de ${batteryCapKwh} kWh` : undefined },
           { label: "Voltaje", value: batteryV ? batteryV.toFixed(1) : "—", unit: "V" },
-          { label: "Potencia", value: fmtPower(Math.abs(batteryW)).value, unit: fmtPower(Math.abs(batteryW)).unit },
+          { label: "Corriente", value: batCurrentA > 0 ? batCurrentA.toFixed(1) : "—", unit: "A" },
+          { label: "Potencia", value: fmtPower(Math.abs(batteryW)).value, unit: fmtPower(Math.abs(batteryW)).unit, hint: batStateLabel },
+          { label: "Estado", value: batStateLabel, accent: batChargeW > 20 ? "#22c55e" : batDischargeW > 20 ? "#f59e0b" : "#94a3b8" },
+          { label: "Respaldo estimado", value: backupHours != null ? (backupHours >= 1 ? `${backupHours.toFixed(1)}` : `${Math.round(backupHours * 60)}`) : "—", unit: backupHours != null ? (backupHours >= 1 ? "h" : "min") : undefined, hint: "al consumo actual" },
+          { label: "Almacenado hoy", value: fmtKwh(totals.batteryChargedKwh), unit: "kWh" },
+          { label: "Tipo", value: pv?.battery_type ? pv.battery_type.replace("_", " ") : "—", hint: pv?.battery_count ? `${pv.battery_count} unidades` : undefined },
+          { label: "DOD útil", value: pv?.battery_usable_dod_pct ? `${pv.battery_usable_dod_pct}` : "—", unit: "%", hint: "profundidad de descarga" },
         ]}
-        description="Estado del banco de baterías del sistema. Permite almacenar excedentes solares para usarlos durante la noche o en cortes de red."
+        description="Banco de baterías del sistema. El respaldo estimado indica cuánto podría sostener el consumo actual usando sólo la energía almacenada disponible."
       />
       <WidgetDetailDialog
         open={openDetail === "consumo"}
         onOpenChange={(v) => !v && setOpenDetail(null)}
         image={detailConsumoImg}
         title="Consumo del Hogar"
-        subtitle="Energía utilizada por tu casa"
+        subtitle={`Modo ${inverter.code || "—"} · ${inverter.label}`}
         accent="#3b82f6"
         icon={<HomeIcon className="h-6 w-6" />}
         light={isLight}
         stats={[
           { label: "Consumo actual", value: fmtPower(loadW).value, unit: fmtPower(loadW).unit },
           { label: "Total hoy", value: fmtKwh(totals.loadKwh), unit: "kWh" },
-          { label: "Desde solar", value: fmtKwh(Math.max(0, totals.pvKwh - exportToday)), unit: "kWh" },
-          { label: "Desde red", value: fmtKwh(totals.gridImportKwh), unit: "kWh" },
+          { label: "Desde solar", value: fmtKwh(selfFromSolar), unit: "kWh", accent: theme.solarAccent },
+          { label: "Desde red", value: fmtKwh(totals.gridImportKwh), unit: "kWh", accent: "#38bdf8" },
+          { label: "Autoconsumo", value: `${selfSufficiencyPct}`, unit: "%", hint: "% cubierto por solar", accent: selfSufficiencyPct >= 70 ? "#22c55e" : selfSufficiencyPct >= 40 ? "#f59e0b" : "#ef4444" },
+          { label: "Costo evitado", value: energyPrice > 0 ? fmtMoney(savedToday) : "—", hint: "gracias al solar" },
+          { label: "Costo desde red", value: energyPrice > 0 ? fmtMoney(gridCostToday) : "—" },
+          { label: "Modo inversor", value: inverter.code || "—", hint: inverter.label },
         ]}
-        description="Energía total consumida por los aparatos y cargas del hogar en tiempo real."
+        description="Energía total que tu casa está usando ahora mismo y cómo se reparte entre las fuentes disponibles. El autoconsumo indica qué porcentaje del consumo fue cubierto directamente por los paneles solares."
       />
     </div>
   );
