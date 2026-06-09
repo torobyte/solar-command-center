@@ -19,6 +19,8 @@ export function RealtimeStatusMonitor() {
   const downTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastConnectRef = useRef(0);
+  const visibleRef = useRef(typeof document === "undefined" ? true : document.visibilityState === "visible");
+  const onlineRef = useRef(typeof navigator === "undefined" ? true : navigator.onLine);
 
   const SUSTAINED_DOWN_MS = 20_000; // only warn after 20s of being down
 
@@ -38,13 +40,13 @@ export function RealtimeStatusMonitor() {
   function scheduleReconnect(delayMs: number) {
     clearReconnect();
     reconnectTimerRef.current = setTimeout(() => {
-      connect();
+      connect(true);
     }, delayMs);
   }
 
-  function connect() {
+  function connect(force = false) {
     const now = Date.now();
-    if (now - lastConnectRef.current < 10_000) return channelRef.current ?? undefined;
+    if (!force && now - lastConnectRef.current < 10_000) return channelRef.current ?? undefined;
     lastConnectRef.current = now;
     if (channelRef.current) {
       try { supabase.removeChannel(channelRef.current); } catch {}
@@ -61,13 +63,17 @@ export function RealtimeStatusMonitor() {
           clearReconnect();
           setOpen(false);
           setRetrying(false);
+          setDetails(undefined);
+        } else if (status === "CLOSED") {
+          clearDownTimer();
+          if (visibleRef.current && onlineRef.current) scheduleReconnect(1500);
         } else if (
           status === "CHANNEL_ERROR" ||
-          status === "TIMED_OUT" ||
-          status === "CLOSED"
+          status === "TIMED_OUT"
         ) {
           // Always try to reconnect silently first
           scheduleReconnect(3000);
+          if (!visibleRef.current || !onlineRef.current) return;
           // Only surface dialog if it stays down for a while
           if (!downTimerRef.current) {
             downTimerRef.current = setTimeout(() => {
@@ -84,15 +90,33 @@ export function RealtimeStatusMonitor() {
 
   useEffect(() => {
     connect();
-    const onOnline = () => connect();
+    const onOnline = () => {
+      onlineRef.current = true;
+      setOpen(false);
+      setDetails(undefined);
+      clearDownTimer();
+      connect(true);
+    };
+    const onOffline = () => {
+      onlineRef.current = false;
+      clearDownTimer();
+      setOpen(false);
+    };
     const onVisible = () => {
-      if (document.visibilityState !== "visible") return;
-      if (!channelRef.current) connect();
+      visibleRef.current = document.visibilityState === "visible";
+      if (!visibleRef.current) {
+        clearDownTimer();
+        setOpen(false);
+        return;
+      }
+      connect(true);
     };
     window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
       document.removeEventListener("visibilitychange", onVisible);
       clearDownTimer();
       clearReconnect();
@@ -106,7 +130,7 @@ export function RealtimeStatusMonitor() {
 
   async function retry() {
     setRetrying(true);
-    connect();
+    connect(true);
     setTimeout(() => setRetrying(false), 4000);
   }
 
