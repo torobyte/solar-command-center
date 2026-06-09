@@ -557,8 +557,8 @@ export function SolarMonitorView({
                   />
                 </div>
 
-                {/* Battery — top right (near house upper-right) */}
-                <div className="absolute right-2 top-[28%] sm:right-4 sm:top-[30%]">
+                {/* Battery — bottom right (over battery cabinet) */}
+                <div className="absolute right-2 bottom-[14%] sm:right-4 sm:bottom-[18%]">
                   <FloatCard
                     icon={<BatteryLevelIcon pct={batPct} className="h-5 w-5" color="#22c55e" />}
                     accent="#22c55e"
@@ -569,6 +569,7 @@ export function SolarMonitorView({
                     light={isLight}
                   />
                 </div>
+
 
 
                 {/* Consumo — bottom center */}
