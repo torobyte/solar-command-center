@@ -807,7 +807,7 @@ export function SolarMonitorView({
           { label: "Potencia actual", value: fmtPower(solarW).value, unit: fmtPower(solarW).unit },
           { label: "Generado hoy", value: fmtKwh(totals.pvKwh), unit: "kWh" },
           { label: "Calidad", value: `${Math.round(theme.solarMultiplier * 100)}`, unit: "%" },
-          { label: "Capacidad PV", value: pv?.pv_kw_total ? `${pv.pv_kw_total}` : "—", unit: "kWp" },
+          { label: "Capacidad PV", value: pv?.array_kwp ? `${pv.array_kwp}` : "—", unit: "kWp" },
         ]}
         description="Energía generada por tus paneles fotovoltaicos en tiempo real. La calidad depende de las condiciones climáticas actuales y la posición del sol."
       />
