@@ -698,8 +698,8 @@ export function SolarMonitorView({
 }
 
 function FlowNode({
-  icon, value, label, connector, last = false, light = false,
-}: { icon: React.ReactNode; value: string; label: string; connector: string; last?: boolean; light?: boolean }) {
+  icon, value, unit = "kW", label, connector, last = false, light = false,
+}: { icon: React.ReactNode; value: string; unit?: string; label: string; connector: string; last?: boolean; light?: boolean }) {
   return (
     <div className="flex items-center gap-2">
       <div className="flex flex-col items-center">
@@ -708,7 +708,7 @@ function FlowNode({
       <div className="min-w-0 leading-tight">
         <div className="flex items-baseline gap-1">
           <span className="text-sm font-bold tabular-nums text-foreground">{value}</span>
-          <span className="text-[10px] text-muted-foreground">kW</span>
+          <span className="text-[10px] text-muted-foreground">{unit}</span>
         </div>
         <div className="text-[10px] text-muted-foreground">{label}</div>
       </div>
