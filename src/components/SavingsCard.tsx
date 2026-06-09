@@ -42,7 +42,7 @@ function fmt(n: number, currency: string): string {
  * Reads from the `daily_totals` aggregation table so today, this month
  * and this year are always available regardless of telemetry density.
  */
-export function SavingsCard({ siteId, pvW, batteryDischargeW, energyPrice, feedInPrice, currency, forecastDailyKwh }: Props) {
+export function SavingsCard({ siteId, pvW, batteryDischargeW, energyPrice, feedInPrice, currency, forecastDailyKwh, bare, hideHistoryLink }: Props) {
   const cur = currency || "CLP";
   const price = energyPrice ?? 0;
   const [todayKwh, setTodayKwh] = useState<number | null>(null);
