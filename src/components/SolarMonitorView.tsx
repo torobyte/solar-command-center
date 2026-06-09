@@ -693,6 +693,15 @@ export function SolarMonitorView({
     ? `${Math.round(pv.azimuth)}°/${Math.round(pv.tilt)}°`
     : "—";
   const fmtMoney = (v: number) => `${currency ? currency + " " : ""}${Math.round(v).toLocaleString()}`;
+  const savings = useSavingsKwh(siteId);
+  const liveSavingsW = Math.max(0, solarW) + Math.max(0, batDischargeW);
+  const savingsPerHour = (liveSavingsW / 1000) * energyPrice;
+  const savingsToday = savings.todayKwh * energyPrice;
+  const savingsMonth = savings.monthKwh * energyPrice;
+  const dayOfYear = Math.max(1, Math.ceil((Date.now() - new Date(new Date().getFullYear(), 0, 1).getTime()) / 86400000));
+  const projectedYearKwh = savings.yearKwh > 0 ? (savings.yearKwh / dayOfYear) * 365 : 0;
+  const savingsYear = projectedYearKwh * energyPrice;
+
 
   const [openDetail, setOpenDetail] = useState<null | "solar" | "grid" | "battery" | "consumo">(null);
 
