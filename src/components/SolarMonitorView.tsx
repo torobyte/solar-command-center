@@ -156,6 +156,37 @@ function useTodayTotals(siteId: string): DailyTotals {
   return t;
 }
 
+function useSavingsKwh(siteId: string): { todayKwh: number; monthKwh: number; yearKwh: number } {
+  const [s, setS] = useState({ todayKwh: 0, monthKwh: 0, yearKwh: 0 });
+  useEffect(() => {
+    if (!siteId || siteId === "local") return;
+    let cancelled = false;
+    (async () => {
+      const now = new Date();
+      const todayStr = now.toISOString().slice(0, 10);
+      const yearStart = new Date(now.getFullYear(), 0, 1).toISOString().slice(0, 10);
+      const { data } = await supabase
+        .from("daily_totals")
+        .select("day, pv_kwh, battery_discharged_kwh")
+        .eq("site_id", siteId)
+        .gte("day", yearStart);
+      if (cancelled || !data) return;
+      const month = now.getMonth();
+      let y = 0, m = 0, t = 0;
+      for (const row of data as Array<{ day: string; pv_kwh: number | null; battery_discharged_kwh: number | null }>) {
+        const saved = Number(row.pv_kwh || 0) + Number(row.battery_discharged_kwh || 0);
+        y += saved;
+        const d = new Date(`${row.day}T00:00:00`);
+        if (d.getMonth() === month) m += saved;
+        if (row.day === todayStr) t += saved;
+      }
+      setS({ todayKwh: t, monthKwh: m, yearKwh: y });
+    })();
+    return () => { cancelled = true; };
+  }, [siteId]);
+  return s;
+}
+
 /* =========================================================================
    Helpers
    ========================================================================= */
@@ -662,6 +693,15 @@ export function SolarMonitorView({
     ? `${Math.round(pv.azimuth)}°/${Math.round(pv.tilt)}°`
     : "—";
   const fmtMoney = (v: number) => `${currency ? currency + " " : ""}${Math.round(v).toLocaleString()}`;
+  const savings = useSavingsKwh(siteId);
+  const liveSavingsW = Math.max(0, solarW) + Math.max(0, batDischargeW);
+  const savingsPerHour = (liveSavingsW / 1000) * energyPrice;
+  const savingsToday = savings.todayKwh * energyPrice;
+  const savingsMonth = savings.monthKwh * energyPrice;
+  const dayOfYear = Math.max(1, Math.ceil((Date.now() - new Date(new Date().getFullYear(), 0, 1).getTime()) / 86400000));
+  const projectedYearKwh = savings.yearKwh > 0 ? (savings.yearKwh / dayOfYear) * 365 : 0;
+  const savingsYear = projectedYearKwh * energyPrice;
+
 
   const [openDetail, setOpenDetail] = useState<null | "solar" | "grid" | "battery" | "consumo">(null);
 
@@ -948,6 +988,7 @@ export function SolarMonitorView({
                 light={isLight}
             />
           )}
+        </div>
       </div>
 
       {/* ============= ECONOMIC SAVINGS ============= */}
@@ -955,18 +996,58 @@ export function SolarMonitorView({
         className="rounded-2xl border p-4 backdrop-blur-md"
         style={{ background: isLight ? "rgba(255,255,255,0.82)" : "rgba(8,18,30,0.85)", borderColor: isLight ? "rgba(15,23,42,0.08)" : "rgba(255,255,255,0.08)" }}
       >
-        <div className="mb-3 text-[11px] font-semibold tracking-wider text-muted-foreground">AHORRO ECONÓMICO</div>
-        <SavingsCard
-          siteId={siteId}
-          pvW={solarW}
-          batteryDischargeW={batDischargeW}
-          energyPrice={energyPrice || null}
-          feedInPrice={feedInPrice || null}
-          currency={currency || null}
-          bare
-          hideHistoryLink
-        />
-      </div>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <div className="text-[11px] font-semibold tracking-wider text-muted-foreground">AHORRO ECONÓMICO</div>
+          {energyPrice > 0 && (
+            <div className="text-[10px] text-muted-foreground">
+              Tarifa {fmtMoney(energyPrice)}/kWh{feedInPrice > 0 ? ` · Inyección ${fmtMoney(feedInPrice)}/kWh` : ""}
+            </div>
+          )}
+        </div>
+        {energyPrice > 0 ? (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <SummaryCard
+              icon={<Zap className="h-5 w-5" style={{ color: "#22c55e" }} />}
+              accent="#22c55e"
+              title="Ahora"
+              value={fmtMoney(savingsPerHour)}
+              unit="/h"
+              sub="Ahorrando ahora"
+              light={isLight}
+            />
+            <SummaryCard
+              icon={<Sun className="h-5 w-5" style={{ color: "#f59e0b" }} />}
+              accent="#f59e0b"
+              title="Hoy"
+              value={fmtMoney(savingsToday)}
+              unit=""
+              sub={`${savings.todayKwh.toFixed(1)} kWh evitados`}
+              light={isLight}
+            />
+            <SummaryCard
+              icon={<HomeIcon className="h-5 w-5" style={{ color: "#3b82f6" }} />}
+              accent="#3b82f6"
+              title="Este mes"
+              value={fmtMoney(savingsMonth)}
+              unit=""
+              sub={`${savings.monthKwh.toFixed(0)} kWh evitados`}
+              light={isLight}
+            />
+            <SummaryCard
+              icon={<BatteryFull className="h-5 w-5" style={{ color: "#a78bfa" }} />}
+              accent="#a78bfa"
+              title="Año proyectado"
+              value={fmtMoney(savingsYear)}
+              unit=""
+              sub={savings.yearKwh > 0 ? `${savings.yearKwh.toFixed(0)} kWh reales` : "estimado"}
+              light={isLight}
+            />
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Configura el <strong>precio del kWh</strong> en el sistema fotovoltaico para ver cuánto dinero estás ahorrando.
+          </p>
+        )}
       </div>
         </div>
       </div>
