@@ -597,10 +597,10 @@ export function SolarMonitorView({
       >
         <div className="mb-3 text-[11px] font-semibold tracking-wider text-muted-foreground">FLUJO DE ENERGÍA</div>
         <div className="grid grid-cols-4 items-center gap-2 sm:gap-3">
-          <FlowNode icon={<WeatherIcon type={theme.weatherType} className="h-6 w-6" />} value={fmtKw(solarW)} label="Solar" connector={theme.solarAccent} />
-          <FlowNode icon={<Zap className="h-6 w-6" style={{ color: "#38bdf8" }} />} value={gridKw.toFixed(2)} label="Red" connector="#38bdf8" />
-          <FlowNode icon={<HomeIcon className="h-6 w-6" style={{ color: "#3b82f6" }} />} value={fmtKw(loadW)} label="Consumo" connector="#22c55e" />
-          <FlowNode icon={<BatteryFull className="h-6 w-6" style={{ color: "#22c55e" }} />} value={fmtKw(Math.abs(batteryW))} label="Batería" connector="transparent" last />
+          <FlowNode icon={<WeatherIcon type={theme.weatherType} className="h-6 w-6" />} value={fmtKw(solarW)} label="Solar" connector={theme.solarAccent} light={isLight} />
+          <FlowNode icon={<Zap className="h-6 w-6" style={{ color: "#38bdf8" }} />} value={gridKw.toFixed(2)} label="Red" connector="#38bdf8" light={isLight} />
+          <FlowNode icon={<HomeIcon className="h-6 w-6" style={{ color: "#3b82f6" }} />} value={fmtKw(loadW)} label="Consumo" connector="#22c55e" light={isLight} />
+          <FlowNode icon={<BatteryFull className="h-6 w-6" style={{ color: "#22c55e" }} />} value={fmtKw(Math.abs(batteryW))} label="Batería" connector="transparent" light={isLight} last />
         </div>
       </div>
 
@@ -618,6 +618,7 @@ export function SolarMonitorView({
             value={fmtKwh(totals.pvKwh)}
             unit="kWh"
             sub="Energía generada"
+            light={isLight}
           />
           <SummaryCard
             icon={<Zap className="h-5 w-5" style={{ color: "#38bdf8" }} />}
@@ -626,6 +627,7 @@ export function SolarMonitorView({
             value={fmtKwh(totals.gridImportKwh)}
             unit="kWh"
             sub="Importación"
+            light={isLight}
           />
           <SummaryCard
             icon={<HomeIcon className="h-5 w-5" style={{ color: "#3b82f6" }} />}
@@ -634,6 +636,7 @@ export function SolarMonitorView({
             value={fmtKwh(totals.loadKwh)}
             unit="kWh"
             sub="Uso total"
+            light={isLight}
           />
           {showExport ? (
             <SummaryCard
@@ -642,7 +645,8 @@ export function SolarMonitorView({
               title="A la Red"
               value={fmtKwh(exportToday)}
               unit="kWh"
-              sub="Exportación"
+                sub="Exportación"
+                light={isLight}
             />
           ) : (
             <SummaryCard
@@ -651,7 +655,8 @@ export function SolarMonitorView({
               title="A la Batería"
               value={fmtKwh(totals.batteryChargedKwh)}
               unit="kWh"
-              sub="Almacenada"
+                sub="Almacenada"
+                light={isLight}
             />
           )}
         </div>
