@@ -9,10 +9,6 @@ import { usePvConfig, type PvConfig } from "@/components/PvSystemConfig";
 import { useSiteRole } from "@/lib/useSiteRole";
 import {
   EnvironmentalImpactCard,
-  EnergyFlowReferenceCard,
-  HouseConsumptionReferenceCard,
-  SavingsReferenceCard,
-  SolarProductionReferenceCard,
   SystemStatusCard,
   useSolarReferenceWeather,
   WeatherAndRadiationCard,
