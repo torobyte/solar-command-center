@@ -503,6 +503,8 @@ export function SolarMonitorView({
   const exportToday = Math.max(0, totals.gridExportKwh);
   const showExport = exportToday > 0;
 
+  const [openDetail, setOpenDetail] = useState<null | "solar" | "grid" | "battery" | "consumo">(null);
+
   return (
     <div className="space-y-4">
       {/* ============= HEADER ============= */}
