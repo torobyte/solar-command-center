@@ -965,10 +965,16 @@ export function SolarMonitorView({
         stats={[
           { label: "Potencia actual", value: fmtPower(solarW).value, unit: fmtPower(solarW).unit },
           { label: "Generado hoy", value: fmtKwh(totals.pvKwh), unit: "kWh" },
-          { label: "Calidad", value: `${Math.round(theme.solarMultiplier * 100)}`, unit: "%" },
+          { label: "Eficiencia", value: solarEffPct != null ? `${solarEffPct}` : "—", unit: "%", hint: "vs capacidad pico" },
+          { label: "Calidad climática", value: `${Math.round(theme.solarMultiplier * 100)}`, unit: "%" },
           { label: "Capacidad PV", value: pv?.array_kwp ? `${pv.array_kwp}` : "—", unit: "kWp" },
+          { label: "Paneles", value: panelLabel, hint: pv?.panel_count ? `${pv.panel_count} módulos` : undefined },
+          { label: "Orientación / tilt", value: orientationLabel, hint: "azimut / inclinación" },
+          { label: "Temperatura", value: weather ? `${Math.round(weather.current.temperature)}` : "—", unit: "°C" },
+          { label: "Ahorrado hoy", value: energyPrice > 0 ? fmtMoney(savedToday) : "—", hint: "autoconsumo evitó comprar" },
+          { label: "CO₂ evitado", value: co2Saved, unit: "kg", hint: "estimado hoy" },
         ]}
-        description="Energía generada por tus paneles fotovoltaicos en tiempo real. La calidad depende de las condiciones climáticas actuales y la posición del sol."
+        description="Energía generada por tus paneles fotovoltaicos en tiempo real. La eficiencia compara la potencia instantánea con la capacidad pico instalada; la calidad climática refleja cuánto del potencial solar se aprovecha con el clima actual."
       />
       <WidgetDetailDialog
         open={openDetail === "grid"}
@@ -980,46 +986,61 @@ export function SolarMonitorView({
         icon={<Zap className="h-6 w-6" />}
         light={isLight}
         stats={[
-          { label: "Flujo actual", value: fmtPower(Math.abs(estGridW)).value, unit: fmtPower(Math.abs(estGridW)).unit },
-          { label: "Voltaje", value: `${Math.round(gridV)}`, unit: "V" },
+          { label: "Flujo actual", value: fmtPower(Math.abs(estGridW)).value, unit: fmtPower(Math.abs(estGridW)).unit, hint: estGridW >= 0 ? "Importando" : "Exportando" },
+          { label: "Voltaje", value: gridV ? `${Math.round(gridV)}` : "—", unit: "V" },
+          { label: "Estado", value: gridConnected ? "Conectada" : "Desconectada", accent: gridConnected ? "#22c55e" : "#ef4444" },
+          { label: "Modo inversor", value: inverter.code || "—", hint: inverter.label !== "—" ? inverter.label : undefined },
           { label: "Importado hoy", value: fmtKwh(totals.gridImportKwh), unit: "kWh" },
           { label: "Exportado hoy", value: fmtKwh(exportToday), unit: "kWh" },
+          { label: "Costo importación", value: energyPrice > 0 ? fmtMoney(gridCostToday) : "—", hint: energyPrice > 0 ? `${energyPrice}/kWh` : "sin tarifa configurada" },
+          { label: "Ingreso exportación", value: feedInPrice > 0 ? fmtMoney(exportRevenueToday) : "—", hint: feedInPrice > 0 ? `${feedInPrice}/kWh` : "sin tarifa configurada" },
+          { label: "Balance neto hoy", value: energyPrice > 0 || feedInPrice > 0 ? fmtMoney(netBalanceToday) : "—", accent: netBalanceToday >= 0 ? "#22c55e" : "#ef4444", hint: "ahorro + venta − compra" },
         ]}
-        description="Estado de la conexión a la red eléctrica pública. Cuando los paneles no cubren el consumo, la red aporta la energía faltante."
+        description="Estado de la conexión a la red eléctrica pública. El balance neto combina lo que la red te aporta (importación), lo que le entregas (exportación) y el ahorro por autoconsumo solar."
       />
       <WidgetDetailDialog
         open={openDetail === "battery"}
         onOpenChange={(v) => !v && setOpenDetail(null)}
-        image={detailBatteryImg}
+        heroNode={<BatteryAnimated pct={Math.round(batterySoc)} charging={batChargeW > 20} discharging={batDischargeW > 20} />}
         title="Batería"
-        subtitle={batChargeW > 20 ? "Cargando" : batDischargeW > 20 ? "Descargando" : "En espera"}
+        subtitle={batStateLabel + (batteryCapKwh ? ` · ${batteryCapKwh} kWh totales` : "")}
         accent="#22c55e"
         icon={<BatteryLevelIcon pct={Math.round(batterySoc)} className="h-6 w-6" color="#22c55e" />}
         light={isLight}
         stats={[
           { label: "Carga (SOC)", value: `${Math.round(batterySoc)}`, unit: "%" },
-          { label: "Energía", value: batteryKwh != null ? batteryKwh.toFixed(1) : "—", unit: "kWh" },
+          { label: "Energía disponible", value: batteryKwh != null ? batteryKwh.toFixed(1) : "—", unit: "kWh", hint: batteryCapKwh ? `de ${batteryCapKwh} kWh` : undefined },
           { label: "Voltaje", value: batteryV ? batteryV.toFixed(1) : "—", unit: "V" },
-          { label: "Potencia", value: fmtPower(Math.abs(batteryW)).value, unit: fmtPower(Math.abs(batteryW)).unit },
+          { label: "Corriente", value: batCurrentA > 0 ? batCurrentA.toFixed(1) : "—", unit: "A" },
+          { label: "Potencia", value: fmtPower(Math.abs(batteryW)).value, unit: fmtPower(Math.abs(batteryW)).unit, hint: batStateLabel },
+          { label: "Estado", value: batStateLabel, accent: batChargeW > 20 ? "#22c55e" : batDischargeW > 20 ? "#f59e0b" : "#94a3b8" },
+          { label: "Respaldo estimado", value: backupHours != null ? (backupHours >= 1 ? `${backupHours.toFixed(1)}` : `${Math.round(backupHours * 60)}`) : "—", unit: backupHours != null ? (backupHours >= 1 ? "h" : "min") : undefined, hint: "al consumo actual" },
+          { label: "Almacenado hoy", value: fmtKwh(totals.batteryChargedKwh), unit: "kWh" },
+          { label: "Tipo", value: pv?.battery_type ? pv.battery_type.replace("_", " ") : "—", hint: pv?.battery_count ? `${pv.battery_count} unidades` : undefined },
+          { label: "DOD útil", value: pv?.battery_usable_dod_pct ? `${pv.battery_usable_dod_pct}` : "—", unit: "%", hint: "profundidad de descarga" },
         ]}
-        description="Estado del banco de baterías del sistema. Permite almacenar excedentes solares para usarlos durante la noche o en cortes de red."
+        description="Banco de baterías del sistema. El respaldo estimado indica cuánto podría sostener el consumo actual usando sólo la energía almacenada disponible."
       />
       <WidgetDetailDialog
         open={openDetail === "consumo"}
         onOpenChange={(v) => !v && setOpenDetail(null)}
         image={detailConsumoImg}
         title="Consumo del Hogar"
-        subtitle="Energía utilizada por tu casa"
+        subtitle={`Modo ${inverter.code || "—"} · ${inverter.label}`}
         accent="#3b82f6"
         icon={<HomeIcon className="h-6 w-6" />}
         light={isLight}
         stats={[
           { label: "Consumo actual", value: fmtPower(loadW).value, unit: fmtPower(loadW).unit },
           { label: "Total hoy", value: fmtKwh(totals.loadKwh), unit: "kWh" },
-          { label: "Desde solar", value: fmtKwh(Math.max(0, totals.pvKwh - exportToday)), unit: "kWh" },
-          { label: "Desde red", value: fmtKwh(totals.gridImportKwh), unit: "kWh" },
+          { label: "Desde solar", value: fmtKwh(selfFromSolar), unit: "kWh", accent: theme.solarAccent },
+          { label: "Desde red", value: fmtKwh(totals.gridImportKwh), unit: "kWh", accent: "#38bdf8" },
+          { label: "Autoconsumo", value: `${selfSufficiencyPct}`, unit: "%", hint: "% cubierto por solar", accent: selfSufficiencyPct >= 70 ? "#22c55e" : selfSufficiencyPct >= 40 ? "#f59e0b" : "#ef4444" },
+          { label: "Costo evitado", value: energyPrice > 0 ? fmtMoney(savedToday) : "—", hint: "gracias al solar" },
+          { label: "Costo desde red", value: energyPrice > 0 ? fmtMoney(gridCostToday) : "—" },
+          { label: "Modo inversor", value: inverter.code || "—", hint: inverter.label },
         ]}
-        description="Energía total consumida por los aparatos y cargas del hogar en tiempo real."
+        description="Energía total que tu casa está usando ahora mismo y cómo se reparte entre las fuentes disponibles. El autoconsumo indica qué porcentaje del consumo fue cubierto directamente por los paneles solares."
       />
     </div>
   );
