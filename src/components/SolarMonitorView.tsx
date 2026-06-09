@@ -1,14 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bell, MoreVertical, Menu, Sun, Moon, Cloud, CloudRain, CloudSnow, CloudLightning, CloudDrizzle, CloudFog, Home as HomeIcon, BatteryFull, Zap } from "lucide-react";
+import { Bell, MoreVertical, Menu, Sun, Moon, Cloud, CloudRain, CloudSnow, CloudLightning, CloudDrizzle, CloudFog, Home as HomeIcon, BatteryFull, Zap, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePvConfig, type PvConfig } from "@/components/PvSystemConfig";
 import { useSolarReferenceWeather, type DashboardWeatherData } from "@/components/ReferenceDashboardCards";
 import type { DashboardSample } from "@/components/SiteDashboardView";
 import { useTheme } from "@/lib/theme";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import sceneSunnyDay from "@/assets/scene-sunny-day.jpg";
 import sceneCloudyDay from "@/assets/scene-cloudy-day.jpg";
 import sceneRainyNight from "@/assets/scene-rainy-night.jpg";
 import sceneSnowyNight from "@/assets/scene-snowy-night.jpg";
+import detailSolarImg from "@/assets/detail-solar.jpg";
+import detailGridImg from "@/assets/detail-grid.jpg";
+import detailBatteryImg from "@/assets/detail-battery.jpg";
+import detailConsumoImg from "@/assets/detail-consumo.jpg";
 
 /** Picks the most appropriate hyperrealistic background scene for the current weather/time. */
 function pickSceneImage(theme: WeatherTheme): string {
