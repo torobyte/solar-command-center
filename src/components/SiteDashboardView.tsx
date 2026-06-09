@@ -92,6 +92,7 @@ export function SiteDashboardView({
   const mode = formatInverterMode(latest?.inverter_mode);
   const charging = pv_W > load;
   const pvMax = (pv?.array_kwp ?? 5) * 1000;
+  const weatherData = useSolarReferenceWeather(pv);
   void mode;
   void charging;
   const batteryDischargeW = Math.max(0, Number(latest?.battery_discharge_current ?? 0) * batteryV);
@@ -117,7 +118,7 @@ export function SiteDashboardView({
     ),
     batteryStatus: <Battery3D soc={battery} voltage={batteryV} charging={charging} powerW={Math.abs(batteryNetW)} currentA={Number(latest?.battery_discharge_current ?? latest?.battery_charging_current ?? 0)} />,
     environmental: <EnvironmentalImpactCard siteId={siteId} emissionFactor={0.4} />,
-    weather: <WeatherAndRadiationCard pvConfig={pv} livePv={pv_W} siteId={siteId} batterySoc={battery} batteryChargingW={batteryChargeW} />,
+    weather: <WeatherAndRadiationCard data={weatherData} pvConfig={pv} livePv={pv_W} siteId={siteId} batterySoc={battery} batteryChargingW={batteryChargeW} />,
   };
 
   return (
