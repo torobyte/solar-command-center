@@ -615,8 +615,9 @@ export function SolarMonitorView({
           })()}
         </div>
       </div>
+        </div>
 
-
+        <div className="space-y-4">
       {/* ============= FLOW BAR ============= */}
       <div
         className="rounded-2xl border p-4 backdrop-blur-md"
