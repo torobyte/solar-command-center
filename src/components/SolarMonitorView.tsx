@@ -522,7 +522,7 @@ export function SolarMonitorView({
         )}
 
         {/* Floating cards layer */}
-        <div className="relative h-full min-h-[420px] sm:min-h-[480px] lg:min-h-[560px] w-full">
+        <div className="relative h-full w-full">
           {(() => {
             const solar = fmtPower(solarW);
             const grid = fmtPower(estGridW);
