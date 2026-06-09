@@ -156,6 +156,37 @@ function useTodayTotals(siteId: string): DailyTotals {
   return t;
 }
 
+function useSavingsKwh(siteId: string): { todayKwh: number; monthKwh: number; yearKwh: number } {
+  const [s, setS] = useState({ todayKwh: 0, monthKwh: 0, yearKwh: 0 });
+  useEffect(() => {
+    if (!siteId || siteId === "local") return;
+    let cancelled = false;
+    (async () => {
+      const now = new Date();
+      const todayStr = now.toISOString().slice(0, 10);
+      const yearStart = new Date(now.getFullYear(), 0, 1).toISOString().slice(0, 10);
+      const { data } = await supabase
+        .from("daily_totals")
+        .select("day, pv_kwh, battery_discharged_kwh")
+        .eq("site_id", siteId)
+        .gte("day", yearStart);
+      if (cancelled || !data) return;
+      const month = now.getMonth();
+      let y = 0, m = 0, t = 0;
+      for (const row of data as Array<{ day: string; pv_kwh: number | null; battery_discharged_kwh: number | null }>) {
+        const saved = Number(row.pv_kwh || 0) + Number(row.battery_discharged_kwh || 0);
+        y += saved;
+        const d = new Date(`${row.day}T00:00:00`);
+        if (d.getMonth() === month) m += saved;
+        if (row.day === todayStr) t += saved;
+      }
+      setS({ todayKwh: t, monthKwh: m, yearKwh: y });
+    })();
+    return () => { cancelled = true; };
+  }, [siteId]);
+  return s;
+}
+
 /* =========================================================================
    Helpers
    ========================================================================= */
