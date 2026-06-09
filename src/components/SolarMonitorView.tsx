@@ -185,31 +185,108 @@ function BatteryLevelIcon({ pct, className = "h-5 w-5", color = "currentColor" }
    Floating card
    ========================================================================= */
 function FloatCard({
-  label, value, unit, sub, icon, accent, className = "", light = false,
+  label, value, unit, sub, icon, accent, className = "", light = false, onClick,
 }: {
   label: string; value: string; unit?: string; sub?: string;
   icon: React.ReactNode; accent: string; className?: string; light?: boolean;
+  onClick?: () => void;
 }) {
+  const Tag = onClick ? "button" : "div";
   return (
-    <div
-      className={`pointer-events-auto inline-flex items-center gap-1.5 sm:gap-3 rounded-xl sm:rounded-2xl border px-2 py-1.5 sm:px-3.5 sm:py-2.5 backdrop-blur-md shadow-[0_10px_30px_-12px_rgba(0,0,0,0.7)] ${className}`}
+    <Tag
+      onClick={onClick}
+      className={`pointer-events-auto inline-flex items-center gap-1 sm:gap-3 rounded-lg sm:rounded-2xl border px-1.5 py-1 sm:px-3.5 sm:py-2.5 backdrop-blur-md shadow-[0_10px_30px_-12px_rgba(0,0,0,0.7)] transition-all duration-200 ${onClick ? "cursor-pointer hover:scale-105 active:scale-95" : ""} ${className}`}
       style={{
-        background: light ? "rgba(255,255,255,0.88)" : "rgba(8,18,30,0.85)",
+        background: light ? "rgba(255,255,255,0.92)" : "rgba(8,18,30,0.85)",
         borderColor: light ? "rgba(15,23,42,0.08)" : "rgba(255,255,255,0.08)",
       }}
     >
-      <div className="flex h-6 w-6 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg sm:rounded-xl" style={{ background: `${accent}1f`, color: accent }}>
+      <div className="flex h-5 w-5 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-md sm:rounded-xl" style={{ background: `${accent}1f`, color: accent }}>
         {icon}
       </div>
-      <div className="leading-tight">
-        <div className={`text-[8px] sm:text-[10px] font-semibold tracking-wider ${light ? "text-slate-500" : "text-white/60"}`}>{label}</div>
+      <div className="leading-tight text-left">
+        <div className={`text-[7px] sm:text-[10px] font-semibold tracking-wider ${light ? "text-slate-500" : "text-white/60"}`}>{label}</div>
         <div className="flex items-baseline gap-0.5 sm:gap-1">
-          <span className={`text-xs sm:text-lg font-bold tabular-nums ${light ? "text-slate-900" : "text-white"}`}>{value}</span>
-          {unit && <span className={`text-[9px] sm:text-[11px] font-medium ${light ? "text-slate-500" : "text-white/60"}`}>{unit}</span>}
+          <span className={`text-[11px] sm:text-lg font-bold tabular-nums ${light ? "text-slate-900" : "text-white"}`}>{value}</span>
+          {unit && <span className={`text-[8px] sm:text-[11px] font-medium ${light ? "text-slate-500" : "text-white/60"}`}>{unit}</span>}
         </div>
-        {sub && <div className="text-[8px] sm:text-[10px] font-medium leading-tight" style={{ color: accent }}>{sub}</div>}
+        {sub && <div className="text-[7px] sm:text-[10px] font-medium leading-tight" style={{ color: accent }}>{sub}</div>}
       </div>
-    </div>
+    </Tag>
+  );
+}
+
+/* =========================================================================
+   Widget detail dialog
+   ========================================================================= */
+interface DetailStat { label: string; value: string; unit?: string; accent?: string }
+function WidgetDetailDialog({
+  open, onOpenChange, image, title, subtitle, accent, icon, stats, description, light,
+}: {
+  open: boolean; onOpenChange: (v: boolean) => void;
+  image: string; title: string; subtitle: string; accent: string;
+  icon: React.ReactNode; stats: DetailStat[]; description: string; light: boolean;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className="max-w-lg overflow-hidden border-0 p-0 sm:rounded-3xl"
+        style={{ background: light ? "rgba(255,255,255,0.98)" : "rgba(8,18,30,0.96)" }}
+      >
+        {/* Hero image */}
+        <div className="relative h-48 w-full overflow-hidden sm:h-56">
+          <img
+            src={image}
+            alt={title}
+            className="absolute inset-0 h-full w-full object-cover animate-[scale-in_0.5s_ease-out]"
+            loading="lazy"
+            width={1024}
+            height={512}
+          />
+          <div
+            className="absolute inset-0"
+            style={{ background: `linear-gradient(180deg, transparent 0%, transparent 40%, ${light ? "rgba(255,255,255,0.95)" : "rgba(8,18,30,0.95)"} 100%)` }}
+          />
+          <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
+            <div className="flex items-center gap-3 animate-fade-in">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl backdrop-blur-md" style={{ background: `${accent}33`, color: accent, border: `1px solid ${accent}55` }}>
+                {icon}
+              </div>
+              <div>
+                <DialogTitle className={`text-xl font-bold ${light ? "text-slate-900" : "text-white"}`}>{title}</DialogTitle>
+                <DialogDescription className={`text-xs ${light ? "text-slate-600" : "text-white/70"}`}>{subtitle}</DialogDescription>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Stat grid — same style as bottom summary cards */}
+        <div className="grid grid-cols-2 gap-3 p-4 sm:p-5">
+          {stats.map((s, i) => (
+            <div
+              key={s.label}
+              className="rounded-2xl border p-3 backdrop-blur-md animate-fade-in"
+              style={{
+                background: light ? "rgba(248,250,252,0.9)" : "rgba(15,23,42,0.6)",
+                borderColor: light ? "rgba(15,23,42,0.08)" : "rgba(255,255,255,0.08)",
+                animationDelay: `${i * 80}ms`,
+                animationFillMode: "backwards",
+              }}
+            >
+              <div className={`text-[10px] font-semibold uppercase tracking-wider ${light ? "text-slate-500" : "text-white/50"}`}>{s.label}</div>
+              <div className="mt-1 flex items-baseline gap-1">
+                <span className="text-xl font-bold tabular-nums" style={{ color: s.accent ?? accent }}>{s.value}</span>
+                {s.unit && <span className={`text-[11px] ${light ? "text-slate-500" : "text-white/60"}`}>{s.unit}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className={`px-4 pb-5 text-xs leading-relaxed sm:px-5 ${light ? "text-slate-600" : "text-white/70"}`}>
+          {description}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
