@@ -9,10 +9,6 @@ import { usePvConfig, type PvConfig } from "@/components/PvSystemConfig";
 import { useSiteRole } from "@/lib/useSiteRole";
 import {
   EnvironmentalImpactCard,
-  EnergyFlowReferenceCard,
-  HouseConsumptionReferenceCard,
-  SavingsReferenceCard,
-  SolarProductionReferenceCard,
   SystemStatusCard,
   useSolarReferenceWeather,
   WeatherAndRadiationCard,
@@ -58,12 +54,8 @@ export const WIDGET_DEFS: WidgetDef[] = [
   { id: "system", label: "Estado general del sistema" },
   { id: "backup", label: "Tiempo de respaldo" },
   { id: "batteryStatus", label: "Batería" },
-  { id: "flow", label: "Diagrama de flujo de energía" },
-  { id: "solarProduction", label: "Producción solar" },
-  { id: "houseConsumption", label: "Consumo de la casa" },
   { id: "environmental", label: "Impacto ambiental" },
   { id: "weather", label: "Clima y radiación solar" },
-  { id: "savings", label: "Ahorro económico" },
 ];
 
 /**
@@ -122,22 +114,8 @@ export function SiteDashboardView({
       />
     ),
     batteryStatus: <Battery3D soc={battery} voltage={batteryV} charging={charging} powerW={Math.abs(batteryNetW)} currentA={Number(latest?.battery_discharge_current ?? latest?.battery_charging_current ?? 0)} />,
-    flow: <EnergyFlowReferenceCard pv={pv_W} load={load} gridV={gridV} battery={battery} batteryV={batteryV} batteryNetW={batteryNetW} />,
-    solarProduction: <SolarProductionReferenceCard pv={pv_W} pvMax={pvMax} />,
-    houseConsumption: <HouseConsumptionReferenceCard load={load} contractedPower={5200} />,
     environmental: <EnvironmentalImpactCard siteId={siteId} emissionFactor={0.4} />,
     weather: <WeatherAndRadiationCard data={weatherData} pvConfig={pv} livePv={pv_W} siteId={siteId} batterySoc={battery} batteryChargingW={batteryChargeW} />,
-    savings: (
-      <SavingsReferenceCard
-        siteId={siteId}
-        pvW={pv_W}
-        batteryDischargeW={batteryDischargeW}
-        loadW={load}
-        gridV={gridV}
-        energyPrice={pv?.energy_price ?? null}
-        currency={pv?.currency ?? "CLP"}
-      />
-    ),
   };
 
   return (
