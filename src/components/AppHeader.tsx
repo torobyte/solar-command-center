@@ -72,7 +72,7 @@ export function AppHeader() {
 
         {user && (
           <>
-            <nav className="hidden items-center gap-1 md:flex">
+            <nav className="hidden items-center gap-1 lg:flex">
               {items.map((it) => renderNavLink(it))}
               <div className="mx-3 h-6 w-px bg-border" />
               <span className="hidden max-w-[180px] truncate text-sm text-muted-foreground lg:inline">{user.email}</span>
@@ -83,7 +83,7 @@ export function AppHeader() {
               </Button>
             </nav>
 
-            <div className="flex items-center gap-1 md:hidden">
+            <div className="flex items-center gap-1 lg:hidden">
               <ThemeToggle />
               <LangSwitcher />
               <Sheet open={open} onOpenChange={setOpen}>
