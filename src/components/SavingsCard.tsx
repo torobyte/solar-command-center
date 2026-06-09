@@ -82,8 +82,8 @@ export function SavingsCard({ siteId, pvW, batteryDischargeW, energyPrice, feedI
   }, [siteId]);
 
   if (!price) {
-    return (
-      <div className="dashboard-card p-5 sm:p-6 animate-fade-in h-full">
+    const emptyInner = (
+      <>
         <div className="flex items-center gap-2 mb-2">
           <Coins className="h-5 w-5 text-[var(--solar)]" />
           <div className="text-sm font-semibold">Ahorro económico</div>
@@ -91,8 +91,10 @@ export function SavingsCard({ siteId, pvW, batteryDischargeW, energyPrice, feedI
         <p className="text-xs text-muted-foreground">
           Configura el <strong>precio del kWh</strong> en el sistema fotovoltaico para ver cuánto dinero estás ahorrando.
         </p>
-      </div>
+      </>
     );
+    if (bare) return <div className="animate-fade-in">{emptyInner}</div>;
+    return <div className="dashboard-card p-5 sm:p-6 animate-fade-in h-full">{emptyInner}</div>;
   }
 
   const liveW = Math.max(0, Number(pvW ?? 0)) + Math.max(0, Number(batteryDischargeW ?? 0));
