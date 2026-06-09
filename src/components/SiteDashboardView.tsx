@@ -10,10 +10,8 @@ import { useSiteRole } from "@/lib/useSiteRole";
 import {
   EnvironmentalImpactCard,
   SystemStatusCard,
-  useSolarReferenceWeather,
   WeatherAndRadiationCard,
 } from "@/components/ReferenceDashboardCards";
-import { LottieScene, weatherToScene, type SceneKind } from "@/components/LottieScene";
 
 
 /** Shared sample shape consumed by the dashboard widgets. */
