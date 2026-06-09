@@ -458,12 +458,13 @@ export function SolarMonitorView({
 
       {/* ============= SCENE WITH FLOATING CARDS ============= */}
       <div
-        className="relative overflow-hidden rounded-3xl border w-full aspect-[4/5] sm:aspect-[5/4] lg:aspect-[4/5]"
+        className="relative overflow-hidden rounded-3xl border w-full aspect-[4/3] sm:aspect-[16/10] lg:aspect-[16/10] max-h-[640px] mx-auto"
         style={{
           borderColor: "rgba(255,255,255,0.08)",
           background: isLight ? "#e5eef7" : "#020617",
         }}
       >
+
 
         {/* Hyperrealistic background scene */}
         <img
