@@ -3,7 +3,7 @@ import { Bell, MoreVertical, Menu, Sun, Moon, Cloud, CloudRain, CloudSnow, Cloud
 import { supabase } from "@/integrations/supabase/client";
 import { usePvConfig, type PvConfig } from "@/components/PvSystemConfig";
 import { useSolarReferenceWeather, type DashboardWeatherData } from "@/components/ReferenceDashboardCards";
-import type { DashboardSample } from "@/components/SiteDashboardView";
+import { formatInverterMode, type DashboardSample } from "@/components/SiteDashboardView";
 import { useTheme } from "@/lib/theme";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import sceneSunnyDay from "@/assets/scene-sunny-day.jpg";
