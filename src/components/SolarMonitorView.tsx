@@ -629,9 +629,38 @@ export function SolarMonitorView({
   const isLight = resolved === "light";
 
   const batteryKwh = pv?.battery_kwh ? (pv.battery_kwh * batterySoc / 100) : null;
+  const batteryCapKwh = pv?.battery_kwh ?? null;
 
   const exportToday = Math.max(0, totals.gridExportKwh);
   const showExport = exportToday > 0;
+
+  // Derived metrics for popups
+  const inverter = formatInverterMode(latest?.inverter_mode);
+  const selfFromSolar = Math.max(0, totals.pvKwh - exportToday);
+  const selfSufficiencyPct = totals.loadKwh > 0 ? Math.round((selfFromSolar / totals.loadKwh) * 100) : 0;
+  const solarEffPct = pv?.array_kwp && pv.array_kwp > 0 ? Math.round((solarW / (pv.array_kwp * 1000)) * 100) : null;
+  const currency = pv?.currency ?? "";
+  const energyPrice = Number(pv?.energy_price ?? 0);
+  const feedInPrice = Number(pv?.feed_in_price ?? 0);
+  const gridCostToday = totals.gridImportKwh * energyPrice;
+  const exportRevenueToday = exportToday * feedInPrice;
+  const savedToday = selfFromSolar * energyPrice;
+  const netBalanceToday = exportRevenueToday + savedToday - gridCostToday;
+  // Backup time: remaining battery energy / current load
+  const backupHours = batteryKwh != null && loadW > 50 ? (batteryKwh * 1000) / loadW : null;
+  const batCurrentA = Math.max(
+    Number(latest?.battery_charging_current ?? 0),
+    Number(latest?.battery_discharge_current ?? 0),
+  );
+  const batStateLabel = batChargeW > 20 ? "Cargando" : batDischargeW > 20 ? "Descargando" : "En espera";
+  const co2Saved = (totals.pvKwh * 0.4).toFixed(1); // ~0.4 kg CO2 per kWh avoided
+  const panelLabel = pv?.panel_count && pv?.panel_watts
+    ? `${pv.panel_count}×${pv.panel_watts}W`
+    : pv?.panel_count ? `${pv.panel_count}` : "—";
+  const orientationLabel = pv?.azimuth != null && pv?.tilt != null
+    ? `${Math.round(pv.azimuth)}°/${Math.round(pv.tilt)}°`
+    : "—";
+  const fmtMoney = (v: number) => `${currency ? currency + " " : ""}${Math.round(v).toLocaleString()}`;
 
   const [openDetail, setOpenDetail] = useState<null | "solar" | "grid" | "battery" | "consumo">(null);
 
