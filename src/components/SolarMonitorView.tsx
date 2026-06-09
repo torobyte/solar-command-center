@@ -187,26 +187,27 @@ function FloatCard({
 }) {
   return (
     <div
-      className={`pointer-events-auto inline-flex items-center gap-3 rounded-2xl border px-3.5 py-2.5 backdrop-blur-md shadow-[0_10px_30px_-12px_rgba(0,0,0,0.7)] ${className}`}
+      className={`pointer-events-auto inline-flex items-center gap-1.5 sm:gap-3 rounded-xl sm:rounded-2xl border px-2 py-1.5 sm:px-3.5 sm:py-2.5 backdrop-blur-md shadow-[0_10px_30px_-12px_rgba(0,0,0,0.7)] ${className}`}
       style={{
         background: light ? "rgba(255,255,255,0.88)" : "rgba(8,18,30,0.85)",
         borderColor: light ? "rgba(15,23,42,0.08)" : "rgba(255,255,255,0.08)",
       }}
     >
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: `${accent}1f`, color: accent }}>
+      <div className="flex h-6 w-6 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg sm:rounded-xl" style={{ background: `${accent}1f`, color: accent }}>
         {icon}
       </div>
       <div className="leading-tight">
-        <div className={`text-[10px] font-semibold tracking-wider ${light ? "text-slate-500" : "text-white/60"}`}>{label}</div>
-        <div className="flex items-baseline gap-1">
-          <span className={`text-lg font-bold tabular-nums ${light ? "text-slate-900" : "text-white"}`}>{value}</span>
-          {unit && <span className={`text-[11px] font-medium ${light ? "text-slate-500" : "text-white/60"}`}>{unit}</span>}
+        <div className={`text-[8px] sm:text-[10px] font-semibold tracking-wider ${light ? "text-slate-500" : "text-white/60"}`}>{label}</div>
+        <div className="flex items-baseline gap-0.5 sm:gap-1">
+          <span className={`text-xs sm:text-lg font-bold tabular-nums ${light ? "text-slate-900" : "text-white"}`}>{value}</span>
+          {unit && <span className={`text-[9px] sm:text-[11px] font-medium ${light ? "text-slate-500" : "text-white/60"}`}>{unit}</span>}
         </div>
-        {sub && <div className="text-[10px] font-medium" style={{ color: accent }}>{sub}</div>}
+        {sub && <div className="text-[8px] sm:text-[10px] font-medium leading-tight" style={{ color: accent }}>{sub}</div>}
       </div>
     </div>
   );
 }
+
 
 /* =========================================================================
    Energy house scene (SVG isometric, weather-aware)
