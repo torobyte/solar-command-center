@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePvConfig, type PvConfig } from "@/components/PvSystemConfig";
 import { useSolarReferenceWeather, type DashboardWeatherData } from "@/components/ReferenceDashboardCards";
 import type { DashboardSample } from "@/components/SiteDashboardView";
+import { useTheme } from "@/lib/theme";
 import sceneSunnyDay from "@/assets/scene-sunny-day.jpg";
 import sceneCloudyDay from "@/assets/scene-cloudy-day.jpg";
 import sceneRainyNight from "@/assets/scene-rainy-night.jpg";
@@ -165,27 +166,27 @@ function fmtKwh(v: number): string {
    Floating card
    ========================================================================= */
 function FloatCard({
-  label, value, unit, sub, icon, accent, className = "",
+  label, value, unit, sub, icon, accent, className = "", light = false,
 }: {
   label: string; value: string; unit?: string; sub?: string;
-  icon: React.ReactNode; accent: string; className?: string;
+  icon: React.ReactNode; accent: string; className?: string; light?: boolean;
 }) {
   return (
     <div
       className={`pointer-events-auto inline-flex items-center gap-3 rounded-2xl border px-3.5 py-2.5 backdrop-blur-md shadow-[0_10px_30px_-12px_rgba(0,0,0,0.7)] ${className}`}
       style={{
-        background: "rgba(8,18,30,0.85)",
-        borderColor: "rgba(255,255,255,0.08)",
+        background: light ? "rgba(255,255,255,0.88)" : "rgba(8,18,30,0.85)",
+        borderColor: light ? "rgba(15,23,42,0.08)" : "rgba(255,255,255,0.08)",
       }}
     >
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: `${accent}1f`, color: accent }}>
         {icon}
       </div>
       <div className="leading-tight">
-        <div className="text-[10px] font-semibold tracking-wider text-white/60">{label}</div>
+        <div className={`text-[10px] font-semibold tracking-wider ${light ? "text-slate-500" : "text-white/60"}`}>{label}</div>
         <div className="flex items-baseline gap-1">
-          <span className="text-lg font-bold tabular-nums text-white">{value}</span>
-          {unit && <span className="text-[11px] font-medium text-white/60">{unit}</span>}
+          <span className={`text-lg font-bold tabular-nums ${light ? "text-slate-900" : "text-white"}`}>{value}</span>
+          {unit && <span className={`text-[11px] font-medium ${light ? "text-slate-500" : "text-white/60"}`}>{unit}</span>}
         </div>
         {sub && <div className="text-[10px] font-medium" style={{ color: accent }}>{sub}</div>}
       </div>
@@ -364,6 +365,7 @@ export function SolarMonitorView({
   siteId: string;
   pvConfig?: PvConfig | null;
 }) {
+  const { resolved } = useTheme();
   const liveCfg = usePvConfig(pvConfigProp === undefined ? siteId : "__skipped__");
   const pv: PvConfig | null = pvConfigProp ?? liveCfg.config;
   const weather = useSolarReferenceWeather(pv);
@@ -397,6 +399,7 @@ export function SolarMonitorView({
   }, [weather, isDay]);
 
   const today = weather?.daily?.[0];
+  const isLight = resolved === "light";
 
   const batteryKwh = pv?.battery_kwh ? (pv.battery_kwh * batterySoc / 100) : null;
 
@@ -438,7 +441,7 @@ export function SolarMonitorView({
       {/* ============= WEATHER CARD ============= */}
       <div
         className="flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 backdrop-blur-md"
-        style={{ background: "rgba(8,18,30,0.85)", borderColor: "rgba(255,255,255,0.08)" }}
+        style={{ background: isLight ? "rgba(255,255,255,0.82)" : "rgba(8,18,30,0.85)", borderColor: isLight ? "rgba(15,23,42,0.08)" : "rgba(255,255,255,0.08)" }}
       >
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5">
@@ -471,7 +474,7 @@ export function SolarMonitorView({
         className="relative overflow-hidden rounded-3xl border"
         style={{
           borderColor: "rgba(255,255,255,0.08)",
-          background: "#020617",
+          background: isLight ? "#e5eef7" : "#020617",
           minHeight: 420,
         }}
       >
@@ -487,7 +490,7 @@ export function SolarMonitorView({
         {/* Subtle dark gradient for card legibility */}
         <div
           className="pointer-events-none absolute inset-0"
-          style={{ background: "linear-gradient(180deg, rgba(2,6,23,0.35) 0%, rgba(2,6,23,0.05) 30%, rgba(2,6,23,0.0) 60%, rgba(2,6,23,0.55) 100%)" }}
+          style={{ background: isLight ? "linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 30%, rgba(255,255,255,0.0) 60%, rgba(15,23,42,0.22) 100%)" : "linear-gradient(180deg, rgba(2,6,23,0.35) 0%, rgba(2,6,23,0.05) 30%, rgba(2,6,23,0.0) 60%, rgba(2,6,23,0.55) 100%)" }}
         />
 
         {/* Animated precipitation overlay on top of photo */}
@@ -542,6 +545,7 @@ export function SolarMonitorView({
               value={fmtKw(solarW)}
               unit="kW"
               sub={solarW > 50 ? "Generando" : theme.isDay ? "Baja generación" : "Sin generación"}
+              light={isLight}
             />
           </div>
 
@@ -554,6 +558,7 @@ export function SolarMonitorView({
               value={gridKw.toFixed(2)}
               unit="kW"
               sub={!gridConnected ? "Desconectada" : gridKw >= 0 ? "Importando" : "Exportando"}
+              light={isLight}
             />
           </div>
 
@@ -566,6 +571,7 @@ export function SolarMonitorView({
               value={fmtKw(loadW)}
               unit="kW"
               sub="Consumo de casa"
+              light={isLight}
             />
           </div>
 
@@ -577,6 +583,7 @@ export function SolarMonitorView({
               label="BATERÍA"
               value={`${Math.round(batterySoc)}%`}
               sub={batteryKwh != null ? `${batteryKwh.toFixed(2)} kWh` : (batChargeW > 20 ? "Cargando" : batDischargeW > 20 ? "Descargando" : "En espera")}
+              light={isLight}
             />
           </div>
         </div>
@@ -586,7 +593,7 @@ export function SolarMonitorView({
       {/* ============= FLOW BAR ============= */}
       <div
         className="rounded-2xl border p-4 backdrop-blur-md"
-        style={{ background: "rgba(8,18,30,0.85)", borderColor: "rgba(255,255,255,0.08)" }}
+        style={{ background: isLight ? "rgba(255,255,255,0.82)" : "rgba(8,18,30,0.85)", borderColor: isLight ? "rgba(15,23,42,0.08)" : "rgba(255,255,255,0.08)" }}
       >
         <div className="mb-3 text-[11px] font-semibold tracking-wider text-muted-foreground">FLUJO DE ENERGÍA</div>
         <div className="grid grid-cols-4 items-center gap-2 sm:gap-3">
@@ -600,7 +607,7 @@ export function SolarMonitorView({
       {/* ============= TODAY SUMMARY ============= */}
       <div
         className="rounded-2xl border p-4 backdrop-blur-md"
-        style={{ background: "rgba(8,18,30,0.85)", borderColor: "rgba(255,255,255,0.08)" }}
+        style={{ background: isLight ? "rgba(255,255,255,0.82)" : "rgba(8,18,30,0.85)", borderColor: isLight ? "rgba(15,23,42,0.08)" : "rgba(255,255,255,0.08)" }}
       >
         <div className="mb-3 text-[11px] font-semibold tracking-wider text-muted-foreground">RESUMEN DE HOY</div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
