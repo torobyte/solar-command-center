@@ -1484,19 +1484,19 @@ export function EnvironmentalImpactCard({
       label: "HOY",
       value: `${co2Today.toFixed(2)} kg`,
       subtitle: `${(todayKwh ?? 0).toFixed(1)} kWh`,
-      icon: <CalendarDays className="h-6 w-6" />,
+      icon: <CalendarDays className="h-4 w-4" />,
     },
     {
       label: "ESTE MES",
       value: `${co2Month.toFixed(1)} kg`,
       subtitle: `${(monthKwh ?? 0).toFixed(1)} kWh`,
-      icon: <BarChart3 className="h-6 w-6" />,
+      icon: <BarChart3 className="h-4 w-4" />,
     },
     {
       label: "ÁRBOLES EQUIV.",
       value: treesEquivalent.toFixed(1),
       subtitle: `${co2Year.toFixed(0)} kg/año ÷ 22`,
-      icon: <TreePine className="h-6 w-6" />,
+      icon: <TreePine className="h-4 w-4" />,
     },
   ];
 
@@ -1506,29 +1506,25 @@ export function EnvironmentalImpactCard({
       style={{
         background: "color-mix(in oklab, var(--card) 90%, black 10%)",
         borderColor: "color-mix(in oklab, var(--success) 28%, var(--border))",
-        boxShadow: "0 0 0 1px color-mix(in oklab, var(--success) 10%, transparent), 0 24px 60px -30px color-mix(in oklab, black 62%, transparent)",
       }}
     >
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div className="flex items-center gap-4">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2.5">
           <div
-            className="flex h-16 w-16 items-center justify-center rounded-full border"
+            className="flex h-8 w-8 items-center justify-center rounded-full border"
             style={{
               color: "var(--success)",
               borderColor: "color-mix(in oklab, var(--success) 28%, var(--border))",
               background: "color-mix(in oklab, var(--success) 10%, transparent)",
-              boxShadow: "0 0 18px color-mix(in oklab, var(--success) 18%, transparent)",
             }}
           >
-            <Leaf className="h-8 w-8" />
+            <Leaf className="h-4 w-4" />
           </div>
-          <div>
-            <h3 className="text-2xl font-semibold tracking-tight text-foreground sm:text-[34px]">Impacto ambiental</h3>
-          </div>
+          <h3 className="text-[15px] font-semibold tracking-tight text-foreground">Impacto ambiental</h3>
         </div>
 
         <span
-          className="inline-flex items-center rounded-2xl border px-5 py-3 text-sm font-medium"
+          className="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold"
           style={{
             color: "var(--success)",
             borderColor: "color-mix(in oklab, var(--success) 24%, var(--border))",
@@ -1540,7 +1536,7 @@ export function EnvironmentalImpactCard({
       </div>
 
       <div
-        className="relative overflow-hidden rounded-[30px] border px-6 py-7 sm:px-8 sm:py-8"
+        className="relative overflow-hidden rounded-2xl border px-4 py-4"
         style={{
           background: "linear-gradient(180deg, color-mix(in oklab, var(--success) 12%, var(--card)) 0%, color-mix(in oklab, var(--card) 94%, black 6%) 100%)",
           borderColor: "color-mix(in oklab, var(--success) 22%, var(--border))",
@@ -1550,72 +1546,60 @@ export function EnvironmentalImpactCard({
           className="pointer-events-none absolute inset-y-0 right-0 w-[44%]"
           style={{ background: "radial-gradient(circle at 40% 50%, color-mix(in oklab, var(--success) 20%, transparent) 0%, transparent 58%)" }}
         />
-        <div className="relative z-10 grid items-center gap-6 lg:grid-cols-[1fr_360px]">
+        <div className="relative z-10 grid items-center gap-4 sm:grid-cols-[1fr_auto]">
           <div>
-            <div className="text-[15px] uppercase tracking-[0.22em] text-foreground/70">ACUMULADO ANUAL</div>
-            <div className="mt-6 text-[88px] font-semibold leading-none tracking-tight sm:text-[120px]" style={{ color: "var(--success)", textShadow: "0 0 22px color-mix(in oklab, var(--success) 18%, transparent)" }}>
+            <div className="text-[10px] uppercase tracking-[0.18em] text-foreground/70">Acumulado anual</div>
+            <div className="mt-1 text-[36px] font-semibold leading-none tracking-tight sm:text-[44px]" style={{ color: "var(--success)" }}>
               {co2Year.toFixed(1)}
             </div>
-            <div className="mt-4 text-[28px] text-foreground sm:text-[34px]">kg CO₂ evitados</div>
+            <div className="mt-1 text-[13px] text-foreground">kg CO₂ evitados</div>
           </div>
 
-          <div className="relative flex min-h-[250px] items-center justify-center">
-            <div
-              className="absolute h-[220px] w-[220px] rounded-full border"
-              style={{ borderColor: "color-mix(in oklab, var(--success) 18%, transparent)" }}
-            />
-            <Leaf className="relative z-10 h-[190px] w-[190px]" style={{ color: "var(--success)", filter: "drop-shadow(0 0 18px color-mix(in oklab, var(--success) 35%, transparent))" }} strokeWidth={1.6} />
+          <div className="relative flex items-center justify-center sm:h-[90px] sm:w-[90px]">
+            <Leaf className="h-16 w-16 sm:h-20 sm:w-20" style={{ color: "var(--success)", filter: "drop-shadow(0 0 10px color-mix(in oklab, var(--success) 35%, transparent))" }} strokeWidth={1.6} />
           </div>
         </div>
       </div>
 
-      <div className="mt-5 grid gap-4 md:grid-cols-3">
+      <div className="mt-3 grid gap-2.5 md:grid-cols-3">
         {statCards.map((card) => (
           <div
             key={card.label}
-            className="rounded-[26px] border px-5 py-5"
+            className="rounded-xl border px-3 py-2.5"
             style={{
               background: "color-mix(in oklab, var(--card) 90%, black 10%)",
               borderColor: "color-mix(in oklab, var(--border) 58%, transparent)",
             }}
           >
-            <div
-              className="flex h-16 w-16 items-center justify-center rounded-full border"
-              style={{
-                color: "var(--success)",
-                borderColor: "color-mix(in oklab, var(--success) 24%, var(--border))",
-                background: "color-mix(in oklab, var(--success) 10%, transparent)",
-              }}
-            >
-              {card.icon}
+            <div className="flex items-center gap-2">
+              <div
+                className="flex h-7 w-7 items-center justify-center rounded-full border"
+                style={{
+                  color: "var(--success)",
+                  borderColor: "color-mix(in oklab, var(--success) 24%, var(--border))",
+                  background: "color-mix(in oklab, var(--success) 10%, transparent)",
+                }}
+              >
+                {card.icon}
+              </div>
+              <div className="text-[10px] font-semibold tracking-[0.03em] text-muted-foreground">{card.label}</div>
             </div>
-            <div className="mt-5 text-[15px] font-medium tracking-[0.03em] text-foreground">{card.label}</div>
-            <div className="mt-6 text-[56px] font-semibold leading-none tracking-tight text-foreground">{card.value}</div>
-            <div className="mt-5 h-1.5 w-14 rounded-full" style={{ background: "var(--success)" }} />
-            <div className="mt-5 text-[18px] text-muted-foreground">{card.subtitle}</div>
+            <div className="mt-2 text-[20px] font-semibold leading-none tracking-tight text-foreground">{card.value}</div>
+            <div className="mt-1.5 text-[11px] text-muted-foreground">{card.subtitle}</div>
           </div>
         ))}
       </div>
 
       <div
-        className="mt-5 flex items-start gap-4 rounded-[26px] border px-5 py-5"
+        className="mt-3 flex items-start gap-2.5 rounded-xl border px-3 py-2.5"
         style={{
           background: "color-mix(in oklab, var(--card) 90%, black 10%)",
           borderColor: "color-mix(in oklab, var(--border) 58%, transparent)",
         }}
       >
-        <div
-          className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border"
-          style={{
-            color: "var(--success)",
-            borderColor: "color-mix(in oklab, var(--success) 24%, var(--border))",
-            background: "color-mix(in oklab, var(--success) 10%, transparent)",
-          }}
-        >
-          <Info className="h-7 w-7" />
-        </div>
-        <p className="text-[16px] leading-8 text-foreground/88 sm:text-[18px]">
-          Cálculo: CO₂ evitado = Energía generada (kWh) × {emissionFactor.toFixed(2)} kg CO₂/kWh · Árboles equivalentes = CO₂ anual ÷ 22.
+        <Info className="h-3.5 w-3.5 shrink-0 text-muted-foreground mt-0.5" />
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
+          CO₂ evitado = Energía generada (kWh) × {emissionFactor.toFixed(2)} kg CO₂/kWh · Árboles equivalentes = CO₂ anual ÷ 22.
         </p>
       </div>
     </div>
