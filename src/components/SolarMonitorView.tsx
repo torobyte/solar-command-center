@@ -638,11 +638,19 @@ export function SolarMonitorView({
   const estGridW = gridConnected ? (loadW + batChargeW - solarW - batDischargeW) : 0;
   const gridKw = estGridW / 1000;
 
-  // Day/night detection based on local hour (fallback) + weather code
+  // Re-tick every minute so scene/day-night refresh sin recargar.
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Day/night detection: usa is_day del API si está disponible; si no, ventana horaria.
   const isDay = useMemo(() => {
+    if (weather?.current && typeof weather.current.isDay === "boolean") return weather.current.isDay;
     const h = new Date().getHours();
     return h >= 7 && h < 19;
-  }, []);
+  }, [weather, tick]);
 
   const theme: WeatherTheme = useMemo(() => {
     if (!weather) return mapWeather(0, isDay);
