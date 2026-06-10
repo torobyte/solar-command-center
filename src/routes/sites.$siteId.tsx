@@ -295,6 +295,7 @@ function SiteDetail() {
   const spikeRef = useRef<SpikeState>({});
   const [tab, setTab] = useState<SiteTab>("dashboard");
   const [configSubTab, setConfigSubTab] = useState<string>("inverter");
+  const [shareOpen, setShareOpen] = useState(false);
   const [chartWindow, setChartWindow] = useState<ChartWindow>("12h");
   const [chartResolution, setChartResolution] = useState<ChartResolution>("5m");
 
