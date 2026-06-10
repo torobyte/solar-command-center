@@ -152,6 +152,25 @@ function SitesIndex() {
     }
   }
 
+  const { list: listParam } = Route.useSearch();
+
+  // Auto-redirect to the user's default site (if any) on first land,
+  // unless ?list=1 or sessionStorage skip flag is set.
+  useEffect(() => {
+    if (loading) return;
+    if (listParam === "1") return;
+    let skip = false;
+    try {
+      skip = sessionStorage.getItem("skip.default.site.redirect") === "1";
+      if (skip) sessionStorage.removeItem("skip.default.site.redirect");
+    } catch { /* ignore */ }
+    if (skip) return;
+    const defId = typeof window !== "undefined" ? localStorage.getItem("default.site.id.v1") : null;
+    if (!defId) return;
+    if (!sites.some((s) => s.id === defId)) return;
+    navigate({ to: "/sites/$siteId", params: { siteId: defId } });
+  }, [loading, listParam, sites, navigate]);
+
   useEffect(() => { load(); }, []);
 
   async function addSite(e: React.FormEvent) {
