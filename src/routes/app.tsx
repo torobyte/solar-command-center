@@ -84,6 +84,21 @@ function SitesIndex() {
   const [fPlan, setFPlan] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [defaultSiteId, setDefaultSiteId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    try { return localStorage.getItem(DEFAULT_SITE_KEY); } catch { return null; }
+  });
+
+  function setAsDefault(id: string, name: string) {
+    try { localStorage.setItem(DEFAULT_SITE_KEY, id); } catch { /* ignore */ }
+    setDefaultSiteId(id);
+    toast.success(`"${name}" es tu sitio predeterminado`);
+  }
+  function clearDefault() {
+    try { localStorage.removeItem(DEFAULT_SITE_KEY); } catch { /* ignore */ }
+    setDefaultSiteId(null);
+    toast.success("Sitio predeterminado eliminado");
+  }
 
   async function load() {
     setLoading(true);
