@@ -817,7 +817,7 @@ export function BackupTimeCard({
     <div
       className="@container dashboard-card h-full p-5 sm:p-6"
       style={{
-        background: "color-mix(in oklab, var(--card) 90%, black 10%)",
+        background: "var(--card)",
         borderColor: "color-mix(in oklab, var(--border) 68%, var(--battery))",
         boxShadow: "0 0 0 1px color-mix(in oklab, var(--border) 35%, transparent), 0 22px 48px -28px color-mix(in oklab, black 55%, transparent)",
       }}
@@ -899,7 +899,7 @@ export function BackupTimeCard({
           <div
             className="rounded-xl border px-3 py-2.5 text-center text-[11px] text-muted-foreground"
             style={{
-              background: "color-mix(in oklab, var(--card) 86%, black 14%)",
+              background: "var(--card)",
               borderColor: "color-mix(in oklab, var(--border) 60%, transparent)",
             }}
           >
@@ -910,7 +910,7 @@ export function BackupTimeCard({
             <div
               className="grid grid-cols-3 overflow-hidden rounded-xl border"
               style={{
-                background: "color-mix(in oklab, var(--card) 86%, black 14%)",
+                background: "var(--card)",
                 borderColor: "color-mix(in oklab, var(--border) 60%, transparent)",
               }}
             >
@@ -936,7 +936,7 @@ export function BackupTimeCard({
               <div
                 className="flex flex-wrap items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-center text-[11px]"
                 style={{
-                  background: "color-mix(in oklab, var(--card) 86%, black 14%)",
+                  background: "var(--card)",
                   borderColor: "color-mix(in oklab, var(--border) 60%, transparent)",
                 }}
               >
@@ -954,7 +954,7 @@ export function BackupTimeCard({
               key={item.label}
               className="flex items-center gap-2 rounded-lg border px-2.5 py-2"
               style={{
-                background: "color-mix(in oklab, var(--card) 88%, black 12%)",
+                background: "var(--card)",
                 borderColor: "color-mix(in oklab, var(--border) 56%, transparent)",
               }}
             >

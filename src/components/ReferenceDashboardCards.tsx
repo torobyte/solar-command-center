@@ -1059,7 +1059,7 @@ export function WeatherAndRadiationCard({
     <div
       className="dashboard-card overflow-hidden p-0"
       style={{
-        background: "color-mix(in oklab, var(--card) 88%, black 12%)",
+        background: "var(--card)",
         borderColor: "color-mix(in oklab, var(--load) 32%, var(--border))",
         boxShadow: "0 0 0 1px color-mix(in oklab, var(--load) 16%, transparent), 0 24px 60px -30px color-mix(in oklab, black 62%, transparent)",
       }}
@@ -1173,7 +1173,7 @@ export function WeatherAndRadiationCard({
           <div
             className="rounded-2xl border p-3 sm:p-4"
             style={{
-              background: "color-mix(in oklab, var(--card) 90%, black 10%)",
+              background: "var(--card)",
               borderColor: "color-mix(in oklab, var(--border) 58%, transparent)",
             }}
           >
@@ -1251,7 +1251,7 @@ export function WeatherAndRadiationCard({
                   style={{
                     background: active
                       ? "color-mix(in oklab, var(--success) 10%, var(--card))"
-                      : "color-mix(in oklab, var(--card) 90%, black 10%)",
+                      : "var(--card)",
                     borderColor: active
                       ? "color-mix(in oklab, var(--success) 36%, var(--border))"
                       : "color-mix(in oklab, var(--border) 58%, transparent)",
@@ -1504,7 +1504,7 @@ export function EnvironmentalImpactCard({
     <div
       className="dashboard-card p-5 sm:p-6"
       style={{
-        background: "color-mix(in oklab, var(--card) 90%, black 10%)",
+        background: "var(--card)",
         borderColor: "color-mix(in oklab, var(--success) 28%, var(--border))",
       }}
     >
@@ -1538,7 +1538,7 @@ export function EnvironmentalImpactCard({
       <div
         className="relative overflow-hidden rounded-2xl border px-4 py-4"
         style={{
-          background: "linear-gradient(180deg, color-mix(in oklab, var(--success) 12%, var(--card)) 0%, color-mix(in oklab, var(--card) 94%, black 6%) 100%)",
+          background: "linear-gradient(180deg, color-mix(in oklab, var(--success) 12%, var(--card)) 0%, var(--card) 100%)",
           borderColor: "color-mix(in oklab, var(--success) 22%, var(--border))",
         }}
       >
@@ -1567,7 +1567,7 @@ export function EnvironmentalImpactCard({
             key={card.label}
             className="rounded-xl border px-3 py-2.5"
             style={{
-              background: "color-mix(in oklab, var(--card) 90%, black 10%)",
+              background: "var(--card)",
               borderColor: "color-mix(in oklab, var(--border) 58%, transparent)",
             }}
           >
@@ -1593,7 +1593,7 @@ export function EnvironmentalImpactCard({
       <div
         className="mt-3 flex items-start gap-2.5 rounded-xl border px-3 py-2.5"
         style={{
-          background: "color-mix(in oklab, var(--card) 90%, black 10%)",
+          background: "var(--card)",
           borderColor: "color-mix(in oklab, var(--border) 58%, transparent)",
         }}
       >
