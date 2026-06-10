@@ -1082,22 +1082,21 @@ export function WeatherAndRadiationCard({
         ) : (
           <>
             <div className="relative z-10 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-              <div className="flex items-start gap-3">
-                <div className="text-[44px] font-semibold leading-[0.9] tracking-tight text-white sm:text-[56px]">{Math.round(data.current.temperature)}°</div>
-                <div className="pt-1.5 sm:pt-2">
-                  <div className="flex items-center gap-2 text-white">
-                    <WeatherGlyph code={data.current.weatherCode} className="h-5 w-5" />
-                    <div className="text-[15px] font-medium sm:text-[17px]">{weatherLabel(data.current.weatherCode)}</div>
-                  </div>
-                  <div className="mt-1 text-[11px] text-white/80">
-                    Sens {Math.round(data.current.apparentTemperature)}° · Hum {Math.round(data.current.humidity)}% · {Math.round(data.current.windSpeed)} km/h
+              <div className="flex flex-col gap-2">
+                <div className="flex items-start gap-3">
+                  <div className="text-[44px] font-semibold leading-[0.9] tracking-tight text-white sm:text-[56px]">{Math.round(data.current.temperature)}°</div>
+                  <div className="pt-1.5 sm:pt-2">
+                    <div className="flex items-center gap-2 text-white">
+                      <WeatherGlyph code={data.current.weatherCode} className="h-5 w-5" />
+                      <div className="text-[15px] font-medium sm:text-[17px]">{weatherLabel(data.current.weatherCode)}</div>
+                    </div>
+                    <div className="mt-1 text-[11px] text-white/80">
+                      Sens {Math.round(data.current.apparentTemperature)}° · Hum {Math.round(data.current.humidity)}% · {Math.round(data.current.windSpeed)} km/h
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              <div className="flex flex-col gap-2 lg:items-end">
                 <div
-                  className="inline-flex items-center gap-1.5 self-start rounded-full border px-2.5 py-1 text-[11px] text-white/95 lg:self-end"
+                  className="inline-flex items-center gap-1.5 self-start rounded-full border px-2.5 py-1 text-[11px] text-white/95"
                   style={{
                     background: "color-mix(in oklab, var(--card) 20%, transparent)",
                     borderColor: "color-mix(in oklab, white 16%, transparent)",
@@ -1106,6 +1105,10 @@ export function WeatherAndRadiationCard({
                   <MapPin className="h-3 w-3" />
                   <span className="font-medium">{city}</span>
                 </div>
+              </div>
+
+              <div className="flex flex-col gap-2 lg:items-end">
+
                 <div
                   className="w-full rounded-xl border px-3 py-2 text-center text-white lg:w-[160px]"
                   style={{
