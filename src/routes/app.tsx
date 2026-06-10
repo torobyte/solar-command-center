@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import { TableSkeleton, PageHeaderSkeleton } from "@/components/LoadingStates";
 
 export const Route = createFileRoute("/app")({
+  validateSearch: (s: Record<string, unknown>) => ({ list: typeof s.list === "string" ? s.list : undefined }),
   component: () => <ProtectedLayout><SitesIndex /></ProtectedLayout>,
 });
 
