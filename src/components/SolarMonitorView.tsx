@@ -7,23 +7,17 @@ import { formatInverterMode, type DashboardSample } from "@/components/SiteDashb
 import { useTheme } from "@/lib/theme";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { SavingsCard } from "@/components/SavingsCard";
-import sceneSunnyDay from "@/assets/scene-sunny-day.jpg";
-import sceneCloudyDay from "@/assets/scene-cloudy-day.jpg";
-import sceneRainyNight from "@/assets/scene-rainy-night.jpg";
-import sceneSnowyNight from "@/assets/scene-snowy-night.jpg";
+import { pickWeatherSceneUrl } from "@/assets/weather-scenes";
 import detailSolarImg from "@/assets/detail-solar.jpg";
 import detailGridImg from "@/assets/detail-grid.jpg";
 
 import detailConsumoImg from "@/assets/detail-consumo.jpg";
 
 /** Picks the most appropriate hyperrealistic background scene for the current weather/time. */
-function pickSceneImage(theme: WeatherTheme): string {
-  if (theme.precipitation === "snow") return sceneSnowyNight;
-  if (theme.precipitation === "rain" || theme.precipitation === "heavy_rain" || theme.precipitation === "drizzle" || theme.precipitation === "thunder") return sceneRainyNight;
-  if (!theme.isDay) return sceneRainyNight; // night fallback (dark scene)
-  if (theme.weatherType === "clear_day" || theme.solarMultiplier >= 0.7) return sceneSunnyDay;
-  return sceneCloudyDay;
+function pickSceneImage(theme: WeatherTheme, weatherCode: number | null | undefined): string {
+  return pickWeatherSceneUrl(weatherCode ?? 0);
 }
+
 
 /* =========================================================================
    Weather mapping
@@ -724,7 +718,7 @@ export function SolarMonitorView({
 
         {/* Hyperrealistic background scene */}
         <img
-          src={pickSceneImage(theme)}
+          src={pickSceneImage(theme, weather?.current.weatherCode)}
           alt="Escena residencial solar"
           className="absolute inset-0 h-full w-full object-cover"
           width={1024}

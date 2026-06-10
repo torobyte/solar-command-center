@@ -497,13 +497,13 @@ function SiteDetail() {
 
   const sidebarItems: { id: SiteTab; label: string; icon: typeof LayoutDashboard }[] = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { id: "control", label: "Control", icon: Zap },
     { id: "charts", label: "Charts", icon: LineChart },
     { id: "totals", label: "Totales", icon: Calculator },
     { id: "savings", label: "Ahorro", icon: Coins },
-    { id: "notifications", label: "Alertas", icon: BellRing },
+    { id: "control", label: "Control", icon: Zap },
     ...(roleInfo.role !== "viewer" ? [{ id: "config" as SiteTab, label: "Configuración", icon: Settings2 }] : []),
   ];
+
 
   return (
     <>
@@ -595,13 +595,13 @@ function SiteDetail() {
         <TabsList className="hidden">
 
           <TabsTrigger value="dashboard" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><LayoutDashboard className="h-3.5 w-3.5" strokeWidth={2.2} />Dashboard</TabsTrigger>
-          <TabsTrigger value="control" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Zap className="h-3.5 w-3.5" strokeWidth={2.2} />Control</TabsTrigger>
           <TabsTrigger value="charts" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><LineChart className="h-3.5 w-3.5" strokeWidth={2.2} />Charts</TabsTrigger>
           <TabsTrigger value="totals" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Calculator className="h-3.5 w-3.5" strokeWidth={2.2} />Totals</TabsTrigger>
           <TabsTrigger value="savings" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Coins className="h-3.5 w-3.5" strokeWidth={2.2} />Ahorro</TabsTrigger>
-          <TabsTrigger value="notifications" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><BellRing className="h-3.5 w-3.5" strokeWidth={2.2} />Alertas</TabsTrigger>
+          <TabsTrigger value="control" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Zap className="h-3.5 w-3.5" strokeWidth={2.2} />Control</TabsTrigger>
           {roleInfo.role !== "viewer" && (
             <TabsTrigger value="config" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Settings2 className="h-3.5 w-3.5" strokeWidth={2.2} />Configuration</TabsTrigger>
+
           )}
         </TabsList>
 
@@ -823,13 +823,8 @@ function SiteDetail() {
           <SavingsTabView siteId={siteId} canEdit={roleInfo.role === "owner" || roleInfo.role === "admin"} />
         </TabsContent>
 
-        <TabsContent value="notifications" className="mt-6">
-          {user ? (
-            <NotificationsConfig siteId={siteId} userId={user.id} />
-          ) : (
-            <p className="text-sm text-muted-foreground">Inicia sesión para configurar alertas.</p>
-          )}
-        </TabsContent>
+
+
 
         {roleInfo.role !== "viewer" && (
           <TabsContent value="config" className="mt-6 space-y-6">
@@ -1153,10 +1148,12 @@ function ConfigurationView({ site, subTab, onSubTabChange, role }: { site: Site;
         <TabsTrigger value="inverter" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={2.2} />Inversor</TabsTrigger>
         {canConfigure && <TabsTrigger value="spec" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Cpu className="h-3.5 w-3.5" strokeWidth={2.2} />Especificaciones</TabsTrigger>}
         {canConfigure && <TabsTrigger value="pv" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Sun className="h-3.5 w-3.5" strokeWidth={2.2} />Sistema PV</TabsTrigger>}
+        <TabsTrigger value="alerts" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><BellRing className="h-3.5 w-3.5" strokeWidth={2.2} />Alertas</TabsTrigger>
         <TabsTrigger value="diagnostics" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Wifi className="h-3.5 w-3.5" strokeWidth={2.2} />Diagnóstico</TabsTrigger>
         {canManageMembers && <TabsTrigger value="sharing" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Share2 className="h-3.5 w-3.5" strokeWidth={2.2} />Compartir</TabsTrigger>}
         {canConfigure && <TabsTrigger value="install" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Download className="h-3.5 w-3.5" strokeWidth={2.2} />Instalación</TabsTrigger>}
       </TabsList>
+
 
       <TabsContent value="inverter" className="mt-6 space-y-4">
         <Section title="Configuración remota del inversor" icon={SlidersHorizontal}>
@@ -1271,6 +1268,15 @@ function ConfigurationView({ site, subTab, onSubTabChange, role }: { site: Site;
           nominalBatteryV={spec?.nominal_battery_voltage ?? null}
         />
       </TabsContent>
+
+      <TabsContent value="alerts" className="mt-6">
+        {user ? (
+          <NotificationsConfig siteId={site.id} userId={user.id} />
+        ) : (
+          <p className="text-sm text-muted-foreground">Inicia sesión para configurar alertas.</p>
+        )}
+      </TabsContent>
+
 
       <TabsContent value="diagnostics" className="mt-6 space-y-4">
         <Section title="General" icon={Info}>
