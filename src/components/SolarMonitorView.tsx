@@ -14,8 +14,8 @@ import detailGridImg from "@/assets/detail-grid.jpg";
 import detailConsumoImg from "@/assets/detail-consumo.jpg";
 
 /** Picks the most appropriate hyperrealistic background scene for the current weather/time. */
-function pickSceneImage(theme: WeatherTheme, weatherCode: number | null | undefined): string {
-  return pickWeatherSceneUrl(weatherCode ?? 0);
+function pickSceneImage(_theme: WeatherTheme, weatherCode: number | null | undefined, isDay?: boolean, hour: number = new Date().getHours()): string {
+  return pickWeatherSceneUrl(weatherCode ?? 0, hour, isDay);
 }
 
 
