@@ -192,9 +192,7 @@ function useSavingsKwh(siteId: string): { todayKwh: number; monthKwh: number; ye
    ========================================================================= */
 /** Returns integer power with adaptive unit: <1000W -> "450" W, otherwise "1" or "12" kW. */
 function fmtPower(w: number): { value: string; unit: string } {
-  const abs = Math.abs(w);
-  if (abs < 1000) return { value: String(Math.round(w)), unit: "W" };
-  return { value: String(Math.round(w / 1000)), unit: "kW" };
+  return { value: String(Math.round(w)), unit: "W" };
 }
 function fmtKwh(v: number): string {
   return Math.round(v).toString();
