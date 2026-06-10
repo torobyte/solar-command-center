@@ -1095,16 +1095,10 @@ export function WeatherAndRadiationCard({
                     </div>
                   </div>
                 </div>
-                <div
-                  className="inline-flex items-center gap-1.5 self-start rounded-full border px-2.5 py-1 text-[11px] text-white/95"
-                  style={{
-                    background: "color-mix(in oklab, var(--card) 20%, transparent)",
-                    borderColor: "color-mix(in oklab, white 16%, transparent)",
-                  }}
-                >
-                  <MapPin className="h-3 w-3" />
-                  <span className="font-medium">{city}</span>
+                <div className="self-start">
+                  <LocationPicker currentLabel={city} siteId={siteId} />
                 </div>
+
               </div>
 
               <div className="flex flex-col gap-2 lg:items-end">
