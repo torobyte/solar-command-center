@@ -1148,10 +1148,12 @@ function ConfigurationView({ site, subTab, onSubTabChange, role }: { site: Site;
         <TabsTrigger value="inverter" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={2.2} />Inversor</TabsTrigger>
         {canConfigure && <TabsTrigger value="spec" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Cpu className="h-3.5 w-3.5" strokeWidth={2.2} />Especificaciones</TabsTrigger>}
         {canConfigure && <TabsTrigger value="pv" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Sun className="h-3.5 w-3.5" strokeWidth={2.2} />Sistema PV</TabsTrigger>}
+        <TabsTrigger value="alerts" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><BellRing className="h-3.5 w-3.5" strokeWidth={2.2} />Alertas</TabsTrigger>
         <TabsTrigger value="diagnostics" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Wifi className="h-3.5 w-3.5" strokeWidth={2.2} />Diagnóstico</TabsTrigger>
         {canManageMembers && <TabsTrigger value="sharing" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Share2 className="h-3.5 w-3.5" strokeWidth={2.2} />Compartir</TabsTrigger>}
         {canConfigure && <TabsTrigger value="install" className="gap-1.5 rounded-full px-4 data-[state=active]:bg-card data-[state=active]:shadow-sm"><Download className="h-3.5 w-3.5" strokeWidth={2.2} />Instalación</TabsTrigger>}
       </TabsList>
+
 
       <TabsContent value="inverter" className="mt-6 space-y-4">
         <Section title="Configuración remota del inversor" icon={SlidersHorizontal}>
