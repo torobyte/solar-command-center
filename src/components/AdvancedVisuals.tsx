@@ -743,8 +743,6 @@ export function BackupTimeCard({
   const usableKwh = (batteryKwh ?? 0) * (Math.max(0, Math.min(100, soc)) / 100) * dod;
   const netDischargeW = Math.max(0, load - pv);
   const netDischargeKw = netDischargeW / 1000;
-  // La batería está cargando si entra potencia a ella (no importa si viene de PV o de la red)
-  // o si la red está cubriendo el consumo (caso típico: bypass / modo línea sin descarga).
   const charging = batteryChargeW > 25 || pv > load + 5 || (gridConnected && netDischargeW < 5);
 
   let runtimeHours: number | null = null;
@@ -752,25 +750,27 @@ export function BackupTimeCard({
     runtimeHours = usableKwh / netDischargeKw;
   }
 
-  // Decompose runtime into days / hours / minutes for a readable display.
   const totalMinutes = runtimeHours != null ? Math.max(0, Math.round(runtimeHours * 60)) : 0;
   const days = Math.floor(totalMinutes / (60 * 24));
   const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
   const minutes = totalMinutes % 60;
 
-  // Human-readable ETA string ("Hasta las 14:32" o "mañana 08:15")
   let etaLabel: string | null = null;
   if (runtimeHours != null && runtimeHours > 0 && runtimeHours < 24 * 30) {
     const eta = new Date(Date.now() + totalMinutes * 60_000);
     const now = new Date();
     const sameDay = eta.toDateString() === now.toDateString();
-    const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1);
+    const tomorrow = new Date(now);
+    tomorrow.setDate(now.getDate() + 1);
     const isTomorrow = eta.toDateString() === tomorrow.toDateString();
     const time = eta.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    etaLabel = sameDay ? `hoy ${time}` : isTomorrow ? `mañana ${time}` : eta.toLocaleString([], { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+    etaLabel = sameDay
+      ? `hoy ${time}`
+      : isTomorrow
+        ? `mañana ${time}`
+        : eta.toLocaleString([], { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
   }
 
-  // Color by criticality (thresholds in hours)
   const color = runtimeHours == null
     ? "var(--success)"
     : runtimeHours > 12 ? "var(--success)"
@@ -778,117 +778,210 @@ export function BackupTimeCard({
     : "var(--destructive)";
 
   const statusLabel = charging
-    ? "⚡ Cargando"
+    ? "Cargando"
     : runtimeHours == null ? "Sin datos"
-    : runtimeHours > 12 ? "● Holgado"
-    : runtimeHours > 4 ? "● Limitado"
-    : "● Crítico";
+    : runtimeHours > 12 ? "Holgado"
+    : runtimeHours > 4 ? "Limitado"
+    : "Crítico";
 
   const typeLabel: Record<string, string> = {
     lithium: "Litio (LiFePO4)", lithium_nmc: "Litio (NMC)",
     agm: "AGM", gel: "Gel", lead_acid: "Plomo-ácido", other: "Otra",
   };
 
-  // Ring fills proportional to a 24h reference
-  const ringPct = runtimeHours == null ? 100 : Math.min(100, (runtimeHours / 24) * 100);
-  const r = 52, c = 2 * Math.PI * r;
-
-  // Compact "Xd Yh Zm" string, omitting zero leading units
+  const ringPct = runtimeHours == null ? 0 : Math.min(100, (runtimeHours / 30) * 100);
+  const r = 82;
+  const c = 2 * Math.PI * r;
   const compact = days > 0
     ? `${days}d ${hours}h`
     : hours > 0
       ? `${hours}h ${minutes}m`
       : `${minutes}m`;
 
-  const TimeUnit = ({ v, u }: { v: number; u: string }) => (
-    <div className="flex flex-col items-center leading-none">
-      <span className="text-2xl font-extrabold tabular-nums sm:text-3xl" style={{ color }}>{v}</span>
-      <span className="mt-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">{u}</span>
-    </div>
-  );
+  const detailItems = [
+    { icon: <Zap className="h-5 w-5" />, label: "Energía útil", value: `${usableKwh.toFixed(2)} kWh` },
+    { icon: <ArrowRight className="h-5 w-5" />, label: "Descarga", value: charging ? "0 W" : `${Math.round(netDischargeW).toLocaleString()} W` },
+    { icon: <Battery className="h-5 w-5" />, label: "SOC", value: `${Math.max(0, Math.min(100, soc)).toFixed(0)} %` },
+    { icon: <BatteryCharging className="h-5 w-5" />, label: "DoD útil", value: `${(usableDodPct ?? 80).toFixed(0)} %` },
+    {
+      icon: <Battery className="h-5 w-5" />,
+      label: "Banco",
+      value: batteryCount && batteryCount > 0
+        ? `${batteryCount}× ${typeLabel[batteryType ?? "other"] ?? "—"}`
+        : "Sin configurar",
+    },
+    { icon: <Battery className="h-5 w-5" />, label: "Capacidad", value: batteryKwh ? `${batteryKwh.toFixed(2)} kWh` : "—" },
+  ];
 
   return (
-    <div className="@container dashboard-card p-5 sm:p-6 animate-fade-in h-full">
-      <div className="mb-4 flex items-center justify-between gap-2">
-        <h3 className="flex items-center gap-2 font-semibold">
-          <Clock className="h-4 w-4 text-[var(--battery)]" /> Tiempo de respaldo
-        </h3>
+    <div
+      className="@container dashboard-card h-full p-5 sm:p-6"
+      style={{
+        background: "color-mix(in oklab, var(--card) 90%, black 10%)",
+        borderColor: "color-mix(in oklab, var(--border) 68%, var(--battery))",
+        boxShadow: "0 0 0 1px color-mix(in oklab, var(--border) 35%, transparent), 0 22px 48px -28px color-mix(in oklab, black 55%, transparent)",
+      }}
+    >
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-3">
+            <div
+              className="flex h-12 w-12 items-center justify-center rounded-full border"
+              style={{
+                color: "var(--success)",
+                borderColor: "color-mix(in oklab, var(--success) 30%, var(--border))",
+                background: "color-mix(in oklab, var(--success) 10%, transparent)",
+                boxShadow: "0 0 18px color-mix(in oklab, var(--success) 18%, transparent)",
+              }}
+            >
+              <Clock className="h-6 w-6" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="truncate text-xl font-semibold tracking-tight text-foreground sm:text-2xl">Tiempo de respaldo</h3>
+              <p className="mt-1 text-sm text-muted-foreground sm:text-base">Autonomía restante del sistema</p>
+            </div>
+          </div>
+        </div>
+
         <span
-          className="rounded-full px-2 py-0.5 text-[10px] font-medium"
-          style={{ background: `color-mix(in oklab, ${color} 18%, transparent)`, color }}
+          className="inline-flex items-center rounded-2xl border px-4 py-2 text-sm font-medium"
+          style={{
+            color,
+            borderColor: `color-mix(in oklab, ${color} 24%, var(--border))`,
+            background: `color-mix(in oklab, ${color} 12%, transparent)`,
+            boxShadow: `0 0 0 1px color-mix(in oklab, ${color} 8%, transparent) inset`,
+          }}
         >
+          <span className="mr-2 h-2.5 w-2.5 rounded-full" style={{ background: color }} />
           {statusLabel}
         </span>
       </div>
 
-      <div className="flex flex-col items-stretch gap-4 @[520px]:grid @[520px]:grid-cols-[0.9fr_1.1fr] @[520px]:items-start">
-        {/* Ring + icon */}
-        <div className="relative mx-auto shrink-0" style={{ width: 132, height: 132 }}>
-          <svg width="132" height="132" className="-rotate-90">
-            <circle cx="66" cy="66" r={r} fill="none" stroke={color} strokeOpacity="0.15" strokeWidth="11" />
-            <circle cx="66" cy="66" r={r} fill="none" stroke={color} strokeWidth="11" strokeLinecap="round"
-              strokeDasharray={c} strokeDashoffset={c * (1 - ringPct / 100)}
-              style={{ transition: "stroke-dashoffset 1s ease, stroke 0.5s", filter: `drop-shadow(0 0 6px ${color})` }} />
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            {charging ? (
-              <>
-                <BatteryCharging className="h-7 w-7" style={{ color }} />
-                <div className="mt-1 text-[10px] uppercase text-muted-foreground">cargando</div>
-              </>
-            ) : runtimeHours == null ? (
-              <div className="px-2 text-center text-[10px] text-muted-foreground">Configura el banco</div>
-            ) : (
-              <>
-                <div className="text-xl font-extrabold tabular-nums leading-none" style={{ color }}>{compact}</div>
-                <div className="mt-1 text-[10px] uppercase text-muted-foreground">restantes</div>
-              </>
-            )}
+      <div className="flex flex-col gap-5">
+        <div className="flex justify-center">
+          <div className="relative h-[250px] w-[250px] sm:h-[280px] sm:w-[280px]">
+            <svg viewBox="0 0 220 220" className="h-full w-full -rotate-90 overflow-visible">
+              <circle cx="110" cy="110" r={r} fill="none" stroke="color-mix(in oklab, var(--success) 12%, var(--border))" strokeWidth="18" />
+              <circle
+                cx="110"
+                cy="110"
+                r={r}
+                fill="none"
+                stroke={color}
+                strokeWidth="18"
+                strokeLinecap="round"
+                strokeDasharray={c}
+                strokeDashoffset={c * (1 - ringPct / 100)}
+                style={{ filter: `drop-shadow(0 0 18px ${color})` }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+              {charging ? (
+                <>
+                  <BatteryCharging className="h-10 w-10" style={{ color }} />
+                  <div className="mt-3 text-lg font-semibold text-foreground">Cargando</div>
+                  <div className="text-sm text-muted-foreground">Autonomía indefinida</div>
+                </>
+              ) : runtimeHours == null ? (
+                <>
+                  <div className="text-lg font-semibold text-foreground">Sin datos</div>
+                  <div className="mt-1 max-w-[180px] text-sm text-muted-foreground">Configura el banco para calcular la autonomía.</div>
+                </>
+              ) : (
+                <>
+                  <div className="text-[52px] font-semibold leading-none tracking-tight sm:text-[60px]" style={{ color }}>{compact}</div>
+                  <div className="mt-3 text-[14px] uppercase tracking-[0.08em] text-foreground">RESTANTES</div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Big readable breakdown + ETA */}
-        <div className="space-y-3">
-          {charging ? (
-            <div className="rounded-lg border bg-muted/30 p-3 text-center text-sm text-muted-foreground">
-              La batería se está cargando{batteryChargeW > 25 && gridConnected && pv < load ? " desde la red" : pv > load ? " con la energía solar" : ""} — autonomía indefinida mientras se mantenga.
-            </div>
-
-          ) : runtimeHours == null ? (
-            <div className="rounded-lg border bg-muted/30 p-3 text-center text-sm text-muted-foreground">
-              Configura el banco de baterías para ver el tiempo restante.
-            </div>
-          ) : (
-            <>
-              <div className="flex items-end justify-around gap-2 rounded-lg border bg-muted/20 px-2 py-3">
-                {days > 0 && <TimeUnit v={days} u="días" />}
-                {days > 0 && <span className="pb-4 text-xl text-muted-foreground/50">:</span>}
-                <TimeUnit v={hours} u="horas" />
-                <span className="pb-4 text-xl text-muted-foreground/50">:</span>
-                <TimeUnit v={minutes} u="min" />
-              </div>
-              {etaLabel && (
-                <div className="text-center text-xs text-muted-foreground">
-                  Se agotará alrededor de <span className="font-medium text-foreground">{etaLabel}</span>
-                </div>
-              )}
-            </>
-          )}
-
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-            <Stat label="Energía útil" value={`${usableKwh.toFixed(2)} kWh`} />
-            <Stat label="Descarga" value={charging ? "0 W" : `${Math.round(netDischargeW).toLocaleString()} W`} />
-            <Stat label="SOC" value={`${Math.max(0, Math.min(100, soc)).toFixed(0)} %`} />
-            <Stat label="DoD útil" value={`${(usableDodPct ?? 80).toFixed(0)} %`} />
-            <Stat label="Banco" value={
-              batteryCount && batteryCount > 0
-                ? `${batteryCount}× ${typeLabel[batteryType ?? "other"] ?? "—"}`
-                : "Sin configurar"
-            } />
-            <Stat label="Capacidad" value={batteryKwh ? `${batteryKwh.toFixed(2)} kWh` : "—"} />
+        {charging ? (
+          <div
+            className="rounded-[24px] border px-5 py-4 text-center text-sm text-muted-foreground"
+            style={{
+              background: "color-mix(in oklab, var(--card) 86%, black 14%)",
+              borderColor: "color-mix(in oklab, var(--border) 60%, transparent)",
+            }}
+          >
+            La batería se está cargando{batteryChargeW > 25 && gridConnected && pv < load ? " desde la red" : pv > load ? " con la energía solar" : ""}.
           </div>
+        ) : runtimeHours == null ? null : (
+          <>
+            <div
+              className="grid grid-cols-3 overflow-hidden rounded-[26px] border"
+              style={{
+                background: "color-mix(in oklab, var(--card) 86%, black 14%)",
+                borderColor: "color-mix(in oklab, var(--border) 60%, transparent)",
+              }}
+            >
+              {[
+                { icon: <Clock className="h-6 w-6" />, value: days, unit: "DÍAS" },
+                { icon: <Clock className="h-6 w-6" />, value: hours, unit: "HORAS" },
+                { icon: <Clock className="h-6 w-6" />, value: minutes, unit: "MIN" },
+              ].map((item, index) => (
+                <div
+                  key={item.unit}
+                  className="flex min-h-[140px] flex-col items-center justify-center px-4 py-6 text-center"
+                  style={{
+                    borderLeft: index === 0 ? "none" : "1px solid color-mix(in oklab, var(--border) 52%, transparent)",
+                  }}
+                >
+                  <div
+                    className="mb-4 flex h-14 w-14 items-center justify-center rounded-full border"
+                    style={{
+                      color: color,
+                      borderColor: `color-mix(in oklab, ${color} 24%, var(--border))`,
+                      background: `color-mix(in oklab, ${color} 8%, transparent)`,
+                    }}
+                  >
+                    {item.icon}
+                  </div>
+                  <div className="text-[52px] font-light leading-none tabular-nums" style={{ color }}>{item.value}</div>
+                  <div className="mt-2 text-[14px] tracking-[0.06em] text-foreground">{item.unit}</div>
+                </div>
+              ))}
+            </div>
+
+            {etaLabel && (
+              <div
+                className="flex items-center justify-center gap-3 rounded-[22px] border px-5 py-4 text-center text-base"
+                style={{
+                  background: "color-mix(in oklab, var(--card) 86%, black 14%)",
+                  borderColor: "color-mix(in oklab, var(--border) 60%, transparent)",
+                }}
+              >
+                <Clock className="h-6 w-6" style={{ color }} />
+                <span className="text-muted-foreground">Se agotará alrededor de</span>
+                <span className="font-semibold" style={{ color }}>{etaLabel}</span>
+              </div>
+            )}
+          </>
+        )}
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {detailItems.map((item) => (
+            <div
+              key={item.label}
+              className="flex items-center gap-4 rounded-[22px] border px-5 py-4"
+              style={{
+                background: "color-mix(in oklab, var(--card) 88%, black 12%)",
+                borderColor: "color-mix(in oklab, var(--border) 56%, transparent)",
+              }}
+            >
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full" style={{ color, background: `color-mix(in oklab, ${color} 10%, transparent)` }}>
+                {item.icon}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm text-muted-foreground">{item.label}</div>
+                <div className="truncate text-[15px] font-medium text-foreground sm:text-[17px]">{item.value}</div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
   );
 }
+

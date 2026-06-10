@@ -1,6 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import {
   ArrowRight,
+  BarChart3,
+  BatteryCharging,
+  CalendarDays,
   Cloud,
   CloudLightning,
   CloudRain,
@@ -13,6 +16,7 @@ import {
   MoreVertical,
   Search,
   Sun,
+  TreePine,
   Zap,
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -970,7 +974,7 @@ export function WeatherAndRadiationCard({
   const manualCalib = pvConfig?.manual_calibration ?? null;
   const calibration = manualCalib && manualCalib > 0 ? clamp(manualCalib, 0.2, 3) : 1;
   const calibrated = calibration !== 1;
-  const hours = data?.hourly ?? [];
+  const hours = (data?.hourly ?? []).slice(0, 12);
   const currentRadiation = Math.round(data?.current.radiation ?? 0);
   const next12kwh = hours.reduce((sum, hour) => sum + estimateKwh(hour.radiation, kwp, losses, calibration), 0);
   const peakRad = Math.max(1, ...hours.map((h) => h.radiation));
@@ -978,7 +982,6 @@ export function WeatherAndRadiationCard({
   const pctOfPeak = kwp > 0 ? clamp((liveKw / kwp) * 100, 0, 100) : 0;
   const city = data?.city ?? "Mi ubicación";
 
-  // Tiempo estimado para cargar las baterías
   const batteryKwh = pvConfig?.battery_kwh ?? null;
   const usableDod = (pvConfig?.battery_usable_dod_pct ?? 80) / 100;
   const soc = clamp(batterySoc ?? 0, 0, 100) / 100;
@@ -999,168 +1002,283 @@ export function WeatherAndRadiationCard({
     }
   }
 
+  const kwhSeries = hours.map((h) => estimateKwh(h.radiation, kwp, losses, calibration));
+  const maxKwh = Math.max(0.2, ...kwhSeries);
+  const chartWidth = 920;
+  const chartHeight = 260;
+  const padLeft = 56;
+  const padRight = 56;
+  const padTop = 24;
+  const padBottom = 38;
+  const innerWidth = chartWidth - padLeft - padRight;
+  const innerHeight = chartHeight - padTop - padBottom;
+  const baseY = chartHeight - padBottom;
+  const xFor = (index: number) => padLeft + (hours.length <= 1 ? innerWidth / 2 : (index / (hours.length - 1)) * innerWidth);
+  const radYFor = (value: number) => padTop + innerHeight - (value / peakRad) * innerHeight;
+  const kwhYFor = (value: number) => padTop + innerHeight - (value / maxKwh) * innerHeight;
+  const radiationPoints = hours.map((hour, index) => `${xFor(index)},${radYFor(hour.radiation)}`).join(" ");
+  const kwhPoints = kwhSeries.map((value, index) => `${xFor(index)},${kwhYFor(value)}`).join(" ");
+  const radiationArea = hours.length
+    ? `${radiationPoints} ${xFor(hours.length - 1)},${baseY} ${xFor(0)},${baseY}`
+    : "";
+  const kwhArea = hours.length
+    ? `${kwhPoints} ${xFor(hours.length - 1)},${baseY} ${xFor(0)},${baseY}`
+    : "";
+
+  const forecastCards = [
+    {
+      icon: <Zap className="h-5 w-5" />,
+      label: "PRODUCCIÓN AHORA",
+      value: `${Math.round(livePv).toLocaleString("es-CL")}`,
+      unit: "W",
+      meta: `${pctOfPeak.toFixed(0)}%`,
+      accent: "var(--success)",
+      progress: pctOfPeak,
+    },
+    {
+      icon: <BarChart3 className="h-5 w-5" />,
+      label: `ESTIMADA 12 H${calibrated ? " · CAL" : ""}`,
+      value: next12kwh.toFixed(2),
+      unit: "kWh",
+      meta: `${kwp.toFixed(1)} kWp · ${losses}%`,
+      accent: "var(--solar)",
+      progress: Math.min(100, (next12kwh / Math.max(kwp * 2.4, 1)) * 100),
+    },
+    {
+      icon: <BatteryCharging className="h-5 w-5" />,
+      label: "CARGA BATERÍA",
+      value: chargeTimeLabel ?? (!batteryKwh ? "Sin datos" : soc * 100 >= 99 ? "Completa" : "Sin carga"),
+      unit: "",
+      meta: batteryKwh ? `${Math.round(soc * 100)}% → 100%` : "Configura batería",
+      accent: "var(--success)",
+      progress: Math.round(soc * 100),
+    },
+  ];
 
   return (
-    <div className="dashboard-card overflow-hidden p-0">
-      {/* Hero compacto */}
+    <div
+      className="dashboard-card overflow-hidden p-0"
+      style={{
+        background: "color-mix(in oklab, var(--card) 88%, black 12%)",
+        borderColor: "color-mix(in oklab, var(--load) 32%, var(--border))",
+        boxShadow: "0 0 0 1px color-mix(in oklab, var(--load) 16%, transparent), 0 24px 60px -30px color-mix(in oklab, black 62%, transparent)",
+      }}
+    >
       <div
-        className="relative px-4 pb-3 pt-3 text-white sm:px-5"
+        className="relative overflow-hidden px-5 pb-5 pt-5 sm:px-7 sm:pb-6"
         style={{
-          background: data && data.current.weatherCode <= 1
-            ? "linear-gradient(135deg,#f59e0b,#ef4444)"
-            : data && data.current.weatherCode <= 3
-              ? "linear-gradient(135deg,#64748b,#1e3a8a)"
-              : "linear-gradient(135deg,#475569,#1e293b)",
+          background: "linear-gradient(180deg, color-mix(in oklab, var(--load) 44%, black 56%) 0%, color-mix(in oklab, var(--load) 28%, black 72%) 100%)",
         }}
       >
-        <div className="mb-2 flex justify-center">
-          <LocationPicker currentLabel={city} siteId={siteId} />
-        </div>
+        <div
+          className="pointer-events-none absolute inset-0 opacity-80"
+          style={{
+            background: "radial-gradient(circle at 12% 0%, color-mix(in oklab, white 26%, var(--load)) 0%, transparent 24%), radial-gradient(circle at 72% 18%, color-mix(in oklab, white 10%, var(--load)) 0%, transparent 16%), radial-gradient(circle at 78% 28%, color-mix(in oklab, white 7%, var(--load)) 0%, transparent 12%)",
+          }}
+        />
 
         {!data ? (
-          <div className="py-4 text-center text-sm text-white/80">Cargando…</div>
+          <div className="py-8 text-center text-sm text-white/80">Cargando clima y radiación…</div>
         ) : (
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-end gap-2">
-              <div className="text-[44px] font-bold leading-none">{Math.round(data.current.temperature)}°</div>
-              <div className="pb-1">
-                <div className="flex items-center gap-1 text-[12px] font-medium">
-                  <WeatherGlyph code={data.current.weatherCode} className="h-4 w-4 text-white" />
-                  <span>{weatherLabel(data.current.weatherCode)}</span>
+          <>
+            <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="flex items-start gap-4 sm:gap-5">
+                <div className="text-[72px] font-semibold leading-[0.9] tracking-tight text-white sm:text-[104px]">{Math.round(data.current.temperature)}°</div>
+                <div className="pt-3 sm:pt-5">
+                  <div className="flex items-center gap-3 text-white">
+                    <WeatherGlyph code={data.current.weatherCode} className="h-10 w-10" />
+                    <div className="text-2xl font-medium sm:text-[34px]">{weatherLabel(data.current.weatherCode)}</div>
+                  </div>
+                  <div className="mt-2 text-sm text-white/80 sm:text-[18px]">
+                    Sens {Math.round(data.current.apparentTemperature)}° · Hum {Math.round(data.current.humidity)}% · {Math.round(data.current.windSpeed)} km/h
+                  </div>
                 </div>
-                <div className="mt-0.5 text-[10px] text-white/80">
-                  Sens {Math.round(data.current.apparentTemperature)}° · Hum {Math.round(data.current.humidity)}% · {Math.round(data.current.windSpeed)} km/h
+              </div>
+
+              <div className="flex flex-col gap-3 lg:items-end">
+                <div
+                  className="inline-flex items-center gap-2 self-start rounded-full border px-5 py-3 text-base text-white/95 lg:self-end"
+                  style={{
+                    background: "color-mix(in oklab, var(--card) 20%, transparent)",
+                    borderColor: "color-mix(in oklab, white 16%, transparent)",
+                    boxShadow: "0 10px 24px -18px rgba(0,0,0,0.8)",
+                  }}
+                >
+                  <MapPin className="h-5 w-5" />
+                  <span className="font-medium">{city}</span>
+                </div>
+                <div
+                  className="w-full rounded-[24px] border px-6 py-5 text-center text-white lg:w-[250px]"
+                  style={{
+                    background: "color-mix(in oklab, var(--card) 18%, transparent)",
+                    borderColor: "color-mix(in oklab, white 18%, transparent)",
+                  }}
+                >
+                  <div className="text-[13px] uppercase tracking-[0.18em] text-white/70">Radiación</div>
+                  <div className="mt-3 text-[52px] font-semibold leading-none tabular-nums">{currentRadiation} <span className="text-[18px] font-normal text-white/80">W/m²</span></div>
+                  <div className="mt-2 text-[15px] text-white/75">
+                    {currentRadiation > 650 ? "Muy alta" : currentRadiation > 250 ? "Alta" : currentRadiation > 80 ? "Media" : "Baja"}
+                  </div>
                 </div>
               </div>
             </div>
-            <div className="rounded-lg bg-white/15 px-2.5 py-1.5 text-right backdrop-blur-sm">
-              <div className="text-[9px] uppercase tracking-wider text-white/80">Radiación</div>
-              <div className="text-[20px] font-bold tabular-nums leading-none">
-                {currentRadiation}<span className="ml-1 text-[10px] font-normal text-white/80">W/m²</span>
-              </div>
-              <div className="mt-0.5 text-[9px] text-white/80">
-                {currentRadiation > 650 ? "Muy alta" : currentRadiation > 250 ? "Alta" : currentRadiation > 80 ? "Media" : "Baja"}
-              </div>
+
+            <div className="relative z-10 mt-8 grid gap-4 lg:grid-cols-3">
+              {forecastCards.map((card) => (
+                <div
+                  key={card.label}
+                  className="rounded-[24px] border px-5 py-5 text-white"
+                  style={{
+                    background: "color-mix(in oklab, var(--card) 8%, transparent)",
+                    borderColor: "color-mix(in oklab, white 12%, transparent)",
+                  }}
+                >
+                  <div className="flex items-start gap-4">
+                    <div
+                      className="flex h-18 w-18 shrink-0 items-center justify-center rounded-full border"
+                      style={{
+                        color: card.accent,
+                        width: 72,
+                        height: 72,
+                        borderColor: `color-mix(in oklab, ${card.accent} 38%, transparent)`,
+                        background: `color-mix(in oklab, ${card.accent} 10%, transparent)`,
+                        boxShadow: `0 0 18px color-mix(in oklab, ${card.accent} 16%, transparent)`,
+                      }}
+                    >
+                      {card.icon}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[15px] font-medium tracking-[0.03em] text-white/88">{card.label}</div>
+                      <div className="mt-2 flex items-end gap-2">
+                        <div className="text-[58px] font-semibold leading-none tabular-nums" style={{ color: card.accent }}>{card.value}</div>
+                        {card.unit ? <div className="pb-2 text-[20px] text-white/80">{card.unit}</div> : null}
+                        {card.label === "PRODUCCIÓN AHORA" ? <div className="ml-auto pb-2 text-[18px] text-white/85">{card.meta}</div> : null}
+                      </div>
+                      {card.label !== "PRODUCCIÓN AHORA" ? <div className="mt-3 text-[15px] text-white/72">{card.meta}</div> : null}
+                    </div>
+                  </div>
+                  {card.label === "PRODUCCIÓN AHORA" ? (
+                    <div className="mt-5 h-3 overflow-hidden rounded-full" style={{ background: "color-mix(in oklab, white 10%, transparent)" }}>
+                      <div
+                        className="h-full rounded-full"
+                        style={{ width: `${card.progress}%`, background: "linear-gradient(90deg, var(--success) 0%, var(--solar) 100%)" }}
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              ))}
             </div>
-          </div>
+          </>
         )}
       </div>
 
-
       {data && (
-        <div className="p-3 sm:p-4">
-          {/* Producción ahora + estimada 12h + carga batería (compacto) */}
-          <div className="mb-3 grid gap-2 sm:grid-cols-3">
-            <div className="rounded-lg border bg-card/80 dark:bg-card/40 p-2.5">
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Producción ahora</div>
-              <div className="mt-1 flex items-baseline gap-1.5">
-                <div className="text-[22px] font-bold tabular-nums text-emerald-600">
-                  {liveKw < 1 ? Math.round(livePv) : liveKw.toFixed(2)}
-                </div>
-                <div className="text-xs text-muted-foreground">{liveKw < 1 ? "W" : "kW"}</div>
-                <div className="ml-auto text-[9px] text-muted-foreground">{pctOfPeak.toFixed(0)}%</div>
-              </div>
-              <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-muted">
-                <div className="h-full rounded-full" style={{ width: `${pctOfPeak}%`, background: "linear-gradient(90deg,var(--success),var(--solar))" }} />
+        <div className="p-5 sm:p-7">
+          <div
+            className="rounded-[28px] border p-5 sm:p-6"
+            style={{
+              background: "color-mix(in oklab, var(--card) 90%, black 10%)",
+              borderColor: "color-mix(in oklab, var(--border) 58%, transparent)",
+            }}
+          >
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+              <div className="text-lg font-medium text-foreground sm:text-[20px]">PRÓXIMAS 12 H — RADIACIÓN SOLAR Y PRODUCCIÓN ESTIMADA</div>
+              <div className="flex gap-6 text-sm text-foreground/80">
+                <span className="flex items-center gap-2"><span className="h-4 w-4 rounded-full" style={{ background: "var(--solar)" }} />W/m²</span>
+                <span className="flex items-center gap-2"><span className="h-4 w-4 rounded-full" style={{ background: "var(--success)" }} />kWh</span>
               </div>
             </div>
 
-            <div className="rounded-lg border bg-card/80 dark:bg-card/40 p-2.5">
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Estimada 12 h{calibrated && <span className="ml-1 text-emerald-600">·cal</span>}
-              </div>
-              <div className="mt-1 flex items-baseline gap-1.5">
-                <div className="text-[22px] font-bold tabular-nums" style={{ color: "var(--solar)" }}>{next12kwh.toFixed(2)}</div>
-                <div className="text-xs text-muted-foreground">kWh</div>
-              </div>
-              <div className="mt-1 text-[9px] text-muted-foreground">{kwp} kWp · {losses}%{calibrated ? ` · ×${calibration.toFixed(2)}` : ""}</div>
-            </div>
+            <div className="overflow-x-auto">
+              <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="min-w-[760px] w-full">
+                {[0, 1, 2].map((tick) => {
+                  const y = padTop + (innerHeight / 2) * tick;
+                  return (
+                    <line
+                      key={tick}
+                      x1={padLeft}
+                      y1={y}
+                      x2={chartWidth - padRight}
+                      y2={y}
+                      stroke="color-mix(in oklab, var(--border) 42%, transparent)"
+                      strokeDasharray="4 6"
+                    />
+                  );
+                })}
 
-            <div className="rounded-lg border bg-card/80 dark:bg-card/40 p-2.5">
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Carga batería</div>
-              {chargeTimeLabel ? (
-                <>
-                  <div className="mt-1 text-[18px] font-bold tabular-nums text-foreground">{chargeTimeLabel}</div>
-                  <div className="mt-1 text-[9px] text-muted-foreground">
-                    {soc * 100 >= 99 ? "Completa" : `${Math.round(soc * 100)}% → 100%`}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="mt-1 text-[14px] font-semibold text-muted-foreground">
-                    {!batteryKwh ? "Sin datos" : soc * 100 >= 99 ? "Completa" : "Sin carga"}
-                  </div>
-                  <div className="mt-1 text-[9px] text-muted-foreground">{batteryKwh ? `${batteryKwh} kWh` : "Configura batería"}</div>
-                </>
-              )}
-            </div>
-          </div>
+                <text x={10} y={padTop + 4} fill="var(--solar)" fontSize="18" fontWeight="600">W/m²</text>
+                <text x={10} y={padTop + 40} fill="var(--solar)" fontSize="16">{Math.round(peakRad)}</text>
+                <text x={10} y={padTop + innerHeight + 2} fill="var(--solar)" fontSize="16">0</text>
+                <text x={chartWidth - 34} y={padTop + 4} fill="var(--success)" fontSize="18" fontWeight="600">kWh</text>
+                <text x={chartWidth - 24} y={padTop + 40} fill="var(--success)" fontSize="16" textAnchor="end">{maxKwh.toFixed(1)}</text>
+                <text x={chartWidth - 24} y={padTop + innerHeight + 2} fill="var(--success)" fontSize="16" textAnchor="end">0</text>
 
+                {hours.length > 1 && (
+                  <>
+                    <polygon points={radiationArea} fill="color-mix(in oklab, var(--solar) 20%, transparent)" />
+                    <polygon points={kwhArea} fill="color-mix(in oklab, var(--success) 18%, transparent)" />
+                    <polyline points={radiationPoints} fill="none" stroke="var(--solar)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+                    <polyline points={kwhPoints} fill="none" stroke="var(--success)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+                  </>
+                )}
 
-          {/* Gráfico 12h con barras + kWh */}
-          <div className="rounded-xl border bg-card/80 dark:bg-card/40 p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Próximas 12 h — radiación solar y producción estimada
-              </div>
-              <div className="flex gap-3 text-[10px] text-muted-foreground">
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ background: "var(--solar)" }} />W/m²</span>
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ background: "var(--success)" }} />kWh</span>
-              </div>
-            </div>
-            <div className="flex h-28 items-end gap-1.5 pt-4">
-              {hours.map((h, i) => {
-                const height = (h.radiation / peakRad) * 100;
-                const hour = new Date(h.time).getHours();
-                const kwh = estimateKwh(h.radiation, kwp, losses, calibration);
-                return (
-                  <div key={h.time} className="flex flex-1 flex-col items-center gap-1">
-                    <div
-                      className="relative w-full rounded-t"
-                      style={{
-                        height: `${Math.max(4, height)}%`,
-                        background: "linear-gradient(180deg,var(--solar),color-mix(in oklab,var(--solar) 70%,var(--success)))",
-                        animation: `growUp 0.6s ease-out ${i * 40}ms both`,
-                      }}
-                      title={`${Math.round(h.radiation)} W/m² · ${Math.round(h.temperature)}° · ${kwh.toFixed(2)} kWh`}
-                    >
-                      {kwh > 0.05 && (
-                        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-[9px] font-semibold" style={{ color: "var(--success)" }}>
-                          {kwh.toFixed(1)}
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground">{hour}h</div>
-                  </div>
-                );
-              })}
+                {hours.map((hour, index) => {
+                  const x = xFor(index);
+                  const radY = radYFor(hour.radiation);
+                  const kwhY = kwhYFor(kwhSeries[index]);
+                  const hourLabel = `${new Date(hour.time).getHours()}h`;
+                  return (
+                    <g key={hour.time}>
+                      <circle cx={x} cy={radY} r="6" fill="var(--solar)" />
+                      <circle cx={x} cy={kwhY} r="6" fill="var(--success)" />
+                      {kwhSeries[index] > 0.05 ? (
+                        <text x={x} y={kwhY - 16} textAnchor="middle" fill="var(--success)" fontSize="14" fontWeight="600">
+                          {kwhSeries[index].toFixed(1)}
+                        </text>
+                      ) : null}
+                      <text x={x} y={chartHeight - 8} textAnchor="middle" fill="var(--muted-foreground)" fontSize="14">{hourLabel}</text>
+                    </g>
+                  );
+                })}
+              </svg>
             </div>
           </div>
 
-          {/* Pronóstico 5 días con horas de sol y kWh */}
-          <div className="mt-4 grid grid-cols-5 gap-2 rounded-xl border bg-card/80 dark:bg-card/40 p-3 max-[520px]:grid-cols-3">
+          <div className="mt-5 grid grid-cols-5 gap-4 max-[1100px]:grid-cols-3 max-[700px]:grid-cols-2">
             {data.daily.slice(0, 5).map((day, index) => {
               const dailyKwh = kwp * day.sunshineHours * 0.65 * (1 - losses / 100) * calibration;
+              const active = index === 0;
               return (
-                <div key={day.date} className="flex flex-col items-center gap-1 rounded-lg p-2 text-center">
-                  <div className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: index === 0 ? "var(--load)" : "var(--muted-foreground)" }}>
-                    {index === 0 ? "Hoy" : new Date(day.date).toLocaleDateString("es-CL", { weekday: "short" })}
+                <div
+                  key={day.date}
+                  className="rounded-[24px] border px-5 py-6 text-center"
+                  style={{
+                    background: active
+                      ? "color-mix(in oklab, var(--success) 10%, var(--card))"
+                      : "color-mix(in oklab, var(--card) 90%, black 10%)",
+                    borderColor: active
+                      ? "color-mix(in oklab, var(--success) 36%, var(--border))"
+                      : "color-mix(in oklab, var(--border) 58%, transparent)",
+                    boxShadow: active ? "0 0 0 1px color-mix(in oklab, var(--success) 12%, transparent) inset" : undefined,
+                  }}
+                >
+                  <div className="text-[15px] font-medium" style={{ color: active ? "var(--success)" : "var(--foreground)" }}>
+                    {index === 0 ? "HOY" : new Date(day.date).toLocaleDateString("es-CL", { weekday: "short" }).toUpperCase()}
                   </div>
-                  <WeatherGlyph code={day.weatherCode} className="h-5 w-5" />
-                  <div className="text-[12px] font-semibold text-foreground">{Math.round(day.max)}°<span className="text-muted-foreground"> / {Math.round(day.min)}°</span></div>
-                  <div className="text-[10px]" style={{ color: "var(--solar)" }}>{day.sunshineHours.toFixed(1)} h ☀</div>
-                  <div className="text-[10px] font-bold" style={{ color: "var(--success)" }}>{dailyKwh.toFixed(1)} kWh</div>
+                  <div className="mt-5 flex justify-center"><WeatherGlyph code={day.weatherCode} className="h-14 w-14" /></div>
+                  <div className="mt-4 text-[28px] font-medium text-foreground">{Math.round(day.max)}° <span className="text-muted-foreground">/ {Math.round(day.min)}°</span></div>
+                  <div className="mt-4 text-[18px]" style={{ color: "var(--solar)" }}>{day.sunshineHours.toFixed(1)} h ☀</div>
+                  <div className="mt-3 text-[20px] font-medium" style={{ color: "var(--success)" }}>{dailyKwh.toFixed(1)} kWh</div>
                 </div>
               );
             })}
           </div>
-
-          <style>{`@keyframes growUp { from { height: 0%; opacity: 0; } }`}</style>
         </div>
       )}
     </div>
   );
 }
+
 
 export function SavingsReferenceCard({
   siteId,
@@ -1366,45 +1484,149 @@ export function EnvironmentalImpactCard({
   const co2Year = Math.max(0, (yearKwh ?? 0) * emissionFactor);
   const treesEquivalent = co2Year / 22;
 
+  const statCards = [
+    {
+      label: "HOY",
+      value: `${co2Today.toFixed(2)} kg`,
+      subtitle: `${(todayKwh ?? 0).toFixed(1)} kWh`,
+      icon: <CalendarDays className="h-6 w-6" />,
+    },
+    {
+      label: "ESTE MES",
+      value: `${co2Month.toFixed(1)} kg`,
+      subtitle: `${(monthKwh ?? 0).toFixed(1)} kWh`,
+      icon: <BarChart3 className="h-6 w-6" />,
+    },
+    {
+      label: "ÁRBOLES EQUIV.",
+      value: treesEquivalent.toFixed(1),
+      subtitle: `${co2Year.toFixed(0)} kg/año ÷ 22`,
+      icon: <TreePine className="h-6 w-6" />,
+    },
+  ];
+
   return (
     <div
       className="dashboard-card p-5 sm:p-6"
-      style={{ borderColor: "color-mix(in oklab, var(--success) 26%, var(--border))" }}
+      style={{
+        background: "color-mix(in oklab, var(--card) 90%, black 10%)",
+        borderColor: "color-mix(in oklab, var(--success) 28%, var(--border))",
+        boxShadow: "0 0 0 1px color-mix(in oklab, var(--success) 10%, transparent), 0 24px 60px -30px color-mix(in oklab, black 62%, transparent)",
+      }}
     >
-      <DashboardCardHeader
-        icon={<Leaf className="h-4 w-4" />}
-        title="Impacto ambiental"
-        badge="CO₂ evitado"
-        badgeColor="var(--success)"
-      />
-
-      <div className="rounded-2xl border p-4" style={{ background: "color-mix(in oklab, var(--success) 9%, var(--tint-base))" }}>
-        <div className="flex items-center justify-between gap-4">
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div
+            className="flex h-16 w-16 items-center justify-center rounded-full border"
+            style={{
+              color: "var(--success)",
+              borderColor: "color-mix(in oklab, var(--success) 28%, var(--border))",
+              background: "color-mix(in oklab, var(--success) 10%, transparent)",
+              boxShadow: "0 0 18px color-mix(in oklab, var(--success) 18%, transparent)",
+            }}
+          >
+            <Leaf className="h-8 w-8" />
+          </div>
           <div>
-            <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Acumulado anual</div>
-            <div className="mt-2 text-[44px] font-bold leading-none" style={{ color: "var(--success)" }}>
+            <h3 className="text-2xl font-semibold tracking-tight text-foreground sm:text-[34px]">Impacto ambiental</h3>
+          </div>
+        </div>
+
+        <span
+          className="inline-flex items-center rounded-2xl border px-5 py-3 text-sm font-medium"
+          style={{
+            color: "var(--success)",
+            borderColor: "color-mix(in oklab, var(--success) 24%, var(--border))",
+            background: "color-mix(in oklab, var(--success) 12%, transparent)",
+          }}
+        >
+          CO₂ evitado
+        </span>
+      </div>
+
+      <div
+        className="relative overflow-hidden rounded-[30px] border px-6 py-7 sm:px-8 sm:py-8"
+        style={{
+          background: "linear-gradient(180deg, color-mix(in oklab, var(--success) 12%, var(--card)) 0%, color-mix(in oklab, var(--card) 94%, black 6%) 100%)",
+          borderColor: "color-mix(in oklab, var(--success) 22%, var(--border))",
+        }}
+      >
+        <div
+          className="pointer-events-none absolute inset-y-0 right-0 w-[44%]"
+          style={{ background: "radial-gradient(circle at 40% 50%, color-mix(in oklab, var(--success) 20%, transparent) 0%, transparent 58%)" }}
+        />
+        <div className="relative z-10 grid items-center gap-6 lg:grid-cols-[1fr_360px]">
+          <div>
+            <div className="text-[15px] uppercase tracking-[0.22em] text-foreground/70">ACUMULADO ANUAL</div>
+            <div className="mt-6 text-[88px] font-semibold leading-none tracking-tight sm:text-[120px]" style={{ color: "var(--success)", textShadow: "0 0 22px color-mix(in oklab, var(--success) 18%, transparent)" }}>
               {co2Year.toFixed(1)}
             </div>
-            <div className="mt-1 text-[13px] text-muted-foreground">kg CO₂ evitados</div>
+            <div className="mt-4 text-[28px] text-foreground sm:text-[34px]">kg CO₂ evitados</div>
           </div>
-          <div className="flex h-16 w-16 items-center justify-center rounded-full" style={{ background: "color-mix(in oklab, var(--success) 12%, var(--tint-base))" }}>
-            <Leaf className="h-8 w-8" style={{ color: "var(--success)" }} />
+
+          <div className="relative flex min-h-[250px] items-center justify-center">
+            <div
+              className="absolute h-[220px] w-[220px] rounded-full border"
+              style={{ borderColor: "color-mix(in oklab, var(--success) 18%, transparent)" }}
+            />
+            <Leaf className="relative z-10 h-[190px] w-[190px]" style={{ color: "var(--success)", filter: "drop-shadow(0 0 18px color-mix(in oklab, var(--success) 35%, transparent))" }} strokeWidth={1.6} />
           </div>
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-3 max-[520px]:grid-cols-1">
-        <SmallStat label="Hoy" value={`${co2Today.toFixed(2)} kg`} subtitle={`${(todayKwh ?? 0).toFixed(1)} kWh`} />
-        <SmallStat label="Este mes" value={`${co2Month.toFixed(1)} kg`} subtitle={`${(monthKwh ?? 0).toFixed(1)} kWh`} />
-        <SmallStat label="Árboles equiv." value={treesEquivalent.toFixed(1)} subtitle={`${co2Year.toFixed(0)} kg/año ÷ 22`} />
+      <div className="mt-5 grid gap-4 md:grid-cols-3">
+        {statCards.map((card) => (
+          <div
+            key={card.label}
+            className="rounded-[26px] border px-5 py-5"
+            style={{
+              background: "color-mix(in oklab, var(--card) 90%, black 10%)",
+              borderColor: "color-mix(in oklab, var(--border) 58%, transparent)",
+            }}
+          >
+            <div
+              className="flex h-16 w-16 items-center justify-center rounded-full border"
+              style={{
+                color: "var(--success)",
+                borderColor: "color-mix(in oklab, var(--success) 24%, var(--border))",
+                background: "color-mix(in oklab, var(--success) 10%, transparent)",
+              }}
+            >
+              {card.icon}
+            </div>
+            <div className="mt-5 text-[15px] font-medium tracking-[0.03em] text-foreground">{card.label}</div>
+            <div className="mt-6 text-[56px] font-semibold leading-none tracking-tight text-foreground">{card.value}</div>
+            <div className="mt-5 h-1.5 w-14 rounded-full" style={{ background: "var(--success)" }} />
+            <div className="mt-5 text-[18px] text-muted-foreground">{card.subtitle}</div>
+          </div>
+        ))}
       </div>
 
-      <div className="mt-3 rounded-lg border border-dashed bg-muted/30 px-3 py-2 text-[11px] text-muted-foreground">
-        Cálculo: CO₂ evitado = Energía generada (kWh) × {emissionFactor.toFixed(2)} kg CO₂/kWh · Árboles equivalentes = CO₂ anual ÷ 22.
+      <div
+        className="mt-5 flex items-start gap-4 rounded-[26px] border px-5 py-5"
+        style={{
+          background: "color-mix(in oklab, var(--card) 90%, black 10%)",
+          borderColor: "color-mix(in oklab, var(--border) 58%, transparent)",
+        }}
+      >
+        <div
+          className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border"
+          style={{
+            color: "var(--success)",
+            borderColor: "color-mix(in oklab, var(--success) 24%, var(--border))",
+            background: "color-mix(in oklab, var(--success) 10%, transparent)",
+          }}
+        >
+          <Info className="h-7 w-7" />
+        </div>
+        <p className="text-[16px] leading-8 text-foreground/88 sm:text-[18px]">
+          Cálculo: CO₂ evitado = Energía generada (kWh) × {emissionFactor.toFixed(2)} kg CO₂/kWh · Árboles equivalentes = CO₂ anual ÷ 22.
+        </p>
       </div>
     </div>
   );
 }
+
 
 function MetricLine({ label, value }: { label: string; value: string }) {
   return (
