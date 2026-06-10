@@ -61,7 +61,7 @@ export function weatherCodeToKind(code: number): WeatherKind {
   return "cubierto";
 }
 
-/** Hora local → franja del día */
+/** Hora local → franja del día (sólo si es de día) */
 export function hourToTimeOfDay(hour: number): TimeOfDay {
   if (hour >= 5 && hour < 11) return "madrugada";
   if (hour >= 11 && hour < 16) return "mediodia";
@@ -69,8 +69,18 @@ export function hourToTimeOfDay(hour: number): TimeOfDay {
   return "noche";
 }
 
-export function pickWeatherSceneUrl(weatherCode: number, hour = new Date().getHours()): string {
+/**
+ * Picks a scene URL.
+ * - If `isDay` is provided and false → siempre "noche" (resuelve estaciones donde anochece antes de las 20h).
+ * - Si es de día → madrugada / mediodia / tarde según hora local.
+ */
+export function pickWeatherSceneUrl(
+  weatherCode: number,
+  hour: number = new Date().getHours(),
+  isDay?: boolean,
+): string {
   const kind = weatherCodeToKind(weatherCode);
-  const tod = hourToTimeOfDay(hour);
+  const tod: TimeOfDay = isDay === false ? "noche" : hourToTimeOfDay(hour);
   return TABLE[kind][tod].url;
 }
+
