@@ -1269,6 +1269,15 @@ function ConfigurationView({ site, subTab, onSubTabChange, role }: { site: Site;
         />
       </TabsContent>
 
+      <TabsContent value="alerts" className="mt-6">
+        {user ? (
+          <NotificationsConfig siteId={site.id} userId={user.id} />
+        ) : (
+          <p className="text-sm text-muted-foreground">Inicia sesión para configurar alertas.</p>
+        )}
+      </TabsContent>
+
+
       <TabsContent value="diagnostics" className="mt-6 space-y-4">
         <Section title="General" icon={Info}>
           <Row label="Site ID" value={site.id} />
