@@ -23,6 +23,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { PvConfig } from "@/components/PvSystemConfig";
 import { toast } from "sonner";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 type WeatherHour = {
   time: string;
@@ -901,56 +902,54 @@ function LocationPicker({ currentLabel, siteId }: { currentLabel: string; siteId
   }
 
   return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1.5 rounded-full border bg-card/80 dark:bg-card/40 px-2.5 py-1 text-[11px] font-semibold text-foreground transition-colors hover:bg-white"
-        title="Cambiar ubicación"
-      >
-        <MapPin className="h-3 w-3" />
-        <span className="max-w-[140px] truncate">{currentLabel}</span>
-      </button>
-
-      {open && (
-        <div className="absolute right-0 top-9 z-30 w-72 rounded-xl border bg-card p-3 shadow-elevated animate-fade-in">
-          <div className="flex items-center gap-2 rounded-md border bg-background px-2">
-            <Search className="h-3.5 w-3.5 text-muted-foreground" />
-            <input
-              autoFocus
-              value={query}
-              onChange={(e) => search(e.target.value)}
-              placeholder="Buscar ciudad…"
-              className="w-full bg-transparent py-1.5 text-[12px] outline-none"
-            />
-            {searching && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
-          </div>
-          {results.length > 0 && (
-            <ul className="mt-2 max-h-44 overflow-auto rounded-md border bg-card text-[12px]">
-              {results.map((r, i) => (
-                <li key={`${r.latitude}-${r.longitude}-${i}`}>
-                  <button
-                    type="button"
-                    onClick={() => pick(r)}
-                    className="flex w-full items-center justify-between px-2.5 py-1.5 text-left hover:bg-muted"
-                  >
-                    <span className="font-medium">{r.name}</span>
-                    <span className="text-[10px] text-muted-foreground">{[r.admin1, r.country].filter(Boolean).join(", ")}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-          <button
-            type="button"
-            onClick={useMyLocation}
-            className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-md border bg-background px-2.5 py-1.5 text-[11px] font-semibold hover:bg-muted"
-          >
-            <MapPin className="h-3 w-3" /> Usar mi ubicación actual
-          </button>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex items-center gap-1.5 rounded-full border bg-card/80 dark:bg-card/40 px-2.5 py-1 text-[11px] font-semibold text-foreground transition-colors hover:bg-white"
+          title="Cambiar ubicación"
+        >
+          <MapPin className="h-3 w-3" />
+          <span className="max-w-[140px] truncate">{currentLabel}</span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" sideOffset={6} className="z-50 w-72 p-3">
+        <div className="flex items-center gap-2 rounded-md border bg-background px-2">
+          <Search className="h-3.5 w-3.5 text-muted-foreground" />
+          <input
+            autoFocus
+            value={query}
+            onChange={(e) => search(e.target.value)}
+            placeholder="Buscar ciudad…"
+            className="w-full bg-transparent py-1.5 text-[12px] outline-none"
+          />
+          {searching && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
         </div>
-      )}
-    </div>
+        {results.length > 0 && (
+          <ul className="mt-2 max-h-44 overflow-auto rounded-md border bg-card text-[12px]">
+            {results.map((r, i) => (
+              <li key={`${r.latitude}-${r.longitude}-${i}`}>
+                <button
+                  type="button"
+                  onClick={() => pick(r)}
+                  className="flex w-full items-center justify-between px-2.5 py-1.5 text-left hover:bg-muted"
+                >
+                  <span className="font-medium">{r.name}</span>
+                  <span className="text-[10px] text-muted-foreground">{[r.admin1, r.country].filter(Boolean).join(", ")}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <button
+          type="button"
+          onClick={useMyLocation}
+          className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-md border bg-background px-2.5 py-1.5 text-[11px] font-semibold hover:bg-muted"
+        >
+          <MapPin className="h-3 w-3" /> Usar mi ubicación actual
+        </button>
+      </PopoverContent>
+    </Popover>
   );
 }
 

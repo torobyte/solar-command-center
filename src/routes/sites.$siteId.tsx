@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ArrowLeft, Copy, Battery, Sun, Plug, Cpu, AlertCircle, LayoutDashboard, LineChart, Calculator, Settings2, Info, Wifi, HardDrive, Terminal, SlidersHorizontal, Download, Pencil, Check, X, Coins, Zap } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -294,6 +295,7 @@ function SiteDetail() {
   const spikeRef = useRef<SpikeState>({});
   const [tab, setTab] = useState<SiteTab>("dashboard");
   const [configSubTab, setConfigSubTab] = useState<string>("inverter");
+  const [shareOpen, setShareOpen] = useState(false);
   const [chartWindow, setChartWindow] = useState<ChartWindow>("12h");
   const [chartResolution, setChartResolution] = useState<ChartResolution>("5m");
 
@@ -508,7 +510,7 @@ function SiteDetail() {
 
   return (
     <>
-      <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="mb-4 flex items-center gap-3">
         <Link
           to="/app"
           search={{ list: "1" } as never}
@@ -517,14 +519,13 @@ function SiteDetail() {
         >
           <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" strokeWidth={2.4} /> Volver a sitios
         </Link>
-        <SiteSwitcher currentSiteId={siteId} />
       </div>
 
       <div className="lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-8">
         <aside className="hidden lg:block">
           <div className="sticky top-20">
             <div className="mb-4">
-              <h2 className="truncate text-xl font-bold tracking-tight">{site.name}</h2>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Sitio</p>
               <p className="mt-1 text-xs text-muted-foreground">{site.inverter_model ?? "Inversor conectado"}</p>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${site.status === "online" ? "bg-success/15 text-success" : site.status === "offline" ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground"}`}>● En línea</span>
@@ -554,49 +555,45 @@ function SiteDetail() {
         </aside>
 
         <div className="min-w-0">
-          <div className="mb-4 flex items-start justify-between gap-3 animate-fade-up lg:hidden">
-            <div className="min-w-0 flex-1">
-              <InlineSiteName site={site} onRenamed={(name) => setSite((s) => s ? { ...s, name } : s)} />
-              <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
-                <span>{site.inverter_model ?? selectedDevice?.name ?? (latest ? "Inversor conectado" : "Esperando datos del inversor…")}</span>
-                <span>·</span>
-                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${site.status === "online" ? "bg-success/15 text-success" : site.status === "offline" ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground"}`}>● {site.status}</span>
-                {roleInfo.role && (
-                  <span title={ROLE_DESCRIPTION[roleInfo.role]} className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-accent">
-                    <Lock className="h-3 w-3" strokeWidth={2.4} /> Tu rol: {ROLE_LABEL[roleInfo.role]}
-                  </span>
-                )}
-              </p>
-            </div>
+          <div className="mb-4 flex flex-wrap items-center gap-2 animate-fade-up lg:hidden">
+            <SiteSwitcher currentSiteId={siteId} />
             {roleInfo.canManageMembers && (
-              <Button variant="outline" size="sm" className="rounded-xl shrink-0" onClick={() => { setTab("config"); setConfigSubTab("sharing"); }}>
+              <Button variant="outline" size="sm" className="rounded-xl shrink-0" onClick={() => setShareOpen(true)}>
                 <Share2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={2.4} /> Compartir
               </Button>
+            )}
+            <div className="basis-full" />
+            <span>{site.inverter_model ?? selectedDevice?.name ?? (latest ? "Inversor conectado" : "Esperando datos del inversor…")}</span>
+            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${site.status === "online" ? "bg-success/15 text-success" : site.status === "offline" ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground"}`}>● {site.status}</span>
+            {roleInfo.role && (
+              <span title={ROLE_DESCRIPTION[roleInfo.role]} className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-accent">
+                <Lock className="h-3 w-3" strokeWidth={2.4} /> Tu rol: {ROLE_LABEL[roleInfo.role]}
+              </span>
             )}
           </div>
 
-          {/* Desktop title bar matching design captures */}
-          <div className="mb-6 hidden items-start justify-between gap-4 lg:flex animate-fade-up">
-            <div className="min-w-0 flex-1">
-              <InlineSiteName site={site} onRenamed={(name) => setSite((s) => s ? { ...s, name } : s)} />
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-                <span className="text-muted-foreground">{site.inverter_model ?? selectedDevice?.name ?? "Inversor conectado"}</span>
-                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${site.status === "online" ? "bg-success/15 text-success" : site.status === "offline" ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground"}`}>
-                  <span className="h-1.5 w-1.5 rounded-full bg-current" /> {site.status === "online" ? "En línea" : site.status === "offline" ? "Offline" : site.status}
-                </span>
-                {roleInfo.role && (
-                  <span title={ROLE_DESCRIPTION[roleInfo.role]} className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2.5 py-0.5 text-[11px] font-medium text-accent">
-                    <Lock className="h-3 w-3" strokeWidth={2.4} /> Tu rol: {ROLE_LABEL[roleInfo.role]}
-                  </span>
-                )}
-              </div>
-            </div>
+          {/* Desktop title bar: site selector + share */}
+          <div className="mb-6 hidden items-center gap-2 lg:flex animate-fade-up flex-wrap">
+            <SiteSwitcher currentSiteId={siteId} />
             {roleInfo.canManageMembers && (
-              <Button variant="outline" size="sm" className="rounded-xl shrink-0" onClick={() => { setTab("config"); setConfigSubTab("sharing"); }}>
+              <Button variant="outline" size="sm" className="rounded-xl shrink-0" onClick={() => setShareOpen(true)}>
                 <Share2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={2.4} /> Compartir
               </Button>
             )}
+            <div className="ml-2 flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-muted-foreground">{site.inverter_model ?? selectedDevice?.name ?? "Inversor conectado"}</span>
+              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${site.status === "online" ? "bg-success/15 text-success" : site.status === "offline" ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground"}`}>
+                <span className="h-1.5 w-1.5 rounded-full bg-current" /> {site.status === "online" ? "En línea" : site.status === "offline" ? "Offline" : site.status}
+              </span>
+              {roleInfo.role && (
+                <span title={ROLE_DESCRIPTION[roleInfo.role]} className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2.5 py-0.5 text-[11px] font-medium text-accent">
+                  <Lock className="h-3 w-3" strokeWidth={2.4} /> Tu rol: {ROLE_LABEL[roleInfo.role]}
+                </span>
+              )}
+            </div>
           </div>
+
+
 
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as SiteTab)} className="pb-24 lg:pb-0">
@@ -844,6 +841,21 @@ function SiteDetail() {
         </div>
       </div>
       <MobileBottomNav value={tab} onChange={setTab} hideTabs={roleInfo.role === "viewer" ? ["config"] : []} />
+
+      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+        <DialogContent className="max-w-2xl rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Share2 className="h-5 w-5 text-accent" /> Compartir "{site.name}"
+            </DialogTitle>
+            <DialogDescription>
+              Invita a otras personas a ver o gestionar este sitio. Puedes asignar roles
+              de Lector, Operador o Admin.
+            </DialogDescription>
+          </DialogHeader>
+          <SiteSharing siteId={site.id} isOwnerOrAdmin={roleInfo.canManageMembers} />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

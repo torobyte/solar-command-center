@@ -23,10 +23,11 @@ import { useServerFn } from "@tanstack/react-start";
 import { claimPairingCode } from "@/lib/pairing.functions";
 import { getSiteOwners } from "@/lib/sharing.functions";
 import { transferLicenseToSite } from "@/lib/licenses.functions";
-import { Plus, Cpu as CpuIcon, Sparkles, KeyRound, Copy, Share2, Home, Sun as SunIcon, BatteryFull, EyeOff, Zap, Search, SlidersHorizontal, Eye, MoreVertical, ChevronLeft, ChevronRight, Globe2, ArrowRightLeft, Trash2 } from "lucide-react";
+import { Plus, Cpu as CpuIcon, Sparkles, KeyRound, Copy, Share2, Home, Sun as SunIcon, BatteryFull, EyeOff, Zap, Search, SlidersHorizontal, Eye, MoreVertical, ChevronLeft, ChevronRight, Globe2, ArrowRightLeft, Trash2, Star, StarOff } from "lucide-react";
 import { SiteSharing } from "@/components/SiteSharing";
 import { toast } from "sonner";
 import { TableSkeleton, PageHeaderSkeleton } from "@/components/LoadingStates";
+import { DEFAULT_SITE_KEY } from "@/components/SiteSwitcher";
 
 export const Route = createFileRoute("/app")({
   validateSearch: (s: Record<string, unknown>) => ({ list: typeof s.list === "string" ? s.list : undefined }),
@@ -83,6 +84,21 @@ function SitesIndex() {
   const [fPlan, setFPlan] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [defaultSiteId, setDefaultSiteId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    try { return localStorage.getItem(DEFAULT_SITE_KEY); } catch { return null; }
+  });
+
+  function setAsDefault(id: string, name: string) {
+    try { localStorage.setItem(DEFAULT_SITE_KEY, id); } catch { /* ignore */ }
+    setDefaultSiteId(id);
+    toast.success(`"${name}" es tu sitio predeterminado`);
+  }
+  function clearDefault() {
+    try { localStorage.removeItem(DEFAULT_SITE_KEY); } catch { /* ignore */ }
+    setDefaultSiteId(null);
+    toast.success("Sitio predeterminado eliminado");
+  }
 
   async function load() {
     setLoading(true);
@@ -403,6 +419,17 @@ function SitesIndex() {
                       {statusLabel}
                     </span>
                     <div className="flex items-center gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 rounded-full px-2 text-xs"
+                        onClick={() => defaultSiteId === s.id ? clearDefault() : setAsDefault(s.id, s.name)}
+                        title={defaultSiteId === s.id ? "Quitar predeterminado" : "Marcar predeterminado"}
+                      >
+                        {defaultSiteId === s.id
+                          ? <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
+                          : <Star className="h-3.5 w-3.5" />}
+                      </Button>
                       {!isShared && (
                         <Button size="sm" variant="ghost" className="h-7 rounded-full px-2 text-xs" onClick={() => setShareSite(s)}>
                           <Share2 className="h-3.5 w-3.5" /> Compartir
@@ -549,6 +576,17 @@ function SitesIndex() {
                         </td>
                         <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8 rounded-lg border-border"
+                              title={defaultSiteId === s.id ? "Quitar como predeterminado" : "Marcar como predeterminado"}
+                              onClick={() => defaultSiteId === s.id ? clearDefault() : setAsDefault(s.id, s.name)}
+                            >
+                              {defaultSiteId === s.id
+                                ? <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
+                                : <Star className="h-3.5 w-3.5" />}
+                            </Button>
                             {!isShared && (
                               <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg border-border" title="Compartir" onClick={() => setShareSite(s)}>
                                 <Share2 className="h-3.5 w-3.5" />
@@ -565,12 +603,21 @@ function SitesIndex() {
                                   <MoreVertical className="h-3.5 w-3.5" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuContent align="end" className="w-52">
                                 <DropdownMenuLabel>{s.name}</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={() => navigate({ to: "/sites/$siteId", params: { siteId: s.id } })}>
                                   <Eye className="mr-2 h-4 w-4" /> Ver detalle
                                 </DropdownMenuItem>
+                                {defaultSiteId === s.id ? (
+                                  <DropdownMenuItem onClick={() => clearDefault()}>
+                                    <StarOff className="mr-2 h-4 w-4" /> Quitar predeterminado
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem onClick={() => setAsDefault(s.id, s.name)}>
+                                    <Star className="mr-2 h-4 w-4" /> Marcar predeterminado
+                                  </DropdownMenuItem>
+                                )}
                                 {!isShared && (
                                   <DropdownMenuItem onClick={() => setShareSite(s)}>
                                     <Share2 className="mr-2 h-4 w-4" /> Compartir
