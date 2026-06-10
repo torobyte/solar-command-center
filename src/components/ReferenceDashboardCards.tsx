@@ -1078,87 +1078,83 @@ export function WeatherAndRadiationCard({
         />
 
         {!data ? (
-          <div className="py-8 text-center text-sm text-white/80">Cargando clima y radiación…</div>
+          <div className="py-6 text-center text-xs text-white/80">Cargando clima y radiación…</div>
         ) : (
           <>
-            <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div className="flex items-start gap-4 sm:gap-5">
-                <div className="text-[72px] font-semibold leading-[0.9] tracking-tight text-white sm:text-[104px]">{Math.round(data.current.temperature)}°</div>
-                <div className="pt-3 sm:pt-5">
-                  <div className="flex items-center gap-3 text-white">
-                    <WeatherGlyph code={data.current.weatherCode} className="h-10 w-10" />
-                    <div className="text-2xl font-medium sm:text-[34px]">{weatherLabel(data.current.weatherCode)}</div>
+            <div className="relative z-10 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="text-[44px] font-semibold leading-[0.9] tracking-tight text-white sm:text-[56px]">{Math.round(data.current.temperature)}°</div>
+                <div className="pt-1.5 sm:pt-2">
+                  <div className="flex items-center gap-2 text-white">
+                    <WeatherGlyph code={data.current.weatherCode} className="h-5 w-5" />
+                    <div className="text-[15px] font-medium sm:text-[17px]">{weatherLabel(data.current.weatherCode)}</div>
                   </div>
-                  <div className="mt-2 text-sm text-white/80 sm:text-[18px]">
+                  <div className="mt-1 text-[11px] text-white/80">
                     Sens {Math.round(data.current.apparentTemperature)}° · Hum {Math.round(data.current.humidity)}% · {Math.round(data.current.windSpeed)} km/h
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-col gap-3 lg:items-end">
+              <div className="flex flex-col gap-2 lg:items-end">
                 <div
-                  className="inline-flex items-center gap-2 self-start rounded-full border px-5 py-3 text-base text-white/95 lg:self-end"
+                  className="inline-flex items-center gap-1.5 self-start rounded-full border px-2.5 py-1 text-[11px] text-white/95 lg:self-end"
                   style={{
                     background: "color-mix(in oklab, var(--card) 20%, transparent)",
                     borderColor: "color-mix(in oklab, white 16%, transparent)",
-                    boxShadow: "0 10px 24px -18px rgba(0,0,0,0.8)",
                   }}
                 >
-                  <MapPin className="h-5 w-5" />
+                  <MapPin className="h-3 w-3" />
                   <span className="font-medium">{city}</span>
                 </div>
                 <div
-                  className="w-full rounded-[24px] border px-6 py-5 text-center text-white lg:w-[250px]"
+                  className="w-full rounded-xl border px-3 py-2 text-center text-white lg:w-[160px]"
                   style={{
                     background: "color-mix(in oklab, var(--card) 18%, transparent)",
                     borderColor: "color-mix(in oklab, white 18%, transparent)",
                   }}
                 >
-                  <div className="text-[13px] uppercase tracking-[0.18em] text-white/70">Radiación</div>
-                  <div className="mt-3 text-[52px] font-semibold leading-none tabular-nums">{currentRadiation} <span className="text-[18px] font-normal text-white/80">W/m²</span></div>
-                  <div className="mt-2 text-[15px] text-white/75">
+                  <div className="text-[9px] uppercase tracking-[0.16em] text-white/70">Radiación</div>
+                  <div className="mt-1 text-[22px] font-semibold leading-none tabular-nums">{currentRadiation} <span className="text-[10px] font-normal text-white/80">W/m²</span></div>
+                  <div className="mt-1 text-[10px] text-white/75">
                     {currentRadiation > 650 ? "Muy alta" : currentRadiation > 250 ? "Alta" : currentRadiation > 80 ? "Media" : "Baja"}
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="relative z-10 mt-8 grid gap-4 lg:grid-cols-3">
+            <div className="relative z-10 mt-4 grid gap-2.5 lg:grid-cols-3">
               {forecastCards.map((card) => (
                 <div
                   key={card.label}
-                  className="rounded-[24px] border px-5 py-5 text-white"
+                  className="rounded-xl border px-3 py-2.5 text-white"
                   style={{
                     background: "color-mix(in oklab, var(--card) 8%, transparent)",
                     borderColor: "color-mix(in oklab, white 12%, transparent)",
                   }}
                 >
-                  <div className="flex items-start gap-4">
+                  <div className="flex items-start gap-2.5">
                     <div
-                      className="flex h-18 w-18 shrink-0 items-center justify-center rounded-full border"
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border"
                       style={{
                         color: card.accent,
-                        width: 72,
-                        height: 72,
                         borderColor: `color-mix(in oklab, ${card.accent} 38%, transparent)`,
                         background: `color-mix(in oklab, ${card.accent} 10%, transparent)`,
-                        boxShadow: `0 0 18px color-mix(in oklab, ${card.accent} 16%, transparent)`,
                       }}
                     >
                       {card.icon}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="text-[15px] font-medium tracking-[0.03em] text-white/88">{card.label}</div>
-                      <div className="mt-2 flex items-end gap-2">
-                        <div className="text-[58px] font-semibold leading-none tabular-nums" style={{ color: card.accent }}>{card.value}</div>
-                        {card.unit ? <div className="pb-2 text-[20px] text-white/80">{card.unit}</div> : null}
-                        {card.label === "PRODUCCIÓN AHORA" ? <div className="ml-auto pb-2 text-[18px] text-white/85">{card.meta}</div> : null}
+                      <div className="text-[10px] font-medium tracking-[0.03em] text-white/88">{card.label}</div>
+                      <div className="mt-1 flex items-end gap-1.5">
+                        <div className="text-[22px] font-semibold leading-none tabular-nums" style={{ color: card.accent }}>{card.value}</div>
+                        {card.unit ? <div className="pb-0.5 text-[11px] text-white/80">{card.unit}</div> : null}
+                        {card.label === "PRODUCCIÓN AHORA" ? <div className="ml-auto pb-0.5 text-[11px] text-white/85">{card.meta}</div> : null}
                       </div>
-                      {card.label !== "PRODUCCIÓN AHORA" ? <div className="mt-3 text-[15px] text-white/72">{card.meta}</div> : null}
+                      {card.label !== "PRODUCCIÓN AHORA" ? <div className="mt-1 text-[10px] text-white/72">{card.meta}</div> : null}
                     </div>
                   </div>
                   {card.label === "PRODUCCIÓN AHORA" ? (
-                    <div className="mt-5 h-3 overflow-hidden rounded-full" style={{ background: "color-mix(in oklab, white 10%, transparent)" }}>
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full" style={{ background: "color-mix(in oklab, white 10%, transparent)" }}>
                       <div
                         className="h-full rounded-full"
                         style={{ width: `${card.progress}%`, background: "linear-gradient(90deg, var(--success) 0%, var(--solar) 100%)" }}
