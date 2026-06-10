@@ -1169,24 +1169,24 @@ export function WeatherAndRadiationCard({
       </div>
 
       {data && (
-        <div className="p-5 sm:p-7">
+        <div className="p-4 sm:p-5">
           <div
-            className="rounded-[28px] border p-5 sm:p-6"
+            className="rounded-2xl border p-3 sm:p-4"
             style={{
               background: "color-mix(in oklab, var(--card) 90%, black 10%)",
               borderColor: "color-mix(in oklab, var(--border) 58%, transparent)",
             }}
           >
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
-              <div className="text-lg font-medium text-foreground sm:text-[20px]">PRÓXIMAS 12 H — RADIACIÓN SOLAR Y PRODUCCIÓN ESTIMADA</div>
-              <div className="flex gap-6 text-sm text-foreground/80">
-                <span className="flex items-center gap-2"><span className="h-4 w-4 rounded-full" style={{ background: "var(--solar)" }} />W/m²</span>
-                <span className="flex items-center gap-2"><span className="h-4 w-4 rounded-full" style={{ background: "var(--success)" }} />kWh</span>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Próximas 12 h — radiación y producción estimada</div>
+              <div className="flex gap-3 text-[10px] text-foreground/80">
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ background: "var(--solar)" }} />W/m²</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ background: "var(--success)" }} />kWh</span>
               </div>
             </div>
 
             <div className="overflow-x-auto">
-              <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="min-w-[760px] w-full">
+              <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="min-w-[520px] w-full">
                 {[0, 1, 2].map((tick) => {
                   const y = padTop + (innerHeight / 2) * tick;
                   return (
@@ -1202,19 +1202,19 @@ export function WeatherAndRadiationCard({
                   );
                 })}
 
-                <text x={10} y={padTop + 4} fill="var(--solar)" fontSize="18" fontWeight="600">W/m²</text>
-                <text x={10} y={padTop + 40} fill="var(--solar)" fontSize="16">{Math.round(peakRad)}</text>
-                <text x={10} y={padTop + innerHeight + 2} fill="var(--solar)" fontSize="16">0</text>
-                <text x={chartWidth - 34} y={padTop + 4} fill="var(--success)" fontSize="18" fontWeight="600">kWh</text>
-                <text x={chartWidth - 24} y={padTop + 40} fill="var(--success)" fontSize="16" textAnchor="end">{maxKwh.toFixed(1)}</text>
-                <text x={chartWidth - 24} y={padTop + innerHeight + 2} fill="var(--success)" fontSize="16" textAnchor="end">0</text>
+                <text x={10} y={padTop + 4} fill="var(--solar)" fontSize="14" fontWeight="600">W/m²</text>
+                <text x={10} y={padTop + 36} fill="var(--solar)" fontSize="12">{Math.round(peakRad)}</text>
+                <text x={10} y={padTop + innerHeight + 2} fill="var(--solar)" fontSize="12">0</text>
+                <text x={chartWidth - 24} y={padTop + 4} fill="var(--success)" fontSize="14" fontWeight="600" textAnchor="end">kWh</text>
+                <text x={chartWidth - 24} y={padTop + 36} fill="var(--success)" fontSize="12" textAnchor="end">{maxKwh.toFixed(1)}</text>
+                <text x={chartWidth - 24} y={padTop + innerHeight + 2} fill="var(--success)" fontSize="12" textAnchor="end">0</text>
 
                 {hours.length > 1 && (
                   <>
                     <polygon points={radiationArea} fill="color-mix(in oklab, var(--solar) 20%, transparent)" />
                     <polygon points={kwhArea} fill="color-mix(in oklab, var(--success) 18%, transparent)" />
-                    <polyline points={radiationPoints} fill="none" stroke="var(--solar)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-                    <polyline points={kwhPoints} fill="none" stroke="var(--success)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+                    <polyline points={radiationPoints} fill="none" stroke="var(--solar)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <polyline points={kwhPoints} fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                   </>
                 )}
 
@@ -1225,14 +1225,14 @@ export function WeatherAndRadiationCard({
                   const hourLabel = `${new Date(hour.time).getHours()}h`;
                   return (
                     <g key={hour.time}>
-                      <circle cx={x} cy={radY} r="6" fill="var(--solar)" />
-                      <circle cx={x} cy={kwhY} r="6" fill="var(--success)" />
+                      <circle cx={x} cy={radY} r="3.5" fill="var(--solar)" />
+                      <circle cx={x} cy={kwhY} r="3.5" fill="var(--success)" />
                       {kwhSeries[index] > 0.05 ? (
-                        <text x={x} y={kwhY - 16} textAnchor="middle" fill="var(--success)" fontSize="14" fontWeight="600">
+                        <text x={x} y={kwhY - 10} textAnchor="middle" fill="var(--success)" fontSize="11" fontWeight="600">
                           {kwhSeries[index].toFixed(1)}
                         </text>
                       ) : null}
-                      <text x={x} y={chartHeight - 8} textAnchor="middle" fill="var(--muted-foreground)" fontSize="14">{hourLabel}</text>
+                      <text x={x} y={chartHeight - 6} textAnchor="middle" fill="var(--muted-foreground)" fontSize="11">{hourLabel}</text>
                     </g>
                   );
                 })}
@@ -1240,14 +1240,14 @@ export function WeatherAndRadiationCard({
             </div>
           </div>
 
-          <div className="mt-5 grid grid-cols-5 gap-4 max-[1100px]:grid-cols-3 max-[700px]:grid-cols-2">
+          <div className="mt-3 grid grid-cols-5 gap-2 max-[760px]:grid-cols-3 max-[480px]:grid-cols-2">
             {data.daily.slice(0, 5).map((day, index) => {
               const dailyKwh = kwp * day.sunshineHours * 0.65 * (1 - losses / 100) * calibration;
               const active = index === 0;
               return (
                 <div
                   key={day.date}
-                  className="rounded-[24px] border px-5 py-6 text-center"
+                  className="rounded-xl border px-2 py-2.5 text-center"
                   style={{
                     background: active
                       ? "color-mix(in oklab, var(--success) 10%, var(--card))"
@@ -1255,16 +1255,15 @@ export function WeatherAndRadiationCard({
                     borderColor: active
                       ? "color-mix(in oklab, var(--success) 36%, var(--border))"
                       : "color-mix(in oklab, var(--border) 58%, transparent)",
-                    boxShadow: active ? "0 0 0 1px color-mix(in oklab, var(--success) 12%, transparent) inset" : undefined,
                   }}
                 >
-                  <div className="text-[15px] font-medium" style={{ color: active ? "var(--success)" : "var(--foreground)" }}>
+                  <div className="text-[10px] font-semibold tracking-wide" style={{ color: active ? "var(--success)" : "var(--foreground)" }}>
                     {index === 0 ? "HOY" : new Date(day.date).toLocaleDateString("es-CL", { weekday: "short" }).toUpperCase()}
                   </div>
-                  <div className="mt-5 flex justify-center"><WeatherGlyph code={day.weatherCode} className="h-14 w-14" /></div>
-                  <div className="mt-4 text-[28px] font-medium text-foreground">{Math.round(day.max)}° <span className="text-muted-foreground">/ {Math.round(day.min)}°</span></div>
-                  <div className="mt-4 text-[18px]" style={{ color: "var(--solar)" }}>{day.sunshineHours.toFixed(1)} h ☀</div>
-                  <div className="mt-3 text-[20px] font-medium" style={{ color: "var(--success)" }}>{dailyKwh.toFixed(1)} kWh</div>
+                  <div className="mt-1.5 flex justify-center"><WeatherGlyph code={day.weatherCode} className="h-6 w-6" /></div>
+                  <div className="mt-1.5 text-[13px] font-semibold text-foreground">{Math.round(day.max)}°<span className="text-[11px] font-normal text-muted-foreground"> / {Math.round(day.min)}°</span></div>
+                  <div className="mt-1 text-[10px]" style={{ color: "var(--solar)" }}>{day.sunshineHours.toFixed(1)} h ☀</div>
+                  <div className="mt-0.5 text-[11px] font-semibold" style={{ color: "var(--success)" }}>{dailyKwh.toFixed(1)} kWh</div>
                 </div>
               );
             })}
