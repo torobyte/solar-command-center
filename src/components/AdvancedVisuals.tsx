@@ -799,18 +799,18 @@ export function BackupTimeCard({
       : `${minutes}m`;
 
   const detailItems = [
-    { icon: <Zap className="h-5 w-5" />, label: "Energía útil", value: `${usableKwh.toFixed(2)} kWh` },
-    { icon: <ArrowRight className="h-5 w-5" />, label: "Descarga", value: charging ? "0 W" : `${Math.round(netDischargeW).toLocaleString()} W` },
-    { icon: <Battery className="h-5 w-5" />, label: "SOC", value: `${Math.max(0, Math.min(100, soc)).toFixed(0)} %` },
-    { icon: <BatteryCharging className="h-5 w-5" />, label: "DoD útil", value: `${(usableDodPct ?? 80).toFixed(0)} %` },
+    { icon: <Zap className="h-3.5 w-3.5" />, label: "Energía útil", value: `${usableKwh.toFixed(2)} kWh` },
+    { icon: <ArrowRight className="h-3.5 w-3.5" />, label: "Descarga", value: charging ? "0 W" : `${Math.round(netDischargeW).toLocaleString()} W` },
+    { icon: <Battery className="h-3.5 w-3.5" />, label: "SOC", value: `${Math.max(0, Math.min(100, soc)).toFixed(0)} %` },
+    { icon: <BatteryCharging className="h-3.5 w-3.5" />, label: "DoD útil", value: `${(usableDodPct ?? 80).toFixed(0)} %` },
     {
-      icon: <Battery className="h-5 w-5" />,
+      icon: <Battery className="h-3.5 w-3.5" />,
       label: "Banco",
       value: batteryCount && batteryCount > 0
         ? `${batteryCount}× ${typeLabel[batteryType ?? "other"] ?? "—"}`
         : "Sin configurar",
     },
-    { icon: <Battery className="h-5 w-5" />, label: "Capacidad", value: batteryKwh ? `${batteryKwh.toFixed(2)} kWh` : "—" },
+    { icon: <Battery className="h-3.5 w-3.5" />, label: "Capacidad", value: batteryKwh ? `${batteryKwh.toFixed(2)} kWh` : "—" },
   ];
 
   return (
