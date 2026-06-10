@@ -32,6 +32,7 @@ import { CommandStatusFeed } from "@/components/CommandStatusFeed";
 import { SiteSharing } from "@/components/SiteSharing";
 import { Share2, Lock } from "lucide-react";
 import { useSiteRole, ROLE_LABEL, ROLE_DESCRIPTION, type SiteRole } from "@/lib/useSiteRole";
+import { SiteSwitcher } from "@/components/SiteSwitcher";
 
 function SiteDetailSkeleton() {
   return (
@@ -507,9 +508,17 @@ function SiteDetail() {
 
   return (
     <>
-      <Link to="/app" className="group mb-4 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
-        <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" strokeWidth={2.4} /> Volver a sitios
-      </Link>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <Link
+          to="/app"
+          search={{ list: "1" } as never}
+          onClick={() => { try { sessionStorage.setItem("skip.default.site.redirect", "1"); } catch { /* ignore */ } }}
+          className="group inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" strokeWidth={2.4} /> Volver a sitios
+        </Link>
+        <SiteSwitcher currentSiteId={siteId} />
+      </div>
 
       <div className="lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-8">
         <aside className="hidden lg:block">
