@@ -1078,87 +1078,83 @@ export function WeatherAndRadiationCard({
         />
 
         {!data ? (
-          <div className="py-8 text-center text-sm text-white/80">Cargando clima y radiación…</div>
+          <div className="py-6 text-center text-xs text-white/80">Cargando clima y radiación…</div>
         ) : (
           <>
-            <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div className="flex items-start gap-4 sm:gap-5">
-                <div className="text-[72px] font-semibold leading-[0.9] tracking-tight text-white sm:text-[104px]">{Math.round(data.current.temperature)}°</div>
-                <div className="pt-3 sm:pt-5">
-                  <div className="flex items-center gap-3 text-white">
-                    <WeatherGlyph code={data.current.weatherCode} className="h-10 w-10" />
-                    <div className="text-2xl font-medium sm:text-[34px]">{weatherLabel(data.current.weatherCode)}</div>
+            <div className="relative z-10 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="text-[44px] font-semibold leading-[0.9] tracking-tight text-white sm:text-[56px]">{Math.round(data.current.temperature)}°</div>
+                <div className="pt-1.5 sm:pt-2">
+                  <div className="flex items-center gap-2 text-white">
+                    <WeatherGlyph code={data.current.weatherCode} className="h-5 w-5" />
+                    <div className="text-[15px] font-medium sm:text-[17px]">{weatherLabel(data.current.weatherCode)}</div>
                   </div>
-                  <div className="mt-2 text-sm text-white/80 sm:text-[18px]">
+                  <div className="mt-1 text-[11px] text-white/80">
                     Sens {Math.round(data.current.apparentTemperature)}° · Hum {Math.round(data.current.humidity)}% · {Math.round(data.current.windSpeed)} km/h
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-col gap-3 lg:items-end">
+              <div className="flex flex-col gap-2 lg:items-end">
                 <div
-                  className="inline-flex items-center gap-2 self-start rounded-full border px-5 py-3 text-base text-white/95 lg:self-end"
+                  className="inline-flex items-center gap-1.5 self-start rounded-full border px-2.5 py-1 text-[11px] text-white/95 lg:self-end"
                   style={{
                     background: "color-mix(in oklab, var(--card) 20%, transparent)",
                     borderColor: "color-mix(in oklab, white 16%, transparent)",
-                    boxShadow: "0 10px 24px -18px rgba(0,0,0,0.8)",
                   }}
                 >
-                  <MapPin className="h-5 w-5" />
+                  <MapPin className="h-3 w-3" />
                   <span className="font-medium">{city}</span>
                 </div>
                 <div
-                  className="w-full rounded-[24px] border px-6 py-5 text-center text-white lg:w-[250px]"
+                  className="w-full rounded-xl border px-3 py-2 text-center text-white lg:w-[160px]"
                   style={{
                     background: "color-mix(in oklab, var(--card) 18%, transparent)",
                     borderColor: "color-mix(in oklab, white 18%, transparent)",
                   }}
                 >
-                  <div className="text-[13px] uppercase tracking-[0.18em] text-white/70">Radiación</div>
-                  <div className="mt-3 text-[52px] font-semibold leading-none tabular-nums">{currentRadiation} <span className="text-[18px] font-normal text-white/80">W/m²</span></div>
-                  <div className="mt-2 text-[15px] text-white/75">
+                  <div className="text-[9px] uppercase tracking-[0.16em] text-white/70">Radiación</div>
+                  <div className="mt-1 text-[22px] font-semibold leading-none tabular-nums">{currentRadiation} <span className="text-[10px] font-normal text-white/80">W/m²</span></div>
+                  <div className="mt-1 text-[10px] text-white/75">
                     {currentRadiation > 650 ? "Muy alta" : currentRadiation > 250 ? "Alta" : currentRadiation > 80 ? "Media" : "Baja"}
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="relative z-10 mt-8 grid gap-4 lg:grid-cols-3">
+            <div className="relative z-10 mt-4 grid gap-2.5 lg:grid-cols-3">
               {forecastCards.map((card) => (
                 <div
                   key={card.label}
-                  className="rounded-[24px] border px-5 py-5 text-white"
+                  className="rounded-xl border px-3 py-2.5 text-white"
                   style={{
                     background: "color-mix(in oklab, var(--card) 8%, transparent)",
                     borderColor: "color-mix(in oklab, white 12%, transparent)",
                   }}
                 >
-                  <div className="flex items-start gap-4">
+                  <div className="flex items-start gap-2.5">
                     <div
-                      className="flex h-18 w-18 shrink-0 items-center justify-center rounded-full border"
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border"
                       style={{
                         color: card.accent,
-                        width: 72,
-                        height: 72,
                         borderColor: `color-mix(in oklab, ${card.accent} 38%, transparent)`,
                         background: `color-mix(in oklab, ${card.accent} 10%, transparent)`,
-                        boxShadow: `0 0 18px color-mix(in oklab, ${card.accent} 16%, transparent)`,
                       }}
                     >
                       {card.icon}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="text-[15px] font-medium tracking-[0.03em] text-white/88">{card.label}</div>
-                      <div className="mt-2 flex items-end gap-2">
-                        <div className="text-[58px] font-semibold leading-none tabular-nums" style={{ color: card.accent }}>{card.value}</div>
-                        {card.unit ? <div className="pb-2 text-[20px] text-white/80">{card.unit}</div> : null}
-                        {card.label === "PRODUCCIÓN AHORA" ? <div className="ml-auto pb-2 text-[18px] text-white/85">{card.meta}</div> : null}
+                      <div className="text-[10px] font-medium tracking-[0.03em] text-white/88">{card.label}</div>
+                      <div className="mt-1 flex items-end gap-1.5">
+                        <div className="text-[22px] font-semibold leading-none tabular-nums" style={{ color: card.accent }}>{card.value}</div>
+                        {card.unit ? <div className="pb-0.5 text-[11px] text-white/80">{card.unit}</div> : null}
+                        {card.label === "PRODUCCIÓN AHORA" ? <div className="ml-auto pb-0.5 text-[11px] text-white/85">{card.meta}</div> : null}
                       </div>
-                      {card.label !== "PRODUCCIÓN AHORA" ? <div className="mt-3 text-[15px] text-white/72">{card.meta}</div> : null}
+                      {card.label !== "PRODUCCIÓN AHORA" ? <div className="mt-1 text-[10px] text-white/72">{card.meta}</div> : null}
                     </div>
                   </div>
                   {card.label === "PRODUCCIÓN AHORA" ? (
-                    <div className="mt-5 h-3 overflow-hidden rounded-full" style={{ background: "color-mix(in oklab, white 10%, transparent)" }}>
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full" style={{ background: "color-mix(in oklab, white 10%, transparent)" }}>
                       <div
                         className="h-full rounded-full"
                         style={{ width: `${card.progress}%`, background: "linear-gradient(90deg, var(--success) 0%, var(--solar) 100%)" }}
@@ -1173,24 +1169,24 @@ export function WeatherAndRadiationCard({
       </div>
 
       {data && (
-        <div className="p-5 sm:p-7">
+        <div className="p-4 sm:p-5">
           <div
-            className="rounded-[28px] border p-5 sm:p-6"
+            className="rounded-2xl border p-3 sm:p-4"
             style={{
               background: "color-mix(in oklab, var(--card) 90%, black 10%)",
               borderColor: "color-mix(in oklab, var(--border) 58%, transparent)",
             }}
           >
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
-              <div className="text-lg font-medium text-foreground sm:text-[20px]">PRÓXIMAS 12 H — RADIACIÓN SOLAR Y PRODUCCIÓN ESTIMADA</div>
-              <div className="flex gap-6 text-sm text-foreground/80">
-                <span className="flex items-center gap-2"><span className="h-4 w-4 rounded-full" style={{ background: "var(--solar)" }} />W/m²</span>
-                <span className="flex items-center gap-2"><span className="h-4 w-4 rounded-full" style={{ background: "var(--success)" }} />kWh</span>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Próximas 12 h — radiación y producción estimada</div>
+              <div className="flex gap-3 text-[10px] text-foreground/80">
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ background: "var(--solar)" }} />W/m²</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ background: "var(--success)" }} />kWh</span>
               </div>
             </div>
 
             <div className="overflow-x-auto">
-              <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="min-w-[760px] w-full">
+              <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="min-w-[520px] w-full">
                 {[0, 1, 2].map((tick) => {
                   const y = padTop + (innerHeight / 2) * tick;
                   return (
@@ -1206,19 +1202,19 @@ export function WeatherAndRadiationCard({
                   );
                 })}
 
-                <text x={10} y={padTop + 4} fill="var(--solar)" fontSize="18" fontWeight="600">W/m²</text>
-                <text x={10} y={padTop + 40} fill="var(--solar)" fontSize="16">{Math.round(peakRad)}</text>
-                <text x={10} y={padTop + innerHeight + 2} fill="var(--solar)" fontSize="16">0</text>
-                <text x={chartWidth - 34} y={padTop + 4} fill="var(--success)" fontSize="18" fontWeight="600">kWh</text>
-                <text x={chartWidth - 24} y={padTop + 40} fill="var(--success)" fontSize="16" textAnchor="end">{maxKwh.toFixed(1)}</text>
-                <text x={chartWidth - 24} y={padTop + innerHeight + 2} fill="var(--success)" fontSize="16" textAnchor="end">0</text>
+                <text x={10} y={padTop + 4} fill="var(--solar)" fontSize="14" fontWeight="600">W/m²</text>
+                <text x={10} y={padTop + 36} fill="var(--solar)" fontSize="12">{Math.round(peakRad)}</text>
+                <text x={10} y={padTop + innerHeight + 2} fill="var(--solar)" fontSize="12">0</text>
+                <text x={chartWidth - 24} y={padTop + 4} fill="var(--success)" fontSize="14" fontWeight="600" textAnchor="end">kWh</text>
+                <text x={chartWidth - 24} y={padTop + 36} fill="var(--success)" fontSize="12" textAnchor="end">{maxKwh.toFixed(1)}</text>
+                <text x={chartWidth - 24} y={padTop + innerHeight + 2} fill="var(--success)" fontSize="12" textAnchor="end">0</text>
 
                 {hours.length > 1 && (
                   <>
                     <polygon points={radiationArea} fill="color-mix(in oklab, var(--solar) 20%, transparent)" />
                     <polygon points={kwhArea} fill="color-mix(in oklab, var(--success) 18%, transparent)" />
-                    <polyline points={radiationPoints} fill="none" stroke="var(--solar)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-                    <polyline points={kwhPoints} fill="none" stroke="var(--success)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+                    <polyline points={radiationPoints} fill="none" stroke="var(--solar)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <polyline points={kwhPoints} fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                   </>
                 )}
 
@@ -1229,14 +1225,14 @@ export function WeatherAndRadiationCard({
                   const hourLabel = `${new Date(hour.time).getHours()}h`;
                   return (
                     <g key={hour.time}>
-                      <circle cx={x} cy={radY} r="6" fill="var(--solar)" />
-                      <circle cx={x} cy={kwhY} r="6" fill="var(--success)" />
+                      <circle cx={x} cy={radY} r="3.5" fill="var(--solar)" />
+                      <circle cx={x} cy={kwhY} r="3.5" fill="var(--success)" />
                       {kwhSeries[index] > 0.05 ? (
-                        <text x={x} y={kwhY - 16} textAnchor="middle" fill="var(--success)" fontSize="14" fontWeight="600">
+                        <text x={x} y={kwhY - 10} textAnchor="middle" fill="var(--success)" fontSize="11" fontWeight="600">
                           {kwhSeries[index].toFixed(1)}
                         </text>
                       ) : null}
-                      <text x={x} y={chartHeight - 8} textAnchor="middle" fill="var(--muted-foreground)" fontSize="14">{hourLabel}</text>
+                      <text x={x} y={chartHeight - 6} textAnchor="middle" fill="var(--muted-foreground)" fontSize="11">{hourLabel}</text>
                     </g>
                   );
                 })}
@@ -1244,14 +1240,14 @@ export function WeatherAndRadiationCard({
             </div>
           </div>
 
-          <div className="mt-5 grid grid-cols-5 gap-4 max-[1100px]:grid-cols-3 max-[700px]:grid-cols-2">
+          <div className="mt-3 grid grid-cols-5 gap-2 max-[760px]:grid-cols-3 max-[480px]:grid-cols-2">
             {data.daily.slice(0, 5).map((day, index) => {
               const dailyKwh = kwp * day.sunshineHours * 0.65 * (1 - losses / 100) * calibration;
               const active = index === 0;
               return (
                 <div
                   key={day.date}
-                  className="rounded-[24px] border px-5 py-6 text-center"
+                  className="rounded-xl border px-2 py-2.5 text-center"
                   style={{
                     background: active
                       ? "color-mix(in oklab, var(--success) 10%, var(--card))"
@@ -1259,16 +1255,15 @@ export function WeatherAndRadiationCard({
                     borderColor: active
                       ? "color-mix(in oklab, var(--success) 36%, var(--border))"
                       : "color-mix(in oklab, var(--border) 58%, transparent)",
-                    boxShadow: active ? "0 0 0 1px color-mix(in oklab, var(--success) 12%, transparent) inset" : undefined,
                   }}
                 >
-                  <div className="text-[15px] font-medium" style={{ color: active ? "var(--success)" : "var(--foreground)" }}>
+                  <div className="text-[10px] font-semibold tracking-wide" style={{ color: active ? "var(--success)" : "var(--foreground)" }}>
                     {index === 0 ? "HOY" : new Date(day.date).toLocaleDateString("es-CL", { weekday: "short" }).toUpperCase()}
                   </div>
-                  <div className="mt-5 flex justify-center"><WeatherGlyph code={day.weatherCode} className="h-14 w-14" /></div>
-                  <div className="mt-4 text-[28px] font-medium text-foreground">{Math.round(day.max)}° <span className="text-muted-foreground">/ {Math.round(day.min)}°</span></div>
-                  <div className="mt-4 text-[18px]" style={{ color: "var(--solar)" }}>{day.sunshineHours.toFixed(1)} h ☀</div>
-                  <div className="mt-3 text-[20px] font-medium" style={{ color: "var(--success)" }}>{dailyKwh.toFixed(1)} kWh</div>
+                  <div className="mt-1.5 flex justify-center"><WeatherGlyph code={day.weatherCode} className="h-6 w-6" /></div>
+                  <div className="mt-1.5 text-[13px] font-semibold text-foreground">{Math.round(day.max)}°<span className="text-[11px] font-normal text-muted-foreground"> / {Math.round(day.min)}°</span></div>
+                  <div className="mt-1 text-[10px]" style={{ color: "var(--solar)" }}>{day.sunshineHours.toFixed(1)} h ☀</div>
+                  <div className="mt-0.5 text-[11px] font-semibold" style={{ color: "var(--success)" }}>{dailyKwh.toFixed(1)} kWh</div>
                 </div>
               );
             })}
@@ -1489,19 +1484,19 @@ export function EnvironmentalImpactCard({
       label: "HOY",
       value: `${co2Today.toFixed(2)} kg`,
       subtitle: `${(todayKwh ?? 0).toFixed(1)} kWh`,
-      icon: <CalendarDays className="h-6 w-6" />,
+      icon: <CalendarDays className="h-4 w-4" />,
     },
     {
       label: "ESTE MES",
       value: `${co2Month.toFixed(1)} kg`,
       subtitle: `${(monthKwh ?? 0).toFixed(1)} kWh`,
-      icon: <BarChart3 className="h-6 w-6" />,
+      icon: <BarChart3 className="h-4 w-4" />,
     },
     {
       label: "ÁRBOLES EQUIV.",
       value: treesEquivalent.toFixed(1),
       subtitle: `${co2Year.toFixed(0)} kg/año ÷ 22`,
-      icon: <TreePine className="h-6 w-6" />,
+      icon: <TreePine className="h-4 w-4" />,
     },
   ];
 
@@ -1511,29 +1506,25 @@ export function EnvironmentalImpactCard({
       style={{
         background: "color-mix(in oklab, var(--card) 90%, black 10%)",
         borderColor: "color-mix(in oklab, var(--success) 28%, var(--border))",
-        boxShadow: "0 0 0 1px color-mix(in oklab, var(--success) 10%, transparent), 0 24px 60px -30px color-mix(in oklab, black 62%, transparent)",
       }}
     >
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div className="flex items-center gap-4">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2.5">
           <div
-            className="flex h-16 w-16 items-center justify-center rounded-full border"
+            className="flex h-8 w-8 items-center justify-center rounded-full border"
             style={{
               color: "var(--success)",
               borderColor: "color-mix(in oklab, var(--success) 28%, var(--border))",
               background: "color-mix(in oklab, var(--success) 10%, transparent)",
-              boxShadow: "0 0 18px color-mix(in oklab, var(--success) 18%, transparent)",
             }}
           >
-            <Leaf className="h-8 w-8" />
+            <Leaf className="h-4 w-4" />
           </div>
-          <div>
-            <h3 className="text-2xl font-semibold tracking-tight text-foreground sm:text-[34px]">Impacto ambiental</h3>
-          </div>
+          <h3 className="text-[15px] font-semibold tracking-tight text-foreground">Impacto ambiental</h3>
         </div>
 
         <span
-          className="inline-flex items-center rounded-2xl border px-5 py-3 text-sm font-medium"
+          className="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold"
           style={{
             color: "var(--success)",
             borderColor: "color-mix(in oklab, var(--success) 24%, var(--border))",
@@ -1545,7 +1536,7 @@ export function EnvironmentalImpactCard({
       </div>
 
       <div
-        className="relative overflow-hidden rounded-[30px] border px-6 py-7 sm:px-8 sm:py-8"
+        className="relative overflow-hidden rounded-2xl border px-4 py-4"
         style={{
           background: "linear-gradient(180deg, color-mix(in oklab, var(--success) 12%, var(--card)) 0%, color-mix(in oklab, var(--card) 94%, black 6%) 100%)",
           borderColor: "color-mix(in oklab, var(--success) 22%, var(--border))",
@@ -1555,72 +1546,60 @@ export function EnvironmentalImpactCard({
           className="pointer-events-none absolute inset-y-0 right-0 w-[44%]"
           style={{ background: "radial-gradient(circle at 40% 50%, color-mix(in oklab, var(--success) 20%, transparent) 0%, transparent 58%)" }}
         />
-        <div className="relative z-10 grid items-center gap-6 lg:grid-cols-[1fr_360px]">
+        <div className="relative z-10 grid items-center gap-4 sm:grid-cols-[1fr_auto]">
           <div>
-            <div className="text-[15px] uppercase tracking-[0.22em] text-foreground/70">ACUMULADO ANUAL</div>
-            <div className="mt-6 text-[88px] font-semibold leading-none tracking-tight sm:text-[120px]" style={{ color: "var(--success)", textShadow: "0 0 22px color-mix(in oklab, var(--success) 18%, transparent)" }}>
+            <div className="text-[10px] uppercase tracking-[0.18em] text-foreground/70">Acumulado anual</div>
+            <div className="mt-1 text-[36px] font-semibold leading-none tracking-tight sm:text-[44px]" style={{ color: "var(--success)" }}>
               {co2Year.toFixed(1)}
             </div>
-            <div className="mt-4 text-[28px] text-foreground sm:text-[34px]">kg CO₂ evitados</div>
+            <div className="mt-1 text-[13px] text-foreground">kg CO₂ evitados</div>
           </div>
 
-          <div className="relative flex min-h-[250px] items-center justify-center">
-            <div
-              className="absolute h-[220px] w-[220px] rounded-full border"
-              style={{ borderColor: "color-mix(in oklab, var(--success) 18%, transparent)" }}
-            />
-            <Leaf className="relative z-10 h-[190px] w-[190px]" style={{ color: "var(--success)", filter: "drop-shadow(0 0 18px color-mix(in oklab, var(--success) 35%, transparent))" }} strokeWidth={1.6} />
+          <div className="relative flex items-center justify-center sm:h-[90px] sm:w-[90px]">
+            <Leaf className="h-16 w-16 sm:h-20 sm:w-20" style={{ color: "var(--success)", filter: "drop-shadow(0 0 10px color-mix(in oklab, var(--success) 35%, transparent))" }} strokeWidth={1.6} />
           </div>
         </div>
       </div>
 
-      <div className="mt-5 grid gap-4 md:grid-cols-3">
+      <div className="mt-3 grid gap-2.5 md:grid-cols-3">
         {statCards.map((card) => (
           <div
             key={card.label}
-            className="rounded-[26px] border px-5 py-5"
+            className="rounded-xl border px-3 py-2.5"
             style={{
               background: "color-mix(in oklab, var(--card) 90%, black 10%)",
               borderColor: "color-mix(in oklab, var(--border) 58%, transparent)",
             }}
           >
-            <div
-              className="flex h-16 w-16 items-center justify-center rounded-full border"
-              style={{
-                color: "var(--success)",
-                borderColor: "color-mix(in oklab, var(--success) 24%, var(--border))",
-                background: "color-mix(in oklab, var(--success) 10%, transparent)",
-              }}
-            >
-              {card.icon}
+            <div className="flex items-center gap-2">
+              <div
+                className="flex h-7 w-7 items-center justify-center rounded-full border"
+                style={{
+                  color: "var(--success)",
+                  borderColor: "color-mix(in oklab, var(--success) 24%, var(--border))",
+                  background: "color-mix(in oklab, var(--success) 10%, transparent)",
+                }}
+              >
+                {card.icon}
+              </div>
+              <div className="text-[10px] font-semibold tracking-[0.03em] text-muted-foreground">{card.label}</div>
             </div>
-            <div className="mt-5 text-[15px] font-medium tracking-[0.03em] text-foreground">{card.label}</div>
-            <div className="mt-6 text-[56px] font-semibold leading-none tracking-tight text-foreground">{card.value}</div>
-            <div className="mt-5 h-1.5 w-14 rounded-full" style={{ background: "var(--success)" }} />
-            <div className="mt-5 text-[18px] text-muted-foreground">{card.subtitle}</div>
+            <div className="mt-2 text-[20px] font-semibold leading-none tracking-tight text-foreground">{card.value}</div>
+            <div className="mt-1.5 text-[11px] text-muted-foreground">{card.subtitle}</div>
           </div>
         ))}
       </div>
 
       <div
-        className="mt-5 flex items-start gap-4 rounded-[26px] border px-5 py-5"
+        className="mt-3 flex items-start gap-2.5 rounded-xl border px-3 py-2.5"
         style={{
           background: "color-mix(in oklab, var(--card) 90%, black 10%)",
           borderColor: "color-mix(in oklab, var(--border) 58%, transparent)",
         }}
       >
-        <div
-          className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border"
-          style={{
-            color: "var(--success)",
-            borderColor: "color-mix(in oklab, var(--success) 24%, var(--border))",
-            background: "color-mix(in oklab, var(--success) 10%, transparent)",
-          }}
-        >
-          <Info className="h-7 w-7" />
-        </div>
-        <p className="text-[16px] leading-8 text-foreground/88 sm:text-[18px]">
-          Cálculo: CO₂ evitado = Energía generada (kWh) × {emissionFactor.toFixed(2)} kg CO₂/kWh · Árboles equivalentes = CO₂ anual ÷ 22.
+        <Info className="h-3.5 w-3.5 shrink-0 text-muted-foreground mt-0.5" />
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
+          CO₂ evitado = Energía generada (kWh) × {emissionFactor.toFixed(2)} kg CO₂/kWh · Árboles equivalentes = CO₂ anual ÷ 22.
         </p>
       </div>
     </div>
