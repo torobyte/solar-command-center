@@ -724,14 +724,9 @@ export function SolarMonitorView({
       >
 
 
-        {/* Hyperrealistic background scene */}
-        <img
-          src={pickSceneImage(theme, weather?.current.weatherCode)}
-          alt="Escena residencial solar"
-          className="absolute inset-0 h-full w-full object-cover"
-          width={1024}
-          height={1280}
-          loading="lazy"
+        {/* Hyperrealistic background scene (cross-fade on change) */}
+        <SceneBackdrop
+          src={pickSceneImage(theme, weather?.current.weatherCode, isDay)}
         />
         {/* Subtle dark gradient for card legibility */}
         <div
