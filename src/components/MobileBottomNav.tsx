@@ -1,16 +1,16 @@
-import { LayoutDashboard, LineChart, Calculator, BellRing, Settings2, Coins, Zap } from "lucide-react";
+import { LayoutDashboard, LineChart, Calculator, Settings2, Coins, Zap } from "lucide-react";
 
 export type SiteTab = "dashboard" | "control" | "charts" | "totals" | "savings" | "notifications" | "config";
 
 const items: { id: SiteTab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "control", label: "Control", icon: Zap },
   { id: "charts", label: "Charts", icon: LineChart },
   { id: "totals", label: "Totales", icon: Calculator },
   { id: "savings", label: "Ahorro", icon: Coins },
-  { id: "notifications", label: "Alertas", icon: BellRing },
+  { id: "control", label: "Control", icon: Zap },
   { id: "config", label: "Config", icon: Settings2 },
 ];
+
 
 export function MobileBottomNav({ value, onChange, hideTabs }: { value: SiteTab; onChange: (v: SiteTab) => void; hideTabs?: SiteTab[] }) {
   const visible = items.filter((i) => !hideTabs?.includes(i.id));
