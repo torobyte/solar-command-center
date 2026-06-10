@@ -177,13 +177,22 @@ function SitesIndex() {
     if (listParam === "1") return;
     let skip = false;
     try {
-      skip = sessionStorage.getItem("skip.default.site.redirect") === "1";
-      if (skip) sessionStorage.removeItem("skip.default.site.redirect");
+      // Skip when explicitly requested (e.g. "Ver todos los sitios" from switcher)
+      if (sessionStorage.getItem("skip.default.site.redirect") === "1") {
+        sessionStorage.removeItem("skip.default.site.redirect");
+        skip = true;
+      }
+      // Also skip if we already auto-redirected once this session — the user
+      // is intentionally navigating back to the list from the top menu.
+      if (sessionStorage.getItem("default.site.redirected.v1") === "1") {
+        skip = true;
+      }
     } catch { /* ignore */ }
     if (skip) return;
     const defId = typeof window !== "undefined" ? localStorage.getItem("default.site.id.v1") : null;
     if (!defId) return;
     if (!sites.some((s) => s.id === defId)) return;
+    try { sessionStorage.setItem("default.site.redirected.v1", "1"); } catch { /* ignore */ }
     navigate({ to: "/sites/$siteId", params: { siteId: defId } });
   }, [loading, listParam, sites, navigate]);
 
