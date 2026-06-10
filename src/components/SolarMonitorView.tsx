@@ -14,8 +14,42 @@ import detailGridImg from "@/assets/detail-grid.jpg";
 import detailConsumoImg from "@/assets/detail-consumo.jpg";
 
 /** Picks the most appropriate hyperrealistic background scene for the current weather/time. */
-function pickSceneImage(theme: WeatherTheme, weatherCode: number | null | undefined): string {
-  return pickWeatherSceneUrl(weatherCode ?? 0);
+function pickSceneImage(_theme: WeatherTheme, weatherCode: number | null | undefined, isDay?: boolean, hour: number = new Date().getHours()): string {
+  return pickWeatherSceneUrl(weatherCode ?? 0, hour, isDay);
+}
+
+/** Cross-fades between scene images when `src` changes. */
+function SceneBackdrop({ src }: { src: string }) {
+  const [layers, setLayers] = useState<{ src: string; key: number }[]>([{ src, key: 0 }]);
+  useEffect(() => {
+    setLayers((prev) => {
+      const top = prev[prev.length - 1];
+      if (top && top.src === src) return prev;
+      const next = [...prev, { src, key: (top?.key ?? 0) + 1 }].slice(-2);
+      return next;
+    });
+  }, [src]);
+  useEffect(() => {
+    if (layers.length <= 1) return;
+    const t = setTimeout(() => setLayers((p) => p.slice(-1)), 900);
+    return () => clearTimeout(t);
+  }, [layers]);
+  return (
+    <>
+      {layers.map((l, i) => (
+        <img
+          key={l.key}
+          src={l.src}
+          alt="Escena residencial solar"
+          className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-out"
+          style={{ opacity: i === layers.length - 1 ? 1 : 0 }}
+          width={1024}
+          height={1280}
+          loading="lazy"
+        />
+      ))}
+    </>
+  );
 }
 
 
@@ -638,11 +672,19 @@ export function SolarMonitorView({
   const estGridW = gridConnected ? (loadW + batChargeW - solarW - batDischargeW) : 0;
   const gridKw = estGridW / 1000;
 
-  // Day/night detection based on local hour (fallback) + weather code
+  // Re-tick every minute so scene/day-night refresh sin recargar.
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Day/night detection: usa is_day del API si está disponible; si no, ventana horaria.
   const isDay = useMemo(() => {
+    if (weather?.current && typeof weather.current.isDay === "boolean") return weather.current.isDay;
     const h = new Date().getHours();
     return h >= 7 && h < 19;
-  }, []);
+  }, [weather, tick]);
 
   const theme: WeatherTheme = useMemo(() => {
     if (!weather) return mapWeather(0, isDay);
@@ -716,14 +758,9 @@ export function SolarMonitorView({
       >
 
 
-        {/* Hyperrealistic background scene */}
-        <img
-          src={pickSceneImage(theme, weather?.current.weatherCode)}
-          alt="Escena residencial solar"
-          className="absolute inset-0 h-full w-full object-cover"
-          width={1024}
-          height={1280}
-          loading="lazy"
+        {/* Hyperrealistic background scene (cross-fade on change) */}
+        <SceneBackdrop
+          src={pickSceneImage(theme, weather?.current.weatherCode, isDay)}
         />
         {/* Subtle dark gradient for card legibility */}
         <div
