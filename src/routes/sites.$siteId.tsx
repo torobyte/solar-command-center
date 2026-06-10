@@ -823,13 +823,8 @@ function SiteDetail() {
           <SavingsTabView siteId={siteId} canEdit={roleInfo.role === "owner" || roleInfo.role === "admin"} />
         </TabsContent>
 
-        <TabsContent value="notifications" className="mt-6">
-          {user ? (
-            <NotificationsConfig siteId={siteId} userId={user.id} />
-          ) : (
-            <p className="text-sm text-muted-foreground">Inicia sesión para configurar alertas.</p>
-          )}
-        </TabsContent>
+
+
 
         {roleInfo.role !== "viewer" && (
           <TabsContent value="config" className="mt-6 space-y-6">
