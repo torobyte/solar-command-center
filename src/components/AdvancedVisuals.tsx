@@ -822,75 +822,73 @@ export function BackupTimeCard({
         boxShadow: "0 0 0 1px color-mix(in oklab, var(--border) 35%, transparent), 0 22px 48px -28px color-mix(in oklab, black 55%, transparent)",
       }}
     >
-      <div className="mb-5 flex items-start justify-between gap-4">
+      <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <div
-              className="flex h-12 w-12 items-center justify-center rounded-full border"
+              className="flex h-8 w-8 items-center justify-center rounded-full border"
               style={{
                 color: "var(--success)",
                 borderColor: "color-mix(in oklab, var(--success) 30%, var(--border))",
                 background: "color-mix(in oklab, var(--success) 10%, transparent)",
-                boxShadow: "0 0 18px color-mix(in oklab, var(--success) 18%, transparent)",
               }}
             >
-              <Clock className="h-6 w-6" />
+              <Clock className="h-4 w-4" />
             </div>
             <div className="min-w-0">
-              <h3 className="truncate text-xl font-semibold tracking-tight text-foreground sm:text-2xl">Tiempo de respaldo</h3>
-              <p className="mt-1 text-sm text-muted-foreground sm:text-base">Autonomía restante del sistema</p>
+              <h3 className="truncate text-[15px] font-semibold text-foreground">Tiempo de respaldo</h3>
+              <p className="text-[11px] text-muted-foreground">Autonomía restante</p>
             </div>
           </div>
         </div>
 
         <span
-          className="inline-flex items-center rounded-2xl border px-4 py-2 text-sm font-medium"
+          className="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold"
           style={{
             color,
             borderColor: `color-mix(in oklab, ${color} 24%, var(--border))`,
             background: `color-mix(in oklab, ${color} 12%, transparent)`,
-            boxShadow: `0 0 0 1px color-mix(in oklab, ${color} 8%, transparent) inset`,
           }}
         >
-          <span className="mr-2 h-2.5 w-2.5 rounded-full" style={{ background: color }} />
+          <span className="mr-1.5 h-1.5 w-1.5 rounded-full" style={{ background: color }} />
           {statusLabel}
         </span>
       </div>
 
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-4">
         <div className="flex justify-center">
-          <div className="relative h-[250px] w-[250px] sm:h-[280px] sm:w-[280px]">
+          <div className="relative h-[150px] w-[150px]">
             <svg viewBox="0 0 220 220" className="h-full w-full -rotate-90 overflow-visible">
-              <circle cx="110" cy="110" r={r} fill="none" stroke="color-mix(in oklab, var(--success) 12%, var(--border))" strokeWidth="18" />
+              <circle cx="110" cy="110" r={r} fill="none" stroke="color-mix(in oklab, var(--success) 12%, var(--border))" strokeWidth="14" />
               <circle
                 cx="110"
                 cy="110"
                 r={r}
                 fill="none"
                 stroke={color}
-                strokeWidth="18"
+                strokeWidth="14"
                 strokeLinecap="round"
                 strokeDasharray={c}
                 strokeDashoffset={c * (1 - ringPct / 100)}
-                style={{ filter: `drop-shadow(0 0 18px ${color})` }}
+                style={{ filter: `drop-shadow(0 0 10px ${color})` }}
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
               {charging ? (
                 <>
-                  <BatteryCharging className="h-10 w-10" style={{ color }} />
-                  <div className="mt-3 text-lg font-semibold text-foreground">Cargando</div>
-                  <div className="text-sm text-muted-foreground">Autonomía indefinida</div>
+                  <BatteryCharging className="h-6 w-6" style={{ color }} />
+                  <div className="mt-1.5 text-[13px] font-semibold text-foreground">Cargando</div>
+                  <div className="text-[10px] text-muted-foreground">Autonomía indef.</div>
                 </>
               ) : runtimeHours == null ? (
                 <>
-                  <div className="text-lg font-semibold text-foreground">Sin datos</div>
-                  <div className="mt-1 max-w-[180px] text-sm text-muted-foreground">Configura el banco para calcular la autonomía.</div>
+                  <div className="text-[13px] font-semibold text-foreground">Sin datos</div>
+                  <div className="mt-0.5 max-w-[120px] text-[10px] text-muted-foreground">Configura el banco</div>
                 </>
               ) : (
                 <>
-                  <div className="text-[52px] font-semibold leading-none tracking-tight sm:text-[60px]" style={{ color }}>{compact}</div>
-                  <div className="mt-3 text-[14px] uppercase tracking-[0.08em] text-foreground">RESTANTES</div>
+                  <div className="text-[26px] font-semibold leading-none tracking-tight" style={{ color }}>{compact}</div>
+                  <div className="mt-1.5 text-[9px] uppercase tracking-[0.1em] text-muted-foreground">RESTANTES</div>
                 </>
               )}
             </div>
@@ -899,7 +897,7 @@ export function BackupTimeCard({
 
         {charging ? (
           <div
-            className="rounded-[24px] border px-5 py-4 text-center text-sm text-muted-foreground"
+            className="rounded-xl border px-3 py-2.5 text-center text-[11px] text-muted-foreground"
             style={{
               background: "color-mix(in oklab, var(--card) 86%, black 14%)",
               borderColor: "color-mix(in oklab, var(--border) 60%, transparent)",
@@ -910,49 +908,39 @@ export function BackupTimeCard({
         ) : runtimeHours == null ? null : (
           <>
             <div
-              className="grid grid-cols-3 overflow-hidden rounded-[26px] border"
+              className="grid grid-cols-3 overflow-hidden rounded-xl border"
               style={{
                 background: "color-mix(in oklab, var(--card) 86%, black 14%)",
                 borderColor: "color-mix(in oklab, var(--border) 60%, transparent)",
               }}
             >
               {[
-                { icon: <Clock className="h-6 w-6" />, value: days, unit: "DÍAS" },
-                { icon: <Clock className="h-6 w-6" />, value: hours, unit: "HORAS" },
-                { icon: <Clock className="h-6 w-6" />, value: minutes, unit: "MIN" },
+                { value: days, unit: "DÍAS" },
+                { value: hours, unit: "HORAS" },
+                { value: minutes, unit: "MIN" },
               ].map((item, index) => (
                 <div
                   key={item.unit}
-                  className="flex min-h-[140px] flex-col items-center justify-center px-4 py-6 text-center"
+                  className="flex flex-col items-center justify-center px-2 py-3 text-center"
                   style={{
                     borderLeft: index === 0 ? "none" : "1px solid color-mix(in oklab, var(--border) 52%, transparent)",
                   }}
                 >
-                  <div
-                    className="mb-4 flex h-14 w-14 items-center justify-center rounded-full border"
-                    style={{
-                      color: color,
-                      borderColor: `color-mix(in oklab, ${color} 24%, var(--border))`,
-                      background: `color-mix(in oklab, ${color} 8%, transparent)`,
-                    }}
-                  >
-                    {item.icon}
-                  </div>
-                  <div className="text-[52px] font-light leading-none tabular-nums" style={{ color }}>{item.value}</div>
-                  <div className="mt-2 text-[14px] tracking-[0.06em] text-foreground">{item.unit}</div>
+                  <div className="text-[22px] font-semibold leading-none tabular-nums" style={{ color }}>{item.value}</div>
+                  <div className="mt-1 text-[9px] tracking-[0.06em] text-muted-foreground">{item.unit}</div>
                 </div>
               ))}
             </div>
 
             {etaLabel && (
               <div
-                className="flex items-center justify-center gap-3 rounded-[22px] border px-5 py-4 text-center text-base"
+                className="flex flex-wrap items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-center text-[11px]"
                 style={{
                   background: "color-mix(in oklab, var(--card) 86%, black 14%)",
                   borderColor: "color-mix(in oklab, var(--border) 60%, transparent)",
                 }}
               >
-                <Clock className="h-6 w-6" style={{ color }} />
+                <Clock className="h-3.5 w-3.5" style={{ color }} />
                 <span className="text-muted-foreground">Se agotará alrededor de</span>
                 <span className="font-semibold" style={{ color }}>{etaLabel}</span>
               </div>
@@ -960,22 +948,22 @@ export function BackupTimeCard({
           </>
         )}
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-2">
           {detailItems.map((item) => (
             <div
               key={item.label}
-              className="flex items-center gap-4 rounded-[22px] border px-5 py-4"
+              className="flex items-center gap-2 rounded-lg border px-2.5 py-2"
               style={{
                 background: "color-mix(in oklab, var(--card) 88%, black 12%)",
                 borderColor: "color-mix(in oklab, var(--border) 56%, transparent)",
               }}
             >
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full" style={{ color, background: `color-mix(in oklab, ${color} 10%, transparent)` }}>
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ color, background: `color-mix(in oklab, ${color} 10%, transparent)` }}>
                 {item.icon}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-sm text-muted-foreground">{item.label}</div>
-                <div className="truncate text-[15px] font-medium text-foreground sm:text-[17px]">{item.value}</div>
+                <div className="text-[10px] text-muted-foreground">{item.label}</div>
+                <div className="truncate text-[12px] font-medium text-foreground">{item.value}</div>
               </div>
             </div>
           ))}
