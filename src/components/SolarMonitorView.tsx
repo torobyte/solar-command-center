@@ -718,7 +718,7 @@ export function SolarMonitorView({
 
         {/* Hyperrealistic background scene */}
         <img
-          src={pickSceneImage(theme)}
+          src={pickSceneImage(theme, weather?.current.weatherCode)}
           alt="Escena residencial solar"
           className="absolute inset-0 h-full w-full object-cover"
           width={1024}
