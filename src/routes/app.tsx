@@ -419,6 +419,17 @@ function SitesIndex() {
                       {statusLabel}
                     </span>
                     <div className="flex items-center gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 rounded-full px-2 text-xs"
+                        onClick={() => defaultSiteId === s.id ? clearDefault() : setAsDefault(s.id, s.name)}
+                        title={defaultSiteId === s.id ? "Quitar predeterminado" : "Marcar predeterminado"}
+                      >
+                        {defaultSiteId === s.id
+                          ? <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
+                          : <Star className="h-3.5 w-3.5" />}
+                      </Button>
                       {!isShared && (
                         <Button size="sm" variant="ghost" className="h-7 rounded-full px-2 text-xs" onClick={() => setShareSite(s)}>
                           <Share2 className="h-3.5 w-3.5" /> Compartir
