@@ -565,6 +565,17 @@ function SitesIndex() {
                         </td>
                         <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8 rounded-lg border-border"
+                              title={defaultSiteId === s.id ? "Quitar como predeterminado" : "Marcar como predeterminado"}
+                              onClick={() => defaultSiteId === s.id ? clearDefault() : setAsDefault(s.id, s.name)}
+                            >
+                              {defaultSiteId === s.id
+                                ? <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
+                                : <Star className="h-3.5 w-3.5" />}
+                            </Button>
                             {!isShared && (
                               <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg border-border" title="Compartir" onClick={() => setShareSite(s)}>
                                 <Share2 className="h-3.5 w-3.5" />
@@ -581,17 +592,29 @@ function SitesIndex() {
                                   <MoreVertical className="h-3.5 w-3.5" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuContent align="end" className="w-52">
                                 <DropdownMenuLabel>{s.name}</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={() => navigate({ to: "/sites/$siteId", params: { siteId: s.id } })}>
                                   <Eye className="mr-2 h-4 w-4" /> Ver detalle
                                 </DropdownMenuItem>
+                                {defaultSiteId === s.id ? (
+                                  <DropdownMenuItem onClick={() => clearDefault()}>
+                                    <StarOff className="mr-2 h-4 w-4" /> Quitar predeterminado
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem onClick={() => setAsDefault(s.id, s.name)}>
+                                    <Star className="mr-2 h-4 w-4" /> Marcar predeterminado
+                                  </DropdownMenuItem>
+                                )}
                                 {!isShared && (
                                   <DropdownMenuItem onClick={() => setShareSite(s)}>
                                     <Share2 className="mr-2 h-4 w-4" /> Compartir
                                   </DropdownMenuItem>
                                 )}
+                                <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(s.id); toast.success("ID copiado"); }}>
+                                  <Copy className="mr-2 h-4 w-4" /> Copiar ID
+                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(s.id); toast.success("ID copiado"); }}>
                                   <Copy className="mr-2 h-4 w-4" /> Copiar ID
                                 </DropdownMenuItem>
