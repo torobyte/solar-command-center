@@ -18,6 +18,40 @@ function pickSceneImage(_theme: WeatherTheme, weatherCode: number | null | undef
   return pickWeatherSceneUrl(weatherCode ?? 0, hour, isDay);
 }
 
+/** Cross-fades between scene images when `src` changes. */
+function SceneBackdrop({ src }: { src: string }) {
+  const [layers, setLayers] = useState<{ src: string; key: number }[]>([{ src, key: 0 }]);
+  useEffect(() => {
+    setLayers((prev) => {
+      const top = prev[prev.length - 1];
+      if (top && top.src === src) return prev;
+      const next = [...prev, { src, key: (top?.key ?? 0) + 1 }].slice(-2);
+      return next;
+    });
+  }, [src]);
+  useEffect(() => {
+    if (layers.length <= 1) return;
+    const t = setTimeout(() => setLayers((p) => p.slice(-1)), 900);
+    return () => clearTimeout(t);
+  }, [layers]);
+  return (
+    <>
+      {layers.map((l, i) => (
+        <img
+          key={l.key}
+          src={l.src}
+          alt="Escena residencial solar"
+          className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-out"
+          style={{ opacity: i === layers.length - 1 ? 1 : 0 }}
+          width={1024}
+          height={1280}
+          loading="lazy"
+        />
+      ))}
+    </>
+  );
+}
+
 
 /* =========================================================================
    Weather mapping
