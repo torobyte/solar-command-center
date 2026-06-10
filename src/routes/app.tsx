@@ -23,10 +23,11 @@ import { useServerFn } from "@tanstack/react-start";
 import { claimPairingCode } from "@/lib/pairing.functions";
 import { getSiteOwners } from "@/lib/sharing.functions";
 import { transferLicenseToSite } from "@/lib/licenses.functions";
-import { Plus, Cpu as CpuIcon, Sparkles, KeyRound, Copy, Share2, Home, Sun as SunIcon, BatteryFull, EyeOff, Zap, Search, SlidersHorizontal, Eye, MoreVertical, ChevronLeft, ChevronRight, Globe2, ArrowRightLeft, Trash2 } from "lucide-react";
+import { Plus, Cpu as CpuIcon, Sparkles, KeyRound, Copy, Share2, Home, Sun as SunIcon, BatteryFull, EyeOff, Zap, Search, SlidersHorizontal, Eye, MoreVertical, ChevronLeft, ChevronRight, Globe2, ArrowRightLeft, Trash2, Star, StarOff } from "lucide-react";
 import { SiteSharing } from "@/components/SiteSharing";
 import { toast } from "sonner";
 import { TableSkeleton, PageHeaderSkeleton } from "@/components/LoadingStates";
+import { DEFAULT_SITE_KEY } from "@/components/SiteSwitcher";
 
 export const Route = createFileRoute("/app")({
   validateSearch: (s: Record<string, unknown>) => ({ list: typeof s.list === "string" ? s.list : undefined }),
