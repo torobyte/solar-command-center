@@ -50,6 +50,9 @@ export type DashboardWeatherData = {
     uvIndex: number;
     weatherCode: number;
     radiation: number;
+    isDay: boolean;
+    sunrise?: string;
+    sunset?: string;
   };
   hourly: WeatherHour[];
   daily: WeatherDay[];
