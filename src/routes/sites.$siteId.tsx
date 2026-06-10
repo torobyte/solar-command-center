@@ -841,6 +841,21 @@ function SiteDetail() {
         </div>
       </div>
       <MobileBottomNav value={tab} onChange={setTab} hideTabs={roleInfo.role === "viewer" ? ["config"] : []} />
+
+      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+        <DialogContent className="max-w-2xl rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Share2 className="h-5 w-5 text-accent" /> Compartir "{site.name}"
+            </DialogTitle>
+            <DialogDescription>
+              Invita a otras personas a ver o gestionar este sitio. Puedes asignar roles
+              de Lector, Operador o Admin.
+            </DialogDescription>
+          </DialogHeader>
+          <SiteSharing siteId={site.id} isOwnerOrAdmin={roleInfo.canManageMembers} />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
