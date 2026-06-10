@@ -615,9 +615,6 @@ function SitesIndex() {
                                 <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(s.id); toast.success("ID copiado"); }}>
                                   <Copy className="mr-2 h-4 w-4" /> Copiar ID
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(s.id); toast.success("ID copiado"); }}>
-                                  <Copy className="mr-2 h-4 w-4" /> Copiar ID
-                                </DropdownMenuItem>
                                 {!isShared && (
                                   <>
                                     <DropdownMenuSeparator />
