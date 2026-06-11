@@ -44,11 +44,11 @@ export const Route = createFileRoute("/api/public/v1/sites")({
         const [{ data: owned }, { data: shared }] = await Promise.all([
           supabaseAdmin
             .from("sites")
-            .select("id,name,status,last_seen_at,timezone,location")
+            .select("id,name,description,status,last_seen_at,plan")
             .eq("owner_id", auth.userId),
           supabaseAdmin
             .from("site_members")
-            .select("site:sites(id,name,status,last_seen_at,timezone,location)")
+            .select("site:sites(id,name,description,status,last_seen_at,plan)")
             .eq("user_id", auth.userId),
         ]);
 
