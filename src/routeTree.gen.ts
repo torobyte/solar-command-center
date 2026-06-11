@@ -44,9 +44,12 @@ import { Route as ApiPublicApkBootstrapRouteImport } from './routes/api/public/a
 import { Route as ApiPublicAlertsStreamRouteImport } from './routes/api/public/alerts-stream'
 import { Route as ApiPublicActivateRouteImport } from './routes/api/public/activate'
 import { Route as ApiAdminSmtpTestRouteImport } from './routes/api/admin/smtp-test'
+import { Route as ApiPublicV1SitesRouteImport } from './routes/api/public/v1/sites'
 import { Route as ApiPublicAgentUpdateRouteImport } from './routes/api/public/agent.update'
 import { Route as ApiPublicAgentInstallRouteImport } from './routes/api/public/agent.install'
 import { Route as ApiPublicAgentAgentRouteImport } from './routes/api/public/agent.agent'
+import { Route as ApiPublicV1SitesSiteIdTelemetryRouteImport } from './routes/api/public/v1/sites.$siteId.telemetry'
+import { Route as ApiPublicV1SitesSiteIdStreamRouteImport } from './routes/api/public/v1/sites.$siteId.stream'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -223,6 +226,11 @@ const ApiAdminSmtpTestRoute = ApiAdminSmtpTestRouteImport.update({
   path: '/api/admin/smtp-test',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicV1SitesRoute = ApiPublicV1SitesRouteImport.update({
+  id: '/api/public/v1/sites',
+  path: '/api/public/v1/sites',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicAgentUpdateRoute = ApiPublicAgentUpdateRouteImport.update({
   id: '/api/public/agent/update',
   path: '/api/public/agent/update',
@@ -238,6 +246,18 @@ const ApiPublicAgentAgentRoute = ApiPublicAgentAgentRouteImport.update({
   path: '/api/public/agent/agent',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicV1SitesSiteIdTelemetryRoute =
+  ApiPublicV1SitesSiteIdTelemetryRouteImport.update({
+    id: '/$siteId/telemetry',
+    path: '/$siteId/telemetry',
+    getParentRoute: () => ApiPublicV1SitesRoute,
+  } as any)
+const ApiPublicV1SitesSiteIdStreamRoute =
+  ApiPublicV1SitesSiteIdStreamRouteImport.update({
+    id: '/$siteId/stream',
+    path: '/$siteId/stream',
+    getParentRoute: () => ApiPublicV1SitesRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -278,6 +298,9 @@ export interface FileRoutesByFullPath {
   '/api/public/agent/agent': typeof ApiPublicAgentAgentRoute
   '/api/public/agent/install': typeof ApiPublicAgentInstallRoute
   '/api/public/agent/update': typeof ApiPublicAgentUpdateRoute
+  '/api/public/v1/sites': typeof ApiPublicV1SitesRouteWithChildren
+  '/api/public/v1/sites/$siteId/stream': typeof ApiPublicV1SitesSiteIdStreamRoute
+  '/api/public/v1/sites/$siteId/telemetry': typeof ApiPublicV1SitesSiteIdTelemetryRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -318,6 +341,9 @@ export interface FileRoutesByTo {
   '/api/public/agent/agent': typeof ApiPublicAgentAgentRoute
   '/api/public/agent/install': typeof ApiPublicAgentInstallRoute
   '/api/public/agent/update': typeof ApiPublicAgentUpdateRoute
+  '/api/public/v1/sites': typeof ApiPublicV1SitesRouteWithChildren
+  '/api/public/v1/sites/$siteId/stream': typeof ApiPublicV1SitesSiteIdStreamRoute
+  '/api/public/v1/sites/$siteId/telemetry': typeof ApiPublicV1SitesSiteIdTelemetryRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -359,6 +385,9 @@ export interface FileRoutesById {
   '/api/public/agent/agent': typeof ApiPublicAgentAgentRoute
   '/api/public/agent/install': typeof ApiPublicAgentInstallRoute
   '/api/public/agent/update': typeof ApiPublicAgentUpdateRoute
+  '/api/public/v1/sites': typeof ApiPublicV1SitesRouteWithChildren
+  '/api/public/v1/sites/$siteId/stream': typeof ApiPublicV1SitesSiteIdStreamRoute
+  '/api/public/v1/sites/$siteId/telemetry': typeof ApiPublicV1SitesSiteIdTelemetryRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -401,6 +430,9 @@ export interface FileRouteTypes {
     | '/api/public/agent/agent'
     | '/api/public/agent/install'
     | '/api/public/agent/update'
+    | '/api/public/v1/sites'
+    | '/api/public/v1/sites/$siteId/stream'
+    | '/api/public/v1/sites/$siteId/telemetry'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -441,6 +473,9 @@ export interface FileRouteTypes {
     | '/api/public/agent/agent'
     | '/api/public/agent/install'
     | '/api/public/agent/update'
+    | '/api/public/v1/sites'
+    | '/api/public/v1/sites/$siteId/stream'
+    | '/api/public/v1/sites/$siteId/telemetry'
   id:
     | '__root__'
     | '/'
@@ -481,6 +516,9 @@ export interface FileRouteTypes {
     | '/api/public/agent/agent'
     | '/api/public/agent/install'
     | '/api/public/agent/update'
+    | '/api/public/v1/sites'
+    | '/api/public/v1/sites/$siteId/stream'
+    | '/api/public/v1/sites/$siteId/telemetry'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -521,6 +559,7 @@ export interface RootRouteChildren {
   ApiPublicAgentAgentRoute: typeof ApiPublicAgentAgentRoute
   ApiPublicAgentInstallRoute: typeof ApiPublicAgentInstallRoute
   ApiPublicAgentUpdateRoute: typeof ApiPublicAgentUpdateRoute
+  ApiPublicV1SitesRoute: typeof ApiPublicV1SitesRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -770,6 +809,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminSmtpTestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/v1/sites': {
+      id: '/api/public/v1/sites'
+      path: '/api/public/v1/sites'
+      fullPath: '/api/public/v1/sites'
+      preLoaderRoute: typeof ApiPublicV1SitesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/agent/update': {
       id: '/api/public/agent/update'
       path: '/api/public/agent/update'
@@ -791,6 +837,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAgentAgentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/v1/sites/$siteId/telemetry': {
+      id: '/api/public/v1/sites/$siteId/telemetry'
+      path: '/$siteId/telemetry'
+      fullPath: '/api/public/v1/sites/$siteId/telemetry'
+      preLoaderRoute: typeof ApiPublicV1SitesSiteIdTelemetryRouteImport
+      parentRoute: typeof ApiPublicV1SitesRoute
+    }
+    '/api/public/v1/sites/$siteId/stream': {
+      id: '/api/public/v1/sites/$siteId/stream'
+      path: '/$siteId/stream'
+      fullPath: '/api/public/v1/sites/$siteId/stream'
+      preLoaderRoute: typeof ApiPublicV1SitesSiteIdStreamRouteImport
+      parentRoute: typeof ApiPublicV1SitesRoute
+    }
   }
 }
 
@@ -803,6 +863,19 @@ const AppRouteChildren: AppRouteChildren = {
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
+interface ApiPublicV1SitesRouteChildren {
+  ApiPublicV1SitesSiteIdStreamRoute: typeof ApiPublicV1SitesSiteIdStreamRoute
+  ApiPublicV1SitesSiteIdTelemetryRoute: typeof ApiPublicV1SitesSiteIdTelemetryRoute
+}
+
+const ApiPublicV1SitesRouteChildren: ApiPublicV1SitesRouteChildren = {
+  ApiPublicV1SitesSiteIdStreamRoute: ApiPublicV1SitesSiteIdStreamRoute,
+  ApiPublicV1SitesSiteIdTelemetryRoute: ApiPublicV1SitesSiteIdTelemetryRoute,
+}
+
+const ApiPublicV1SitesRouteWithChildren =
+  ApiPublicV1SitesRoute._addFileChildren(ApiPublicV1SitesRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -842,6 +915,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAgentAgentRoute: ApiPublicAgentAgentRoute,
   ApiPublicAgentInstallRoute: ApiPublicAgentInstallRoute,
   ApiPublicAgentUpdateRoute: ApiPublicAgentUpdateRoute,
+  ApiPublicV1SitesRoute: ApiPublicV1SitesRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
