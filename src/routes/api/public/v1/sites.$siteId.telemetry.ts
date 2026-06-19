@@ -36,11 +36,21 @@ async function getBatteryCapacityWh(siteId: string): Promise<number | null> {
   try {
     const { data } = await supabaseAdmin
       .from("pv_system_config")
-      .select("battery_capacity_kwh,battery_nominal_voltage")
+      .select("battery_kwh,battery_count,battery_voltage_each,battery_ah_each,battery_usable_dod_pct")
       .eq("site_id", siteId)
       .maybeSingle();
-    const kwh = Number((data as any)?.battery_capacity_kwh);
+    const d = data as any;
+    const kwh = Number(d?.battery_kwh);
     if (Number.isFinite(kwh) && kwh > 0) return kwh * 1000;
+    // Fallback: count * V * Ah
+    const n = Number(d?.battery_count);
+    const v = Number(d?.battery_voltage_each);
+    const ah = Number(d?.battery_ah_each);
+    if ([n, v, ah].every((x) => Number.isFinite(x) && x > 0)) {
+      const dod = Number(d?.battery_usable_dod_pct);
+      const dodFactor = Number.isFinite(dod) && dod > 0 ? dod / 100 : 1;
+      return n * v * ah * dodFactor;
+    }
     return null;
   } catch { return null; }
 }
