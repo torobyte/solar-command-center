@@ -260,10 +260,11 @@ function ApiKeysPage() {
     "ac_output_apparent_power": 1020,   // VA
     "ac_output_voltage":        229.8,  // V
     "ac_output_frequency":      50.01,  // Hz
-    "battery_capacity":         87,     // %   — SoC
-    "battery_voltage":          54.2,   // V
-    "battery_charging_current": 12.3,   // A
-    "battery_discharge_current":0,      // A
+    "battery_capacity":         87,     // %   — SoC reportado por el inversor
+    "battery_voltage":          54.2,   // V   — tensión del banco
+    "battery_charging_current": 12.3,   // A   — corriente entrando a la batería
+    "battery_discharge_current":0,      // A   — corriente saliendo de la batería
+    "bus_voltage":              405.0,  // V   — bus DC interno del inversor
     "grid_voltage":             231.4,  // V   — 0 si no hay red
     "grid_frequency":           50.0,   // Hz
     "load_percent":             19,     // %
@@ -277,7 +278,19 @@ function ApiKeysPage() {
     "ac_input_current":          4.24,  // A  ≈ ac_output_active_power / grid_voltage cuando hay red
     "ac_input_apparent_current": 4.41,  // A  ≈ ac_output_apparent_power / grid_voltage
     "ac_input_active_power":     980,   // W  (potencia tomada de red al estar en modo Line/Bypass)
-    "ac_input_source":           "grid" // "grid" si hay red activa y el inversor está en línea, "off" en caso contrario
+    "ac_input_source":           "grid",// "grid" si hay red activa y el inversor está en línea, "off" en caso contrario
+
+    // ── Batería (derivados) ──
+    "battery_soc":                  87,    // %  alias de battery_capacity
+    "battery_charging_power":       666.7, // W  = battery_voltage × battery_charging_current
+    "battery_discharging_power":    0,     // W  = battery_voltage × battery_discharge_current
+    "battery_power":                666.7, // W  positivo = cargando, negativo = descargando
+    "battery_net_current":          12.3,  // A  positivo = cargando, negativo = descargando
+    "battery_status":               "charging", // charging | discharging | idle
+    "battery_capacity_wh":          5120,  // Wh capacidad útil configurada (null si no está configurada)
+    "battery_energy_remaining_wh":  4454,  // Wh estimación = battery_capacity_wh × SoC/100
+    "battery_time_remaining_min":   null,  // min de respaldo restantes (sólo si está descargando con carga)
+    "battery_time_to_full_min":     401    // min hasta SoC 100% (sólo si está cargando)
   },
   "ts": "2026-06-12T19:32:14.512Z"
 }`}
