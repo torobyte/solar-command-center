@@ -269,7 +269,15 @@ function ApiKeysPage() {
     "load_percent":             19,     // %
     "inverter_temperature":     42.1,   // °C
     "inverter_mode":            "Battery", // Battery | Line | Standby | Fault | Power Saving
-    "device_status":            "ok"    // ok | warning | error
+    "device_status":            "ok",   // ok | warning | error
+
+    // ── Entrada AC (derivados — QPIGS no entrega corriente AC directa) ──
+    "ac_input_voltage":          231.4, // V  (= grid_voltage)
+    "ac_input_frequency":        50.0,  // Hz (= grid_frequency)
+    "ac_input_current":          4.24,  // A  ≈ ac_output_active_power / grid_voltage cuando hay red
+    "ac_input_apparent_current": 4.41,  // A  ≈ ac_output_apparent_power / grid_voltage
+    "ac_input_active_power":     980,   // W  (potencia tomada de red al estar en modo Line/Bypass)
+    "ac_input_source":           "grid" // "grid" si hay red activa y el inversor está en línea, "off" en caso contrario
   },
   "ts": "2026-06-12T19:32:14.512Z"
 }`}
