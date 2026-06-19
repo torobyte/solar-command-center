@@ -21,6 +21,7 @@ const FIELDS = [
   "battery_voltage",
   "battery_charging_current",
   "battery_discharge_current",
+  "bus_voltage",
   "grid_voltage",
   "grid_frequency",
   "load_percent",
@@ -28,6 +29,21 @@ const FIELDS = [
   "inverter_mode",
   "device_status",
 ] as const;
+
+// Capacidad nominal del banco (Wh) si está configurada en pv_system_config.
+// Permite estimar energía restante y tiempo de respaldo cuando se conoce.
+async function getBatteryCapacityWh(siteId: string): Promise<number | null> {
+  try {
+    const { data } = await supabaseAdmin
+      .from("pv_system_config")
+      .select("battery_capacity_kwh,battery_nominal_voltage")
+      .eq("site_id", siteId)
+      .maybeSingle();
+    const kwh = Number((data as any)?.battery_capacity_kwh);
+    if (Number.isFinite(kwh) && kwh > 0) return kwh * 1000;
+    return null;
+  } catch { return null; }
+}
 
 async function userHasAccess(userId: string, siteId: string): Promise<boolean> {
   const { data: site } = await supabaseAdmin
