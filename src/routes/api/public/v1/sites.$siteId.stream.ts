@@ -74,6 +74,23 @@ export const Route = createFileRoute("/api/public/v1/sites/$siteId/stream")({
                     (mode === "" || mode === "L" || mode === "LINE" || mode === "B" || mode === "BYPASS");
                   const ac_input_current = onGrid && Number.isFinite(pload) && pload >= 0
                     ? Number((pload / vgrid).toFixed(2)) : null;
+                  // Derivados de batería
+                  const vbat = Number(s.battery_voltage);
+                  const ichg = Number(s.battery_charging_current);
+                  const idis = Number(s.battery_discharge_current);
+                  const chargingW = Number.isFinite(vbat) && Number.isFinite(ichg) ? vbat * Math.max(ichg, 0) : null;
+                  const dischargingW = Number.isFinite(vbat) && Number.isFinite(idis) ? vbat * Math.max(idis, 0) : null;
+                  const battery_power = chargingW !== null && dischargingW !== null
+                    ? Number((chargingW - dischargingW).toFixed(1)) : null;
+                  const battery_net_current = Number.isFinite(ichg) || Number.isFinite(idis)
+                    ? Number(((Number.isFinite(ichg) ? ichg : 0) - (Number.isFinite(idis) ? idis : 0)).toFixed(2))
+                    : null;
+                  let battery_status: "charging" | "discharging" | "idle" | null = null;
+                  if (battery_power !== null) {
+                    if (battery_power > 5) battery_status = "charging";
+                    else if (battery_power < -5) battery_status = "discharging";
+                    else battery_status = "idle";
+                  }
                   send("telemetry", {
                     ...s,
                     ac_input_voltage: Number.isFinite(vgrid) ? vgrid : null,
@@ -81,6 +98,12 @@ export const Route = createFileRoute("/api/public/v1/sites/$siteId/stream")({
                     ac_input_current,
                     ac_input_active_power: onGrid && Number.isFinite(pload) ? pload : null,
                     ac_input_source: onGrid ? "grid" : "off",
+                    battery_soc: Number.isFinite(Number(s.battery_capacity)) ? Number(s.battery_capacity) : null,
+                    battery_charging_power: chargingW !== null ? Number(chargingW.toFixed(1)) : null,
+                    battery_discharging_power: dischargingW !== null ? Number(dischargingW.toFixed(1)) : null,
+                    battery_power,
+                    battery_net_current,
+                    battery_status,
                   });
                 } else {
                   // heartbeat para mantener conexión abierta
