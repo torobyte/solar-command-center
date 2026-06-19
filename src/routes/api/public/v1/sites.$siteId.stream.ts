@@ -63,11 +63,27 @@ export const Route = createFileRoute("/api/public/v1/sites/$siteId/stream")({
                   .maybeSingle();
                 if (sample && (sample as any).recorded_at !== lastTs) {
                   lastTs = (sample as any).recorded_at;
-                  send("telemetry", sample);
+                  const s = sample as any;
+                  const vgrid = Number(s.grid_voltage);
+                  const pload = Number(s.ac_output_active_power);
+                  const mode = String(s.inverter_mode ?? "").toUpperCase();
+                  const onGrid = Number.isFinite(vgrid) && vgrid > 50 &&
+                    (mode === "" || mode === "L" || mode === "LINE" || mode === "B" || mode === "BYPASS");
+                  const ac_input_current = onGrid && Number.isFinite(pload) && pload >= 0
+                    ? Number((pload / vgrid).toFixed(2)) : null;
+                  send("telemetry", {
+                    ...s,
+                    ac_input_voltage: Number.isFinite(vgrid) ? vgrid : null,
+                    ac_input_frequency: Number.isFinite(Number(s.grid_frequency)) ? Number(s.grid_frequency) : null,
+                    ac_input_current,
+                    ac_input_active_power: onGrid && Number.isFinite(pload) ? pload : null,
+                    ac_input_source: onGrid ? "grid" : "off",
+                  });
                 } else {
                   // heartbeat para mantener conexión abierta
                   controller.enqueue(encoder.encode(`: ping ${Date.now()}\n\n`));
                 }
+
               } catch {
                 /* ignore */
               }
