@@ -67,14 +67,43 @@ export const Route = createFileRoute("/api/public/v1/sites/$siteId/telemetry")({
           .limit(1)
           .maybeSingle();
 
+        // Derivar corriente AC de entrada (no la entrega QPIGS directamente):
+        // si hay red activa (Vgrid > 50 V) y el inversor está en modo línea,
+        // asumimos que la carga se alimenta desde red → I≈P/V.
+        let enriched: Record<string, unknown> | null = null;
+        if (sample) {
+          const s = sample as any;
+          const vgrid = Number(s.grid_voltage);
+          const pload = Number(s.ac_output_active_power);
+          const sload = Number(s.ac_output_apparent_power);
+          const mode = String(s.inverter_mode ?? "").toUpperCase();
+          const onGrid = Number.isFinite(vgrid) && vgrid > 50 &&
+            (mode === "" || mode === "L" || mode === "LINE" || mode === "B" || mode === "BYPASS");
+          const ac_input_current = onGrid && Number.isFinite(pload) && pload >= 0
+            ? Number((pload / vgrid).toFixed(2)) : null;
+          const ac_input_apparent_current = onGrid && Number.isFinite(sload) && sload >= 0
+            ? Number((sload / vgrid).toFixed(2)) : null;
+          const ac_input_active_power = onGrid && Number.isFinite(pload) ? pload : null;
+          enriched = {
+            ...s,
+            ac_input_voltage: Number.isFinite(vgrid) ? vgrid : null,
+            ac_input_frequency: Number.isFinite(Number(s.grid_frequency)) ? Number(s.grid_frequency) : null,
+            ac_input_current,
+            ac_input_apparent_current,
+            ac_input_active_power,
+            ac_input_source: onGrid ? "grid" : "off",
+          };
+        }
+
         return new Response(JSON.stringify({
           site,
-          telemetry: sample ?? null,
+          telemetry: enriched,
           ts: new Date().toISOString(),
         }), {
           status: 200,
           headers: { "content-type": "application/json", "cache-control": "no-store", ...CORS },
         });
+
       },
     },
   },
