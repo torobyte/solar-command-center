@@ -221,6 +221,22 @@ export const Route = createFileRoute("/api/public/apk-login")({
           } catch {}
         }
 
+        function friendlyError(status, payload, fallback) {
+          const raw = (payload && (payload.msg || payload.error_description || payload.error_code || payload.error)) || '';
+          const s = String(raw).toLowerCase();
+          if (status === 429 || s.includes('rate limit') || s.includes('too many')) {
+            return 'Demasiados intentos. Espera unos minutos y vuelve a probar (o cambia de red / desactiva la VPN).';
+          }
+          if (s.includes('invalid login') || s.includes('invalid credentials') || s.includes('invalid_grant')) {
+            return 'Correo o contraseña incorrectos.';
+          }
+          if (s.includes('email not confirmed')) {
+            return 'Debes confirmar tu correo antes de iniciar sesión.';
+          }
+          if (!raw) return fallback;
+          return raw;
+        }
+
         async function login(email, password) {
           clearError();
           setLoading(true);
@@ -232,7 +248,7 @@ export const Route = createFileRoute("/api/public/apk-login")({
             });
             const payload = await res.json().catch(() => ({}));
             if (!res.ok) {
-              throw new Error(payload?.msg || payload?.error_description || payload?.error || 'Credenciales inválidas');
+              throw new Error(friendlyError(res.status, payload, 'No se pudo iniciar sesión'));
             }
             persist(payload);
             window.location.replace(BASE_URL + '/app');

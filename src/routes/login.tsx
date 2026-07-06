@@ -33,7 +33,15 @@ function LoginPage() {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
       if (error) {
-        setErrorDetails(error.message);
+        const raw = error.message || "";
+        const s = raw.toLowerCase();
+        let friendly = raw;
+        if ((error as unknown as { status?: number }).status === 429 || s.includes("rate limit") || s.includes("too many")) {
+          friendly = "Demasiados intentos. Espera unos minutos y vuelve a probar (o cambia de red / desactiva la VPN).";
+        } else if (s.includes("invalid login") || s.includes("invalid credentials")) {
+          friendly = "Correo o contraseña incorrectos.";
+        }
+        setErrorDetails(friendly);
         setErrorOpen(true);
         return;
       }
