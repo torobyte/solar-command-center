@@ -45,6 +45,7 @@ function LoginPage() {
         setErrorOpen(true);
         return;
       }
+      navigate({ to: "/app", replace: true });
     } catch (err) {
       setErrorDetails(err instanceof Error ? err.message : "No se pudo iniciar sesión");
       setErrorOpen(true);
