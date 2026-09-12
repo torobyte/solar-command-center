@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Copy, KeyRound, Plus, Trash2, ShieldOff, Code2, Radio, Globe } from "lucide-react";
+import { Copy, KeyRound, Plus, Trash2, ShieldOff, Code2, Radio, Globe, Link2, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   listApiKeys, createApiKey, revokeApiKey, deleteApiKey,
+  createLinkCode, listLinkCodes, cancelLinkCode,
 } from "@/lib/api-keys.functions";
 
 export const Route = createFileRoute("/api-keys")({

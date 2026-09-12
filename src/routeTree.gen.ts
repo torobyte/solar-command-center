@@ -49,6 +49,7 @@ import { Route as ApiPublicV1SitesRouteImport } from './routes/api/public/v1/sit
 import { Route as ApiPublicAgentUpdateRouteImport } from './routes/api/public/agent.update'
 import { Route as ApiPublicAgentInstallRouteImport } from './routes/api/public/agent.install'
 import { Route as ApiPublicAgentAgentRouteImport } from './routes/api/public/agent.agent'
+import { Route as ApiPublicV1LinkRedeemRouteImport } from './routes/api/public/v1/link.redeem'
 import { Route as ApiPublicV1SitesSiteIdTelemetryRouteImport } from './routes/api/public/v1/sites.$siteId.telemetry'
 import { Route as ApiPublicV1SitesSiteIdStreamRouteImport } from './routes/api/public/v1/sites.$siteId.stream'
 
@@ -252,6 +253,11 @@ const ApiPublicAgentAgentRoute = ApiPublicAgentAgentRouteImport.update({
   path: '/api/public/agent/agent',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicV1LinkRedeemRoute = ApiPublicV1LinkRedeemRouteImport.update({
+  id: '/api/public/v1/link/redeem',
+  path: '/api/public/v1/link/redeem',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicV1SitesSiteIdTelemetryRoute =
   ApiPublicV1SitesSiteIdTelemetryRouteImport.update({
     id: '/$siteId/telemetry',
@@ -306,6 +312,7 @@ export interface FileRoutesByFullPath {
   '/api/public/agent/install': typeof ApiPublicAgentInstallRoute
   '/api/public/agent/update': typeof ApiPublicAgentUpdateRoute
   '/api/public/v1/sites': typeof ApiPublicV1SitesRouteWithChildren
+  '/api/public/v1/link/redeem': typeof ApiPublicV1LinkRedeemRoute
   '/api/public/v1/sites/$siteId/stream': typeof ApiPublicV1SitesSiteIdStreamRoute
   '/api/public/v1/sites/$siteId/telemetry': typeof ApiPublicV1SitesSiteIdTelemetryRoute
 }
@@ -350,6 +357,7 @@ export interface FileRoutesByTo {
   '/api/public/agent/install': typeof ApiPublicAgentInstallRoute
   '/api/public/agent/update': typeof ApiPublicAgentUpdateRoute
   '/api/public/v1/sites': typeof ApiPublicV1SitesRouteWithChildren
+  '/api/public/v1/link/redeem': typeof ApiPublicV1LinkRedeemRoute
   '/api/public/v1/sites/$siteId/stream': typeof ApiPublicV1SitesSiteIdStreamRoute
   '/api/public/v1/sites/$siteId/telemetry': typeof ApiPublicV1SitesSiteIdTelemetryRoute
 }
@@ -395,6 +403,7 @@ export interface FileRoutesById {
   '/api/public/agent/install': typeof ApiPublicAgentInstallRoute
   '/api/public/agent/update': typeof ApiPublicAgentUpdateRoute
   '/api/public/v1/sites': typeof ApiPublicV1SitesRouteWithChildren
+  '/api/public/v1/link/redeem': typeof ApiPublicV1LinkRedeemRoute
   '/api/public/v1/sites/$siteId/stream': typeof ApiPublicV1SitesSiteIdStreamRoute
   '/api/public/v1/sites/$siteId/telemetry': typeof ApiPublicV1SitesSiteIdTelemetryRoute
 }
@@ -441,6 +450,7 @@ export interface FileRouteTypes {
     | '/api/public/agent/install'
     | '/api/public/agent/update'
     | '/api/public/v1/sites'
+    | '/api/public/v1/link/redeem'
     | '/api/public/v1/sites/$siteId/stream'
     | '/api/public/v1/sites/$siteId/telemetry'
   fileRoutesByTo: FileRoutesByTo
@@ -485,6 +495,7 @@ export interface FileRouteTypes {
     | '/api/public/agent/install'
     | '/api/public/agent/update'
     | '/api/public/v1/sites'
+    | '/api/public/v1/link/redeem'
     | '/api/public/v1/sites/$siteId/stream'
     | '/api/public/v1/sites/$siteId/telemetry'
   id:
@@ -529,6 +540,7 @@ export interface FileRouteTypes {
     | '/api/public/agent/install'
     | '/api/public/agent/update'
     | '/api/public/v1/sites'
+    | '/api/public/v1/link/redeem'
     | '/api/public/v1/sites/$siteId/stream'
     | '/api/public/v1/sites/$siteId/telemetry'
   fileRoutesById: FileRoutesById
@@ -573,6 +585,7 @@ export interface RootRouteChildren {
   ApiPublicAgentInstallRoute: typeof ApiPublicAgentInstallRoute
   ApiPublicAgentUpdateRoute: typeof ApiPublicAgentUpdateRoute
   ApiPublicV1SitesRoute: typeof ApiPublicV1SitesRouteWithChildren
+  ApiPublicV1LinkRedeemRoute: typeof ApiPublicV1LinkRedeemRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -857,6 +870,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAgentAgentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/v1/link/redeem': {
+      id: '/api/public/v1/link/redeem'
+      path: '/api/public/v1/link/redeem'
+      fullPath: '/api/public/v1/link/redeem'
+      preLoaderRoute: typeof ApiPublicV1LinkRedeemRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/v1/sites/$siteId/telemetry': {
       id: '/api/public/v1/sites/$siteId/telemetry'
       path: '/$siteId/telemetry'
@@ -937,6 +957,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAgentInstallRoute: ApiPublicAgentInstallRoute,
   ApiPublicAgentUpdateRoute: ApiPublicAgentUpdateRoute,
   ApiPublicV1SitesRoute: ApiPublicV1SitesRouteWithChildren,
+  ApiPublicV1LinkRedeemRoute: ApiPublicV1LinkRedeemRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
