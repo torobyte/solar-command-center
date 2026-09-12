@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_key_link_codes: {
+        Row: {
+          api_key_id: string
+          code: string
+          consumed_at: string | null
+          consumed_by_ip: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          label: string | null
+          user_id: string
+        }
+        Insert: {
+          api_key_id: string
+          code: string
+          consumed_at?: string | null
+          consumed_by_ip?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          label?: string | null
+          user_id: string
+        }
+        Update: {
+          api_key_id?: string
+          code?: string
+          consumed_at?: string | null
+          consumed_by_ip?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          label?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_key_link_codes_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "user_api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       apk_config: {
         Row: {
           app_id: string
