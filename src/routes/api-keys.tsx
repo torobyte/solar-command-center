@@ -34,21 +34,61 @@ interface ApiKey {
 // dominio principal del portal (appsolar.torobyte.com cuando esté apuntado).
 const API_BASE = "https://appsolar.torobyte.com";
 
+interface LinkCode {
+  id: string;
+  code: string;
+  api_key_id: string;
+  expires_at: string;
+}
+
 function ApiKeysPage() {
   const list = useServerFn(listApiKeys);
   const create = useServerFn(createApiKey);
   const revoke = useServerFn(revokeApiKey);
   const del = useServerFn(deleteApiKey);
+  const mkCode = useServerFn(createLinkCode);
+  const listCodes = useServerFn(listLinkCodes);
+  const cancelCode = useServerFn(cancelLinkCode);
   const [keys, setKeys] = useState<ApiKey[]>([]);
+  const [codes, setCodes] = useState<LinkCode[]>([]);
   const [label, setLabel] = useState("");
   const [creating, setCreating] = useState(false);
   const [reveal, setReveal] = useState<Record<string, boolean>>({});
+  const [now, setNow] = useState(Date.now());
 
   useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   async function refresh() {
-    const r = await list();
+    const [r, c] = await Promise.all([list(), listCodes()]);
     setKeys((r as any).keys);
+    setCodes((c as any).codes);
+  }
+
+  async function onLink(keyId: string, length: 6 | 8) {
+    try {
+      await mkCode({ data: { api_key_id: keyId, length } });
+      await refresh();
+      toast.success(`Código de ${length} dígitos generado. Válido 15 minutos.`);
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  }
+
+  async function onCancelCode(id: string) {
+    await cancelCode({ data: { id } });
+    await refresh();
+  }
+
+  function remaining(expires: string) {
+    const ms = new Date(expires).getTime() - now;
+    if (ms <= 0) return "expirado";
+    const m = Math.floor(ms / 60000);
+    const s = Math.floor((ms % 60000) / 1000);
+    return `${m}:${String(s).padStart(2, "0")}`;
   }
 
   async function onCreate(e: React.FormEvent) {
