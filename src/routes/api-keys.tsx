@@ -209,6 +209,18 @@ function ApiKeysPage() {
                         <Copy className="mr-1 h-3.5 w-3.5" /> Copiar
                       </Button>
                       {!revoked && (
+                        <>
+                          <Button size="sm" variant="outline" className="h-8 rounded-xl border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                            onClick={() => onLink(k.id, 6)}>
+                            <Link2 className="mr-1 h-3.5 w-3.5" /> Código 6
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-8 rounded-xl border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                            onClick={() => onLink(k.id, 8)}>
+                            <Link2 className="mr-1 h-3.5 w-3.5" /> Código 8
+                          </Button>
+                        </>
+                      )}
+                      {!revoked && (
                         <Button size="sm" variant="outline" className="h-8 rounded-xl border-amber-300 text-amber-700 hover:bg-amber-50"
                           onClick={() => onRevoke(k.id)}>
                           <ShieldOff className="mr-1 h-3.5 w-3.5" /> Revocar
@@ -223,6 +235,25 @@ function ApiKeysPage() {
                   <code className="mt-3 block break-all rounded-lg bg-muted px-3 py-2 font-mono text-xs">
                     {mask(k.token, show)}
                   </code>
+                  {(() => {
+                    const lc = codes.find((c) => c.api_key_id === k.id);
+                    if (!lc) return null;
+                    return (
+                      <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-indigo-200 bg-indigo-50/60 px-3 py-2">
+                        <div className="text-xs text-indigo-700">Código de vinculación</div>
+                        <code className="font-mono text-lg font-bold tracking-[0.3em] text-indigo-900">{lc.code}</code>
+                        <Badge variant="outline" className="border-indigo-300 text-indigo-700">
+                          expira en {remaining(lc.expires_at)}
+                        </Badge>
+                        <Button size="sm" variant="outline" className="h-7 rounded-lg" onClick={() => copy(lc.code)}>
+                          <Copy className="mr-1 h-3 w-3" /> Copiar
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 rounded-lg" onClick={() => onCancelCode(lc.id)}>
+                          <X className="mr-1 h-3 w-3" /> Anular
+                        </Button>
+                      </div>
+                    );
+                  })()}
                 </li>
               );
             })}
