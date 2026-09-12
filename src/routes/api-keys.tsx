@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Copy, KeyRound, Plus, Trash2, ShieldOff, Code2, Radio, Globe } from "lucide-react";
+import { Copy, KeyRound, Plus, Trash2, ShieldOff, Code2, Radio, Globe, Link2, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   listApiKeys, createApiKey, revokeApiKey, deleteApiKey,
+  createLinkCode, listLinkCodes, cancelLinkCode,
 } from "@/lib/api-keys.functions";
 
 export const Route = createFileRoute("/api-keys")({
@@ -33,21 +34,61 @@ interface ApiKey {
 // dominio principal del portal (appsolar.torobyte.com cuando esté apuntado).
 const API_BASE = "https://appsolar.torobyte.com";
 
+interface LinkCode {
+  id: string;
+  code: string;
+  api_key_id: string;
+  expires_at: string;
+}
+
 function ApiKeysPage() {
   const list = useServerFn(listApiKeys);
   const create = useServerFn(createApiKey);
   const revoke = useServerFn(revokeApiKey);
   const del = useServerFn(deleteApiKey);
+  const mkCode = useServerFn(createLinkCode);
+  const listCodes = useServerFn(listLinkCodes);
+  const cancelCode = useServerFn(cancelLinkCode);
   const [keys, setKeys] = useState<ApiKey[]>([]);
+  const [codes, setCodes] = useState<LinkCode[]>([]);
   const [label, setLabel] = useState("");
   const [creating, setCreating] = useState(false);
   const [reveal, setReveal] = useState<Record<string, boolean>>({});
+  const [now, setNow] = useState(Date.now());
 
   useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   async function refresh() {
-    const r = await list();
+    const [r, c] = await Promise.all([list(), listCodes()]);
     setKeys((r as any).keys);
+    setCodes((c as any).codes);
+  }
+
+  async function onLink(keyId: string, length: 6 | 8) {
+    try {
+      await mkCode({ data: { api_key_id: keyId, length } });
+      await refresh();
+      toast.success(`Código de ${length} dígitos generado. Válido 15 minutos.`);
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  }
+
+  async function onCancelCode(id: string) {
+    await cancelCode({ data: { id } });
+    await refresh();
+  }
+
+  function remaining(expires: string) {
+    const ms = new Date(expires).getTime() - now;
+    if (ms <= 0) return "expirado";
+    const m = Math.floor(ms / 60000);
+    const s = Math.floor((ms % 60000) / 1000);
+    return `${m}:${String(s).padStart(2, "0")}`;
   }
 
   async function onCreate(e: React.FormEvent) {
@@ -168,6 +209,18 @@ function ApiKeysPage() {
                         <Copy className="mr-1 h-3.5 w-3.5" /> Copiar
                       </Button>
                       {!revoked && (
+                        <>
+                          <Button size="sm" variant="outline" className="h-8 rounded-xl border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                            onClick={() => onLink(k.id, 6)}>
+                            <Link2 className="mr-1 h-3.5 w-3.5" /> Código 6
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-8 rounded-xl border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                            onClick={() => onLink(k.id, 8)}>
+                            <Link2 className="mr-1 h-3.5 w-3.5" /> Código 8
+                          </Button>
+                        </>
+                      )}
+                      {!revoked && (
                         <Button size="sm" variant="outline" className="h-8 rounded-xl border-amber-300 text-amber-700 hover:bg-amber-50"
                           onClick={() => onRevoke(k.id)}>
                           <ShieldOff className="mr-1 h-3.5 w-3.5" /> Revocar
@@ -182,6 +235,25 @@ function ApiKeysPage() {
                   <code className="mt-3 block break-all rounded-lg bg-muted px-3 py-2 font-mono text-xs">
                     {mask(k.token, show)}
                   </code>
+                  {(() => {
+                    const lc = codes.find((c) => c.api_key_id === k.id);
+                    if (!lc) return null;
+                    return (
+                      <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-indigo-200 bg-indigo-50/60 px-3 py-2">
+                        <div className="text-xs text-indigo-700">Código de vinculación</div>
+                        <code className="font-mono text-lg font-bold tracking-[0.3em] text-indigo-900">{lc.code}</code>
+                        <Badge variant="outline" className="border-indigo-300 text-indigo-700">
+                          expira en {remaining(lc.expires_at)}
+                        </Badge>
+                        <Button size="sm" variant="outline" className="h-7 rounded-lg" onClick={() => copy(lc.code)}>
+                          <Copy className="mr-1 h-3 w-3" /> Copiar
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 rounded-lg" onClick={() => onCancelCode(lc.id)}>
+                          <X className="mr-1 h-3 w-3" /> Anular
+                        </Button>
+                      </div>
+                    );
+                  })()}
                 </li>
               );
             })}
@@ -213,6 +285,79 @@ function ApiKeysPage() {
             Errores comunes: <b>401</b> clave inválida/revocada · <b>403</b> sin acceso al sitio · <b>404</b> sitio inexistente.
           </p>
         </Section>
+
+        {/* Vinculación */}
+        <Section title="Vinculación con tu plataforma de domótica">
+          <p>
+            Hay dos maneras de vincular una integración externa:
+          </p>
+          <ol className="list-decimal pl-5 space-y-1 text-sm">
+            <li><b>Con el token directo:</b> el usuario pega la clave <code>tb_live_…</code> en tu plataforma y la usas como <code>Bearer</code>.</li>
+            <li><b>Con un código numérico:</b> el usuario pulsa «Código 6» o «Código 8» arriba, obtiene un código de 6 u 8 dígitos, lo escribe en tu plataforma y tu backend lo canjea por el token. El código dura <b>15 minutos</b>, es de <b>un solo uso</b> y sólo existe un código activo por clave.</li>
+          </ol>
+          <p className="text-xs text-muted-foreground">
+            Guarda el token devuelto de forma cifrada: es la credencial permanente. El código sólo sirve para el intercambio inicial.
+          </p>
+        </Section>
+
+        <EndpointDoc
+          method="POST"
+          path="/api/public/v1/link/redeem"
+          icon={<Link2 className="h-4 w-4 text-indigo-600" />}
+          desc="Canjea un código de vinculación (6 u 8 dígitos) por el token de API permanente. No requiere autenticación previa; el código es la credencial de un solo uso."
+          params={[
+            { name: "code", in: "query", type: "string (6 u 8 dígitos)", required: true, desc: "Código mostrado al usuario en el portal. Se envía en el body JSON." },
+          ]}
+          response={`// 200 OK
+{
+  "token": "tb_live_xxxxxxxxxxxxxxxx",
+  "token_type": "Bearer",
+  "label": "Smart Home Canvas",
+  "user_id": "uuid"
+}
+
+// Errores
+400 { "error": "invalid_code_format" }   // no son 6 u 8 dígitos
+404 { "error": "invalid_code" }          // no existe
+409 { "error": "code_already_used" }     // ya canjeado
+410 { "error": "code_expired" }          // pasaron los 15 minutos
+403 { "error": "key_revoked" }           // la clave fue revocada`}
+          curl={`curl -X POST ${API_BASE}/api/public/v1/link/redeem \\
+  -H "Content-Type: application/json" \\
+  -d '{"code":"482913"}'`}
+        />
+
+        <Section title="Implementación paso a paso (lado domótica)">
+          <Pre>{`// 1) El usuario introduce el código en tu plataforma
+const res = await fetch("${API_BASE}/api/public/v1/link/redeem", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ code: userInput.replace(/\\D/g, "") }),
+});
+if (!res.ok) {
+  const { error } = await res.json();
+  // invalid_code | code_expired | code_already_used | key_revoked
+  throw new Error(error);
+}
+const { token } = await res.json();
+
+// 2) Guarda el token cifrado en tu base de datos (por usuario/instalación)
+await saveIntegrationToken(currentUser.id, token);
+
+// 3) Usa el token en todas las llamadas siguientes
+const sites = await fetch("${API_BASE}/api/public/v1/sites", {
+  headers: { Authorization: \`Bearer \${token}\` },
+}).then(r => r.json());
+
+// 4) Suscríbete al stream de cada sitio elegido
+//    ${API_BASE}/api/public/v1/sites/{siteId}/stream`}</Pre>
+          <ul className="list-disc pl-5 space-y-1 text-sm">
+            <li>Si el token empieza a devolver <b>401</b>, la clave fue revocada: pide una nueva vinculación.</li>
+            <li>Normaliza la entrada del usuario quitando espacios y guiones antes de canjear.</li>
+            <li>No muestres nunca el token completo en tu interfaz; enmascáralo.</li>
+          </ul>
+        </Section>
+
 
         {/* Endpoint 1 */}
         <EndpointDoc

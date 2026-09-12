@@ -30,7 +30,8 @@ import { TableSkeleton, PageHeaderSkeleton } from "@/components/LoadingStates";
 import { DEFAULT_SITE_KEY } from "@/components/SiteSwitcher";
 
 export const Route = createFileRoute("/app")({
-  validateSearch: (s: Record<string, unknown>) => ({ list: typeof s.list === "string" ? s.list : undefined }),
+  validateSearch: (s: Record<string, unknown>): { list?: string } =>
+    typeof s.list === "string" ? { list: s.list } : {},
   component: () => <ProtectedLayout><SitesIndex /></ProtectedLayout>,
 });
 
