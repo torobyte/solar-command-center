@@ -212,7 +212,7 @@ function SitesIndex() {
     try {
       await claim({ data: { code: cleanCode, site_name: siteName.trim() || undefined } });
       toast.success(t("sites.created"));
-      setOpen(false); setCode(""); setSiteName("");
+      setOpen(false); setCode(""); setSiteName(""); setDialogStep("install");
       load();
     } catch (e) {
       toast.error((e as Error).message);
