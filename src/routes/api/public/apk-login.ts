@@ -179,54 +179,17 @@ export const Route = createFileRoute("/api/public/apk-login")({
           try { window.SolarWidgetBridge?.saveSession?.(JSON.stringify(payload)); } catch {}
         }
 
-        async function validate(payload) {
-          if (!payload?.access_token) return false;
-          try {
-            const res = await fetch(SUPABASE_URL + '/auth/v1/user', {
-              headers: { apikey: API_KEY, Authorization: 'Bearer ' + payload.access_token },
-            });
-            return res.ok;
-          } catch { return false; }
-        }
-
-        async function refresh(payload) {
-          if (!payload?.refresh_token) return null;
-          try {
-            const res = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
-              method: 'POST',
-              headers: { apikey: API_KEY, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ refresh_token: payload.refresh_token }),
-            });
-            if (!res.ok) return null;
-            return await res.json();
-          } catch { return null; }
-        }
-
         async function tryExisting() {
           if (authBusy) return;
           let raw = null;
           try { raw = localStorage.getItem(AUTH_KEY) || localStorage.getItem(BOOTSTRAP_KEY); } catch {}
           if (!raw) return;
-          authBusy = true;
-          setLoading(true);
           try {
             const payload = JSON.parse(raw);
-            if (await validate(payload)) {
-              persist(payload);
-              window.location.replace(BASE_URL + '/app');
-              return;
-            }
-            // try refresh silently
-            const refreshed = await refresh(payload);
-            if (refreshed && await validate(refreshed)) {
-              persist(refreshed);
+            if (payload?.access_token && payload?.refresh_token) {
               window.location.replace(BASE_URL + '/app');
             }
           } catch {}
-          finally {
-            authBusy = false;
-            setLoading(false);
-          }
         }
 
         function friendlyError(status, payload, fallback) {

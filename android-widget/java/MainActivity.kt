@@ -53,7 +53,7 @@ class MainActivity : Activity() {
     private val authStorageKey = "sb-mtsxmdwraxnwobxsdrqr-auth-token"
     private val bootstrapStorageKey = "solarops_native_session_bootstrap"
     private val launchLogTag = "SolarOpsLaunch"
-    private val buildStamp = "mainactivity-2026-05-17-v6"
+    private val buildStamp = "mainactivity-2026-09-14-v7"
 
     inner class SolarWidgetBridge {
         @JavascriptInterface
@@ -116,18 +116,8 @@ class MainActivity : Activity() {
         fun getSavedSession(): String {
             val raw = appPrefs().getString(WidgetSetupActivity.KEY_AUTH_SESSION, null)
             if (raw.isNullOrBlank()) return ""
-            // Intentamos refrescar en background para próximas llamadas, pero
-            // devolvemos lo que tengamos ahora mismo (el JS hará setSession).
-            thread {
-                runCatching {
-                    val refreshed = ensureFreshSession(raw)
-                    if (refreshed != raw) {
-                        appPrefs().edit()
-                            .putString(WidgetSetupActivity.KEY_AUTH_SESSION, refreshed)
-                            .apply()
-                    }
-                }
-            }
+            // La WebView es la única responsable de renovar la sesión. Renovar
+            // aquí en paralelo reutilizaba tokens rotados y generaba ráfagas 429.
             return raw
         }
     }
@@ -170,16 +160,7 @@ class MainActivity : Activity() {
         setContentView(buildBrandedSplash(brand))
 
         thread {
-            val refreshed = runCatching { ensureFreshSession(savedSession) }
-                .onFailure { Log.w(launchLogTag, "ensureFreshSession falló: ${it.message}") }
-                .getOrNull()
-            val effective = refreshed ?: savedSession
-            if (refreshed != null && refreshed != savedSession) {
-                appPrefs().edit()
-                    .putString(WidgetSetupActivity.KEY_AUTH_SESSION, refreshed)
-                    .apply()
-            }
-            runCatching { syncSitesFromSession(effective) }
+            runCatching { syncSitesFromSession(savedSession) }
                 .onSuccess { Log.d(launchLogTag, "Sitios sincronizados: $it") }
                 .onFailure { Log.w(launchLogTag, "Sync sitios: ${it.message}") }
             // Inicia el servicio nativo de alertas (Web Push no funciona en WebView).
@@ -395,21 +376,8 @@ class MainActivity : Activity() {
         // un tick inmediato. Esto repara los widgets si el sistema mató los
         // timers durante Doze profundo.
         runCatching { WidgetCommon.kickAll(applicationContext) }
-        // Sesión perpetua: en cada onResume intentamos refrescar el token
-        // silenciosamente para que nunca expire mientras el usuario use la app.
-        if (!saved.isNullOrBlank()) {
-            thread {
-                val refreshed = runCatching { ensureFreshSession(saved) }.getOrNull()
-                if (refreshed != null && refreshed != saved) {
-                    appPrefs().edit()
-                        .putString(WidgetSetupActivity.KEY_AUTH_SESSION, refreshed)
-                        .apply()
-                    if (::web.isInitialized) {
-                        runOnUiThread { injectSavedSession() }
-                    }
-                }
-            }
-        }
+        // La WebView mantiene y renueva una sola sesión. El bridge recibe cada
+        // token renovado mediante saveSession(), evitando renovaciones paralelas.
     }
 
 

@@ -23,6 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authLoading, setAuthLoading] = useState(true);
   const [roleLoading, setRoleLoading] = useState(true);
   const bootstrappedRef = useRef(false);
+  const nativeRestoreAttemptedRef = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -30,6 +31,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const tryRestoreFromNativeBridge = async (): Promise<Session | null> => {
       if (typeof window === "undefined") return null;
+      if (nativeRestoreAttemptedRef.current) return null;
+      nativeRestoreAttemptedRef.current = true;
       const bridge = (window as unknown as {
         SolarWidgetBridge?: {
           getSavedSession?: () => string;
@@ -116,28 +119,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!active) return;
-      // Si la sesión se pierde por expiración / fallo de refresh, no dejamos
-      // al usuario fuera: intentamos restaurar desde el bridge nativo antes
-      // de reportar SIGNED_OUT al resto de la app.
-      if ((event === "SIGNED_OUT" || event === "TOKEN_REFRESHED") && !nextSession && !userInitiatedSignOut) {
-        void (async () => {
-          const restored = await tryRestoreFromNativeBridge();
-          await applySession(restored ?? null);
-          if (active) {
-            setAuthLoading(false);
-            bootstrappedRef.current = true;
-          }
-        })();
-        return;
-      }
       // TOKEN_REFRESHED con sesión válida ocurre al volver al tab (Supabase
       // auto-refresca el access token). NO re-disparamos applySession ni
       // volvemos a poner la UI en "loading" — eso hace que toda la app
       // parpadee y se vuelva a montar al cambiar de pestaña/app. Sólo
       // actualizamos la sesión silenciosamente; el user y el rol no cambian.
+      // La sesión nueva también reemplaza la copia nativa para no reutilizar
+      // un refresh token rotado en el próximo arranque.
       if (event === "TOKEN_REFRESHED" && nextSession) {
         setSession(nextSession);
         setUser(nextSession.user ?? null);
+        try {
+          (window as Window & { SolarWidgetBridge?: { saveSession?: (payload: string) => void } })
+            .SolarWidgetBridge?.saveSession?.(JSON.stringify(nextSession));
+        } catch {}
         return;
       }
       if (event === "SIGNED_OUT") userInitiatedSignOut = false;
