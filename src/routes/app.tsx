@@ -23,7 +23,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { claimPairingCode } from "@/lib/pairing.functions";
 import { getSiteOwners } from "@/lib/sharing.functions";
 import { transferLicenseToSite } from "@/lib/licenses.functions";
-import { Plus, Cpu as CpuIcon, Sparkles, KeyRound, Copy, Share2, Home, Sun as SunIcon, BatteryFull, EyeOff, Zap, Search, SlidersHorizontal, Eye, MoreVertical, ChevronLeft, ChevronRight, Globe2, ArrowRightLeft, Trash2, Star, StarOff, Terminal, CheckCircle2, ArrowRight, Wifi } from "lucide-react";
+import { Plus, Cpu as CpuIcon, Sparkles, KeyRound, Copy, Share2, Home, Sun as SunIcon, BatteryFull, EyeOff, Zap, Search, SlidersHorizontal, Eye, MoreVertical, ChevronLeft, ChevronRight, Globe2, ArrowRightLeft, Trash2, Star, StarOff, Terminal, CheckCircle2, ArrowRight, Wifi, Pencil } from "lucide-react";
 import { SiteSharing } from "@/components/SiteSharing";
 import { toast } from "sonner";
 import { TableSkeleton, PageHeaderSkeleton } from "@/components/LoadingStates";
@@ -71,6 +71,27 @@ function SitesIndex() {
   const [siteName, setSiteName] = useState("");
   const [busy, setBusy] = useState(false);
   const [shareSite, setShareSite] = useState<Site | null>(null);
+  const [renameSite, setRenameSite] = useState<Site | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [renameBusy, setRenameBusy] = useState(false);
+
+  function openRename(s: Site) {
+    setRenameValue(s.name);
+    setRenameSite(s);
+  }
+
+  async function saveRename() {
+    if (!renameSite) return;
+    const name = renameValue.trim();
+    if (!name) { toast.error("El nombre no puede estar vacío"); return; }
+    setRenameBusy(true);
+    const { error } = await supabase.from("sites").update({ name }).eq("id", renameSite.id);
+    setRenameBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Sitio renombrado");
+    setRenameSite(null);
+    load();
+  }
   const [transferLic, setTransferLic] = useState<MyLicense | null>(null);
   const [transferTarget, setTransferTarget] = useState<string>("");
   const [transferBusy, setTransferBusy] = useState(false);
@@ -524,6 +545,11 @@ function SitesIndex() {
                           : <Star className="h-3.5 w-3.5" />}
                       </Button>
                       {!isShared && (
+                        <Button size="sm" variant="ghost" className="h-7 rounded-full px-2 text-xs" title="Renombrar" onClick={() => openRename(s)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      {!isShared && (
                         <Button size="sm" variant="ghost" className="h-7 rounded-full px-2 text-xs" onClick={() => setShareSite(s)}>
                           <Share2 className="h-3.5 w-3.5" /> Compartir
                         </Button>
@@ -712,10 +738,15 @@ function SitesIndex() {
                                   </DropdownMenuItem>
                                 )}
                                 {!isShared && (
-                                  <DropdownMenuItem onClick={() => setShareSite(s)}>
-                                    <Share2 className="mr-2 h-4 w-4" /> Compartir
+                                  <DropdownMenuItem onClick={() => openRename(s)}>
+                                    <Pencil className="mr-2 h-4 w-4" /> Renombrar
                                   </DropdownMenuItem>
                                 )}
+                                {!isShared && (
+                                   <DropdownMenuItem onClick={() => setShareSite(s)}>
+                                     <Share2 className="mr-2 h-4 w-4" /> Compartir
+                                   </DropdownMenuItem>
+                                 )}
                                 <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(s.id); toast.success("ID copiado"); }}>
                                   <Copy className="mr-2 h-4 w-4" /> Copiar ID
                                 </DropdownMenuItem>
@@ -775,6 +806,34 @@ function SitesIndex() {
           </div>
         </>
       )}
+
+      <Dialog open={renameSite != null} onOpenChange={(o) => !o && setRenameSite(null)}>
+        <DialogContent className="max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5 text-accent" /> Renombrar sitio
+            </DialogTitle>
+            <DialogDescription>Cambia el nombre visible de este sitio.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="rename-site">Nombre del sitio</Label>
+            <Input
+              id="rename-site"
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") saveRename(); }}
+              maxLength={120}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameSite(null)} disabled={renameBusy}>Cancelar</Button>
+            <Button onClick={saveRename} disabled={renameBusy || !renameValue.trim()}>
+              {renameBusy ? "Guardando…" : "Guardar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={shareSite != null} onOpenChange={(o) => !o && setShareSite(null)}>
         <DialogContent className="max-w-2xl rounded-2xl">
