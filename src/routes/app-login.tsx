@@ -84,7 +84,7 @@ function AppLoginPage() {
       const { data } = await supabase.auth.getSession();
       if (data.session) window.SolarWidgetBridge?.saveSession?.(JSON.stringify(data.session));
       await pushTokenToNative();
-      navigate({ to: "/apk-auth", replace: true });
+      navigate({ to: "/app", replace: true });
     } catch {
       toast.error("No pudimos conectar con el servicio de acceso. Revisa tu conexión y vuelve a intentarlo.");
     } finally {
