@@ -61,7 +61,7 @@ export function ErrorDialog({
         </ul>
 
         {details && (
-          <pre className="max-h-32 overflow-auto rounded-md bg-muted p-2 font-mono text-[11px] text-muted-foreground">
+          <pre className="max-h-32 whitespace-pre-wrap break-words rounded-md bg-muted p-2 font-mono text-[11px] text-muted-foreground">
             {details}
           </pre>
         )}
