@@ -43,8 +43,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const raw = bridge.getSavedSession();
         if (!raw) return null;
-        const parsed = JSON.parse(raw) as { access_token?: string; refresh_token?: string };
+        const parsed = JSON.parse(raw) as { access_token?: string; refresh_token?: string; expires_at?: number };
         if (!parsed.access_token || !parsed.refresh_token) return null;
+        const now = Math.floor(Date.now() / 1000);
+        if (parsed.expires_at && parsed.expires_at <= now + 30) return null;
         const { data, error } = await supabase.auth.setSession({
           access_token: parsed.access_token,
           refresh_token: parsed.refresh_token,
@@ -101,10 +103,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const timeout = new Promise<{ data: { session: null } }>((resolve) =>
           setTimeout(() => resolve({ data: { session: null } }), 3500),
         );
-        const { data } = (await Promise.race([sessionPromise, timeout])) as { data: { session: Session | null } };
+        const result = (await Promise.race([sessionPromise, timeout])) as {
+          data: { session: Session | null };
+          error?: { message?: string; code?: string } | null;
+        };
         if (!active) return;
-        if (data.session) {
-          await applySession(data.session);
+        if (result.data.session) {
+          await applySession(result.data.session);
+        } else if (result.error) {
+          await supabase.auth.signOut({ scope: "local" });
+          await applySession(null);
         } else {
           const restored = await tryRestoreFromNativeBridge();
           await applySession(restored);
