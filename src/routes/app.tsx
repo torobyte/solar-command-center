@@ -280,53 +280,135 @@ function SitesIndex() {
             <DialogTrigger asChild>
               <Button className="rounded-xl bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"><Plus className="mr-1.5 h-4 w-4" strokeWidth={2.4} />{t("sites.new")}</Button>
             </DialogTrigger>
-          <DialogContent className="rounded-2xl">
-            <DialogHeader>
-              <DialogTitle>Vincular un dispositivo</DialogTitle>
-              <DialogDescription>
-                Introduce el código de 6 caracteres que aparece en la pantalla de tu Raspberry / Orange Pi.
-                Si aún no tienes uno, instala el agente con <code className="font-mono text-xs">install.sh</code> y enciéndelo.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={addSite} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="pair-code">Código de vinculación</Label>
-                <Input
-                  id="pair-code"
-                  required
-                  inputMode="text"
-                  autoComplete="off"
-                  autoCapitalize="characters"
-                  spellCheck={false}
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))}
-                  placeholder="A1B2C3"
-                  className="text-center font-mono text-2xl tracking-[0.5em] uppercase"
-                  maxLength={6}
-                />
-                <p className="text-[11px] text-muted-foreground">
-                  El código aparece en la pantalla local del equipo (o en <code className="font-mono">/local</code>).
-                  Caduca a los 30 minutos — genera otro si expira.
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="site-name">Nombre del sitio (opcional)</Label>
-                <Input
-                  id="site-name"
-                  value={siteName}
-                  onChange={(e) => setSiteName(e.target.value)}
-                  placeholder="Ej. Casa Chillán, Bodega norte…"
-                />
-                <p className="text-[11px] text-muted-foreground">
-                  Podrás cambiarlo en cualquier momento desde el detalle del sitio.
-                </p>
-              </div>
-              <DialogFooter>
-                <Button type="submit" className="rounded-full" disabled={busy}>
-                  {busy ? "Vinculando…" : "Vincular"}
-                </Button>
-              </DialogFooter>
-            </form>
+          <DialogContent className="rounded-2xl max-w-lg">
+            {dialogStep === "install" ? (
+              <>
+                <DialogHeader>
+                  <DialogTitle>Instalar agente en tu dispositivo</DialogTitle>
+                  <DialogDescription>
+                    Sigue estos pasos para conectar un inversor solar a la plataforma.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  {/* Paso 1 */}
+                  <div className="flex gap-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">1</div>
+                    <div className="space-y-1.5 min-w-0">
+                      <p className="text-sm font-medium flex items-center gap-1.5"><CpuIcon className="h-4 w-4 text-primary" /> Conecta tu Raspberry Pi / Orange Pi</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Conecta la placa al inversor Voltronic / Axpert / MPP-Solar por cable USB o RS485.
+                        Enciéndela con Raspberry Pi OS, Ubuntu o Debian instalado.
+                      </p>
+                    </div>
+                  </div>
+                  {/* Paso 2 */}
+                  <div className="flex gap-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">2</div>
+                    <div className="space-y-1.5 min-w-0">
+                      <p className="text-sm font-medium flex items-center gap-1.5"><Terminal className="h-4 w-4 text-primary" /> Ejecuta el instalador</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Abre una terminal en la placa (por SSH o monitor conectado) y pega:
+                      </p>
+                      <div className="group relative rounded-lg border bg-muted/50 p-3 pr-10">
+                        <code className="text-[11px] font-mono break-all text-foreground">
+                          curl -fsSL https://appsolar.torobyte.com/api/public/agent/install | sudo bash
+                        </code>
+                        <button
+                          type="button"
+                          className="absolute right-2 top-2 rounded-md p-1 text-muted-foreground hover:text-foreground"
+                          onClick={() => {
+                            navigator.clipboard?.writeText("curl -fsSL https://appsolar.torobyte.com/api/public/agent/install | sudo bash");
+                            toast.success("Comando copiado");
+                          }}
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Instalación 100% automática: descarga el agente, configura permisos USB y deja el servicio corriendo.
+                      </p>
+                    </div>
+                  </div>
+                  {/* Paso 3 */}
+                  <div className="flex gap-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">3</div>
+                    <div className="space-y-1.5 min-w-0">
+                      <p className="text-sm font-medium flex items-center gap-1.5"><Wifi className="h-4 w-4 text-primary" /> Obtén el código de vinculación</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Tras instalar, abre <code className="font-mono text-[11px]">http://&lt;ip-de-la-placa&gt;/</code> en tu navegador
+                        o visita la sección <Link to="/local" className="text-primary underline">/local</Link> desde el portal.
+                        Verás un código de 6 caracteres en pantalla.
+                      </p>
+                    </div>
+                  </div>
+                  {/* Paso 4 */}
+                  <div className="flex gap-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">4</div>
+                    <div className="space-y-1.5 min-w-0">
+                      <p className="text-sm font-medium flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-primary" /> Vincula el código aquí</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Pulsa "Ya tengo el código" y escribe los 6 caracteres para asociar el dispositivo a tu cuenta.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <DialogFooter className="gap-2 sm:gap-2">
+                  <Button variant="outline" className="rounded-full" onClick={() => setOpen(false)}>Cancelar</Button>
+                  <Button className="rounded-full" onClick={() => setDialogStep("pair")}>
+                    Ya tengo el código <ArrowRight className="ml-1.5 h-4 w-4" />
+                  </Button>
+                </DialogFooter>
+              </>
+            ) : (
+              <>
+                <DialogHeader>
+                  <DialogTitle>Vincular un dispositivo</DialogTitle>
+                  <DialogDescription>
+                    Introduce el código de 6 caracteres que aparece en la pantalla de tu Raspberry / Orange Pi.
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={addSite} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="pair-code">Código de vinculación</Label>
+                    <Input
+                      id="pair-code"
+                      required
+                      inputMode="text"
+                      autoComplete="off"
+                      autoCapitalize="characters"
+                      spellCheck={false}
+                      value={code}
+                      onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))}
+                      placeholder="A1B2C3"
+                      className="text-center font-mono text-2xl tracking-[0.5em] uppercase"
+                      maxLength={6}
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      El código aparece en la pantalla local del equipo (o en <code className="font-mono">/local</code>).
+                      Caduca a los 30 minutos — genera otro si expira.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="site-name">Nombre del sitio (opcional)</Label>
+                    <Input
+                      id="site-name"
+                      value={siteName}
+                      onChange={(e) => setSiteName(e.target.value)}
+                      placeholder="Ej. Casa Chillán, Bodega norte…"
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Podrás cambiarlo en cualquier momento desde el detalle del sitio.
+                    </p>
+                  </div>
+                  <DialogFooter className="gap-2 sm:gap-2">
+                    <Button type="button" variant="outline" className="rounded-full" onClick={() => setDialogStep("install")}>Atrás</Button>
+                    <Button type="submit" className="rounded-full" disabled={busy}>
+                      {busy ? "Vinculando…" : "Vincular"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </>
+            )}
           </DialogContent>
           </Dialog>
         </div>
