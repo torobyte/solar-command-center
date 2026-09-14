@@ -23,7 +23,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { claimPairingCode } from "@/lib/pairing.functions";
 import { getSiteOwners } from "@/lib/sharing.functions";
 import { transferLicenseToSite } from "@/lib/licenses.functions";
-import { Plus, Cpu as CpuIcon, Sparkles, KeyRound, Copy, Share2, Home, Sun as SunIcon, BatteryFull, EyeOff, Zap, Search, SlidersHorizontal, Eye, MoreVertical, ChevronLeft, ChevronRight, Globe2, ArrowRightLeft, Trash2, Star, StarOff, Terminal, CheckCircle2, ArrowRight, Wifi } from "lucide-react";
+import { Plus, Cpu as CpuIcon, Sparkles, KeyRound, Copy, Share2, Home, Sun as SunIcon, BatteryFull, EyeOff, Zap, Search, SlidersHorizontal, Eye, MoreVertical, ChevronLeft, ChevronRight, Globe2, ArrowRightLeft, Trash2, Star, StarOff, Terminal, CheckCircle2, ArrowRight, Wifi, Pencil } from "lucide-react";
 import { SiteSharing } from "@/components/SiteSharing";
 import { toast } from "sonner";
 import { TableSkeleton, PageHeaderSkeleton } from "@/components/LoadingStates";
@@ -71,6 +71,27 @@ function SitesIndex() {
   const [siteName, setSiteName] = useState("");
   const [busy, setBusy] = useState(false);
   const [shareSite, setShareSite] = useState<Site | null>(null);
+  const [renameSite, setRenameSite] = useState<Site | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [renameBusy, setRenameBusy] = useState(false);
+
+  function openRename(s: Site) {
+    setRenameValue(s.name);
+    setRenameSite(s);
+  }
+
+  async function saveRename() {
+    if (!renameSite) return;
+    const name = renameValue.trim();
+    if (!name) { toast.error("El nombre no puede estar vacío"); return; }
+    setRenameBusy(true);
+    const { error } = await supabase.from("sites").update({ name }).eq("id", renameSite.id);
+    setRenameBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Sitio renombrado");
+    setRenameSite(null);
+    load();
+  }
   const [transferLic, setTransferLic] = useState<MyLicense | null>(null);
   const [transferTarget, setTransferTarget] = useState<string>("");
   const [transferBusy, setTransferBusy] = useState(false);
