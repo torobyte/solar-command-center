@@ -276,7 +276,7 @@ function SitesIndex() {
           <Link to="/sites/overview">
             <Button variant="outline" className="rounded-xl border-border bg-card shadow-sm hover:bg-muted/60"><Globe2 className="mr-1.5 h-4 w-4" strokeWidth={2.2} />Vista global</Button>
           </Link>
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setDialogStep("install"); }}>
             <DialogTrigger asChild>
               <Button className="rounded-xl bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"><Plus className="mr-1.5 h-4 w-4" strokeWidth={2.4} />{t("sites.new")}</Button>
             </DialogTrigger>
