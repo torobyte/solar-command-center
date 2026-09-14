@@ -66,6 +66,7 @@ function SitesIndex() {
   const [licenses, setLicenses] = useState<MyLicense[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [dialogStep, setDialogStep] = useState<"install" | "pair">("install");
   const [code, setCode] = useState("");
   const [siteName, setSiteName] = useState("");
   const [busy, setBusy] = useState(false);
