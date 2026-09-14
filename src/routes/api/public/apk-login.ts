@@ -159,6 +159,7 @@ export const Route = createFileRoute("/api/public/apk-login")({
         const submit = document.getElementById('submit');
         const btnLabel = document.getElementById('btn-label');
         const errorEl = document.getElementById('error');
+        let authBusy = false;
 
         function setLoading(on) {
           submit.disabled = on;
@@ -202,9 +203,12 @@ export const Route = createFileRoute("/api/public/apk-login")({
         }
 
         async function tryExisting() {
+          if (authBusy) return;
           let raw = null;
           try { raw = localStorage.getItem(AUTH_KEY) || localStorage.getItem(BOOTSTRAP_KEY); } catch {}
           if (!raw) return;
+          authBusy = true;
+          setLoading(true);
           try {
             const payload = JSON.parse(raw);
             if (await validate(payload)) {
@@ -219,13 +223,17 @@ export const Route = createFileRoute("/api/public/apk-login")({
               window.location.replace(BASE_URL + '/app');
             }
           } catch {}
+          finally {
+            authBusy = false;
+            setLoading(false);
+          }
         }
 
         function friendlyError(status, payload, fallback) {
           const raw = (payload && (payload.msg || payload.error_description || payload.error_code || payload.error)) || '';
           const s = String(raw).toLowerCase();
           if (status === 429 || s.includes('rate limit') || s.includes('too many')) {
-            return 'Demasiados intentos. Espera unos minutos y vuelve a probar (o cambia de red / desactiva la VPN).';
+            return 'El servicio de acceso está temporalmente ocupado. Espera un momento y vuelve a intentarlo.';
           }
           if (s.includes('invalid login') || s.includes('invalid credentials') || s.includes('invalid_grant')) {
             return 'Correo o contraseña incorrectos.';
@@ -238,6 +246,8 @@ export const Route = createFileRoute("/api/public/apk-login")({
         }
 
         async function login(email, password) {
+          if (authBusy) return;
+          authBusy = true;
           clearError();
           setLoading(true);
           try {
@@ -253,8 +263,10 @@ export const Route = createFileRoute("/api/public/apk-login")({
             persist(payload);
             window.location.replace(BASE_URL + '/app');
           } catch (err) {
-            setLoading(false);
             showError(err instanceof Error ? err.message : String(err));
+          } finally {
+            authBusy = false;
+            setLoading(false);
           }
         }
 

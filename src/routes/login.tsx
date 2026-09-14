@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ErrorDialog } from "@/components/ErrorDialog";
@@ -10,7 +10,19 @@ import { TorobyteLoginShell } from "@/components/TorobyteLoginShell";
 import { LangSwitcher } from "@/components/LangSwitcher";
 import { Loader2 } from "lucide-react";
 
-export const Route = createFileRoute("/login")({ component: LoginPage });
+export const Route = createFileRoute("/login")({
+  head: () => ({
+    meta: [
+      { title: "Iniciar sesión | Torobyte Solar" },
+      { name: "description", content: "Accede al monitoreo y control de tus instalaciones solares." },
+      { property: "og:title", content: "Iniciar sesión | Torobyte Solar" },
+      { property: "og:description", content: "Accede al monitoreo y control de tus instalaciones solares." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
+  component: LoginPage,
+});
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -22,14 +34,17 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [errorOpen, setErrorOpen] = useState(false);
   const [errorDetails, setErrorDetails] = useState<string | undefined>();
+  const loginInFlight = useRef(false);
 
   useEffect(() => {
     if (!authLoading && user) navigate({ to: "/app", replace: true });
   }, [authLoading, user, navigate]);
 
   async function attemptLogin() {
-    if (!email.trim() || !password) return;
+    if (loginInFlight.current || !email.trim() || !password) return;
+    loginInFlight.current = true;
     setLoading(true);
+    setErrorOpen(false);
     try {
       const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
       if (error) {
@@ -37,7 +52,7 @@ function LoginPage() {
         const s = raw.toLowerCase();
         let friendly = raw;
         if ((error as unknown as { status?: number }).status === 429 || s.includes("rate limit") || s.includes("too many")) {
-          friendly = "Demasiados intentos. Espera unos minutos y vuelve a probar (o cambia de red / desactiva la VPN).";
+          friendly = "El servicio de acceso está temporalmente ocupado. Espera un momento y vuelve a intentarlo.";
         } else if (s.includes("invalid login") || s.includes("invalid credentials")) {
           friendly = "Correo o contraseña incorrectos.";
         }
@@ -50,6 +65,7 @@ function LoginPage() {
       setErrorDetails(err instanceof Error ? err.message : "No se pudo iniciar sesión");
       setErrorOpen(true);
     } finally {
+      loginInFlight.current = false;
       setLoading(false);
     }
   }
